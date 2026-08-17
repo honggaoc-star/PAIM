@@ -23,6 +23,8 @@ It defines how PAIM should be tested as an integrated management system through 
 
 It does not prescribe a specific software test framework or implementation technology.
 
+**Normative cross-cutting test contract:** `../specifications/PAIM_SYSTEM_RECORD_AND_DECISION_INTEGRITY_SPEC_v0.1.md` defines the hard integrity behavior for authoritative record history/currentness, Integrated Operating Boundary Snapshots, case transitions, Decision Authorization Basis, and Interim Operating Disposition. Behavioral tests must use those rules as oracles without replacing the human judgments reserved there.
+
 ## 1. Purpose
 
 The central validation question is:
@@ -289,6 +291,26 @@ Material change produces reassessment rather than silent continuation.
 ### 9.7 No universal-score substitution
 
 A high-level indicator cannot replace the underlying management reasoning.
+
+### 9.8 Deterministic currentness
+
+Authoritative current records are selected only for explicit scope and time. Absence and incompatible overlap remain explicit; the system never selects silently by recency or convenience.
+
+### 9.9 Boundary integrity
+
+Every authorized Decision binds one immutable Integrated Operating Boundary Snapshot. Mechanical checks apply only to structured/testable clauses; narrative clauses require accountable determination and are never silently treated as satisfied.
+
+### 9.10 Authorization integrity
+
+Every authorized Decision binds a valid Decision Authorization Basis covering the exact Decision scope and effective time. `AUTHORITY UNRESOLVED` and `DECISION AUTHORITY UNRESOLVED` never imply permission.
+
+### 9.11 Transition integrity
+
+Every case lifecycle transition follows the canonical source-to-target table, preserves its Transition Event, and satisfies mandatory guards.
+
+### 9.12 Reassessment outcome integrity
+
+Opening reassessment does not silently alter operation. Every completed Reassessment produces either an explicit unchanged-Decision confirmation or an authorized successor/amendment Decision; interim change is time-bounded and authorized.
 
 ## 10. Boundary-Sensitivity Tests
 
@@ -594,6 +616,12 @@ Examples:
 - superseded input used as current;
 - unresolved authority omitted;
 - historical decision overwritten.
+- incompatible current versions silently resolved by newest timestamp;
+- lifecycle transition not allowed by the canonical transition table;
+- Decision authorized through an expired, revoked, or out-of-scope delegation;
+- narrative boundary clause treated as satisfied without accountable determination;
+- Interim Operating Disposition broadens operation or continues after expiry;
+- completed Reassessment has neither unchanged-Decision confirmation nor successor Decision.
 
 Expected behavior:
 

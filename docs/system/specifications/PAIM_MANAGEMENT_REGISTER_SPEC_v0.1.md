@@ -10,6 +10,8 @@ It defines how management should see and manage multiple AI configurations and P
 
 It does not prescribe dashboards, database technology, visualization libraries, reporting software, or UI layout.
 
+**Normative cross-cutting contract:** `PAIM_SYSTEM_RECORD_AND_DECISION_INTEGRITY_SPEC_v0.1.md` governs the scope/time/current-selection and conflict semantics used to derive Register facts. The Register remains non-authoritative and must reproduce exact source-version links.
+
 ## 1. Purpose
 
 Individual PAIM cases support individual management judgments.
@@ -398,6 +400,8 @@ Authoritative detail remains in:
 - Reassessment Record.
 
 The register must not become an independent competing source of truth.
+
+For every displayed current fact, the Register must apply `PAIM_SYSTEM_RECORD_AND_DECISION_INTEGRITY_SPEC_v0.1.md`, §3.11 for an explicit scope and effective time and retain the selected source Record Version ID. Absence or incompatible current-record conflict must be displayed as such; the Register must not resolve it by selecting the newest or most convenient source.
 
 ## 26. Update Behavior
 

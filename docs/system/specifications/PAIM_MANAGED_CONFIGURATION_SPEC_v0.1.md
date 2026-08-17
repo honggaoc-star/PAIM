@@ -16,6 +16,8 @@ It defines what the PAIM system must represent, preserve, version, compare, and 
 
 It does not prescribe database schemas, UI implementation, APIs, or software technology.
 
+**Normative cross-cutting contract:** `PAIM_SYSTEM_RECORD_AND_DECISION_INTEGRITY_SPEC_v0.1.md` governs stable Configuration identity vs. immutable version identity, draft/finalization boundaries, status events, recorded/effective time, correction/amendment/supersession/withdrawal, authoritative current selection, conflict behavior, and exact historical retrieval.
+
 ## 1. Purpose
 
 The Managed Configuration is the bounded AI-enabled system of work to which PAIM evidence, analytical findings, management judgments, interventions, and reassessment apply.
@@ -49,6 +51,7 @@ Every Managed Configuration must have a durable identity independent of its desc
 Minimum identity elements:
 
 - Configuration ID
+- Configuration Version ID
 - Case ID
 - Configuration version
 - Configuration title/label
@@ -57,6 +60,7 @@ Minimum identity elements:
 - predecessor configuration, if any
 - successor configuration, if any
 - creation source/owner
+- recorded time
 - reason for creation/change
 
 A human-readable title is not sufficient as the authoritative identity.
@@ -78,6 +82,8 @@ CFG-001 v2
 The system must preserve both versions.
 
 A later version must not overwrite the earlier configuration to which historical evidence and decisions were bound.
+
+Configuration drafts, finalized versions, status changes, effective intervals, corrections, and current selection follow `PAIM_SYSTEM_RECORD_AND_DECISION_INTEGRITY_SPEC_v0.1.md`, §3. A substantive change to finalized configuration content always creates a new immutable version even when management determines that the change is non-material to a particular decision.
 
 ## 4. Configuration Status
 
@@ -427,6 +433,8 @@ If a change is material:
 
 Do not mutate the historical configuration record in place.
 
+If a change is non-material but corrects or changes finalized content, preserve it through the correction or amendment semantics in `PAIM_SYSTEM_RECORD_AND_DECISION_INTEGRITY_SPEC_v0.1.md`, §§3.7–3.8. “Non-material” means reassessment may not be required; it does not authorize historical mutation.
+
 ## 12. Same Configuration vs. New Configuration
 
 Use a **new version of the same configuration** when continuity remains meaningful and the management object is still recognizably the same system of work.
@@ -544,6 +552,8 @@ The system must be able to distinguish:
 - authorized configuration;
 - historical configuration.
 
+`current` is derived for an explicit scope and effective time under `PAIM_SYSTEM_RECORD_AND_DECISION_INTEGRITY_SPEC_v0.1.md`, §3.11. If incompatible versions appear current for the same scope/time, the result is `CURRENT RECORD CONFLICT — UNRESOLVED`; the platform must not choose one silently. Proposed, experimental, and fallback purpose must remain distinguishable from authoritative currentness and AI operating state.
+
 A management case may compare multiple alternatives simultaneously.
 
 For example:
@@ -640,11 +650,13 @@ Minimum fields:
 
 ### Identity
 - Configuration ID
+- Configuration Version ID
 - Case ID
 - version
 - title
 - status
 - effective date
+- recorded time
 - predecessor/successor
 
 ### Management object
@@ -764,7 +776,7 @@ Deferred to later specifications/platform design:
 - formal materiality decision authority;
 - machine-detectable vs. human-declared changes;
 - evidence applicability status taxonomy;
-- whether configuration versions require effective-time intervals;
+- organization-specific scheduling and review rules for future-effective configurations;
 - how external provider/model metadata are normalized;
 - cross-case shared configurations;
 - reusable control definitions.

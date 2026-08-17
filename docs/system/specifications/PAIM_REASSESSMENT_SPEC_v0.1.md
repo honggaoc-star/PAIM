@@ -21,6 +21,8 @@ It defines how PAIM determines whether a current management judgment remains sup
 
 It does not prescribe scheduling software, monitoring technology, notification mechanisms, or user-interface design.
 
+**Normative cross-cutting contract:** `PAIM_SYSTEM_RECORD_AND_DECISION_INTEGRITY_SPEC_v0.1.md` governs authoritative Reassessment identity/version/history, operation during reassessment, the Interim Operating Disposition, Decision Confirmation, and the mandatory successor/amendment rule for any changed operating state, Integrated Operating Boundary, or substantive Decision condition.
+
 ## 1. Purpose
 
 PAIM decisions are current judgments, not permanent approvals.
@@ -80,6 +82,7 @@ Every material reassessment should have a durable identity.
 Minimum fields:
 
 - Reassessment ID
+- Reassessment Version ID
 - Case ID
 - current Decision ID/version
 - current Configuration ID/version
@@ -88,6 +91,7 @@ Minimum fields:
 - owner/coordinator
 - date initiated
 - date completed
+- recorded time and effective time/interval
 - predecessor/successor reassessment where relevant
 
 ## 4. Reassessment Status
@@ -104,6 +108,8 @@ Possible statuses include:
 - superseded.
 
 The exact platform vocabulary may later be refined.
+
+Status events do not mutate finalized Reassessment content. Finalized versions, status history, current selection, correction, and supersession follow `PAIM_SYSTEM_RECORD_AND_DECISION_INTEGRITY_SPEC_v0.1.md`, §3.
 
 ## 5. Trigger Types
 
@@ -254,6 +260,8 @@ When reassessment is triggered, the system should record whether operation:
 - cannot proceed pending authority/evidence.
 
 This is an interim management disposition, not necessarily the successor PAIM decision.
+
+Every operating effect in this section must be recorded and authorized through the Interim Operating Disposition contract in `PAIM_SYSTEM_RECORD_AND_DECISION_INTEGRITY_SPEC_v0.1.md`, §7, unless an authorized successor/amendment Decision is already effective. An Interim Operating Disposition may continue unchanged operation, narrow, invoke authorized fallback, remediate, or suspend, but it may not broaden the boundary, authorize a stronger state, remove a required control, resolve an Authority Gap, or permanently change Decision conditions.
 
 ## 10. Reassessment Scope
 
@@ -430,6 +438,8 @@ Current decision remains supportable without substantive change.
 
 Current decision remains supportable but conditions/interventions change.
 
+This outcome confirms the existing Decision without a successor only when the change is a non-substantive implementation detail that remains within the exact operating state, Integrated Operating Boundary, configuration, required controls, authority conditions, and substantive Decision conditions. Otherwise it is an authorized successor/amendment Decision under `PAIM_SYSTEM_RECORD_AND_DECISION_INTEGRITY_SPEC_v0.1.md`, §§7.5–7.6.
+
 ### Modify boundary
 
 Operating Boundary narrows or broadens.
@@ -456,7 +466,7 @@ Current or stronger decision cannot be supported; fallback or constrained operat
 
 ## 23. Successor Decision
 
-If the management judgment changes materially, create a successor Management Decision Record.
+If the management judgment changes materially, create a successor Management Decision Record. Any change to operating state, Integrated Operating Boundary, governed configuration, or substantive Decision condition is material for this rule and requires an authorized successor/amendment Decision even when the prior Decision remains otherwise supportable.
 
 ```text
 Decision D1
@@ -480,6 +490,8 @@ If reassessment confirms the current decision, the system should still preserve 
 - rationale;
 - confirmation;
 - next triggers/learning.
+
+The completed Reassessment must also create the immutable Decision Confirmation defined in `PAIM_SYSTEM_RECORD_AND_DECISION_INTEGRITY_SPEC_v0.1.md`, §7.5, binding the unchanged Decision and Boundary Snapshot. Every completed Reassessment has exactly one outcome path: unchanged-Decision confirmation or authorized successor/amendment Decision.
 
 Do not silently mark the case unchanged without a record.
 
@@ -511,6 +523,8 @@ Minimum content:
 - conclusion
 - rationale
 - current/successor decision
+- Decision Confirmation or successor/amendment Decision
+- ended/superseding Interim Operating Disposition
 - intervention
 - learning
 - next triggers
@@ -627,6 +641,8 @@ Decision D2
 
 This longitudinal chain is a core distinction between PAIM as a management system and a one-time assessment.
 
+Every version and relationship in the chain must remain exactly retrievable under `PAIM_SYSTEM_RECORD_AND_DECISION_INTEGRITY_SPEC_v0.1.md`, §§3.11–3.12. Reassessment workflow state may coexist with operation only under the current Decision/Boundary and any current authorized Interim Operating Disposition.
+
 ## 34. Reassessment Integrity Checks
 
 The system should surface:
@@ -700,7 +716,7 @@ Deferred to later specifications/platform design:
 - notification timing;
 - incident-system integration;
 - evidence refresh workflow;
-- decision effective-date handling;
+- organization-specific scheduling and presentation of future-effective successor decisions;
 - simultaneous reassessments;
 - portfolio-level reassessment;
 - closure/retention policy.
