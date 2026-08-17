@@ -1,251 +1,165 @@
-# PAIM
+# Practical AI Management (PAIM)
 
-**Practical AI Management (PAIM)** is an integrated management system for making, implementing, observing, and revisiting decisions about bounded AI-enabled configurations.
+## Overview
 
-PAIM starts from a simple proposition:
+Practical AI Management (PAIM) is a practitioner-oriented management
+system for making, implementing, evaluating, and revising decisions
+about the use of artificial intelligence in organizations.
 
-> **AI cannot be managed adequately by considering risk alone. Practical AI management requires independent evidence about both organizational value and risk, followed by explicit integration, accountable management judgment, intervention, learning, and reassessment.**
+PAIM addresses a practical management question:
+
+> Given what is known about the value, risks, uncertainties,
+> alternatives, and organizational context of an AI use, what should
+> management do?
+
+PAIM is intended to support continuing management of AI-enabled
+activities rather than one-time approval or classification.
+
+The project is being developed method-first. Software, including a
+possible PAIM Workbench, is expected to support the management method
+rather than define it.
 
 ## Purpose
 
-Organizations adopt AI because they expect it to create value. That value may take many forms: cost reduction, productivity, quality, increased capability, improved decisions, revenue contribution, innovation, or other organizational outcomes.
+PAIM integrates distinct value-management and risk-management evidence
+into practical, accountable, revisable management decisions. It does not
+assume that value and risk can always be reduced to a single score.
 
-At the same time, AI-enabled activities can create material uncertainty, failure pathways, control dependencies, operational constraints, and other risks.
+Its four broad functional capabilities are:
 
-PAIM provides a structured way to manage the two together without collapsing them into a single universal score.
+1.  **Value Management** --- determine what value an AI-enabled
+    configuration is producing and what the evidence supports.
+2.  **Risk Management** --- identify and evaluate relevant risks,
+    consequences, uncertainties, and controls.
+3.  **Decision Integration** --- combine value evidence, risk evidence,
+    context, constraints, alternatives, and uncertainty into an
+    accountable management judgment.
+4.  **Management Learning** --- observe what happens after intervention
+    and use new evidence to reassess prior decisions.
 
-The central PAIM management question is:
+## Management Object
 
-> **Given what is known now, what should management do with this AI-enabled configuration, under what operating boundary, why, what action should follow, what should be learned, and what would cause the decision to change?**
+PAIM manages a bounded AI-enabled use or configuration rather than "AI"
+in the abstract.
 
-## System Architecture
+Conceptually:
 
-PAIM manages a **bounded AI-enabled configuration**, not an AI model in isolation.
+\[ M = (AI, X, P, E) \]
 
-A configuration may include the AI capability, task or activity, workflow, users and affected parties, information and data, AI authority, human authority, controls, escalation and review, provider or model, operating conditions, dependencies, and explicit exclusions.
+where (AI) is the relevant AI capability or system, (X) represents
+complementary inputs, (P) represents the process or use context, and (E)
+represents the operating environment.
 
-The system-level flow is:
-
-```text
-Management Entry
-      |
-      v
-Managed AI Configuration
-      |
-      v
-Evidence / Authority
-      |
-      +--------------------+
-      |                    |
-      v                    v
-Value Management      Risk Management
-      |                    |
-      +---------+----------+
-                |
-                v
-         PAIM Integration
-                |
-                v
-       Management Judgment
-                |
-                v
-           Intervention
-                |
-                v
-            Operation
-                |
-                v
-      Observation / Learning
-                |
-                v
-          Reassessment
-                |
-                +-----------> revised configuration / decision
-```
-
-PAIM is therefore a continuing management system rather than a one-time AI assessment.
-
-## Value and Risk
-
-Value Management and Risk Management remain analytically distinct.
-
-Each contributes a compact PAIM-facing interface:
-
-1. **Finding**
-2. **Boundary**
-3. **Uncertainty**
-4. **Implication**
-5. **Provenance**
-
-The contributing conclusions are preserved independently before PAIM Decision Integration.
-
-PAIM does not require Value and Risk to use identical internal methodologies, and it does not require them to be reduced to a common numerical scale.
+Observed outcomes should not automatically be attributed to the AI
+component independently of the surrounding configuration.
 
 ## Decision Integration
 
-PAIM Decision Integration considers the independent Value and Risk conclusions together with:
+Conceptually:
 
-- governing constraints and authority;
-- Control Dependencies;
-- Accepted and Decision-Limiting Uncertainty;
-- credible alternatives;
-- Reinforcement;
-- Conflict;
-- Constraint;
-- Configuration Trade-offs.
+\[ D = g(V, R, C, A, U) \]
 
-The result is an accountable **Management Judgment** and an **Integrated Operating Boundary** defining where and under what conditions the decision is supportable.
+where (V) is value evidence, (R) is risk evidence, (C) is organizational
+context and constraints, (A) is the set of available alternatives, (U)
+is relevant uncertainty, and (D) is the management decision.
 
-PAIM explicitly preserves human management judgment rather than replacing it with a universal approval score.
+This notation identifies decision inputs; it does not prescribe a
+universal numerical optimization function.
 
-## Intervention, Learning, and Reassessment
+## PAIM Management Cycle
 
-A PAIM decision does not end the management process.
+**Define → Establish → Assemble → Constrain → Generate Alternatives →
+Compare → Decide → Intervene → Observe → Learn → Reassess**
 
-The system links decisions to:
+The cycle treats management decisions as evidence-bounded judgments made
+under a particular evidence state and context. Decisions may therefore
+require reassessment as evidence, technology, costs, risks, workflows,
+policies, or alternatives change.
 
-- operational intervention;
-- accountable ownership;
-- controls and boundaries;
-- decision-specific learning;
-- observation;
-- reassessment triggers;
-- successor decisions where conditions change.
+## Core Principles
 
-New evidence does not silently rewrite a historical decision. It can trigger a traceable reassessment of whether that decision remains supportable.
+-   **Configuration Principle** --- manage the bounded AI-enabled
+    configuration rather than AI abstractly.
+-   **Evidence-Boundary Principle** --- management conclusions should
+    not exceed the evidence supporting them.
+-   **Missing-Evidence Principle** --- absence of evidence should not be
+    converted into favorable evidence.
+-   **Constraint-Before-Trade-off Principle** --- impermissible
+    alternatives should be removed before comparative judgment.
+-   **Alternative-Configuration Principle** --- consider realistic
+    alternative configurations rather than only AI-versus-no-AI choices.
+-   **Judgment Principle** --- structured evidence supports accountable
+    management judgment; it does not eliminate judgment.
+-   **Temporal-Decision Principle** --- decisions are made against an
+    evidence state and context and may require reassessment.
+-   **Learning-Intervention Principle** --- generating decision-relevant
+    evidence can itself be an appropriate management intervention.
 
-## Current Status
+## Relationship to AIVM
 
-PAIM has moved beyond its initial conceptual-development stage.
+AI Value Management (AIVM) provides the value-management leg of PAIM.
+Its practitioner process is:
 
-The project has completed substantial work on:
+**Discover → Establish → Decide → Learn → Reassess → Rediscover**
 
-- the Minimum Management Case;
-- Value/Risk analytical interfaces;
-- Integrated Operating Boundary;
-- Control Dependency;
-- uncertainty classification;
-- interaction analysis;
-- intervention and decision-specific learning;
-- reassessment;
-- practitioner playbooks and templates;
-- synthetic management cases and conflict tests;
-- independent execution tests;
-- system architecture;
-- implementation-independent system specifications;
-- behavioral validation strategy.
+AIVM findings become inputs to PAIM decision integration. PAIM preserves
+their evidentiary boundaries rather than converting intermediate
+benefits into unsupported downstream value claims.
 
-Independent execution tests have provisionally supported PAIM across compatible Value/Risk inputs, configuration-level trade-offs, recommendation conflict, independent compact-input construction, and frozen-input Decision Integration.
+## Relationship to AI Risk Management
 
-The current development frontier is **platform engineering**.
+Risk management provides a separate analytical leg. Value and risk are
+related but are not mathematical inverses. Low risk does not imply high
+value, and high value does not imply acceptable risk. Controls may also
+alter value, cost, or operating characteristics.
 
-Before substantial implementation, the system specification set is being reviewed for engineering readiness so that software development does not silently redefine PAIM.
+PAIM integrates decision-relevant risk evidence without requiring a
+universal risk score.
 
-Formal human practitioner validation is intentionally reserved for an integrated practitioner-facing system or prototype. This allows human testing to evaluate PAIM through observable system behavior rather than requiring testers to reconstruct the project's internal development artifacts.
+## Relationship to Governance
 
-## System and Platform
+PAIM does not replace organizational AI governance. Governance
+establishes authority, accountability, policy, mandatory controls,
+escalation requirements, and organizational boundaries. PAIM operates
+within those structures to manage actual AI-enabled uses.
 
-PAIM deliberately separates three layers:
+## Method Before Software
 
-> **Practitioner layer — how people perform PAIM**
+The intended progression is:
 
-> **System layer — what PAIM must do**
+\[ `\text{PAIM Method}`{=tex}
+`\rightarrow`{=tex}`\text{PAIM Operating Model}`{=tex}
+`\rightarrow`{=tex}`\text{PAIM Workbench}`{=tex} \]
 
-> **Platform layer — how software implements it**
+Workbench requirements should be derived from a sufficiently stable
+practitioner method rather than used to determine that method
+prematurely.
 
-The current system specifications define the implementation contract for the future platform.
+## Current Development Status
 
-Platform engineering will address software architecture, persistence, workflow, user experience, identity and permissions, reporting, audit/history, testing, and deployment.
+Current foundations include:
 
-## Repository Scope
+-   a provisional PAIM conceptual architecture;
+-   AIVM as the value-management leg;
+-   existing AI risk-management and model-evaluation foundations;
+-   a provisional decision-integration architecture;
+-   a continuing PAIM management cycle;
+-   an architectural stress test using PAIM Value Case 001; and
+-   a Minimum PAIM Management Case v0.1 specification.
 
-This repository is the **PAIM engineering repository**.
+## Development Direction
 
-It is intended to contain:
+Near-term work should focus on practitioner-method validation:
+instantiate the minimum management case, test additional and conflicting
+value-risk cases, refine interfaces among AIVM, risk management, and
+PAIM, and only then define the operating model and Workbench
+requirements.
 
-- selected authoritative system specifications used as implementation contracts;
-- platform architecture;
-- PAIM platform source code;
-- automated tests and behavioral test fixtures;
-- engineering documentation;
-- development tooling.
+## Project Objective
 
-The complete PAIM research, validation, historical evaluator packages, raw independent-test responses, and broader development archive are maintained separately from this engineering repository.
+The long-term objective is a practical system that helps organizations
+answer, repeatedly and defensibly:
 
-This separation keeps the software-development workspace focused while preserving the complete research and validation record elsewhere.
-
-## Planned Repository Structure
-
-```text
-PAIM/
-├── README.md
-├── AGENTS.md
-├── .gitignore
-│
-├── docs/
-│   ├── system/
-│   │   ├── architecture/
-│   │   ├── specifications/
-│   │   └── testing/
-│   └── engineering/
-│
-├── platform/
-├── tests/
-└── tools/
-```
-
-The structure may evolve as platform architecture is completed.
-
-## Engineering Principles
-
-PAIM platform development should preserve several system invariants:
-
-- manage bounded configurations rather than abstract AI;
-- preserve analytical independence between Value and Risk;
-- bind evidence and decisions to configuration versions;
-- preserve historical frozen inputs and authorized decisions;
-- make unresolved authority explicit;
-- preserve Control Dependencies;
-- keep management judgment accountable and inspectable;
-- distinguish evidence-supported requirements from practitioner-designed implementation choices;
-- trigger reassessment after material change rather than silently transferring prior conclusions;
-- maintain traceability across configuration, evidence, analysis, decision, intervention, learning, and reassessment.
-
-Implementation convenience should not silently redefine these management semantics.
-
-## Validation Approach
-
-The future platform will be tested using controlled behavioral scenarios.
-
-Examples include:
-
-- holding Value constant while varying Risk;
-- holding Risk constant while varying Value;
-- changing a control that affects both;
-- introducing or resolving an authority gap;
-- changing the managed configuration;
-- increasing AI authority;
-- changing the proposed operating state;
-- removing material evidence;
-- completing a Learning Item;
-- triggering reassessment.
-
-This supports black-box and metamorphic testing of PAIM's observable management behavior.
-
-Human validation will follow once the integrated platform is sufficiently complete to provide a coherent practitioner experience.
-
-## Related Work
-
-PAIM builds on and interacts with related work in AI value management, AI risk management, model evaluation, hallucination/error analysis, and Return-Weighted Risk.
-
-These efforts may provide analytical methods or evidence to PAIM, but PAIM remains a distinct management system.
-
-In particular, PAIM is designed to consume compatible Value and Risk Management Inputs without requiring every organization to use one specific internal analytical methodology.
-
-## Development Stage
-
-**Current stage:** system specification complete at initial v0.1 level; platform architecture and engineering-readiness review beginning.
-
-The next major engineering gate is to confirm that the PAIM system specifications can be translated into software without inventing missing management behavior.
-
-After that review, platform architecture and implementation can proceed in bounded, specification-driven increments.
+> **Given the evidence available now, what should we do about this
+> AI-enabled use, why, what should happen next, and what would cause us
+> to reconsider?**
