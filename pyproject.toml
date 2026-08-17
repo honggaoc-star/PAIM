@@ -1,0 +1,40 @@
+[build-system]
+requires = ["hatchling>=1.27,<2"]
+build-backend = "hatchling.build"
+
+[project]
+name = "paim"
+version = "0.1.0"
+description = "Practical AI Management common integrity kernel"
+readme = "README.md"
+requires-python = "==3.14.4"
+dependencies = [
+    "alembic>=1.18,<2",
+    "sqlalchemy>=2.0.48,<2.1",
+]
+
+[dependency-groups]
+dev = [
+    "mypy>=1.18,<2",
+    "pytest>=9,<10",
+    "ruff>=0.14,<1",
+]
+
+[tool.uv]
+required-version = "==0.11.8"
+
+[tool.pytest.ini_options]
+addopts = "-ra --strict-config --strict-markers"
+testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py314"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
+
+[tool.mypy]
+python_version = "3.14"
+strict = true
+files = ["src/paim"]
