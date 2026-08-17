@@ -16,6 +16,8 @@ This document defines the system-level target above the validated PAIM analytica
 
 This document does not prescribe a database, programming language, UI framework, deployment model, or software architecture.
 
+Cross-cutting authoritative-record, boundary, lifecycle-transition, decision-authorization, and interim-reassessment integrity semantics are governed by `../specifications/PAIM_SYSTEM_RECORD_AND_DECISION_INTEGRITY_SPEC_v0.1.md`. That specification hardens this architecture without changing its analytical or practitioner meaning.
+
 ## 1. System Purpose
 
 PAIM is an integrated management system for making, implementing, observing, and revisiting decisions about bounded AI-enabled configurations.
@@ -201,11 +203,14 @@ AI Management Case
     +-- Value Management Input
     +-- Risk Management Input
     +-- PAIM Integration Record
+    +-- Integrated Operating Boundary Snapshot
     +-- Management Decision
+    +-- Decision Authorization Basis
     +-- Intervention(s)
     +-- Learning Item(s)
     +-- Observation(s)
     +-- Reassessment Trigger(s)
+    +-- Interim Operating Disposition(s)
     +-- Reassessment / Successor Decision
 ```
 
@@ -241,6 +246,8 @@ CLOSED / SUPERSEDED
 
 **Case lifecycle state** and **AI operating state** are different constructs and must remain distinct.
 
+The exhaustive allowed source-to-target transitions, guards, transition actors/mechanisms, and coexistence of operation with intervention/reassessment are defined in `PAIM_SYSTEM_RECORD_AND_DECISION_INTEGRITY_SPEC_v0.1.md`, §5.
+
 ## 7. Decision Boundary Model
 
 ```text
@@ -257,6 +264,8 @@ Integrated Operating Boundary
 
 The Integrated Operating Boundary is the actionable management boundary.
 
+Every boundary used by an authorized Decision is preserved as the immutable hybrid Boundary Snapshot defined in `PAIM_SYSTEM_RECORD_AND_DECISION_INTEGRITY_SPEC_v0.1.md`, §4, combining structured integrity references with narrative human-judgment clauses.
+
 ## 8. Authority Model
 
 Authority records may represent organizational policy, contractual requirements, law/regulation, safety requirements, data restrictions, delegated authority, or mandatory oversight.
@@ -266,6 +275,8 @@ Where authority is missing:
 `AUTHORITY UNRESOLVED → decision affected → authority/evidence needed → can bounded decision proceed?`
 
 Absence of authority evidence must not become implied permission.
+
+Every authorized Decision must retain the auditable Decision Authorization Basis defined in `PAIM_SYSTEM_RECORD_AND_DECISION_INTEGRITY_SPEC_v0.1.md`, §6. `DECISION AUTHORITY UNRESOLVED` is an Authority Gap classification and blocks authorization of the affected Decision.
 
 ## 9. Control Dependency Model
 
@@ -310,6 +321,8 @@ A PAIM decision should remain reconstructable later.
 Minimum content includes case/configuration, decision/action, selected operating state, Integrated Operating Boundary, rationale, Value and Risk evidence relied upon, constraints/authority, uncertainty, alternatives, conditions/limits, decision authority/date, intervention linkage, and reassessment linkage.
 
 Historical decisions should remain immutable or versioned.
+
+Every substantive amendment is an authorized successor Decision version; no authorized Decision or Boundary Snapshot is edited in place.
 
 ## 13. Learning and Reassessment
 
@@ -445,7 +458,12 @@ The eventual implementation should preserve:
 - non-destructive decision history;
 - provenance of practitioner-designed actions;
 - boundary visibility;
-- reassessment linkage.
+- reassessment linkage;
+- deterministic scope/time current-record selection and explicit conflict;
+- immutable Integrated Operating Boundary Snapshots;
+- auditable Decision Authorization Basis;
+- time-bounded authorized Interim Operating Dispositions;
+- completed-Reassessment confirmation-or-successor outcome.
 
 Detailed technical controls are deferred to platform architecture.
 
@@ -505,6 +523,7 @@ After this architecture is reviewed and frozen, develop implementation-independe
 8. Management Register / Portfolio View
 9. Roles and Accountability
 10. System Behavioral Validation Strategy
+11. System Record and Decision Integrity
 
 These belong under `system/specifications/` or `system/testing/` as appropriate.
 

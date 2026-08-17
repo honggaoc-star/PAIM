@@ -17,6 +17,8 @@ It defines what the PAIM system must preserve about evidence, provenance, author
 
 It does not prescribe storage technology, database schemas, document formats, or user-interface design.
 
+**Normative cross-cutting contract:** `PAIM_SYSTEM_RECORD_AND_DECISION_INTEGRITY_SPEC_v0.1.md` governs stable record identity vs. immutable version identity, finalization, status events, recorded/effective time, correction/supersession/withdrawal, authoritative current selection, exact historical retrieval, Decision Authorization Basis, and the treatment of Decision Authority Gap as an Authority Gap classification.
+
 ## 1. Purpose
 
 PAIM management judgments must remain inspectable after the decision is made.
@@ -230,6 +232,8 @@ Materially disagrees with existing evidence and requires analytical treatment ra
 
 Historical evidence should remain available for reconstructing prior decisions.
 
+Every correction, supersession, withdrawal, and current-evidence determination follows `PAIM_SYSTEM_RECORD_AND_DECISION_INTEGRITY_SPEC_v0.1.md`, §3. Conflicting evidence remains explicit; the system must not choose a current winner merely because one record is newer.
+
 ## 9. Evidence Provenance Chain
 
 Derived evidence should preserve its source chain.
@@ -391,6 +395,8 @@ Minimum unresolved-authority content:
 - resolution linkage when completed
 
 An unresolved authority is neither a favorable nor unfavorable conclusion.
+
+`DECISION AUTHORITY UNRESOLVED` is an Authority Gap classification governed by `PAIM_SYSTEM_RECORD_AND_DECISION_INTEGRITY_SPEC_v0.1.md`, §6.3. A narrower bounded decision may proceed with another Authority Gap unresolved only through the separately valid bounded-proceed authorization rule in §6.4 of that specification; the gap itself never grants permission.
 
 ## 16. Authority Gap Outcomes
 
@@ -576,12 +582,14 @@ Accepted Uncertainty should identify:
 Minimum fields:
 
 - Evidence ID
+- Evidence Version ID
 - title
 - case/configuration relationship
 - classification
 - maturity where used
 - source/provenance
 - date/context
+- recorded time and effective time/interval
 - evidence statement/result
 - scope
 - limitations
@@ -595,6 +603,7 @@ Minimum fields:
 Minimum fields:
 
 - Authority ID
+- Authority Version ID
 - title
 - category
 - source/provenance
@@ -602,6 +611,7 @@ Minimum fields:
 - scope/applicability
 - requirement/decision right
 - effective period where relevant
+- recorded time
 - affected configuration/decision/control
 - predecessor/superseding authority where applicable
 
@@ -610,6 +620,7 @@ Minimum fields:
 Minimum fields:
 
 - Authority Gap ID
+- Authority Gap Version ID
 - question
 - decision affected
 - scope/configuration affected
@@ -619,6 +630,7 @@ Minimum fields:
 - owner
 - status
 - date raised
+- recorded/effective time
 - resolution record
 
 ## 32. Integrity Checks

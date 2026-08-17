@@ -13,6 +13,8 @@ This specification derives from:
 
 It defines **what lifecycle behavior the PAIM system must support**. It does not prescribe software implementation.
 
+**Normative cross-cutting contract:** `PAIM_SYSTEM_RECORD_AND_DECISION_INTEGRITY_SPEC_v0.1.md` governs authoritative record identity/version/currentness, the complete allowed lifecycle transition table and guards, Decision Authorization Basis, operation during intervention/reassessment, and Interim Operating Disposition. This specification continues to govern the substantive meaning of each case state.
+
 ## 1. Purpose
 
 A PAIM case is the durable management container for an AI-related decision.
@@ -122,7 +124,7 @@ OPERATING_OBSERVING
 CLOSED / SUPERSEDED
 ```
 
-Not every case must spend meaningful time in every state, but transitions must preserve the same management semantics.
+Cases may use only the source-to-target transitions and explicit skips defined in `PAIM_SYSTEM_RECORD_AND_DECISION_INTEGRITY_SPEC_v0.1.md`, §5.3. A platform may compress presentation or complete adjacent transitions at the same recorded time, but it must preserve a distinct valid Transition Event and every mandatory guard for each transition.
 
 ## 4. State: OPEN
 
@@ -434,9 +436,12 @@ REOPENED
    +--> CONFIGURATION_DEFINED
    +--> EVIDENCE_ANALYSIS
    +--> READY_FOR_INTEGRATION
+   +--> INTERVENTION_IN_PROGRESS / OPERATING_OBSERVING
+        only after completed reassessment confirms the
+        existing Decision unchanged
 ```
 
-The route depends on what changed.
+The route depends on what changed. The confirmation routes require the immutable Decision Confirmation and guards defined in `PAIM_SYSTEM_RECORD_AND_DECISION_INTEGRITY_SPEC_v0.1.md`, §§5.3 and 7.5. A substantive Decision, boundary, condition, configuration, or operating-state change proceeds through integration and an authorized successor/amendment Decision instead.
 
 ### Historical requirement
 
@@ -485,6 +490,8 @@ Another case, configuration, or decision has explicitly replaced the current one
 `SUPERSEDED` is terminal for active management but remains part of history.
 
 ## 16. Transition Rules
+
+The rules below state substantive lifecycle invariants. The exhaustive allowed-transition table, transition actors/mechanisms, required Transition Event, subordinate-record effects, and closure/reopening behavior are governed by `PAIM_SYSTEM_RECORD_AND_DECISION_INTEGRITY_SPEC_v0.1.md`, §5. A transition not listed there is invalid.
 
 ### 16.1 No silent forward transition
 
@@ -641,7 +648,7 @@ The system should preserve events for:
 - case closed;
 - case superseded.
 
-A platform may implement these as event records, audit entries, or equivalent durable history.
+A platform may implement these as event records, audit entries, or equivalent durable history. Every lifecycle-state change must preserve the immutable Lifecycle Transition Event required by `PAIM_SYSTEM_RECORD_AND_DECISION_INTEGRITY_SPEC_v0.1.md`, §5.1.
 
 ## 22. Lifecycle Integrity Checks
 
@@ -733,7 +740,7 @@ The following remain intentionally open for later specifications:
 - exact material-change test for configuration;
 - formal evidence maturity states;
 - exact authorization/signature model;
-- whether some lifecycle transitions may be skipped;
+- organization-specific workflow presentation around the canonical transition contract;
 - closure/retention requirements;
 - cross-case portfolio relationships;
 - notification/escalation timing;

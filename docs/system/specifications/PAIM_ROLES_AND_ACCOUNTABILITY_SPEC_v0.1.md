@@ -8,6 +8,8 @@ This specification derives from the PAIM system architecture and the system spec
 
 It defines what accountability relationships PAIM must preserve. It does not prescribe organizational titles, staffing models, identity systems, or software permissions.
 
+**Normative cross-cutting contract:** `PAIM_SYSTEM_RECORD_AND_DECISION_INTEGRITY_SPEC_v0.1.md` governs authoritative Role Assignment/delegation history and current selection, Decision Authorization Basis, authorization scope/time validation, Decision Authority Gap as an Authority Gap classification, and bounded-proceed authorization. This specification continues to define role responsibilities and separation principles.
+
 ## 1. Purpose
 
 PAIM requires explicit accountability without assuming that every organization has the same structure.
@@ -250,6 +252,8 @@ The case should record:
 
 A case cannot become `DECIDED` without an identifiable authorization basis.
 
+`DECISION AUTHORITY UNRESOLVED` is an Authority Gap classification, not an informal parallel flag. Resolution must establish the Decision Authorization Basis required by `PAIM_SYSTEM_RECORD_AND_DECISION_INTEGRITY_SPEC_v0.1.md`, §6.
+
 ## 13. Delegated Authority
 
 Decision authority may be delegated.
@@ -266,6 +270,8 @@ A delegation should identify:
 - source/provenance.
 
 Delegated authority should not be inferred merely because a person participates in the case.
+
+Every delegation relied upon for an authorized Decision must be linked by exact version through the Decision Authorization Basis and must be active, in scope, within limits, and effective at the Decision effective time.
 
 ## 14. Committee Decision Authority
 
@@ -510,6 +516,8 @@ Possible statuses:
 - superseded.
 
 Historical assignments should remain inspectable for prior decisions.
+
+Assignment/delegation currentness is derived under `PAIM_SYSTEM_RECORD_AND_DECISION_INTEGRITY_SPEC_v0.1.md`, §3.11. Overlapping incompatible assignments or delegation chains produce explicit unresolved authorization conflict; the platform must not choose by recency or breadth.
 
 ## 28. Accountability During Absence or Change
 

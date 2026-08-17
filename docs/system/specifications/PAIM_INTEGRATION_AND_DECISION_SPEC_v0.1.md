@@ -20,6 +20,8 @@ It defines what the PAIM system must preserve when independent Value and Risk co
 
 It does not prescribe software implementation, UI design, database schemas, or a universal decision algorithm.
 
+**Normative cross-cutting contract:** `PAIM_SYSTEM_RECORD_AND_DECISION_INTEGRITY_SPEC_v0.1.md` governs authoritative record history/currentness, the immutable hybrid Integrated Operating Boundary Snapshot, Decision Authorization Basis, bounded-proceed authority, and exact Decision reconstruction. Where this specification uses `current`, `frozen`, `authorized`, `amendment`, or `successor`, the cross-cutting contract supplies the controlling integrity semantics.
+
 ## 1. Purpose
 
 PAIM Decision Integration converts independent, configuration-bound Value and Risk Management Inputs into a management judgment.
@@ -81,6 +83,7 @@ Every Integration Record should have a durable identity.
 Minimum fields:
 
 - Integration ID
+- Integration Version ID
 - Case ID
 - Managed Configuration ID/version
 - Value Input ID/version
@@ -90,6 +93,7 @@ Minimum fields:
 - integrator/owner
 - date initiated
 - date completed
+- recorded time and effective time/interval
 - predecessor/successor integration where applicable
 
 ## 4. Integration Status
@@ -260,6 +264,8 @@ Value Boundary
 
 This is conceptual, not a requirement for mathematical computation.
 
+The boundary used for authorization must be finalized as the immutable hybrid Integrated Operating Boundary Snapshot defined in `PAIM_SYSTEM_RECORD_AND_DECISION_INTEGRITY_SPEC_v0.1.md`, §4. The Snapshot preserves structured references where integrity behavior is expected and narrative clauses where accountable human judgment remains necessary. It is not a universal score.
+
 ## 12. Boundary Content
 
 The Integrated Operating Boundary may include:
@@ -283,6 +289,8 @@ The Integrated Operating Boundary may include:
 
 The boundary should be inspectable without reconstructing the full analytical record.
 
+Every material clause must have the identity, effect, provenance, verification mode, and structured or narrative representation required by `PAIM_SYSTEM_RECORD_AND_DECISION_INTEGRITY_SPEC_v0.1.md`, §§4.2–4.6.
+
 ## 13. Boundary Relationship to Managed Configuration
 
 The proposed Managed Configuration may be broader than the authorized Integrated Operating Boundary.
@@ -298,6 +306,8 @@ Possible outcomes:
 - fallback only.
 
 The final decision must not silently imply that the entire proposed configuration is authorized when only a subset is supported.
+
+Boundary comparison uses `UNCHANGED`, `NARROWED`, `BROADENED`, `MIXED`, or `INDETERMINATE` under `PAIM_SYSTEM_RECORD_AND_DECISION_INTEGRITY_SPEC_v0.1.md`, §4.7. A broadened or mixed boundary requires an authorized successor/amendment Decision; `INDETERMINATE` requires accountable review and is not treated as unchanged.
 
 ## 14. Alternatives
 
@@ -440,6 +450,7 @@ Minimum fields:
 
 ### Identity
 - Decision ID
+- Decision Version ID
 - Case ID
 - Configuration ID/version
 - Integration ID/version
@@ -447,6 +458,9 @@ Minimum fields:
 - status
 - decision date
 - decision authority
+- Integrated Operating Boundary Snapshot ID/version
+- Decision Authorization Basis ID/version
+- recorded time and effective time/interval
 
 ### Judgment
 - decision/action
@@ -486,6 +500,8 @@ Detailed role/permission design is deferred to `PAIM_ROLES_AND_ACCOUNTABILITY_SP
 
 A case cannot become `DECIDED` without an identifiable authorization basis.
 
+The identifiable basis must be preserved as the Decision Authorization Basis defined in `PAIM_SYSTEM_RECORD_AND_DECISION_INTEGRITY_SPEC_v0.1.md`, §6. It binds the exact Decision version to the legitimate authority mechanism, Role Assignment/delegation, scope, limits, effective period, authority identity, and authorization event.
+
 ## 23. Authorization
 
 Authorization should preserve:
@@ -499,6 +515,8 @@ Authorization should preserve:
 The platform may later implement signatures, approvals, or workflow actions.
 
 This specification requires traceable authorization, not a particular signature technology.
+
+When another authority question remains unresolved, only an established Decision Authority whose own scope covers the exact narrower Decision and the bounded-proceed determination may authorize proceeding. The requirements in `PAIM_SYSTEM_RECORD_AND_DECISION_INTEGRITY_SPEC_v0.1.md`, §6.4 apply; the Authority Gap remains unresolved and visible.
 
 ## 24. Decision Status
 
@@ -514,6 +532,8 @@ Possible statuses include:
 
 The current decision must be distinguishable from historical decisions.
 
+Authoritative current selection follows `PAIM_SYSTEM_RECORD_AND_DECISION_INTEGRITY_SPEC_v0.1.md`, §3.11. An overlap or incompatible current result is explicit conflict, not a latest-version choice.
+
 ## 25. Decision Immutability
 
 An authorized decision must not be silently edited.
@@ -528,6 +548,8 @@ If the decision changes:
 6. establish effective status.
 
 Administrative corrections should also remain traceable where material.
+
+Corrections and amendments follow `PAIM_SYSTEM_RECORD_AND_DECISION_INTEGRITY_SPEC_v0.1.md`, §§3.7–3.8. Every substantive amendment is an authorized successor Decision version; the prior authorized Decision remains immutable.
 
 ## 26. Decision Supersession
 
@@ -736,7 +758,7 @@ Deferred to later specifications/platform design:
 - multiple simultaneous decision authorities;
 - delegated authority hierarchy;
 - automated readiness checks;
-- machine-readable boundary representation;
+- organization-specific additional boundary clause types and presentation;
 - decision expiry;
 - exception/waiver handling;
 - organization-specific decision taxonomy.

@@ -21,6 +21,8 @@ It defines what the PAIM system must preserve after a management judgment has be
 
 It does not prescribe project-management software, workflow technology, notification mechanisms, or user-interface design.
 
+**Normative cross-cutting contract:** `PAIM_SYSTEM_RECORD_AND_DECISION_INTEGRITY_SPEC_v0.1.md` governs authoritative Intervention/Learning identity and versions, finalization, status events, recorded/effective time, correction/supersession/withdrawal, exact history, lifecycle effects of blocked/failed/cancelled subordinate records, and operation under the current Decision while target intervention is incomplete.
+
 ## 1. Purpose
 
 A PAIM decision is incomplete if it does not lead to action where action is required.
@@ -105,6 +107,7 @@ Every material Intervention Record should have a durable identity.
 Minimum identity fields:
 
 - Intervention ID
+- Intervention Version ID
 - Case ID
 - Decision ID/version
 - Configuration ID/version
@@ -115,6 +118,7 @@ Minimum identity fields:
 - date created
 - target/effective date where relevant
 - completion date where relevant
+- recorded time and effective time/interval
 - predecessor/successor intervention where applicable
 
 ## 5. Intervention Status
@@ -134,6 +138,8 @@ Possible statuses include:
 The exact platform vocabulary may later be refined.
 
 A completed decision does not imply that its intervention has been completed.
+
+Status changes do not mutate finalized intervention content. A substantive change to scope, target configuration, required control, completion criteria, fallback, or management consequence creates a new immutable Intervention version under `PAIM_SYSTEM_RECORD_AND_DECISION_INTEGRITY_SPEC_v0.1.md`, §3.
 
 ## 6. Provenance of Intervention Content
 
@@ -549,6 +555,8 @@ This pattern was important in Type A conflict validation.
 
 Different operating states may imply different intervention burdens.
 
+Case lifecycle state `INTERVENTION_IN_PROGRESS` may coexist with continued operation under the prior/current authorized Decision. The target configuration must not become operating merely because intervention has begun. The governing coexistence and transition rules are in `PAIM_SYSTEM_RECORD_AND_DECISION_INTEGRITY_SPEC_v0.1.md`, §§5.3 and 5.6.
+
 Examples:
 
 ### Experiment
@@ -657,6 +665,8 @@ INT-002 — remediation
 ```
 
 Historical status transitions should remain inspectable.
+
+The physical representation may use status events or immutable versions, but it must reproduce the common history semantics in `PAIM_SYSTEM_RECORD_AND_DECISION_INTEGRITY_SPEC_v0.1.md`, §§3.5–3.12.
 
 ## 36. Learning History
 

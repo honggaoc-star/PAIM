@@ -19,6 +19,8 @@ It defines what the PAIM system must preserve when receiving, freezing, versioni
 
 It does not prescribe the internal methodology used by AIVM, Risk Management, or another compatible contributing analytical capability.
 
+**Normative cross-cutting contract:** `PAIM_SYSTEM_RECORD_AND_DECISION_INTEGRITY_SPEC_v0.1.md` governs stable Input identity vs. immutable Input Version identity, draft/finalization boundaries, freeze as finalization, status events, recorded/effective time, correction/supersession/withdrawal, authoritative current selection, conflict behavior, and exact historical retrieval.
+
 ## 1. Purpose
 
 PAIM requires Value and Risk analyses to remain analytically distinct while exposing a compact common interface sufficient for management integration.
@@ -114,6 +116,7 @@ Every Value or Risk Management Input should have a durable identity.
 Minimum identity fields:
 
 - Input ID
+- Input Version ID
 - input type: Value or Risk
 - Case ID
 - Managed Configuration ID/version
@@ -121,6 +124,7 @@ Minimum identity fields:
 - status
 - analytical owner/source
 - creation date
+- recorded time
 - effective/current date where relevant
 - predecessor/superseding input
 - freeze status
@@ -140,6 +144,8 @@ Possible statuses include:
 The exact platform vocabulary may later be refined.
 
 A draft input must not be represented as a frozen contributing conclusion.
+
+`frozen` and `current` are distinct properties. Freeze finalizes one immutable content version; currentness is derived for a declared configuration, purpose, scope, and time under `PAIM_SYSTEM_RECORD_AND_DECISION_INTEGRITY_SPEC_v0.1.md`, §§3.4 and 3.11. A frozen historical input remains frozen even after it is no longer current.
 
 ## 6. Configuration Binding
 
@@ -268,6 +274,8 @@ Freeze means:
 - refreshed analysis creates a new version.
 
 Freeze is an analytical-history rule, not a claim that the conclusion is permanently true.
+
+Freeze is the finalization boundary for the selected Input version under `PAIM_SYSTEM_RECORD_AND_DECISION_INTEGRITY_SPEC_v0.1.md`, §3.4. Later status changes never reopen its five-part content.
 
 ## 14. Frozen-Implication Fidelity
 
@@ -527,6 +535,7 @@ Compatibility depends on producing the required five-part PAIM-facing interface,
 
 ### Identity
 - Input ID
+- Input Version ID
 - type
 - Case ID
 - Configuration ID/version
@@ -534,6 +543,7 @@ Compatibility depends on producing the required five-part PAIM-facing interface,
 - status
 - owner/source
 - date
+- recorded time and effective time/interval
 - predecessor/successor
 - freeze status
 
