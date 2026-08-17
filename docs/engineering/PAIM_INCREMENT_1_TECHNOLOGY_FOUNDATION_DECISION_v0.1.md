@@ -107,7 +107,7 @@ Handwritten SQL remains permitted inside reviewed Alembic revisions when it is c
 
 The Increment 1 foundation is:
 
-- **Language/runtime:** CPython `3.14.7`. Increment 1 supports the Python 3.14 minor line only. Patch upgrades require a bounded dependency change with the full test suite; minor-version upgrades require a new decision or amendment.
+- **Language/runtime:** CPython `3.14.x`. Increment 1 supports the Python 3.14 minor line only. At its clean-main checkpoint, the later Increment 1A bootstrap must pin the latest accepted released 3.14 patch available at that checkpoint and record the exact runtime pin with the locked environment. Subsequent patch upgrades require a bounded dependency change with the full test suite; minor-version upgrades require a new decision or amendment.
 - **Project/environment manager:** `uv`, using one root `pyproject.toml`, a committed `uv.lock`, a repository-local `.venv`, and locked execution in CI/review. The later bootstrap issue pins the exact `uv` release used to create the lock.
 - **Application shape:** a typed, synchronous Python package and modular monolith/library. No server or long-running process is selected.
 - **Data access:** SQLAlchemy 2.x **Core**, not ORM, behind domain-neutral persistence ports. The bootstrap issue selects compatible exact versions through the lock.
@@ -321,7 +321,7 @@ No domain schema, migration revision, or database file is defined by this decisi
 
 This decision is acceptable only if independent review confirms all of the following:
 
-1. It selects CPython 3.14.7, `uv`, SQLAlchemy 2.x Core, SQLite, Alembic, pytest, Ruff, and mypy for Increment 1 only.
+1. It selects CPython 3.14.x, `uv`, SQLAlchemy 2.x Core, SQLite, Alembic, pytest, Ruff, and mypy for Increment 1 only, with the exact released Python patch pinned at the Increment 1A clean-main checkpoint.
 2. It selects one locked, cross-platform local environment and requires exact dependency/tool pins at the later bootstrap step.
 3. It defines a domain-neutral package, adapter, migration, and four-layer test layout without creating any files from that layout.
 4. It explains how immutable versions, append-preserving status/history, dual time, explicit conflict, and point-in-time reads are supported without defining a physical domain schema.
@@ -338,7 +338,7 @@ This decision is acceptable only if independent review confirms all of the follo
 
 ## 13. Final decision summary
 
-PAIM Increment 1 will use a typed synchronous CPython 3.14.7 modular kernel, managed and reproducibly locked with `uv`. SQLAlchemy 2.x Core will isolate explicit persistence ports; SQLite will provide the first local ACID adapter; Alembic will govern later reviewed migrations; and pytest will prove pure, adapter, transactional, and longitudinal hard oracles. Ruff and mypy provide development-time consistency and static checks.
+PAIM Increment 1 will use a typed synchronous CPython 3.14.x modular kernel, with the exact accepted released patch pinned at the Increment 1A clean-main checkpoint and the environment reproducibly locked with `uv`. SQLAlchemy 2.x Core will isolate explicit persistence ports; SQLite will provide the first local ACID adapter; Alembic will govern later reviewed migrations; and pytest will prove pure, adapter, transactional, and longitudinal hard oracles. Ruff and mypy provide development-time consistency and static checks.
 
 Record and version identities use distinct opaque UUIDv7 values. Time is explicit UTC with separate recorded/effective dimensions and integer-microsecond persistence. Each accepted command uses one transaction to preserve version, status, relationship, idempotency, and audit facts all-or-nothing. The architecture remains a local modular monolith until a later need proves that another topology can preserve the same observable semantics.
 
