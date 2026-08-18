@@ -25,7 +25,7 @@ def test_alembic_head_foreign_keys_and_immutability_triggers_exist(
     with sqlite_store.engine.connect() as connection:
         assert connection.exec_driver_sql("PRAGMA foreign_keys").scalar_one() == 1
         assert connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one() == (
-            "0003_increment_3"
+            "0004_increment_4"
         )
         trigger_names = set(
             connection.execute(
@@ -138,7 +138,7 @@ def test_upgrade_from_increment_2_revision_to_increment_3_head(tmp_path: Path) -
         with engine.connect() as connection:
             assert (
                 connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
-                == "0003_increment_3"
+                == "0004_increment_4"
             )
     finally:
         engine.dispose()
@@ -216,6 +216,120 @@ def test_increment_2_schema_tables_constraints_indexes_and_upgrade_from_incremen
         with engine.connect() as connection:
             assert connection.execute(
                 text("SELECT version_num FROM alembic_version")
-            ).scalar_one() == ("0003_increment_3")
+            ).scalar_one() == ("0004_increment_4")
+    finally:
+        engine.dispose()
+
+
+def test_increment_4_normalized_schema_constraints_indexes_triggers_and_foreign_keys(
+    sqlite_store: SQLiteIntegrityStore,
+) -> None:
+    inspector = inspect(sqlite_store.engine)
+    increment_4_tables = {
+        "integration_records",
+        "integration_versions",
+        "integration_material_applicability",
+        "integration_authority_records",
+        "integration_authority_gaps",
+        "uncertainty_classification_records",
+        "uncertainty_classification_versions",
+        "boundary_snapshot_records",
+        "boundary_snapshot_versions",
+        "boundary_clause_records",
+        "boundary_clause_versions",
+        "boundary_determination_records",
+        "boundary_determination_versions",
+        "boundary_determination_evidence",
+        "decision_records",
+        "decision_versions",
+        "decision_uncertainty_links",
+        "decision_authority_records",
+        "decision_authority_gaps",
+        "bounded_proceed_records",
+        "bounded_proceed_versions",
+        "bounded_proceed_boundary_clauses",
+        "decision_authorization_basis_records",
+        "decision_authorization_basis_versions",
+        "decision_authorization_delegations",
+        "decision_authorization_gaps",
+    }
+    assert increment_4_tables <= set(inspector.get_table_names())
+    assert {
+        constraint["name"]
+        for constraint in inspector.get_check_constraints("boundary_clause_versions")
+    } >= {
+        "ck_boundary_clause_effect",
+        "ck_boundary_clause_verification",
+        "ck_boundary_mechanical_structure",
+    }
+    assert {
+        constraint["name"]
+        for constraint in inspector.get_check_constraints("decision_authorization_basis_versions")
+    } >= {"ck_decision_authorization_authority", "ck_decision_authorization_source"}
+    assert {index["name"] for index in inspector.get_indexes("decision_versions")} >= {
+        "ix_decision_current_context"
+    }
+    authorization_foreign_keys = {
+        tuple(item["constrained_columns"])
+        for item in inspector.get_foreign_keys("decision_authorization_basis_versions")
+    }
+    assert {
+        ("version_id",),
+        ("decision_version_id",),
+        ("authority_assignment_version_id",),
+        ("authority_record_version_id",),
+        ("configuration_version_id",),
+        ("bounded_proceed_version_id",),
+    } <= authorization_foreign_keys
+    with sqlite_store.engine.connect() as connection:
+        triggers = set(
+            connection.execute(
+                text("SELECT name FROM sqlite_master WHERE type = 'trigger'")
+            ).scalars()
+        )
+    for table in increment_4_tables:
+        assert f"prevent_{table}_update" in triggers
+        assert f"prevent_{table}_delete" in triggers
+    with (
+        sqlite_store.engine.begin() as connection,
+        pytest.raises(DBAPIError, match="FOREIGN KEY"),
+    ):
+        connection.execute(
+            text(
+                """INSERT INTO decision_authorization_basis_versions
+                (version_id, basis_id, decision_version_id, decision_authority_identity,
+                 authority_assignment_version_id, authority_mechanism,
+                 authority_record_version_id, authorized_scope, configuration_id,
+                 configuration_version_id, operating_state_coverage_json, decision_type,
+                 organizational_unit, authorization_event_id, authorization_actor_id,
+                 authorization_effective_at_us, bounded_proceed_version_id)
+                VALUES ('missing-version', 'missing-basis', 'missing-decision', 'actor',
+                        NULL, 'mechanism', NULL, 'scope', 'missing-configuration',
+                        'missing-configuration-version', '[]', 'type', NULL, 'event',
+                        'missing-actor', 1, NULL)"""
+            )
+        )
+
+
+def test_upgrade_from_increment_3_revision_to_increment_4_head(tmp_path: Path) -> None:
+    database_path = (tmp_path / "upgrade-from-increment-3.sqlite3").as_posix()
+    database_url = f"sqlite+pysqlite:///{database_path}"
+    config = alembic_config(database_url)
+    command.upgrade(config, "0003_increment_3")
+    engine = create_engine(database_url)
+    try:
+        assert "integration_records" not in inspect(engine).get_table_names()
+        command.upgrade(config, "head")
+        assert {
+            "integration_versions",
+            "boundary_snapshot_versions",
+            "decision_versions",
+            "decision_authorization_basis_versions",
+        } <= set(inspect(engine).get_table_names())
+        with engine.connect() as connection:
+            assert (
+                connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
+                == "0004_increment_4"
+            )
     finally:
         engine.dispose()

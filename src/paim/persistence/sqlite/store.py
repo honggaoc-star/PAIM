@@ -26,6 +26,18 @@ from paim.domain.increment3 import (
     LaneFitnessDetail,
     MaterialEvidenceBasisInput,
 )
+from paim.domain.increment4 import (
+    AuthorizationBasisDetail,
+    BoundaryClauseDetail,
+    BoundaryClauseEffect,
+    BoundaryClauseInput,
+    BoundarySnapshotDetail,
+    BoundaryVerificationMode,
+    DecisionDetail,
+    DecisionStatus,
+    IntegrationDetail,
+    IntegrationStatus,
+)
 from paim.domain.models import (
     ConfigurationVersionContext,
     DelegationEffect,
@@ -72,9 +84,28 @@ from paim.persistence.sqlite.schema import (
     authority_gaps,
     authority_record_versions,
     authority_records,
+    boundary_clause_records,
+    boundary_clause_versions,
+    boundary_determination_evidence,
+    boundary_determination_records,
+    boundary_determination_versions,
+    boundary_snapshot_records,
+    boundary_snapshot_versions,
+    bounded_proceed_boundary_clauses,
+    bounded_proceed_records,
+    bounded_proceed_versions,
     candidate_disposition_versions,
     candidate_dispositions,
     configuration_determinations,
+    decision_authority_gaps,
+    decision_authority_records,
+    decision_authorization_basis_records,
+    decision_authorization_basis_versions,
+    decision_authorization_delegations,
+    decision_authorization_gaps,
+    decision_records,
+    decision_uncertainty_links,
+    decision_versions,
     evidence_applicability_records,
     evidence_applicability_versions,
     evidence_records,
@@ -84,6 +115,11 @@ from paim.persistence.sqlite.schema import (
     idempotency_facts,
     input_acceptance_records,
     input_acceptance_versions,
+    integration_authority_gaps,
+    integration_authority_records,
+    integration_material_applicability,
+    integration_records,
+    integration_versions,
     lane_fitness_records,
     lane_fitness_versions,
     managed_configuration_versions,
@@ -100,6 +136,8 @@ from paim.persistence.sqlite.schema import (
     role_assignment_versions,
     role_assignments,
     status_events,
+    uncertainty_classification_records,
+    uncertainty_classification_versions,
     version_relationships,
 )
 
@@ -218,6 +256,11 @@ class SQLiteIntegrityTransaction:
 
     def __init__(self, connection: Connection) -> None:
         self._connection = connection
+
+    @property
+    def connection(self) -> Connection:
+        """Expose the transaction connection to normalized domain projections."""
+        return self._connection
 
     def get_idempotency(self, scope: str, key: str) -> IdempotencyFact | None:
         row = (
@@ -1336,6 +1379,741 @@ class SQLiteIntegrityTransaction:
             ),
             authority_scope=cast("str", row["authority_scope"]),
         )
+
+    def add_integration(
+        self,
+        *,
+        integration_id: RecordId,
+        version_id: RecordVersionId,
+        case_id: RecordId,
+        configuration_id: RecordId,
+        configuration_version_id: RecordVersionId,
+        use_context: str,
+        purpose: str,
+        value_input_version_id: RecordVersionId,
+        value_acceptance_version_id: RecordVersionId,
+        value_fitness_version_id: RecordVersionId,
+        risk_input_version_id: RecordVersionId,
+        risk_acceptance_version_id: RecordVersionId,
+        risk_fitness_version_id: RecordVersionId,
+        integrator_actor_id: RecordId,
+        owner_assignment_version_id: RecordVersionId | None,
+        accountable_mechanism: str | None,
+        status: str,
+        material_applicability_version_ids: tuple[RecordVersionId, ...],
+        authority_record_version_ids: tuple[RecordVersionId, ...],
+        authority_gap_version_ids: tuple[RecordVersionId, ...],
+    ) -> None:
+        if not self._identity_exists(
+            integration_records, integration_records.c.integration_id, str(integration_id)
+        ):
+            self.connection.execute(
+                insert(integration_records).values(integration_id=str(integration_id))
+            )
+        self.connection.execute(
+            insert(integration_versions).values(
+                version_id=str(version_id),
+                integration_id=str(integration_id),
+                case_id=str(case_id),
+                configuration_id=str(configuration_id),
+                configuration_version_id=str(configuration_version_id),
+                use_context=use_context,
+                purpose=purpose,
+                value_input_version_id=str(value_input_version_id),
+                value_acceptance_version_id=str(value_acceptance_version_id),
+                value_fitness_version_id=str(value_fitness_version_id),
+                risk_input_version_id=str(risk_input_version_id),
+                risk_acceptance_version_id=str(risk_acceptance_version_id),
+                risk_fitness_version_id=str(risk_fitness_version_id),
+                integrator_actor_id=str(integrator_actor_id),
+                owner_assignment_version_id=(
+                    str(owner_assignment_version_id) if owner_assignment_version_id else None
+                ),
+                accountable_mechanism=accountable_mechanism,
+                status=status,
+            )
+        )
+        for item in material_applicability_version_ids:
+            self.connection.execute(
+                insert(integration_material_applicability).values(
+                    integration_version_id=str(version_id), applicability_version_id=str(item)
+                )
+            )
+        for item in authority_record_version_ids:
+            self.connection.execute(
+                insert(integration_authority_records).values(
+                    integration_version_id=str(version_id), authority_version_id=str(item)
+                )
+            )
+        for item in authority_gap_version_ids:
+            self.connection.execute(
+                insert(integration_authority_gaps).values(
+                    integration_version_id=str(version_id), gap_version_id=str(item)
+                )
+            )
+
+    def integration_detail(self, version_id: RecordVersionId) -> IntegrationDetail | None:
+        row = (
+            self.connection.execute(
+                select(integration_versions).where(
+                    integration_versions.c.version_id == str(version_id)
+                )
+            )
+            .mappings()
+            .first()
+        )
+        if row is None:
+            return None
+        return IntegrationDetail(
+            RecordId.parse(cast("str", row["integration_id"])),
+            version_id,
+            RecordId.parse(cast("str", row["case_id"])),
+            RecordId.parse(cast("str", row["configuration_id"])),
+            RecordVersionId.parse(cast("str", row["configuration_version_id"])),
+            cast("str", row["use_context"]),
+            cast("str", row["purpose"]),
+            RecordVersionId.parse(cast("str", row["value_input_version_id"])),
+            RecordVersionId.parse(cast("str", row["value_acceptance_version_id"])),
+            RecordVersionId.parse(cast("str", row["value_fitness_version_id"])),
+            RecordVersionId.parse(cast("str", row["risk_input_version_id"])),
+            RecordVersionId.parse(cast("str", row["risk_acceptance_version_id"])),
+            RecordVersionId.parse(cast("str", row["risk_fitness_version_id"])),
+            IntegrationStatus(cast("str", row["status"])),
+        )
+
+    def integration_versions_for_context(
+        self, *, case_id: RecordId, configuration_version_id: RecordVersionId
+    ) -> tuple[RecordVersionId, ...]:
+        rows = (
+            self.connection.execute(
+                select(integration_versions.c.version_id).where(
+                    integration_versions.c.case_id == str(case_id),
+                    integration_versions.c.configuration_version_id
+                    == str(configuration_version_id),
+                )
+            )
+            .scalars()
+            .all()
+        )
+        return tuple(RecordVersionId.parse(cast("str", item)) for item in rows)
+
+    def add_uncertainty_classification(
+        self,
+        *,
+        classification_id: RecordId,
+        version_id: RecordVersionId,
+        integration_version_id: RecordVersionId,
+        proposed_decision_context: str,
+        proposed_operating_state: str,
+        source_reference: str,
+        source_input_version_id: RecordVersionId | None,
+        source_evidence_version_id: RecordVersionId | None,
+        classification: str,
+        accountable_assignment_version_id: RecordVersionId | None,
+        accountable_mechanism: str | None,
+    ) -> None:
+        if not self._identity_exists(
+            uncertainty_classification_records,
+            uncertainty_classification_records.c.classification_id,
+            str(classification_id),
+        ):
+            self.connection.execute(
+                insert(uncertainty_classification_records).values(
+                    classification_id=str(classification_id)
+                )
+            )
+        self.connection.execute(
+            insert(uncertainty_classification_versions).values(
+                version_id=str(version_id),
+                classification_id=str(classification_id),
+                integration_version_id=str(integration_version_id),
+                proposed_decision_context=proposed_decision_context,
+                proposed_operating_state=proposed_operating_state,
+                source_reference=source_reference,
+                source_input_version_id=(
+                    str(source_input_version_id) if source_input_version_id else None
+                ),
+                source_evidence_version_id=(
+                    str(source_evidence_version_id) if source_evidence_version_id else None
+                ),
+                classification=classification,
+                accountable_assignment_version_id=(
+                    str(accountable_assignment_version_id)
+                    if accountable_assignment_version_id
+                    else None
+                ),
+                accountable_mechanism=accountable_mechanism,
+            )
+        )
+
+    def add_boundary_snapshot(
+        self,
+        *,
+        snapshot_id: RecordId,
+        version_id: RecordVersionId,
+        case_id: RecordId,
+        configuration_id: RecordId,
+        configuration_version_id: RecordVersionId,
+        integration_id: RecordId,
+        integration_version_id: RecordVersionId,
+        owner_actor_id: RecordId,
+        status: str,
+        clauses: tuple[BoundaryClauseInput, ...],
+        recorded_at: datetime,
+        effective_at: datetime,
+    ) -> None:
+        if not self._identity_exists(
+            boundary_snapshot_records, boundary_snapshot_records.c.snapshot_id, str(snapshot_id)
+        ):
+            self.connection.execute(
+                insert(boundary_snapshot_records).values(snapshot_id=str(snapshot_id))
+            )
+        self.connection.execute(
+            insert(boundary_snapshot_versions).values(
+                version_id=str(version_id),
+                snapshot_id=str(snapshot_id),
+                case_id=str(case_id),
+                configuration_id=str(configuration_id),
+                configuration_version_id=str(configuration_version_id),
+                integration_id=str(integration_id),
+                integration_version_id=str(integration_version_id),
+                owner_actor_id=str(owner_actor_id),
+                status=status,
+            )
+        )
+        for clause in clauses:
+            clause_scope = f"boundary-snapshot-version:{version_id}:clause:{clause.clause_id}"
+            clause_version = FinalizedRecordVersion(
+                record_id=clause.clause_id,
+                version_id=clause.clause_version_id,
+                family="boundary-clause",
+                scope=clause_scope,
+                content_json=json.dumps(
+                    {
+                        "clause_type": clause.clause_type,
+                        "effect": clause.effect.value,
+                        "target_reference": clause.target_reference,
+                        "structured_reference": clause.structured_reference,
+                        "operator": clause.operator,
+                        "value": clause.value,
+                        "unit": clause.unit,
+                        "narrative": clause.narrative,
+                        "rationale": clause.rationale,
+                        "provenance": clause.provenance,
+                        "verification_mode": clause.verification_mode.value,
+                        "breach_consequence": clause.breach_consequence,
+                    }
+                ),
+                recorded_at=recorded_at,
+                effective=EffectiveInterval(effective_at),
+                creator=str(owner_actor_id),
+            )
+            self.add_version(clause_version)
+            if not self._identity_exists(
+                boundary_clause_records, boundary_clause_records.c.clause_id, str(clause.clause_id)
+            ):
+                self.connection.execute(
+                    insert(boundary_clause_records).values(clause_id=str(clause.clause_id))
+                )
+            self.connection.execute(
+                insert(boundary_clause_versions).values(
+                    clause_version_id=str(clause.clause_version_id),
+                    clause_id=str(clause.clause_id),
+                    snapshot_version_id=str(version_id),
+                    clause_type=clause.clause_type,
+                    effect=clause.effect.value,
+                    target_reference=clause.target_reference,
+                    structured_reference=clause.structured_reference,
+                    operator=clause.operator,
+                    structured_value=clause.value,
+                    unit=clause.unit,
+                    narrative=clause.narrative,
+                    verification_mode=clause.verification_mode.value,
+                )
+            )
+            if clause.predecessor_clause_version_id is not None:
+                relationship = VersionRelationship(
+                    RelationshipId.new(),
+                    clause.predecessor_clause_version_id,
+                    clause.clause_version_id,
+                    RelationshipType.AMENDMENT,
+                    recorded_at,
+                    clause.relationship_reason or "Boundary clause successor",
+                )
+                self.add_relationship(relationship)
+                self.add_status_event(
+                    StatusEvent(
+                        EventId.new(),
+                        clause.predecessor_clause_version_id,
+                        "finalized",
+                        "superseded",
+                        recorded_at,
+                        effective_at,
+                        str(owner_actor_id),
+                        relationship.reason,
+                    )
+                )
+
+    def boundary_snapshot_detail(
+        self, version_id: RecordVersionId
+    ) -> BoundarySnapshotDetail | None:
+        row = (
+            self.connection.execute(
+                select(boundary_snapshot_versions).where(
+                    boundary_snapshot_versions.c.version_id == str(version_id)
+                )
+            )
+            .mappings()
+            .first()
+        )
+        if row is None:
+            return None
+        clause_rows = (
+            self.connection.execute(
+                select(boundary_clause_versions).where(
+                    boundary_clause_versions.c.snapshot_version_id == str(version_id)
+                )
+            )
+            .mappings()
+            .all()
+        )
+        clauses = tuple(
+            BoundaryClauseDetail(
+                RecordId.parse(cast("str", item["clause_id"])),
+                RecordVersionId.parse(cast("str", item["clause_version_id"])),
+                cast("str", item["clause_type"]),
+                BoundaryClauseEffect(cast("str", item["effect"])),
+                cast("str | None", item["target_reference"]),
+                cast("str | None", item["structured_reference"]),
+                cast("str | None", item["operator"]),
+                cast("str | None", item["structured_value"]),
+                cast("str | None", item["unit"]),
+                cast("str", item["narrative"]),
+                BoundaryVerificationMode(cast("str", item["verification_mode"])),
+            )
+            for item in clause_rows
+        )
+        return BoundarySnapshotDetail(
+            RecordId.parse(cast("str", row["snapshot_id"])),
+            version_id,
+            RecordId.parse(cast("str", row["case_id"])),
+            RecordId.parse(cast("str", row["configuration_id"])),
+            RecordVersionId.parse(cast("str", row["configuration_version_id"])),
+            RecordId.parse(cast("str", row["integration_id"])),
+            RecordVersionId.parse(cast("str", row["integration_version_id"])),
+            cast("str", row["status"]),
+            clauses,
+        )
+
+    def add_boundary_determination(
+        self,
+        *,
+        determination_id: RecordId,
+        version_id: RecordVersionId,
+        snapshot_version_id: RecordVersionId,
+        clause_id: RecordId,
+        clause_version_id: RecordVersionId,
+        outcome: str,
+        actor_id: RecordId,
+        accountable_assignment_version_id: RecordVersionId | None,
+        accountable_mechanism: str | None,
+        evidence_version_ids: tuple[RecordVersionId, ...],
+    ) -> None:
+        if not self._identity_exists(
+            boundary_determination_records,
+            boundary_determination_records.c.determination_id,
+            str(determination_id),
+        ):
+            self.connection.execute(
+                insert(boundary_determination_records).values(
+                    determination_id=str(determination_id)
+                )
+            )
+        self.connection.execute(
+            insert(boundary_determination_versions).values(
+                version_id=str(version_id),
+                determination_id=str(determination_id),
+                snapshot_version_id=str(snapshot_version_id),
+                clause_id=str(clause_id),
+                clause_version_id=str(clause_version_id),
+                outcome=outcome,
+                actor_id=str(actor_id),
+                accountable_assignment_version_id=(
+                    str(accountable_assignment_version_id)
+                    if accountable_assignment_version_id
+                    else None
+                ),
+                accountable_mechanism=accountable_mechanism,
+            )
+        )
+        for evidence_id in evidence_version_ids:
+            self.connection.execute(
+                insert(boundary_determination_evidence).values(
+                    determination_version_id=str(version_id), evidence_version_id=str(evidence_id)
+                )
+            )
+
+    def current_boundary_determination(
+        self,
+        *,
+        snapshot_version_id: RecordVersionId,
+        clause_version_id: RecordVersionId,
+        effective_at: datetime,
+        known_at: datetime,
+    ) -> tuple[RecordVersionId, str] | None:
+        rows = (
+            self.connection.execute(
+                select(
+                    boundary_determination_versions.c.version_id,
+                    boundary_determination_versions.c.determination_id,
+                    boundary_determination_versions.c.outcome,
+                ).where(
+                    boundary_determination_versions.c.snapshot_version_id
+                    == str(snapshot_version_id),
+                    boundary_determination_versions.c.clause_version_id == str(clause_version_id),
+                )
+            )
+            .mappings()
+            .all()
+        )
+        found: list[tuple[RecordVersionId, str]] = []
+        for row in rows:
+            record_id = RecordId.parse(cast("str", row["determination_id"]))
+            history = self.get_history(record_id)
+            if not history.versions:
+                continue
+            exemplar = next(iter(history.versions))
+            current = self.select_current(
+                SelectionQuery(
+                    family="boundary-determination",
+                    scope=exemplar.scope,
+                    effective_at=effective_at,
+                    known_at=known_at,
+                    record_id=record_id,
+                )
+            )
+            candidate_id = RecordVersionId.parse(cast("str", row["version_id"]))
+            if isinstance(current, SelectionFound) and current.candidate.version_id == candidate_id:
+                found.append((candidate_id, cast("str", row["outcome"])))
+        return found[0] if len(found) == 1 else None
+
+    def add_decision(
+        self,
+        *,
+        decision_id: RecordId,
+        version_id: RecordVersionId,
+        case_id: RecordId,
+        configuration_id: RecordId,
+        configuration_version_id: RecordVersionId,
+        integration_id: RecordId,
+        integration_version_id: RecordVersionId,
+        boundary_snapshot_id: RecordId,
+        boundary_snapshot_version_id: RecordVersionId,
+        proposed_action: str,
+        operating_state: str,
+        status: str,
+        accepted_uncertainty_version_ids: tuple[RecordVersionId, ...],
+        decision_limiting_uncertainty_version_ids: tuple[RecordVersionId, ...],
+        authority_record_version_ids: tuple[RecordVersionId, ...],
+        authority_gap_version_ids: tuple[RecordVersionId, ...],
+    ) -> None:
+        if not self._identity_exists(
+            decision_records, decision_records.c.decision_id, str(decision_id)
+        ):
+            self.connection.execute(insert(decision_records).values(decision_id=str(decision_id)))
+        self.connection.execute(
+            insert(decision_versions).values(
+                version_id=str(version_id),
+                decision_id=str(decision_id),
+                case_id=str(case_id),
+                configuration_id=str(configuration_id),
+                configuration_version_id=str(configuration_version_id),
+                integration_id=str(integration_id),
+                integration_version_id=str(integration_version_id),
+                boundary_snapshot_id=str(boundary_snapshot_id),
+                boundary_snapshot_version_id=str(boundary_snapshot_version_id),
+                proposed_action=proposed_action,
+                operating_state=operating_state,
+                status=status,
+            )
+        )
+        for classification_id in accepted_uncertainty_version_ids:
+            self.connection.execute(
+                insert(decision_uncertainty_links).values(
+                    decision_version_id=str(version_id),
+                    classification_version_id=str(classification_id),
+                    classification="ACCEPTED_UNCERTAINTY",
+                )
+            )
+        for classification_id in decision_limiting_uncertainty_version_ids:
+            self.connection.execute(
+                insert(decision_uncertainty_links).values(
+                    decision_version_id=str(version_id),
+                    classification_version_id=str(classification_id),
+                    classification="DECISION_LIMITING_UNCERTAINTY",
+                )
+            )
+        for authority_id in authority_record_version_ids:
+            self.connection.execute(
+                insert(decision_authority_records).values(
+                    decision_version_id=str(version_id), authority_version_id=str(authority_id)
+                )
+            )
+        for gap_id in authority_gap_version_ids:
+            self.connection.execute(
+                insert(decision_authority_gaps).values(
+                    decision_version_id=str(version_id), gap_version_id=str(gap_id)
+                )
+            )
+
+    def decision_detail(self, version_id: RecordVersionId) -> DecisionDetail | None:
+        row = (
+            self.connection.execute(
+                select(decision_versions).where(decision_versions.c.version_id == str(version_id))
+            )
+            .mappings()
+            .first()
+        )
+        if row is None:
+            return None
+        return DecisionDetail(
+            RecordId.parse(cast("str", row["decision_id"])),
+            version_id,
+            RecordId.parse(cast("str", row["case_id"])),
+            RecordId.parse(cast("str", row["configuration_id"])),
+            RecordVersionId.parse(cast("str", row["configuration_version_id"])),
+            RecordId.parse(cast("str", row["integration_id"])),
+            RecordVersionId.parse(cast("str", row["integration_version_id"])),
+            RecordId.parse(cast("str", row["boundary_snapshot_id"])),
+            RecordVersionId.parse(cast("str", row["boundary_snapshot_version_id"])),
+            cast("str", row["proposed_action"]),
+            cast("str", row["operating_state"]),
+            DecisionStatus(cast("str", row["status"])),
+        )
+
+    def decision_versions(
+        self, *, case_id: RecordId, configuration_version_id: RecordVersionId
+    ) -> tuple[RecordVersionId, ...]:
+        rows = (
+            self.connection.execute(
+                select(decision_versions.c.version_id).where(
+                    decision_versions.c.case_id == str(case_id),
+                    decision_versions.c.configuration_version_id == str(configuration_version_id),
+                )
+            )
+            .scalars()
+            .all()
+        )
+        return tuple(RecordVersionId.parse(cast("str", row)) for row in rows)
+
+    def add_bounded_proceed(
+        self,
+        *,
+        determination_id: RecordId,
+        version_id: RecordVersionId,
+        decision_version_id: RecordVersionId,
+        unresolved_gap_version_id: RecordVersionId,
+        blocked_broader_decision: str,
+        narrower_scope: str,
+        boundary_clause_version_ids: tuple[RecordVersionId, ...],
+        operating_state: str,
+        actor_id: RecordId,
+        authority_assignment_version_id: RecordVersionId | None,
+        authority_mechanism: str | None,
+    ) -> None:
+        if not self._identity_exists(
+            bounded_proceed_records,
+            bounded_proceed_records.c.determination_id,
+            str(determination_id),
+        ):
+            self.connection.execute(
+                insert(bounded_proceed_records).values(determination_id=str(determination_id))
+            )
+        self.connection.execute(
+            insert(bounded_proceed_versions).values(
+                version_id=str(version_id),
+                determination_id=str(determination_id),
+                decision_version_id=str(decision_version_id),
+                unresolved_gap_version_id=str(unresolved_gap_version_id),
+                blocked_broader_decision=blocked_broader_decision,
+                narrower_scope=narrower_scope,
+                operating_state=operating_state,
+                actor_id=str(actor_id),
+                authority_assignment_version_id=(
+                    str(authority_assignment_version_id)
+                    if authority_assignment_version_id
+                    else None
+                ),
+                authority_mechanism=authority_mechanism,
+            )
+        )
+        for clause_id in boundary_clause_version_ids:
+            self.connection.execute(
+                insert(bounded_proceed_boundary_clauses).values(
+                    bounded_proceed_version_id=str(version_id), clause_version_id=str(clause_id)
+                )
+            )
+
+    def bounded_proceed_detail(self, version_id: RecordVersionId) -> dict[str, str] | None:
+        row = (
+            self.connection.execute(
+                select(bounded_proceed_versions).where(
+                    bounded_proceed_versions.c.version_id == str(version_id)
+                )
+            )
+            .mappings()
+            .first()
+        )
+        if row is None:
+            return None
+        return {
+            key: cast("str", row[key])
+            for key in (
+                "decision_version_id",
+                "unresolved_gap_version_id",
+                "narrower_scope",
+                "operating_state",
+                "actor_id",
+            )
+        }
+
+    def add_authorization_basis(
+        self,
+        *,
+        basis_id: RecordId,
+        version_id: RecordVersionId,
+        decision_version_id: RecordVersionId,
+        decision_authority_identity: str,
+        authority_assignment_version_id: RecordVersionId | None,
+        authority_mechanism: str | None,
+        authority_record_version_id: RecordVersionId | None,
+        delegation_chain_version_ids: tuple[RecordVersionId, ...],
+        authorized_scope: str,
+        configuration_id: RecordId,
+        configuration_version_id: RecordVersionId,
+        operating_state_coverage: tuple[str, ...],
+        decision_type: str,
+        organizational_unit: str | None,
+        authorization_event_id: str,
+        authorization_actor_id: RecordId,
+        authorization_effective_at: datetime,
+        authority_gap_version_ids: tuple[RecordVersionId, ...],
+        bounded_proceed_version_id: RecordVersionId | None,
+    ) -> None:
+        if not self._identity_exists(
+            decision_authorization_basis_records,
+            decision_authorization_basis_records.c.basis_id,
+            str(basis_id),
+        ):
+            self.connection.execute(
+                insert(decision_authorization_basis_records).values(basis_id=str(basis_id))
+            )
+        self.connection.execute(
+            insert(decision_authorization_basis_versions).values(
+                version_id=str(version_id),
+                basis_id=str(basis_id),
+                decision_version_id=str(decision_version_id),
+                decision_authority_identity=decision_authority_identity,
+                authority_assignment_version_id=(
+                    str(authority_assignment_version_id)
+                    if authority_assignment_version_id
+                    else None
+                ),
+                authority_mechanism=authority_mechanism,
+                authority_record_version_id=(
+                    str(authority_record_version_id) if authority_record_version_id else None
+                ),
+                authorized_scope=authorized_scope,
+                configuration_id=str(configuration_id),
+                configuration_version_id=str(configuration_version_id),
+                operating_state_coverage_json=json.dumps(operating_state_coverage),
+                decision_type=decision_type,
+                organizational_unit=organizational_unit,
+                authorization_event_id=authorization_event_id,
+                authorization_actor_id=str(authorization_actor_id),
+                authorization_effective_at_us=to_epoch_microseconds(authorization_effective_at),
+                bounded_proceed_version_id=(
+                    str(bounded_proceed_version_id) if bounded_proceed_version_id else None
+                ),
+            )
+        )
+        for ordinal, assignment_id in enumerate(delegation_chain_version_ids):
+            self.connection.execute(
+                insert(decision_authorization_delegations).values(
+                    basis_version_id=str(version_id),
+                    ordinal=ordinal,
+                    assignment_version_id=str(assignment_id),
+                )
+            )
+        for gap_id in authority_gap_version_ids:
+            self.connection.execute(
+                insert(decision_authorization_gaps).values(
+                    basis_version_id=str(version_id), gap_version_id=str(gap_id)
+                )
+            )
+
+    def authorization_basis_detail(
+        self, version_id: RecordVersionId
+    ) -> AuthorizationBasisDetail | None:
+        row = (
+            self.connection.execute(
+                select(decision_authorization_basis_versions).where(
+                    decision_authorization_basis_versions.c.version_id == str(version_id)
+                )
+            )
+            .mappings()
+            .first()
+        )
+        if row is None:
+            return None
+        return AuthorizationBasisDetail(
+            RecordId.parse(cast("str", row["basis_id"])),
+            version_id,
+            RecordVersionId.parse(cast("str", row["decision_version_id"])),
+            (
+                RecordVersionId.parse(cast("str", row["authority_assignment_version_id"]))
+                if row["authority_assignment_version_id"]
+                else None
+            ),
+            cast("str | None", row["authority_mechanism"]),
+            (
+                RecordVersionId.parse(cast("str", row["authority_record_version_id"]))
+                if row["authority_record_version_id"]
+                else None
+            ),
+            cast("str", row["authorized_scope"]),
+            RecordId.parse(cast("str", row["configuration_id"])),
+            RecordVersionId.parse(cast("str", row["configuration_version_id"])),
+            tuple(cast("list[str]", json.loads(cast("str", row["operating_state_coverage_json"])))),
+            (
+                RecordVersionId.parse(cast("str", row["bounded_proceed_version_id"]))
+                if row["bounded_proceed_version_id"]
+                else None
+            ),
+        )
+
+    def authorization_basis_versions(
+        self, *, decision_version_id: RecordVersionId
+    ) -> tuple[RecordVersionId, ...]:
+        rows = (
+            self.connection.execute(
+                select(decision_authorization_basis_versions.c.version_id).where(
+                    decision_authorization_basis_versions.c.decision_version_id
+                    == str(decision_version_id)
+                )
+            )
+            .scalars()
+            .all()
+        )
+        return tuple(RecordVersionId.parse(cast("str", row)) for row in rows)
+
+    def authority_record_scope(self, version_id: RecordVersionId) -> str | None:
+        row = self.connection.execute(
+            select(authority_record_versions.c.authority_scope).where(
+                authority_record_versions.c.version_id == str(version_id)
+            )
+        ).scalar_one_or_none()
+        return cast("str | None", row)
 
     def add_status_event(self, status: StatusEvent) -> None:
         self._connection.execute(

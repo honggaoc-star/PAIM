@@ -16,6 +16,8 @@ class CaseLifecycleState(StrEnum):
     CONFIGURATION_DEFINED = "configuration_defined"
     EVIDENCE_ANALYSIS = "evidence_analysis"
     READY_FOR_INTEGRATION = "ready_for_integration"
+    DECISION_PENDING = "decision_pending"
+    DECIDED = "decided"
 
 
 class ConfigurationMaturity(StrEnum):

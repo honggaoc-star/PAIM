@@ -6,6 +6,7 @@ from paim.application.increment2 import (
     Increment2ApplicationService,
 )
 from paim.application.increment3 import Increment3ApplicationService
+from paim.application.increment4 import Increment4ApplicationService
 from paim.application.service import (
     CommitStatusCommand,
     CommitVersionCommand,
@@ -22,6 +23,7 @@ __all__ = [
     "IdempotencyKeyReuseConflict",
     "Increment2ApplicationService",
     "Increment3ApplicationService",
+    "Increment4ApplicationService",
     "IntegrityApplicationService",
     "StalePrecondition",
 ]
