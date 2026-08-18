@@ -812,7 +812,11 @@ Intervention or Learning may trigger reassessment when:
 - boundary breach occurs;
 - fallback becomes persistent.
 
-Detailed reassessment behavior is defined next in `PAIM_REASSESSMENT_SPEC_v0.1.md`.
+An Intervention, Completion Result/Acceptance, replacement/reuse outcome, activation event, or Learning result becomes a Trigger source only through an exact authoritative handoff under `PAIM_REASSESSMENT_SPEC_v0.1.md`. The Trigger retains this source record family, stable Record ID, exact Record Version ID, owning/affected Case, declared management question, effective/recorded/knowledge context, and separate accountable Trigger Determination.
+
+Completion, failure, cancellation, activation, favorable Learning, source similarity, category, severity, or software status does not by itself create Trigger materiality, grouping, Reassessment membership, Decision change, or cross-Case propagation. Exact replay is idempotent; a materially updated Version of the same established source occurrence/Case/question creates a successor Trigger Version. Existing Increment 5 records remain authoritative sources and are not redesigned by this handoff.
+
+No Observation record or automated Observation-to-Trigger conversion is introduced. Detailed Trigger and Reassessment behavior is governed by `PAIM_REASSESSMENT_SPEC_v0.1.md`.
 
 ## 38. Human Judgment Points
 
@@ -879,7 +883,7 @@ Deferred to later specifications/platform design:
 - incident-management integration;
 - external-provider task integration.
 
-IRR-009 Observation persistence, IRR-011 Trigger/Reassessment concurrency, IRR-012 Management Register aggregation, and IRR-014 operating-state ranking remain explicitly deferred. This specification does not define a universal Intervention score, universal segregation-of-duties rule, or generic workflow/condition/dependency engine.
+IRR-011 Trigger/Reassessment semantics are normatively hardened in the Reassessment, Case Lifecycle, Roles/Accountability, and Integrity specifications but remain pending independent Increment 6 gate-closure review. IRR-009 Observation persistence, IRR-012 Management Register aggregation, and IRR-014 operating-state ranking remain explicitly deferred. This specification does not define a universal Intervention score, universal segregation-of-duties rule, or generic workflow/condition/dependency engine.
 
 ## 42. Completion Impact
 

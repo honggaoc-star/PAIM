@@ -105,6 +105,9 @@ The minimum role model includes:
 8. Authority Owner
 9. Reviewer/Auditor
 10. System Administrator
+11. Trigger Determiner
+12. Reassessment Owner
+13. Reassessment Coordination Authority
 
 Not every case requires a different person for every role.
 
@@ -458,18 +461,57 @@ Possible responsibilities:
 
 The facilitator does not automatically become Decision Authority.
 
-## 21. Reassessment Owner
+## 21. Trigger and Reassessment Accountability Functions
 
-A reassessment may be coordinated by the Case Owner or a separately assigned Reassessment Owner.
+### 21.1 Trigger Determiner
 
-Responsibilities include:
+The **Trigger Determiner** is the substantive accountable function that accepts an exact existing-record, human, or external source occurrence as a Trigger for one exact Case context and owns the Trigger Determination outcome.
 
-- triage trigger;
-- coordinate evidence/configuration review;
-- identify analytical refresh;
-- move case toward successor decision.
+It must retain the exact Trigger Version, Case, initiating Decision Version and target Configuration Version when established, declared management question/scope, outcome/rationale, actor, accountable assignment or genuine governed mechanism, delegation where used, effective/recorded time, and immutable history.
 
-The role may be optional as a separate designation.
+Source authorship, Evidence ownership, Intervention/Learning ownership, Case ownership, provider identity, technical-principal identity, administrator permission, queue assignment, category, severity, and software inference do not establish this accountability.
+
+### 21.2 Reassessment Owner
+
+The **Reassessment Owner** is the substantive accountable function for one exact Reassessment. Responsibilities include:
+
+- establishing and preserving the exact Trigger Set and declared scope;
+- coordinating configuration, Evidence, Authority, Value, Risk, control, uncertainty, Boundary, and operating-state review;
+- maintaining Reassessment content and status progression;
+- preparing the exact Confirmation or successor/amendment Decision completion package; and
+- preventing orphaned Trigger coverage.
+
+The Case Owner may also be Reassessment Owner only when each function is separately established and retained. Reassessment ownership does not create Decision Authority or authority to issue an Interim Operating Disposition.
+
+### 21.3 Reassessment Coordination Authority
+
+The **Reassessment Coordination Authority** is the substantive accountable function for:
+
+- Trigger grouping/compatibility determinations;
+- identity-level duplicate dispositions;
+- Reassessment coexistence and overlap coordination;
+- cancellation and history-preserving supersession; and
+- prospective Trigger coverage transfer/disposition.
+
+It does not merge Reassessments in v0.1 and does not create Decision Authority. A Case Owner, Reassessment Owner, administrator, queue owner, or software mechanism may perform this function only through a separately eligible accountable assignment or genuine governed organizational mechanism.
+
+### 21.4 Applicable typed targets and selection
+
+For each accepted v0.1 Trigger/Reassessment accountability obligation, the explicitly applicable typed target set consists of:
+
+- the exact initiating Decision;
+- the exact target Configuration; and
+- that Configuration's owning Case.
+
+The exact Intervention is additionally applicable only when it is the Trigger source/scope. Each Role Assignment retains its own typed target. A Case-scoped assignment applicable to a Trigger/Reassessment obligation does not become Decision-, Configuration-, Intervention-, Trigger-, or Reassessment-scoped.
+
+Resolution returns exactly one eligible accountable assignment or one genuine governed organizational mechanism, explicit `REASSESSMENT ACCOUNTABILITY NOT ESTABLISHED`, or `REASSESSMENT ACCOUNTABILITY CONFLICT — UNRESOLVED`. The action-specific record identifies whether the obligation is Trigger Determination, grouping/compatibility, duplicate disposition, Reassessment ownership, coordination, cancellation, supersession, Trigger coverage, or confirmation preparation.
+
+Broad/narrow scope, recency, specificity, role hierarchy, ownership, source authorship, directory group, technical principal, administrator permission, queue assignment, and software permission establish no implicit winner.
+
+Delegation must cite the exact chain and fail closed when any link is expired, revoked, withdrawn, superseded, unrelated in target/scope, incomplete, or conflicting. A governed mechanism must be a real authoritative mechanism record/reference retaining exact identity, rule/version, scope, authority source, actor/authorized function where applicable, limits, effective period, and history. A free-form mechanism string is ineligible.
+
+Later routine role expiry does not rewrite historically valid Trigger/Reassessment actions. Expiry, revocation, withdrawal, or supersession is prospective for future actions.
 
 ## 22. Role-to-Record Accountability
 
@@ -489,7 +531,9 @@ The role may be optional as a separate designation.
 | Intervention Record | Intervention Owner |
 | Intervention Completion Acceptance | exact Intervention/Decision/target-Configuration/owning-Case Completion Acceptor assignment or governed mechanism |
 | Learning Item | assigned learning/evidence owner |
-| Reassessment Record | Case/Reassessment Owner |
+| Trigger Determination | exact Decision/target-Configuration/owning-Case Trigger Determiner assignment or governed mechanism; exact Intervention additionally applicable only when it is the source/scope |
+| Reassessment Record/Version | exact Decision/target-Configuration/owning-Case Reassessment Owner assignment or governed mechanism |
+| Trigger grouping/duplicate/coexistence/cancellation/supersession/coverage action | exact Decision/target-Configuration/owning-Case Reassessment Coordination Authority assignment or governed mechanism; exact Intervention additionally applicable only when it is the source/scope |
 | Management Register | derived system view; management ownership |
 
 This table defines default accountability, not mandatory organizational staffing.
@@ -499,6 +543,8 @@ For each row that requires accountable ownership, the governing record must refe
 For Input Acceptance/Selection and Evidence Applicability, the governing record must validate accountability against the obligation's exact target context rather than against whatever target is stored on the cited assignment. A valid assignment for unrelated Case or Configuration B cannot authorize an obligation for Case or Configuration A.
 
 Intervention Completion Acceptance follows the same fail-closed principle against the exact applicable typed target set in §15.1. An assignment valid only for unrelated Intervention, Decision, Configuration, or Case is ineligible. One eligible accountable result is valid; zero is vacancy/not established; incompatible plurality is explicit conflict.
+
+Trigger and Reassessment actions follow the same fail-closed principle against the applicable typed target set in §21.4. One eligible result is valid; zero is not established; incompatible plurality is explicit conflict. Decision Authority remains separately governed for Interim Operating Dispositions, unchanged-Decision Confirmation approval where required, and every successor/amendment Decision.
 
 ## 23. Role Conflicts
 
@@ -644,9 +690,9 @@ The owner does not automatically decide whether the evidence changes the PAIM de
 
 ## 32. Accountability for Reassessment
 
-Every material reassessment should have a coordinator/owner.
+Every material Reassessment has one eligible Reassessment Owner assignment/mechanism or explicit not-established/conflict. Trigger Determination and Reassessment coordination remain separately accountable under §21; neither is implied by Reassessment ownership.
 
-The Decision Authority remains accountable for any successor management judgment.
+The Decision Authority remains separately accountable for every successor/amendment management judgment and every Interim Operating Disposition under the complete governing Authorization Basis. Where current Decision or legitimate organizational authority requires approval of unchanged-Decision Confirmation, that approval is also distinct from Reassessment ownership. One actor may hold multiple functions only through separately established and retained relationships.
 
 ## 33. Escalation
 

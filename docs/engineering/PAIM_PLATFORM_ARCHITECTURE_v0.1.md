@@ -304,7 +304,10 @@ Blocked, failed, cancelled, partial, inconclusive, and overdue states remain vis
 This module owns:
 
 - Reassessment Trigger intake and materiality determination records;
-- Reassessment identity, status, scope, review history, and exact current context;
+- Case-scoped Trigger identity/version/provenance, exact-replay idempotency, and one/absence/conflict Trigger Determination;
+- many-to-many versioned Trigger/Reassessment Memberships and one immutable exact Trigger Set per finalized Reassessment Version;
+- Reassessment identity, accepted status vocabulary, structured scope, review history, exact current context, and Trigger Coverage;
+- accountable grouping, duplicate disposition, non-overlap/coexistence, overlap conflict, cancellation, and history-preserving supersession records;
 - Interim Operating Disposition versions and restrictive overlays;
 - Decision Confirmation records;
 - links to successor/amendment Decisions;
@@ -312,6 +315,8 @@ This module owns:
 - the longitudinal chain from the prior Decision to the resulting outcome.
 
 Opening reassessment never changes operation by itself. Current operation remains governed by the exact current Decision and Boundary plus every applicable authorized restrictive Interim Operating Disposition.
+
+Multiple open Reassessments may coexist only for mechanically disjoint structured scope or one eligible accountable coordination determination. Shared/indeterminate scope is explicit overlap conflict. Reassessment merge/absorption does not exist in v0.1, and no Trigger, Reassessment, or outcome is selected by recency, severity, breadth, queue priority, or software permission.
 
 ### 5.12 Management Register and projection module
 
@@ -418,6 +423,8 @@ Some operations require multiple authoritative facts to become visible together:
 | Change Case lifecycle state | Lifecycle Transition Event and the new derived current lifecycle state |
 | Authorize a Decision | Immutable Decision version, finalized referenced Boundary Snapshot, complete Decision Authorization Basis, authorization event, current/supersession effects, and `DECIDED` transition when applicable |
 | Apply Interim Operating Disposition | Authorized disposition version, exact Decision/Boundary/configuration links, effective/expiry terms, and current restrictive-overlay result |
+| Add/remove Trigger membership | Immutable Membership Version and successor Reassessment Version with complete exact Trigger Set, or neither |
+| Cancel/supersede Reassessment | Accountable action/status, exact successor when superseded, and compatible prospective coverage for every unresolved Trigger, or neither |
 | Complete Reassessment unchanged | Completed Reassessment version, immutable Decision Confirmation, disposition end/supersession effects, and allowed lifecycle transition |
 | Complete Reassessment with change | Completed Reassessment version, authorized successor/amendment Decision and its Boundary/Authorization Basis, predecessor/supersession links, disposition end effects, and allowed lifecycle transition |
 | Correct authoritative content | New correction/version, link to corrected version, affected-record references, and reassessment/attention condition where material |
@@ -1101,9 +1108,9 @@ The architecture records the status and required behavior of the following depen
 | IRR-006 — Value/Risk input selection, acceptance, and freeze ownership — resolved for specification purposes | Newest, first, or any `ready` input is automatically selected/frozen; one generic role owns both lanes. | Apply lane-specific use Acceptance/Selection, atomic first freeze, explicit reuse, exact accountable assignment/mechanism, material-Evidence fitness, and one/absence/conflict from the hardened Value/Risk and Integrity contracts. | Conformance review before Increment 3 implementation. |
 | IRR-007 — Configuration ownership/cardinality, status dimensions, and materiality authority | One Case always has one Configuration; `current`, `proposed`, `experimental`, and operating state are interchangeable; any technical actor decides materiality. | Typed Case–Configuration relationship, orthogonal purpose/currentness/state dimensions, explicit materiality determination and unresolved conflict. | Finalizing Configuration workflow and Register unit/cardinality. |
 | IRR-008 — Evidence Applicability relationship — resolved for specification purposes | Evidence belongs to exactly one target or applicability can be inferred from attachment/location. | Apply the first-class versioned many-to-many Applicability contract, exact Increment 3 target Versions, normative outcomes, target-context accountability, correction/reuse history, and one/absence/conflict from the hardened Evidence/Authority and Integrity contracts. | Conformance review before Increment 3 implementation. |
-| IRR-009 — Observation Record | Observation is definitely an authoritative record or merely transient telemetry. | Observation intake boundary can emit proposed Evidence and/or Trigger; if finalized as authoritative, common record envelope applies; projection/event path remains replaceable. | Persisting Observation as a first-class domain record. |
+| IRR-009 — Observation Record | Observation is definitely an authoritative record or merely transient telemetry. | Until IRR-009 is accepted, Increment 6 persists no Observation and performs no automated Observation-to-Trigger conversion. Exact existing PAIM records and explicit human/external events with retained provenance may source a Trigger. Any later Observation intake/conversion contract remains a replaceable deferred extension. | Persisting Observation or automating Observation-to-Evidence/Trigger conversion. |
 | IRR-010 — Intervention prerequisite aggregation and completion acceptance | `completed` means accepted; all Interventions are prerequisites; one status automatically permits target operation. | Explicit prerequisite classification, completion evidence, acceptance determination/role, aggregate guard, and unresolved acceptance state. | Implementing transition to target `OPERATING_OBSERVING`. |
-| IRR-011 — Trigger/Reassessment cardinality and concurrency | One Trigger maps to one Reassessment; duplicates can be dropped; concurrent Reassessments merge by recency. | Many-to-many Trigger/Reassessment links, duplicate/merge/supersession/concurrency extension, preserved triggers, and explicit conflict; current operation still uses restrictive-overlay rules. | Automating trigger triage, merge, or concurrent Reassessment workflow. |
+| IRR-011 — Trigger/Reassessment cardinality and concurrency — normatively hardened, pending independent closure review | One Trigger maps to one Reassessment; similarity deduplicates; membership mutates; concurrent Reassessments or dispositions choose by recency/severity/rank; merge absorbs history. | Apply Case-scoped versioned Trigger identity, identity-only replay, accountable determinations, many-to-many immutable Membership/Trigger Sets, no-auto-grouping, bounded non-overlapping concurrency, explicit overlap/coverage conflict, no v0.1 merge, accountable cancellation/supersession, prospective completion revalidation, separate accountability functions, restrictive-overlay intersection/suspension, and IRR-009/012/014 boundaries from the hardened Reassessment/Case/Roles/Integrity contracts. | Independent focused IRR-011 gate-closure review before Increment 6 implementation. |
 | IRR-012 — Register derivation/aggregation and shared dependency identity | Register has one row per Case; provider/control names imply shared identity; aggregation may pick a winner. | Projection rule/version, configurable unit, multi-valued/conflict display, stable shared-dependency/equivalence extension, exact source links. | Implementing portfolio aggregation and concentration analytics. |
 | IRR-013 / CON-002 — Role Assignment typed scope and precedence | Every assignment requires one Case; organization-wide assignment overrides narrower assignment; newest/broadest wins. | Typed scope target, optional Case relationship, precedence-policy extension, exact Authorization Basis chain validation, and unresolved assignment conflict. | Implementing general role assignment/permission derivation beyond exact Decision authorization. |
 | IRR-014 — operating-state semantic traits and stronger/broader relation | State labels have a universal ordering; string/name comparison determines strength; `suspended` is simply another progression step. | Configured state identity/traits and relation extension, explicit proposed change, indeterminate relation, and invariant that every state change requires successor Decision. | Implementing stronger-state automation and complete escalation oracles. |
@@ -1199,7 +1206,7 @@ Implementation should begin only after this architecture is independently review
 
 ### Increment 6 — Reassessment and Interim Operating Disposition
 
-- preserve room for IRR-011 concurrency clarification;
+- require independent closure review of the normatively hardened IRR-011 contract before implementation;
 - implement Trigger intake, Reassessment workflow, restrictive overlays, expiry/conflict, Confirmation, and successor outcomes;
 - implement longitudinal Decision history; and
 - prove reassessment-overlay, confirmation-vs-successor, expiry, and point-in-time tests.
