@@ -111,7 +111,7 @@ The common interface must not imply that Value and Risk are interchangeable anal
 
 ## 4. Input Identity
 
-Every Value or Risk Management Input should have a durable identity.
+Every candidate or selected Value or Risk Management Input is an authoritative PAIM record with a durable identity. Candidate status does not make the Input selected for an Integration use, and selection does not create a different analytical lane or combined Value/Risk record.
 
 Minimum identity fields:
 
@@ -128,24 +128,36 @@ Minimum identity fields:
 - effective/current date where relevant
 - predecessor/superseding input
 - freeze status
+- disposition history for each bounded use
+
+Value and Risk Input identities and histories remain separate. Analytical workpapers or external submissions may be provenance sources, but a PAIM-facing candidate Input contains the complete five-part lane conclusion and exact Configuration binding required by this specification.
 
 ## 5. Input Status
 
-Possible statuses include:
+Input content/lifecycle statuses include:
 
 - draft;
 - in progress;
 - ready;
-- frozen/current;
+- frozen;
 - refresh required;
 - superseded;
 - withdrawn.
 
-The exact platform vocabulary may later be refined.
-
 A draft input must not be represented as a frozen contributing conclusion.
 
-`frozen` and `current` are distinct properties. Freeze finalizes one immutable content version; currentness is derived for a declared configuration, purpose, scope, and time under `PAIM_SYSTEM_RECORD_AND_DECISION_INTEGRITY_SPEC_v0.1.md`, §§3.4 and 3.11. A frozen historical input remains frozen even after it is no longer current.
+`ready`, `frozen`, `accepted`, `selected`, `reused`, `rejected for use`, `withdrawn`, `superseded`, and `refresh required` are distinct facts:
+
+- `ready` is an attributed analytical-readiness event stating that the producer regards a candidate Input as complete enough for accountable acceptance review;
+- `frozen` means the exact Input Version's five-part content has crossed the immutable finalization boundary;
+- `accepted` and `selected` are use-specific results recorded by the lane-specific Input Acceptance/Selection relationship in §13;
+- `reused` means an already frozen Input Version has a new acceptance for another bounded use;
+- `rejected for use` is a use-specific disposition and does not erase or globally invalidate the Input;
+- `withdrawn` ends prospective reliance for its declared scope/time without rewriting prior use;
+- `superseded` identifies a prospective successor for a declared scope/time; and
+- `refresh required` is prospective attention/status and does not reopen frozen content.
+
+Freeze and currentness are distinct. Freeze is global to one immutable Input Version. Current selected eligibility is derived for a declared lane, Configuration Version, bounded use/purpose, effective time, and optional knowledge cutoff under `PAIM_SYSTEM_RECORD_AND_DECISION_INTEGRITY_SPEC_v0.1.md`, §§3.4 and 3.11. A frozen historical Input remains frozen after it is no longer eligible for a new use.
 
 ## 6. Configuration Binding
 
@@ -263,7 +275,7 @@ Literal separate evaluators are desirable where appropriate but are not required
 
 ## 13. Freeze
 
-A contributing input becomes **frozen** when it is accepted as the analytical conclusion used for a particular PAIM integration/decision.
+A candidate Input becomes **frozen** at its first valid lane-specific acceptance for a bounded Integration use. Analytical readiness is separate and does not freeze or select the Input.
 
 Freeze means:
 
@@ -275,7 +287,90 @@ Freeze means:
 
 Freeze is an analytical-history rule, not a claim that the conclusion is permanently true.
 
-Freeze is the finalization boundary for the selected Input version under `PAIM_SYSTEM_RECORD_AND_DECISION_INTEGRITY_SPEC_v0.1.md`, §3.4. Later status changes never reopen its five-part content.
+Freeze is global finalization of the exact Input Version under `PAIM_SYSTEM_RECORD_AND_DECISION_INTEGRITY_SPEC_v0.1.md`, §3.4. The first valid acceptance/selection semantic commit atomically:
+
+1. finalizes and freezes that exact Input Version if it is not already frozen; and
+2. records the exact bounded acceptance/selection described below.
+
+Later status changes never reopen its five-part content. Later use of the same frozen Input Version creates a new acceptance/reuse record and does not refreeze or copy the Input content.
+
+### 13.1 Input Acceptance/Selection identity
+
+Value Input Acceptance/Selection and Risk Input Acceptance/Selection are separate authoritative relationship families. Every acceptance/selection supports:
+
+- stable Acceptance/Selection Record ID;
+- immutable Acceptance/Selection Version ID;
+- exact lane: Value or Risk;
+- exact Input ID and Input Version ID;
+- exact owning Case and Managed Configuration ID/Version;
+- bounded use or Integration-path identity and purpose;
+- outcome/disposition;
+- rationale, including reuse/fitness rationale where applicable;
+- effective time/interval and recorded time;
+- exact accountable Role Assignment version or explicitly governed accountable mechanism;
+- predecessor, correction, supersession, or withdrawal relationship and reason; and
+- exact material Evidence Applicability versions and lane-level fitness determination relied upon.
+
+A mutable `selected` flag on the Input is not an Acceptance/Selection record.
+
+### 13.2 Lane-specific selection
+
+For one explicit Value or Risk lane, Configuration Version, bounded use/purpose, effective time, and optional knowledge cutoff, current selection returns exactly one of:
+
+- one eligible accepted frozen Input Version and its exact Acceptance/Selection Version;
+- `INPUT SELECTION NOT ESTABLISHED`; or
+- `INPUT SELECTION CONFLICT — UNRESOLVED` with every incompatible candidate and reason.
+
+The platform must not choose by newest/latest date, owner, readiness/status label, row order, specificity, directory hierarchy, or convenience. Value and Risk selection are evaluated independently. No shared acceptance shortcut or combined score may satisfy both lanes.
+
+Zero eligible Acceptance/Selection Versions returns `INPUT SELECTION NOT ESTABLISHED`, regardless of how many co-current `ready` candidate Inputs exist. Two or more ready candidates remain preserved candidate alternatives and do not create authoritative selection conflict merely by being ready. Selection conflict arises only when two or more incompatible co-current eligible Acceptance/Selection Versions compete for the same explicit lane, exact Configuration Version, bounded use/purpose, effective time, and optional knowledge cutoff. An acceptance semantic commit that establishes one eligible selection must identify the accepted Input and record explicit non-selected/dissenting/rejected-for-use dispositions or supersession for every competing candidate material to that use. The resulting found selection is exactly one accepted/frozen Input and its exact Acceptance/Selection Version.
+
+### 13.3 Acceptance accountability
+
+Analytical production/readiness and acceptance accountability are distinct facts. Each lane acceptance must resolve for the exact lane, Configuration, bounded use, and effective time to:
+
+- exactly one applicable accountable Role Assignment or one explicitly governed accountable mechanism;
+- explicit vacancy/not established; or
+- explicit incompatible-accountability conflict.
+
+One actor may produce/declare readiness and accept only when separately applicable assignments/mechanisms establish both functions. Authorship, integrator participation, Evidence ownership, software permission, technical-principal identity, or a generic role label does not establish acceptance accountability. Broad and narrow assignments have no implicit precedence. Input acceptance never creates Decision Authority.
+
+### 13.4 Candidate dispositions and history
+
+Candidate Inputs and their exact content remain preserved whether selected, non-selected, dissenting, rejected for a use, withdrawn, corrected, or superseded. A use-specific disposition records the Input Version, bounded use, disposition, actor/accountable basis where required, rationale, effective/recorded time, and predecessor/history.
+
+`dissenting` preserves a materially competing conclusion; it is not synonymous with invalid. `rejected for use` makes the Input ineligible for that bounded use but does not delete it or automatically reject it for every future use.
+
+### 13.5 Reuse
+
+An already frozen Input Version may support more than one Integration only when every later use has a new explicit Acceptance/Selection Version. The reuse acceptance binds the exact current governing Configuration Version, bounded use/purpose, material Evidence Applicability basis, lane-level fitness judgment, accountability, rationale, and time.
+
+Historical frozen status or absence of `refresh required` is not sufficient for reuse. Prior acceptance is provenance only for the later fitness judgment.
+
+### 13.6 Material-Evidence fitness gate
+
+Every Evidence item declared material to a new acceptance/use must have a current Evidence Applicability result for its exact target context.
+
+- Applicability absence, unresolved conflict, `NOT_APPLICABLE`, or unresolved `REFRESH REQUIRED` blocks acceptance when the Evidence is required to support the Input's Finding, Boundary, or Implication.
+- `CONDITIONALLY_APPLICABLE` and `PARTIALLY_APPLICABLE` may support only within their recorded scope, conditions, and limitations; they cannot justify a broader Input Boundary.
+- `INDETERMINATE` remains indeterminate. A separate accountable lane-level fitness determination records whether the bounded Input remains supportable for that exact use and why. It blocks when the unresolved matter is decision-limiting to that analytical Input/use. General management-level Decision-Limiting Uncertainty classification remains governed by Integration/Decision.
+- Evidence linked as limitation, dissent, or conflict need not become favorable support, but its role and provenance remain explicit.
+
+The platform may verify presence, exact references, scope containment, and conflict. It must not compute a universal evidence-sufficiency or confidence score or replace the accountable fitness judgment.
+
+### 13.7 Withdrawal, rejection, and later change
+
+Withdrawal or rejection of a selected Input before Integration readiness makes that acceptance/selection ineligible and blocks the affected handoff. Correction creates a new Input Version and identifies affected uses. Supersession changes prospective eligibility only for its declared scope/time.
+
+Withdrawal, correction, supersession, staleness, or Evidence change after a historical Integration/Decision never rewrites the frozen Input or historical basis. It creates prospective attention, refresh, successor-analysis, or reassessment consequences where material.
+
+### 13.8 Normative selection examples
+
+1. Two co-current ready Value Inputs for the same Configuration/use do not produce a winner. Until an accountable acceptance/supersession establishes one eligible result, Value selection is conflict and the handoff is blocked.
+2. One accepted Value Input and one accepted Risk Input, each bound to the same exact governing Configuration Version and each with an eligible Acceptance/Selection Version, satisfy the input-cardinality portion of the handoff.
+3. Reusing a frozen Risk Input for a later use creates a new Risk Acceptance/Selection Version referencing the same immutable Risk Input Version.
+4. A selected Input withdrawn before Integration readiness becomes ineligible. The same withdrawal after a historical Decision preserves the historical basis and creates only prospective attention/reassessment where material.
+5. An accountable acceptance assignment valid only for unrelated Configuration B cannot accept an Input for Configuration A. Applicable broad and narrow competing accountable assignments produce conflict absent explicit supersession or delegation.
 
 ## 14. Frozen-Implication Fidelity
 
@@ -328,6 +423,8 @@ An input may become `refresh required` when:
 
 Refresh-required status does not itself rewrite the historical input.
 
+An unresolved `refresh required` status makes a new acceptance/reuse ineligible when the affected Evidence or analytical conclusion is material to that use. It does not retroactively invalidate a historical acceptance.
+
 ## 17. Supersession
 
 A new input supersedes an older input for current analysis only when explicitly established.
@@ -375,6 +472,8 @@ Implication
 ```
 
 The platform need not force field-by-field citation where it creates unreasonable burden, but traceability must be available.
+
+Every Evidence item declared material to an acceptance/use must additionally link to the exact current Evidence Applicability Version used by the §13.6 fitness gate.
 
 ## 20. Authority Linkage
 
@@ -556,15 +655,30 @@ Compatibility depends on producing the required five-part PAIM-facing interface,
 
 ### Relationships
 - Evidence Records
+- exact material Evidence Applicability Versions and their roles
 - Authority Records/Gaps
+- Input Acceptance/Selection Versions and use-specific dispositions
 - PAIM Integration Record(s)
 - Management Decision(s)
 - Reassessment(s)
 
 ### Applicability
-- current/refresh-required/superseded
+- prospective status such as refresh-required, superseded, or withdrawn
+- selected current use only through exact Acceptance/Selection Version
 - configuration applicability
 - known limitations
+
+### Minimum Input Acceptance/Selection record
+- Acceptance/Selection Record ID and Version ID
+- lane
+- exact Input and Configuration Versions
+- bounded use/Integration-path identity and purpose
+- outcome/disposition and rationale
+- effective/recorded time
+- accountable assignment/mechanism
+- exact material Evidence Applicability Versions
+- lane-level fitness determination
+- predecessor/correction/supersession/withdrawal history
 
 ## 31. Interface Integrity Checks
 
@@ -580,6 +694,15 @@ The system should surface:
 - material boundary absent;
 - unresolved uncertainty omitted from integration;
 - input used outside its applicability.
+- ready Input treated as accepted or frozen without an eligible Acceptance/Selection Version;
+- more than one incompatible accepted Input for one lane/use;
+- selected Value and Risk Inputs or their acceptances bound to different Configuration Versions;
+- reuse without a new use-specific acceptance/fitness judgment;
+- acceptance with vacant, conflicting, unrelated-scope, or permission-derived accountability;
+- rejected/withdrawn Input still treated as eligible before Integration;
+- material Evidence applicability absent, conflicting, not applicable, refresh-required, or broader than its recorded conditional/partial scope;
+- `INDETERMINATE` treated as globally permitted or prohibited without the lane-level fitness determination;
+- non-selected or dissenting Input erased or rewritten.
 
 These checks support process integrity rather than automated substantive approval.
 
@@ -591,7 +714,9 @@ Human/accountable judgment remains necessary for:
 - defining the Boundary;
 - deciding what uncertainty is material;
 - selecting the contributing Implication;
-- determining whether an input is ready to freeze;
+- declaring whether an input is analytically ready;
+- accepting/selecting the exact Input for a bounded use under applicable accountability;
+- determining lane-level material-Evidence fitness, including treatment of `INDETERMINATE`;
 - deciding whether new evidence requires refresh;
 - interpreting differences between Value and Risk.
 
@@ -617,7 +742,7 @@ This specification does not prescribe UI.
 
 Future tests should include:
 
-1. Freeze a Value Input, add new evidence, and confirm the historical input does not change.
+1. First-accept a Value Input and confirm that freeze and bounded selection commit atomically while later Evidence does not change the Input.
 2. Bind Value and Risk Inputs to different configuration versions and block/flag integration readiness.
 3. Paraphrase a frozen Implication inaccurately and ensure the original remains visible.
 4. Refresh Risk after a control change while retaining historical Risk for the prior decision.
@@ -627,19 +752,23 @@ Future tests should include:
 8. Use an input outside its applicability.
 9. Resolve a contributing uncertainty and create a successor input.
 10. Construct inputs from fuller evidence without exposing the other leg during analysis.
+11. Create two ready Value candidates for one use and confirm `INPUT SELECTION NOT ESTABLISHED` while no eligible Acceptance/Selection Version exists; create two incompatible co-current eligible acceptances and confirm `INPUT SELECTION CONFLICT — UNRESOLVED`; then retain one accountable eligible acceptance with explicit competitor dispositions and confirm the one accepted/frozen Input and exact Acceptance/Selection Version are found.
+12. Reuse one frozen Input for a later use and confirm a new acceptance references the same Input Version.
+13. Withdraw a selected Input before readiness and block; withdraw it after a historical Decision and preserve history.
+14. Reject an unrelated-scope acceptance assignment and expose broad/narrow accountable conflict without implicit precedence.
+15. Reject conditional/partial Evidence as support for a broader Input Boundary.
+16. Exercise both supportable and blocked `INDETERMINATE` cases through explicit lane-level fitness determinations.
 
 ## 35. Open Questions
 
 Deferred to later system/platform work:
 
-- whether freeze requires explicit approval/signature;
-- exact input status vocabulary;
+- approval/signature technology used to evidence an accepted accountable event;
 - field-level evidence-linking requirements;
 - machine-readable Boundary representation;
 - structured vs. narrative Uncertainty;
-- whether external systems can submit signed/frozen inputs;
-- how to handle multiple simultaneous Value or Risk analyses;
-- formal input acceptance/rejection workflow.
+- how an external signed candidate assertion maps into PAIM provenance and accountable acceptance without writing finalized state directly;
+- external transport/signature protocol for submitting candidate Inputs.
 
 ## 36. Completion Impact
 

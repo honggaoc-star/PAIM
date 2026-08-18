@@ -188,6 +188,18 @@ At minimum:
 
 Separate people are preferable where independence is important and feasible, but PAIM does not require universal organizational separation.
 
+### 8.1 Analytical readiness and Input acceptance
+
+For each Value or Risk lane, analytical production/readiness and accountable acceptance are distinct functions:
+
+- the producing analytical function may declare that a candidate Input is `ready`;
+- one applicable accountable Role Assignment or one explicitly governed accountable mechanism must accept/select the exact Input Version for the exact lane, Configuration Version, bounded use/purpose, and effective time; and
+- vacancy/not established or incompatible-accountability conflict makes the acceptance ineligible.
+
+One actor may perform both functions only when separately applicable assignments/mechanisms establish both. Authorship, integrator participation, Evidence ownership, Case ownership, software permission, technical-principal identity, or a Value/Risk role label alone does not establish acceptance accountability.
+
+Value acceptance and Risk acceptance are resolved independently. Neither creates Decision Authority, and no one shared acceptance shortcut may satisfy both lanes.
+
 ## 9. Same-Person Role Combination
 
 A small organization may assign one person multiple roles.
@@ -336,6 +348,12 @@ Possible responsibilities:
 
 Evidence ownership does not imply authority to determine the analytical conclusion.
 
+### 16.1 Evidence Applicability accountability
+
+Evidence Applicability is an accountable target-context judgment, not an automatic consequence of Evidence ownership. Every finalized Applicability judgment resolves for the exact Evidence Version, target identity/version, purpose/use, assessed scope, and effective time to one accountable assignment/mechanism, explicit vacancy, or explicit conflict.
+
+The assessor actor and accountable assignment/mechanism are separately retained. Depending on exact assignment, an Evidence Owner, Value Evaluator, Risk Evaluator, Authority Owner, or another governed function may be accountable. An unrelated-scope assignment is ineligible. Broad and narrow competing assignments have no implicit precedence and remain conflict absent explicit supersession, delegation, or later accepted policy.
+
 ## 17. Authority Owner
 
 ### Purpose
@@ -444,6 +462,9 @@ The role may be optional as a separate designation.
 | Authority Record/Gap | Authority Owner |
 | Value Management Input | Value Evaluator |
 | Risk Management Input | Risk Evaluator |
+| Value Input Acceptance/Selection | exact lane/Configuration/use accountable assignment or governed mechanism |
+| Risk Input Acceptance/Selection | exact lane/Configuration/use accountable assignment or governed mechanism |
+| Evidence Applicability | exact target-context accountable assignment or governed mechanism |
 | PAIM Integration Record | Integration owner/facilitator |
 | Management Decision Record | Decision Authority |
 | Intervention Record | Intervention Owner |
@@ -454,6 +475,8 @@ The role may be optional as a separate designation.
 This table defines default accountability, not mandatory organizational staffing.
 
 For each row that requires accountable ownership, the governing record must reference one eligible accountable Role Assignment or one explicitly governed accountable mechanism for its exact scope/time. Multiple compatible performers may contribute under the same or different assignments. If no accountable result exists, ownership is vacant/not established. If incompatible accountable results overlap, the record is in explicit accountability conflict until resolved through recorded assignment, supersession, delegation, or another accepted authority mechanism.
+
+For Input Acceptance/Selection and Evidence Applicability, the governing record must validate accountability against the obligation's exact target context rather than against whatever target is stored on the cited assignment. A valid assignment for unrelated Case or Configuration B cannot authorize an obligation for Case or Configuration A.
 
 ## 23. Role Conflicts
 
@@ -706,6 +729,11 @@ The system should surface:
 - broad/narrow role overlap being treated as an implicit winner;
 - delegation or supersession that does not state whether accountability is retained or transferred;
 - technical principal, software role, or permission being treated as a PAIM actor, accountable assignment, or Decision Authority without the required relationship/basis.
+- analytical readiness or authorship being treated as Value/Risk acceptance accountability;
+- one acceptance shortcut being used for both Value and Risk lanes;
+- Input acceptance or Evidence Applicability using an accountable assignment valid only for an unrelated target;
+- broad/narrow competing acceptance or applicability assignments being resolved by specificity, recency, directory hierarchy, or permission;
+- Input acceptance being treated as Decision Authority.
 
 These checks support accountability; they do not replace organizational governance.
 
@@ -726,6 +754,10 @@ Future tests should include:
 11. Organization-wide and business-unit Role Assignments are represented without Case ID.
 12. Multiple compatible role performers coexist while one explicit assignment/mechanism remains accountable.
 13. No accountable assignment produces vacancy; incompatible accountable assignments produce conflict with no winner.
+14. An analytical producer declares readiness but cannot accept without a separately applicable lane-acceptance assignment/mechanism.
+15. One actor validly produces and accepts only when both functions are separately established and retained in provenance.
+16. An assignment for unrelated Configuration B cannot accept an Input or finalize Applicability for Configuration A.
+17. Broad and narrow competing acceptance/Applicability assignments remain conflict absent explicit supersession or delegation.
 14. Broad and narrow assignments overlap and neither wins without explicit supersession, delegation, or accepted policy.
 15. A Decision Authority role holder with software permission but no complete Decision Authorization Basis cannot authorize a Decision.
 

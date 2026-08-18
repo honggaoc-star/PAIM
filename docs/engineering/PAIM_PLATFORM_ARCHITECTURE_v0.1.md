@@ -1094,13 +1094,13 @@ This architecture does not require multi-tenancy. If later introduced, organizat
 
 ## 20. P1 dependency register
 
-The architecture reserves the following dependencies from `PAIM_CODEX_IMPLEMENTATION_READINESS_REVIEW_v0.1.md`, §§3, 10, and 11, and `PAIM_SYSTEM_RECORD_AND_DECISION_INTEGRITY_SPEC_v0.1.md`, §11.
+The architecture records the status and required behavior of the following dependencies from `PAIM_CODEX_IMPLEMENTATION_READINESS_REVIEW_v0.1.md`, §§3, 10, and 11, and `PAIM_SYSTEM_RECORD_AND_DECISION_INTEGRITY_SPEC_v0.1.md`, §11. Resolved rows apply their hardened substantive contracts; unresolved rows retain reserved extension points and blocked defaults.
 
-| P1 finding | Architecture must not assume | Reserved architecture behavior / extension point | Required before |
+| P1 finding/status | Architecture must not assume | Accepted behavior or reserved extension point | Required before |
 |---|---|---|---|
-| IRR-006 — Value/Risk input selection, acceptance, and freeze ownership | Newest, first, or any `ready` input is automatically selected/frozen; one generic role owns both lanes. | Explicit selection/acceptance event, actor/mechanism reference, exact chosen Input Version, rejection/withdrawal, reuse context, and selection conflict state. | Implementing authoritative Integration readiness/freeze workflow. |
+| IRR-006 — Value/Risk input selection, acceptance, and freeze ownership — resolved for specification purposes | Newest, first, or any `ready` input is automatically selected/frozen; one generic role owns both lanes. | Apply lane-specific use Acceptance/Selection, atomic first freeze, explicit reuse, exact accountable assignment/mechanism, material-Evidence fitness, and one/absence/conflict from the hardened Value/Risk and Integrity contracts. | Conformance review before Increment 3 implementation. |
 | IRR-007 — Configuration ownership/cardinality, status dimensions, and materiality authority | One Case always has one Configuration; `current`, `proposed`, `experimental`, and operating state are interchangeable; any technical actor decides materiality. | Typed Case–Configuration relationship, orthogonal purpose/currentness/state dimensions, explicit materiality determination and unresolved conflict. | Finalizing Configuration workflow and Register unit/cardinality. |
-| IRR-008 — Evidence Applicability relationship | Evidence belongs to exactly one target or applicability can be inferred from attachment/location. | Versioned many-target applicability extension with assessor, scope, rationale, status, time, and exact Evidence/target versions; missing/conflicting applicability explicit. | Implementing evidence reuse and automated applicability/current-evidence checks. |
+| IRR-008 — Evidence Applicability relationship — resolved for specification purposes | Evidence belongs to exactly one target or applicability can be inferred from attachment/location. | Apply the first-class versioned many-to-many Applicability contract, exact Increment 3 target Versions, normative outcomes, target-context accountability, correction/reuse history, and one/absence/conflict from the hardened Evidence/Authority and Integrity contracts. | Conformance review before Increment 3 implementation. |
 | IRR-009 — Observation Record | Observation is definitely an authoritative record or merely transient telemetry. | Observation intake boundary can emit proposed Evidence and/or Trigger; if finalized as authoritative, common record envelope applies; projection/event path remains replaceable. | Persisting Observation as a first-class domain record. |
 | IRR-010 — Intervention prerequisite aggregation and completion acceptance | `completed` means accepted; all Interventions are prerequisites; one status automatically permits target operation. | Explicit prerequisite classification, completion evidence, acceptance determination/role, aggregate guard, and unresolved acceptance state. | Implementing transition to target `OPERATING_OBSERVING`. |
 | IRR-011 — Trigger/Reassessment cardinality and concurrency | One Trigger maps to one Reassessment; duplicates can be dropped; concurrent Reassessments merge by recency. | Many-to-many Trigger/Reassessment links, duplicate/merge/supersession/concurrency extension, preserved triggers, and explicit conflict; current operation still uses restrictive-overlay rules. | Automating trigger triage, merge, or concurrent Reassessment workflow. |
@@ -1178,7 +1178,7 @@ Implementation should begin only after this architecture is independently review
 
 ### Increment 3 — Evidence, Authority, and independent Value/Risk intake
 
-- resolve IRR-006 and the needed subset of IRR-008 first;
+- apply the accepted and hardened IRR-006 and IRR-008 contracts after focused conformance review;
 - implement Evidence, Authority, Authority Gap, provenance, and applicability seams;
 - implement separate Value and Risk intake/freeze/history lanes; and
 - prove configuration binding, freeze immutability, analytical independence, stale-input, and authority-gap tests.

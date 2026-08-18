@@ -143,6 +143,8 @@ Examples include:
 
 Finalized content is immutable. A status change after finalization does not reopen content for editing.
 
+For a Value or Risk Input, analytical readiness is not finalization. The first valid lane-specific Acceptance/Selection semantic commit atomically finalizes/freezes the exact Input Version if necessary and records its first bounded selection. Later reuse records a new use-specific Acceptance/Selection Version and never refreezes or rewrites the Input Version.
+
 ### 3.5 Status events vs. content versions
 
 A status event records a lifecycle fact about an existing version without changing its substantive content.
@@ -280,13 +282,19 @@ For PAIM v0.1 governing-Configuration selection is Case-scoped. Each Configurati
 
 Role-performer selection and accountability selection are distinct. Role resolution for one typed target/time may return multiple compatible performer assignments when the substantive role is additive. When a governed obligation requires accountability, selection returns exactly one eligible accountable Role Assignment or one explicitly governed accountable mechanism, explicit vacancy/not established, or explicit incompatible-accountability conflict. Broad and narrow assignments have no implicit precedence. Recency, breadth, specificity, directory hierarchy, and software permission must not select an accountability or authority winner; displacement requires explicit supersession, delegation, or a later accepted versioned policy.
 
+Value Input and Risk Input acceptance/selection are separate authoritative relationship families. For one lane, exact Configuration Version, bounded use/purpose, effective time, and optional knowledge cutoff, selection returns one eligible accepted/frozen Input Version plus its exact Acceptance/Selection Version, `INPUT SELECTION NOT ESTABLISHED`, or `INPUT SELECTION CONFLICT — UNRESOLVED`. Zero eligible Acceptance/Selection Versions returns `INPUT SELECTION NOT ESTABLISHED` regardless of how many ready candidate Inputs exist; ready candidates remain preserved alternatives and do not create authoritative selection conflict merely by being ready. Conflict arises only from two or more incompatible co-current eligible Acceptance/Selection Versions for that same explicit selection context. Ready status, newest/latest time, owner, generic role, integrator participation, mutable flag, row order, or software permission cannot select a winner. Each later reuse requires a new use-specific acceptance and accountable material-Evidence fitness judgment.
+
+Evidence Applicability is a first-class authoritative many-to-many relationship. For one exact Evidence Version, target identity/version, purpose/use, assessed scope, effective time, and optional knowledge cutoff, selection returns one eligible Applicability Version, `APPLICABILITY NOT ESTABLISHED`, or `EVIDENCE APPLICABILITY CONFLICT — UNRESOLVED`. Conflict is not a stored Applicability outcome. Recency, specificity, ownership, directory hierarchy, mutable current flag, row order, or permission cannot resolve it.
+
 ### 3.12 Exact historical retrieval
 
 Every finalized record must retain exact version references for the authoritative records it relied upon. In particular, an authorized Decision and its related Integration, Reassessment, and Interim Operating Disposition chain must collectively retain references sufficient to retrieve:
 
 - Managed Configuration version;
 - Value Input version;
+- Value Input Acceptance/Selection version and material Evidence Applicability/lane-fitness basis;
 - Risk Input version;
+- Risk Input Acceptance/Selection version and material Evidence Applicability/lane-fitness basis;
 - material Evidence and Evidence Applicability versions relied upon;
 - Authority Records and Authority Gaps relied upon;
 - Integrated Operating Boundary Snapshot;
@@ -767,6 +775,14 @@ The PAIM system must enforce or surface violation of the following invariants:
 24. Broad and narrow Role Assignments have no implicit precedence; displacement requires an explicit history-preserving relationship or later accepted policy.
 25. Configuration materiality and identity-continuity determinations preserve exact accountable provenance, rationale, effective/recorded time, and history.
 26. Technical principal, PAIM actor, Role Assignment, accountability, software permission, and Decision Authority remain distinct; Decision Authority still requires the complete §6 Authorization Basis.
+27. Analytical readiness is distinct from lane acceptance; only the first valid acceptance semantic commit may atomically freeze and select an unfrozen Input Version.
+28. Every Integration use selects exactly one accepted/frozen Value Input and one accepted/frozen Risk Input, each with an exact use-specific Acceptance/Selection Version, or exposes absence/conflict independently by lane.
+29. Reuse of a frozen Input requires a new use-specific acceptance/fitness judgment and never refreezes or rewrites the Input.
+30. Each lane acceptance and each Evidence Applicability judgment resolves exact target-context accountability as one assignment/mechanism, vacancy, or conflict; unrelated-scope accountability is ineligible and broad/narrow assignments have no implicit precedence.
+31. Evidence Applicability has stable identity, immutable Versions, exact Evidence/target Versions, assessed scope, outcome, rationale, assessor, accountable provenance, dual time, and preserved correction/supersession/withdrawal history.
+32. Normative Applicability outcomes are `APPLICABLE`, `CONDITIONALLY_APPLICABLE`, `PARTIALLY_APPLICABLE`, `NOT_APPLICABLE`, and `INDETERMINATE`; `REFRESH REQUIRED` is status/attention and conflict is a derived selection result.
+33. A new target identity/version requires a new Applicability judgment; prior applicability is provenance only and no universal expiry or silent carry-forward applies.
+34. Later Input/Evidence/Applicability change never rewrites a historical Integration or Decision basis; it changes prospective eligibility or creates attention/reassessment where material.
 
 ## 9. Integrity behavior and test candidates
 
@@ -795,6 +811,14 @@ The system should support tests demonstrating that:
 21. accountability vacancy and incompatible plurality return explicit absence/conflict, and broad/narrow overlap has no implicit winner;
 22. a materiality or identity-continuity determination without exact accountable provenance is ineligible for guarded use;
 23. a Decision Authority role label or software permission without the complete §6 Authorization Basis cannot authorize a Decision.
+24. two ready Value candidates with no eligible Acceptance/Selection Version return `INPUT SELECTION NOT ESTABLISHED`; two incompatible co-current eligible Acceptance/Selection Versions for the same explicit context return `INPUT SELECTION CONFLICT — UNRESOLVED`; one accountable eligible acceptance with explicit competitor dispositions returns the one accepted/frozen Input and exact Acceptance/Selection Version;
+25. first acceptance freezes and selects atomically, while later reuse creates a new Acceptance/Selection Version against the same immutable Input Version;
+26. withdrawal/rejection before Integration readiness makes the selected Input ineligible, while later change preserves historical reconstruction;
+27. Evidence applicable to one Configuration Version does not silently transfer to another target/version;
+28. conditional/partial Evidence cannot support a broader Input Boundary;
+29. incompatible co-current Applicability judgments produce conflict, and an accountable successor resolves only prospectively while preserving predecessors;
+30. `INDETERMINATE` Evidence is eligible or blocked only through an explicit exact lane-level fitness determination, never a global default;
+31. unrelated-scope acceptance/Applicability accountability is rejected and broad/narrow competing assignments remain conflict absent explicit displacement.
 
 ## 10. Human judgment and mechanical integrity boundary
 
@@ -809,6 +833,8 @@ The system may mechanically:
 - enforce immutability and successor relationships;
 - detect missing confirmation/successor outcomes;
 - select governing Configuration and accountability outcomes as one, absence, or conflict under the accepted scope rules;
+- select each analytical lane and Evidence Applicability as one, absence, or conflict for exact scope/purpose/time;
+- validate exact Input Acceptance/Selection, Evidence Applicability, material-Evidence reference, and lane-level fitness record completeness;
 - validate typed Role Assignment targets and explicit supersession/delegation relationships;
 - verify that materiality and identity-continuity determinations retain required accountable provenance and history.
 
@@ -816,6 +842,8 @@ The system must leave to accountable human or established organizational authori
 
 - substantive configuration materiality and same-identity/new-identity outcomes;
 - evidence applicability where not mechanically established;
+- lane-level material-Evidence fitness and treatment of `INDETERMINATE` for a bounded analytical use;
+- substantive Value/Risk Input acceptance under the eligible accountable assignment/mechanism;
 - Value and Risk conclusions;
 - uncertainty classification;
 - narrative boundary interpretation;
@@ -835,17 +863,19 @@ This specification does not attempt to resolve all P1 findings from the implemen
 
 The following remain for bounded later work unless another accepted specification already resolves them:
 
-- who accepts/freezes among multiple simultaneous Value or Risk analyses beyond the invariant that one exact version of each is selected for an Integration;
-- full Evidence Applicability record design beyond the history/currentness requirements applied if it is authoritative;
 - whether Observation is a separate authoritative record;
 - intervention prerequisite classification and completion-acceptance role details beyond the lifecycle guard;
 - full trigger/reassessment concurrency and merge rules;
 - Management Register aggregation and shared-dependency identity;
 - canonical stronger/broader relations among organization-specific operating states.
 
+These remain IRR-009, IRR-010, IRR-011, IRR-012, and IRR-014 respectively. The IRR-006/IRR-008 hardening does not define Observation persistence, Intervention completion acceptance, Trigger/Reassessment concurrency, Register aggregation/shared-dependency equivalence, or stronger/broader operating-state ranking.
+
 Configuration ownership and v0.1 governing cardinality are resolved by the Managed Configuration and Case Lifecycle specifications: exactly one owning Case per Configuration identity and at most one governing Configuration per Case/effective time. Cross-Case sharing, dependency equivalence, and reuse beyond explicit relationships remain deferred with IRR-012.
 
 General v0.1 Role Assignment overlap is resolved by the Roles/Accountability specification's no-implicit-precedence rule. A later accepted versioned organizational policy may define explicit displacement or combination behavior, but its absence never authorizes a specific-over-general, broad-over-narrow, newest, or software-permission fallback.
+
+IRR-006 and IRR-008 are resolved for specification purposes by the Value/Risk Interface and Evidence/Authority contracts, with conforming lifecycle, role, Configuration, and Integration handoff rules. Their accepted semantics are summarized in §§3.4, 3.11–3.12, 8, and 10; this specification does not replace the substantive owner definitions.
 
 If any unresolved P1 question prevents a required P0 integrity determination in a concrete case, the system records the gap/conflict and does not invent a permissive answer.
 

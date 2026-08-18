@@ -87,7 +87,10 @@ Minimum fields:
 - Case ID
 - Managed Configuration ID/version
 - Value Input ID/version
+- Value Input Acceptance/Selection ID/version
 - Risk Input ID/version
+- Risk Input Acceptance/Selection ID/version
+- exact material Evidence Applicability and lane-level fitness basis for each selected Input
 - integration version
 - status
 - integrator/owner
@@ -114,19 +117,33 @@ A completed integration is not itself an authorized management decision until th
 
 Before substantive integration, the system should confirm:
 
-- current Managed Configuration exists;
-- frozen/current Value Input exists;
-- frozen/current Risk Input exists;
-- both inputs bind to the relevant configuration/version;
+- exactly one governing Managed Configuration Version exists for the Case/effective time;
+- exactly one eligible selected/frozen Value Input Version and exact Value Acceptance/Selection Version exist for this bounded Integration path/use;
+- exactly one eligible selected/frozen Risk Input Version and exact Risk Acceptance/Selection Version exist for this bounded Integration path/use;
+- both selected Inputs and both acceptances bind to the same exact governing Configuration Version;
 - Value Boundary is explicit;
 - Risk Boundary is explicit;
 - material uncertainty is represented;
 - provenance exists;
+- every Evidence item declared material to either acceptance/use has a current exact-context Evidence Applicability result and an eligible accountable lane-level fitness treatment;
 - established constraints are available;
 - material authority gaps are explicit;
 - decision authority is identified or its absence is explicit.
 
 Readiness does not require Value and Risk agreement.
+
+For either lane, selection returns one eligible accepted/frozen Input plus its Acceptance/Selection Version, explicit `INPUT SELECTION NOT ESTABLISHED`, or explicit `INPUT SELECTION CONFLICT — UNRESOLVED`. No newest/latest/owner/status/row-order result or shared Value/Risk acceptance shortcut is permitted.
+
+An Input that is rejected for the bounded use, withdrawn before readiness, superseded without an explicit reuse acceptance, or subject to unresolved material `REFRESH REQUIRED` is ineligible. Later withdrawal, correction, supersession, Evidence change, or Applicability change does not rewrite a historical Integration/Decision basis.
+
+Material-Evidence handoff behavior is:
+
+- Applicability absence, unresolved conflict, `NOT_APPLICABLE`, or unresolved `REFRESH REQUIRED` blocks when the Evidence is required for the selected Input's Finding, Boundary, or Implication.
+- `CONDITIONALLY_APPLICABLE` or `PARTIALLY_APPLICABLE` supports only within its recorded scope/conditions and cannot support a broader contributing Boundary.
+- `INDETERMINATE` is neither globally eligible nor globally blocked. The exact accountable lane-level fitness determination states whether the bounded analytical use remains supportable and why; it blocks when decision-limiting to that Input/use.
+- Evidence linked as limitation, dissent, or conflict remains visible without being misrepresented as favorable support.
+
+PAIM may check these records mechanically but must not compute a universal evidence-sufficiency/confidence score. General management-level Accepted versus Decision-Limiting Uncertainty classification remains an Integration judgment under §10.
 
 ## 6. Frozen Input Display
 
@@ -648,6 +665,8 @@ This should not force consensus by rewriting analytical inputs.
 
 Detailed organizational governance is deferred.
 
+Non-selected, dissenting, or rejected-for-use Value/Risk candidates and material Evidence limitations remain linked and inspectable. They do not satisfy the one selected Input requirement and are not erased by selection.
+
 ## 32. Decision Explanation
 
 A practitioner or later reviewer should be able to answer:
@@ -672,6 +691,8 @@ Before integration completion, surface:
 
 - missing frozen Value Input;
 - missing frozen Risk Input;
+- missing or conflicting Value Acceptance/Selection Version;
+- missing or conflicting Risk Acceptance/Selection Version;
 - configuration mismatch;
 - missing contributing Boundary;
 - missing provenance;
@@ -679,6 +700,12 @@ Before integration completion, surface:
 - material uncertainty omitted;
 - alternative presented as demonstrated when only plausible;
 - frozen implication paraphrase drift.
+- selected Input rejected/withdrawn before readiness or reused without a new use-specific acceptance;
+- material Evidence Applicability absent, conflicting, not applicable, refresh-required, or narrower than the claimed contributing Boundary;
+- `INDETERMINATE` Evidence lacking the separate exact lane-level fitness determination;
+- acceptance or Applicability accountability vacant, conflicting, or out of scope;
+- non-selected/dissenting Input or Evidence limitation hidden from the handoff;
+- analytical acceptance treated as Decision Authority.
 
 ## 34. Decision Integrity Checks
 
@@ -747,6 +774,12 @@ Future tests should include:
 10. Introduce new evidence and create a successor decision without rewriting the prior one.
 11. Paraphrase frozen Value/Risk Implications inaccurately and verify authoritative text remains visible.
 12. Compare multiple defensible judgments from the same evidence and inspect rationale.
+13. Select one accepted Value and one accepted Risk Input for the same exact Configuration Version and confirm analytical handoff eligibility.
+14. Create competing Value acceptances for one use and block on explicit conflict.
+15. Withdraw a selected Input before readiness and block; change it after a historical Decision and preserve reconstruction.
+16. Reuse a frozen Input only through a new Acceptance/Selection Version.
+17. Reject conditional/partial Evidence as support for a broader contributing Boundary.
+18. Require an exact lane-level fitness determination for `INDETERMINATE` Evidence and exercise both supportable and blocked outcomes.
 
 ## 38. Open Questions
 
