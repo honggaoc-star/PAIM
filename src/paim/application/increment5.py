@@ -922,6 +922,16 @@ class Increment5ApplicationService(Increment4ApplicationService):
             obligation = transaction.obligation_detail(value.successor_obligation_version_id)
             result = transaction.completion_result_detail(value.prior_completion_result_version_id)
             acceptance = transaction.completion_acceptance_detail(value.prior_acceptance_version_id)
+            acceptance_selection = (
+                self._select_acceptance_in_transaction(
+                    transaction,
+                    obligation_version_id=acceptance.obligation_version_id,
+                    effective_at=value.effective.start,
+                    known_at=self._clock.now(),
+                )
+                if acceptance is not None
+                else CompletionAcceptanceNotEstablished()
+            )
             if (
                 obligation is None
                 or result is None
@@ -929,6 +939,8 @@ class Increment5ApplicationService(Increment4ApplicationService):
                 or acceptance.completion_result_version_id
                 != value.prior_completion_result_version_id
                 or acceptance.outcome is not CompletionAcceptanceOutcome.ACCEPTED
+                or not isinstance(acceptance_selection, CompletionAcceptanceFound)
+                or acceptance_selection.acceptance_version_id != value.prior_acceptance_version_id
                 or not result.all_met
                 or not transaction.actor_exists(value.accountable_actor_id)
             ):
@@ -1176,6 +1188,32 @@ class Increment5ApplicationService(Increment4ApplicationService):
             acceptance_id = RecordVersionId.parse(cast("str", reuse["prior_acceptance_version_id"]))
             reused_result = transaction.completion_result_detail(result_id)
             reused_acceptance = transaction.completion_acceptance_detail(acceptance_id)
+            prospective_acceptance = (
+                self._select_acceptance_in_transaction(
+                    transaction,
+                    obligation_version_id=reused_acceptance.obligation_version_id,
+                    effective_at=effective_at,
+                    known_at=known_at,
+                )
+                if reused_acceptance is not None
+                else CompletionAcceptanceNotEstablished()
+            )
+            if isinstance(prospective_acceptance, CompletionAcceptanceConflict):
+                return ObligationEvaluation(
+                    obligation.version_id,
+                    ObligationResult.CONFLICT,
+                    intervention_version_id,
+                    result_id,
+                    None,
+                    replacement_version_id,
+                    reuse_version_id,
+                    tuple(
+                        [
+                            *diagnostics,
+                            "prior Completion Acceptance is prospectively conflicting",
+                        ]
+                    ),
+                )
             if (
                 bool(reuse["all_coverage_established"])
                 and reused_result is not None
@@ -1183,6 +1221,8 @@ class Increment5ApplicationService(Increment4ApplicationService):
                 and reused_acceptance is not None
                 and reused_acceptance.completion_result_version_id == result_id
                 and reused_acceptance.outcome is CompletionAcceptanceOutcome.ACCEPTED
+                and isinstance(prospective_acceptance, CompletionAcceptanceFound)
+                and prospective_acceptance.acceptance_version_id == acceptance_id
             ):
                 return ObligationEvaluation(
                     obligation.version_id,
@@ -1202,7 +1242,13 @@ class Increment5ApplicationService(Increment4ApplicationService):
                 acceptance_id,
                 replacement_version_id,
                 reuse_version_id,
-                tuple([*diagnostics, "continued-validity coverage not established"]),
+                tuple(
+                    [
+                        *diagnostics,
+                        "continued-validity coverage or prospective Acceptance eligibility "
+                        "not established",
+                    ]
+                ),
             )
 
         intervention = transaction.intervention_detail(intervention_version_id)

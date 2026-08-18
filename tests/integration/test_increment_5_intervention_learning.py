@@ -30,6 +30,7 @@ from paim.domain import (
     ObligationVersionInput,
     PreauthorizedActivationMechanismInput,
     RequirementType,
+    ReuseDeterminationVersionInput,
     RoleAssignmentVersionInput,
     RoleTargetType,
 )
@@ -68,6 +69,7 @@ def _setup(
     requirement_type: RequirementType | None = RequirementType.REQUIRED_BEFORE_OPERATION,
     intervention_status: InterventionStatus = InterventionStatus.COMPLETED,
     acceptor_target: RoleTargetType | None = RoleTargetType.INTERVENTION,
+    acceptor_effective: EffectiveInterval = EFFECTIVE,
     preauthorized: tuple[PreauthorizedActivationMechanismInput, ...] = (),
 ) -> Increment5Fixture:
     fx = foundation(store, key)
@@ -124,7 +126,7 @@ def _setup(
                 "completion-acceptance",
                 DelegationEffect.NONE,
                 None,
-                EFFECTIVE,
+                acceptor_effective,
             ),
         )
 
@@ -262,6 +264,148 @@ def _complete(
         ),
     )
     return result_version_id, acceptance_version_id
+
+
+def _successor_obligation(
+    store: SQLiteIntegrityStore,
+    value: Increment5Fixture,
+    key: str,
+    *,
+    effective: EffectiveInterval,
+) -> RecordVersionId:
+    assert value.obligation_id is not None and value.obligation_version_id is not None
+    prior_set = store.get_version(value.obligation_set_version_id)
+    assert prior_set is not None
+    successor_set_version_id = RecordVersionId.new()
+    successor_obligation_version_id = RecordVersionId.new()
+    value.service.commit_obligation_set(
+        meta(f"{key}-successor-obligation-set"),
+        ObligationSetVersionInput(
+            prior_set.record_id,
+            successor_set_version_id,
+            value.foundation.decision_id,
+            value.foundation.decision_version_id,
+            value.foundation.context.case_id,
+            value.foundation.context.configuration_id,
+            value.foundation.context.configuration_version_id,
+            (
+                ObligationVersionInput(
+                    value.obligation_id,
+                    successor_obligation_version_id,
+                    value.intervention_id,
+                    value.intervention_version_id,
+                    RequirementType.REQUIRED_BEFORE_OPERATION,
+                    ("control installed",),
+                    (value.foundation.clause_version_id,),
+                    ("bounded continuation only",),
+                    ("control:capacity",),
+                    ("do not exceed boundary",),
+                    "successor obligation requires explicit continued validity",
+                    {"source": "successor-obligation"},
+                    expected_version_id=value.obligation_version_id,
+                    relationship_reason="successor obligation version",
+                ),
+            ),
+            "successor obligation set",
+            effective,
+            expected_version_id=value.obligation_set_version_id,
+            relationship_reason="successor obligation set version",
+        ),
+    )
+    return successor_obligation_version_id
+
+
+def _reuse(
+    value: Increment5Fixture,
+    key: str,
+    *,
+    successor_obligation_version_id: RecordVersionId,
+    prior_result_version_id: RecordVersionId,
+    prior_acceptance_version_id: RecordVersionId,
+    effective: EffectiveInterval,
+) -> RecordVersionId:
+    assignment_id, assignment_version_id = RecordId.new(), RecordVersionId.new()
+    value.service.commit_role_assignment(
+        meta(f"{key}-continued-validity-acceptor"),
+        RoleAssignmentVersionInput(
+            assignment_id,
+            assignment_version_id,
+            value.foundation.context.assessor_id,
+            "Continued Validity Acceptor",
+            RoleTargetType.CASE,
+            str(value.foundation.context.case_id),
+            value.foundation.context.case_id,
+            True,
+            "continued-validity",
+            DelegationEffect.NONE,
+            None,
+            effective,
+        ),
+    )
+    determination_id, determination_version_id = RecordId.new(), RecordVersionId.new()
+    value.service.commit_reuse_determination(
+        meta(f"{key}-continued-validity"),
+        ReuseDeterminationVersionInput(
+            determination_id,
+            determination_version_id,
+            successor_obligation_version_id,
+            prior_result_version_id,
+            prior_acceptance_version_id,
+            value.foundation.context.assessor_id,
+            assignment_version_id,
+            None,
+            True,
+            True,
+            True,
+            True,
+            True,
+            True,
+            "exact prospective continued-validity basis",
+            effective,
+        ),
+    )
+    return determination_version_id
+
+
+def _change_acceptance_status(
+    store: SQLiteIntegrityStore,
+    value: Increment5Fixture,
+    key: str,
+    *,
+    result_version_id: RecordVersionId,
+    acceptance_version_id: RecordVersionId,
+    status: CompletionAcceptanceStatus,
+    effective: EffectiveInterval,
+) -> RecordVersionId:
+    prior = store.get_version(acceptance_version_id)
+    assert prior is not None and value.obligation_version_id is not None
+    successor_version_id = RecordVersionId.new()
+    value.service.commit_completion_acceptance(
+        meta(f"{key}-acceptance-{status.value}"),
+        CompletionAcceptanceVersionInput(
+            prior.record_id,
+            successor_version_id,
+            value.obligation_version_id,
+            value.intervention_version_id,
+            result_version_id,
+            value.foundation.decision_version_id,
+            value.foundation.context.configuration_version_id,
+            ("capacity boundary",),
+            CompletionAcceptanceOutcome.ACCEPTED,
+            f"prior Acceptance is now {status.value}",
+            (),
+            (),
+            value.foundation.context.assessor_id,
+            value.acceptor_assignment_version_id,
+            None,
+            (),
+            effective,
+            expected_version_id=acceptance_version_id,
+            relationship_reason=f"Acceptance status changed to {status.value}",
+            status=status,
+        ),
+    )
+    return successor_version_id
 
 
 def _mechanism(
@@ -447,6 +591,148 @@ def test_withdrawn_acceptance_is_historical_but_not_future_eligible(
     )
     assert evaluation.result is AggregatePrerequisiteResult.NOT_ESTABLISHED
     assert sqlite_store.count_rows("completion_acceptance_versions") == 1
+
+
+def test_exact_prior_acceptance_supports_reuse_and_role_expiry_does_not_rewrite_it(
+    sqlite_store: SQLiteIntegrityStore,
+) -> None:
+    reuse_effective = EffectiveInterval(utc(2026, 1, 10))
+    valid = _setup(sqlite_store, "reuse-valid")
+    result_id, acceptance_id = _complete(valid, "reuse-valid")
+    successor_id = _successor_obligation(
+        sqlite_store, valid, "reuse-valid", effective=reuse_effective
+    )
+    _reuse(
+        valid,
+        "reuse-valid",
+        successor_obligation_version_id=successor_id,
+        prior_result_version_id=result_id,
+        prior_acceptance_version_id=acceptance_id,
+        effective=reuse_effective,
+    )
+    assert (
+        valid.service.evaluate_prerequisites(
+            decision_version_id=valid.foundation.decision_version_id,
+            configuration_version_id=valid.foundation.context.configuration_version_id,
+            effective_at=reuse_effective.start,
+        ).result
+        is AggregatePrerequisiteResult.SATISFIED
+    )
+
+    expired_role = _setup(
+        sqlite_store,
+        "reuse-expired-role",
+        acceptor_effective=EffectiveInterval(utc(2026, 1, 1), utc(2026, 1, 5)),
+    )
+    expired_result, expired_acceptance = _complete(expired_role, "reuse-expired-role")
+    expired_successor = _successor_obligation(
+        sqlite_store,
+        expired_role,
+        "reuse-expired-role",
+        effective=reuse_effective,
+    )
+    _reuse(
+        expired_role,
+        "reuse-expired-role",
+        successor_obligation_version_id=expired_successor,
+        prior_result_version_id=expired_result,
+        prior_acceptance_version_id=expired_acceptance,
+        effective=reuse_effective,
+    )
+    assert (
+        expired_role.service.evaluate_prerequisites(
+            decision_version_id=expired_role.foundation.decision_version_id,
+            configuration_version_id=expired_role.foundation.context.configuration_version_id,
+            effective_at=reuse_effective.start,
+        ).result
+        is AggregatePrerequisiteResult.SATISFIED
+    )
+
+
+def test_ineligible_prior_acceptance_blocks_reuse_determination_commit(
+    sqlite_store: SQLiteIntegrityStore,
+) -> None:
+    value = _setup(sqlite_store, "reuse-commit-withdrawn")
+    result_id, acceptance_id = _complete(value, "reuse-commit-withdrawn")
+    withdrawn_effective = EffectiveInterval(utc(2026, 1, 5))
+    _change_acceptance_status(
+        sqlite_store,
+        value,
+        "reuse-commit-withdrawn",
+        result_version_id=result_id,
+        acceptance_version_id=acceptance_id,
+        status=CompletionAcceptanceStatus.WITHDRAWN,
+        effective=withdrawn_effective,
+    )
+    reuse_effective = EffectiveInterval(utc(2026, 1, 10))
+    successor_id = _successor_obligation(
+        sqlite_store,
+        value,
+        "reuse-commit-withdrawn",
+        effective=reuse_effective,
+    )
+    with pytest.raises(DomainRuleViolation, match="prior basis is ineligible"):
+        _reuse(
+            value,
+            "reuse-commit-withdrawn",
+            successor_obligation_version_id=successor_id,
+            prior_result_version_id=result_id,
+            prior_acceptance_version_id=acceptance_id,
+            effective=reuse_effective,
+        )
+
+
+@pytest.mark.parametrize(
+    "status",
+    [CompletionAcceptanceStatus.WITHDRAWN, CompletionAcceptanceStatus.SUPERSEDED],
+)
+def test_withdrawn_or_superseded_prior_acceptance_cannot_satisfy_future_reuse(
+    sqlite_store: SQLiteIntegrityStore,
+    status: CompletionAcceptanceStatus,
+) -> None:
+    value = _setup(sqlite_store, f"reuse-future-{status.value}")
+    result_id, acceptance_id = _complete(value, f"reuse-future-{status.value}")
+    reuse_effective = EffectiveInterval(utc(2026, 1, 10))
+    successor_id = _successor_obligation(
+        sqlite_store,
+        value,
+        f"reuse-future-{status.value}",
+        effective=reuse_effective,
+    )
+    _reuse(
+        value,
+        f"reuse-future-{status.value}",
+        successor_obligation_version_id=successor_id,
+        prior_result_version_id=result_id,
+        prior_acceptance_version_id=acceptance_id,
+        effective=reuse_effective,
+    )
+    assert (
+        value.service.evaluate_prerequisites(
+            decision_version_id=value.foundation.decision_version_id,
+            configuration_version_id=value.foundation.context.configuration_version_id,
+            effective_at=reuse_effective.start,
+        ).result
+        is AggregatePrerequisiteResult.SATISFIED
+    )
+
+    future_effective = EffectiveInterval(utc(2026, 1, 20))
+    _change_acceptance_status(
+        sqlite_store,
+        value,
+        f"reuse-future-{status.value}",
+        result_version_id=result_id,
+        acceptance_version_id=acceptance_id,
+        status=status,
+        effective=future_effective,
+    )
+    evaluation = value.service.evaluate_prerequisites(
+        decision_version_id=value.foundation.decision_version_id,
+        configuration_version_id=value.foundation.context.configuration_version_id,
+        effective_at=future_effective.start,
+    )
+    assert evaluation.result is AggregatePrerequisiteResult.NOT_ESTABLISHED
+    assert "prospective Acceptance eligibility" in evaluation.obligations[0].diagnostics[-1]
 
 
 def test_completion_acceptor_mechanism_must_be_established_exact_and_effective(
