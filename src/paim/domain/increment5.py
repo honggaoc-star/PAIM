@@ -228,6 +228,27 @@ class ReplacementVersionInput:
 
 
 @dataclass(frozen=True, slots=True)
+class ContinuedValidityMechanismVersionInput:
+    mechanism_id: RecordId
+    version_id: RecordVersionId
+    successor_obligation_version_id: RecordVersionId
+    case_id: RecordId
+    intervention_id: RecordId
+    intervention_version_id: RecordVersionId
+    decision_version_id: RecordVersionId
+    configuration_id: RecordId
+    configuration_version_id: RecordVersionId
+    accountable_actor_id: RecordId
+    rule_version: str
+    authority_scope: str
+    authority_source: str
+    effective: EffectiveInterval
+    expected_version_id: RecordVersionId | None = None
+    relationship_type: RelationshipType = RelationshipType.SUPERSESSION
+    relationship_reason: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
 class ReuseDeterminationVersionInput:
     determination_id: RecordId
     version_id: RecordVersionId
@@ -236,7 +257,8 @@ class ReuseDeterminationVersionInput:
     prior_acceptance_version_id: RecordVersionId
     accountable_actor_id: RecordId
     accountable_assignment_version_id: RecordVersionId | None
-    accountable_mechanism: str | None
+    accountable_mechanism_version_id: RecordVersionId | None
+    delegation_chain_version_ids: tuple[RecordVersionId, ...]
     unchanged_configuration_content: bool
     boundary_conditions_covered: bool
     completion_criteria_covered: bool
@@ -248,6 +270,30 @@ class ReuseDeterminationVersionInput:
     expected_version_id: RecordVersionId | None = None
     relationship_type: RelationshipType = RelationshipType.SUPERSESSION
     relationship_reason: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class ContinuedValidityAccountabilityFound:
+    assignment_version_id: RecordVersionId | None
+    mechanism_version_id: RecordVersionId | None
+
+
+@dataclass(frozen=True, slots=True)
+class ContinuedValidityAccountabilityNotEstablished:
+    reason: str = "CONTINUED VALIDITY ACCOUNTABILITY NOT ESTABLISHED"
+
+
+@dataclass(frozen=True, slots=True)
+class ContinuedValidityAccountabilityConflict:
+    candidate_version_ids: frozenset[RecordVersionId]
+    reason: str = "CONTINUED VALIDITY ACCOUNTABILITY CONFLICT — UNRESOLVED"
+
+
+type ContinuedValidityAccountabilityResolution = (
+    ContinuedValidityAccountabilityFound
+    | ContinuedValidityAccountabilityNotEstablished
+    | ContinuedValidityAccountabilityConflict
+)
 
 
 @dataclass(frozen=True, slots=True)

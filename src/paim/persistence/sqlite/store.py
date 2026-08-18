@@ -124,6 +124,9 @@ from paim.persistence.sqlite.schema import (
     completion_result_records,
     completion_result_versions,
     configuration_determinations,
+    continued_validity_delegations,
+    continued_validity_mechanism_records,
+    continued_validity_mechanism_versions,
     continued_validity_records,
     continued_validity_versions,
     decision_authority_gaps,
@@ -2762,6 +2765,74 @@ class SQLiteIntegrityTransaction:
         )
         return dict(row) if row is not None else None
 
+    def add_continued_validity_mechanism(
+        self,
+        *,
+        mechanism_id: RecordId,
+        version_id: RecordVersionId,
+        successor_obligation_version_id: RecordVersionId,
+        case_id: RecordId,
+        intervention_id: RecordId,
+        intervention_version_id: RecordVersionId,
+        decision_version_id: RecordVersionId,
+        configuration_id: RecordId,
+        configuration_version_id: RecordVersionId,
+        accountable_actor_id: RecordId,
+        rule_version: str,
+        authority_scope: str,
+        authority_source: str,
+    ) -> None:
+        if not self._identity_exists(
+            continued_validity_mechanism_records,
+            continued_validity_mechanism_records.c.mechanism_id,
+            str(mechanism_id),
+        ):
+            self.connection.execute(
+                insert(continued_validity_mechanism_records).values(mechanism_id=str(mechanism_id))
+            )
+        self.connection.execute(
+            insert(continued_validity_mechanism_versions).values(
+                version_id=str(version_id),
+                mechanism_id=str(mechanism_id),
+                successor_obligation_version_id=str(successor_obligation_version_id),
+                case_id=str(case_id),
+                intervention_id=str(intervention_id),
+                intervention_version_id=str(intervention_version_id),
+                decision_version_id=str(decision_version_id),
+                configuration_id=str(configuration_id),
+                configuration_version_id=str(configuration_version_id),
+                accountable_actor_id=str(accountable_actor_id),
+                rule_version=rule_version,
+                authority_scope=authority_scope,
+                authority_source=authority_source,
+            )
+        )
+
+    def continued_validity_mechanism_detail(
+        self, version_id: RecordVersionId
+    ) -> dict[str, object] | None:
+        row = (
+            self.connection.execute(
+                select(continued_validity_mechanism_versions).where(
+                    continued_validity_mechanism_versions.c.version_id == str(version_id)
+                )
+            )
+            .mappings()
+            .first()
+        )
+        return dict(row) if row is not None else None
+
+    def continued_validity_mechanism_versions(
+        self, *, successor_obligation_version_id: RecordVersionId
+    ) -> tuple[RecordVersionId, ...]:
+        rows = self.connection.execute(
+            select(continued_validity_mechanism_versions.c.version_id).where(
+                continued_validity_mechanism_versions.c.successor_obligation_version_id
+                == str(successor_obligation_version_id)
+            )
+        ).scalars()
+        return tuple(RecordVersionId.parse(cast("str", item)) for item in rows)
+
     def add_reuse_determination(
         self,
         *,
@@ -2772,7 +2843,8 @@ class SQLiteIntegrityTransaction:
         prior_acceptance_version_id: RecordVersionId,
         accountable_actor_id: RecordId,
         accountable_assignment_version_id: RecordVersionId | None,
-        accountable_mechanism: str | None,
+        accountable_mechanism_version_id: RecordVersionId | None,
+        delegation_chain_version_ids: tuple[RecordVersionId, ...],
         all_coverage_established: bool,
     ) -> None:
         if not self._identity_exists(
@@ -2796,10 +2868,22 @@ class SQLiteIntegrityTransaction:
                     if accountable_assignment_version_id
                     else None
                 ),
-                accountable_mechanism=accountable_mechanism,
+                accountable_mechanism_version_id=(
+                    str(accountable_mechanism_version_id)
+                    if accountable_mechanism_version_id
+                    else None
+                ),
                 all_coverage_established=all_coverage_established,
             )
         )
+        for ordinal, assignment_id in enumerate(delegation_chain_version_ids):
+            self.connection.execute(
+                insert(continued_validity_delegations).values(
+                    determination_version_id=str(version_id),
+                    ordinal=ordinal,
+                    assignment_version_id=str(assignment_id),
+                )
+            )
 
     def reuse_determination_versions(
         self, *, successor_obligation_version_id: RecordVersionId

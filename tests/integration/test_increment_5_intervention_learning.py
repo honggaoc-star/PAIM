@@ -16,6 +16,7 @@ from paim.domain import (
     CompletionAcceptorMechanismVersionInput,
     CompletionCriterionResult,
     CompletionResultVersionInput,
+    ContinuedValidityMechanismVersionInput,
     CriterionOutcome,
     DelegationEffect,
     EvidenceAttention,
@@ -324,16 +325,44 @@ def _reuse(
     prior_acceptance_version_id: RecordVersionId,
     effective: EffectiveInterval,
 ) -> RecordVersionId:
+    assignment_version_id = _continued_validity_assignment(
+        value,
+        key,
+        effective=effective,
+    )
+    return _commit_reuse(
+        value,
+        key,
+        successor_obligation_version_id=successor_obligation_version_id,
+        prior_result_version_id=prior_result_version_id,
+        prior_acceptance_version_id=prior_acceptance_version_id,
+        accountable_actor_id=value.foundation.context.assessor_id,
+        assignment_version_id=assignment_version_id,
+        mechanism_version_id=None,
+        delegation_chain_version_ids=(),
+        effective=effective,
+    )
+
+
+def _continued_validity_assignment(
+    value: Increment5Fixture,
+    key: str,
+    *,
+    effective: EffectiveInterval,
+    target_type: RoleTargetType = RoleTargetType.CASE,
+    target_id: str | None = None,
+    actor_id: RecordId | None = None,
+) -> RecordVersionId:
     assignment_id, assignment_version_id = RecordId.new(), RecordVersionId.new()
     value.service.commit_role_assignment(
         meta(f"{key}-continued-validity-acceptor"),
         RoleAssignmentVersionInput(
             assignment_id,
             assignment_version_id,
-            value.foundation.context.assessor_id,
+            actor_id or value.foundation.context.assessor_id,
             "Continued Validity Acceptor",
-            RoleTargetType.CASE,
-            str(value.foundation.context.case_id),
+            target_type,
+            target_id or str(value.foundation.context.case_id),
             value.foundation.context.case_id,
             True,
             "continued-validity",
@@ -342,6 +371,22 @@ def _reuse(
             effective,
         ),
     )
+    return assignment_version_id
+
+
+def _commit_reuse(
+    value: Increment5Fixture,
+    key: str,
+    *,
+    successor_obligation_version_id: RecordVersionId,
+    prior_result_version_id: RecordVersionId,
+    prior_acceptance_version_id: RecordVersionId,
+    accountable_actor_id: RecordId,
+    assignment_version_id: RecordVersionId | None,
+    mechanism_version_id: RecordVersionId | None,
+    delegation_chain_version_ids: tuple[RecordVersionId, ...],
+    effective: EffectiveInterval,
+) -> RecordVersionId:
     determination_id, determination_version_id = RecordId.new(), RecordVersionId.new()
     value.service.commit_reuse_determination(
         meta(f"{key}-continued-validity"),
@@ -351,9 +396,10 @@ def _reuse(
             successor_obligation_version_id,
             prior_result_version_id,
             prior_acceptance_version_id,
-            value.foundation.context.assessor_id,
+            accountable_actor_id,
             assignment_version_id,
-            None,
+            mechanism_version_id,
+            delegation_chain_version_ids,
             True,
             True,
             True,
@@ -365,6 +411,36 @@ def _reuse(
         ),
     )
     return determination_version_id
+
+
+def _continued_validity_mechanism(
+    value: Increment5Fixture,
+    key: str,
+    *,
+    successor_obligation_version_id: RecordVersionId,
+    effective: EffectiveInterval,
+) -> RecordVersionId:
+    mechanism_id, mechanism_version_id = RecordId.new(), RecordVersionId.new()
+    value.service.commit_continued_validity_mechanism(
+        meta(f"{key}-continued-validity-mechanism"),
+        ContinuedValidityMechanismVersionInput(
+            mechanism_id,
+            mechanism_version_id,
+            successor_obligation_version_id,
+            value.foundation.context.case_id,
+            value.intervention_id,
+            value.intervention_version_id,
+            value.foundation.decision_version_id,
+            value.foundation.context.configuration_id,
+            value.foundation.context.configuration_version_id,
+            value.foundation.context.assessor_id,
+            "continued-validity-policy-v1",
+            "exact successor obligation context",
+            "organizational-authority-register:v1",
+            effective,
+        ),
+    )
+    return mechanism_version_id
 
 
 def _change_acceptance_status(
@@ -644,6 +720,149 @@ def test_exact_prior_acceptance_supports_reuse_and_role_expiry_does_not_rewrite_
             decision_version_id=expired_role.foundation.decision_version_id,
             configuration_version_id=expired_role.foundation.context.configuration_version_id,
             effective_at=reuse_effective.start,
+        ).result
+        is AggregatePrerequisiteResult.SATISFIED
+    )
+
+
+def test_continued_validity_rejects_unrelated_assignment(
+    sqlite_store: SQLiteIntegrityStore,
+) -> None:
+    effective = EffectiveInterval(utc(2026, 1, 10))
+    value = _setup(sqlite_store, "reuse-unrelated")
+    unrelated = _setup(sqlite_store, "reuse-unrelated-other")
+    result_id, acceptance_id = _complete(value, "reuse-unrelated")
+    successor_id = _successor_obligation(
+        sqlite_store, value, "reuse-unrelated", effective=effective
+    )
+    assignment_id = _continued_validity_assignment(
+        unrelated,
+        "reuse-unrelated-other",
+        effective=effective,
+    )
+    with pytest.raises(DomainRuleViolation, match="NOT ESTABLISHED"):
+        _commit_reuse(
+            value,
+            "reuse-unrelated",
+            successor_obligation_version_id=successor_id,
+            prior_result_version_id=result_id,
+            prior_acceptance_version_id=acceptance_id,
+            accountable_actor_id=unrelated.foundation.context.assessor_id,
+            assignment_version_id=assignment_id,
+            mechanism_version_id=None,
+            delegation_chain_version_ids=(),
+            effective=effective,
+        )
+
+
+def test_continued_validity_exact_target_overlap_is_explicit_conflict(
+    sqlite_store: SQLiteIntegrityStore,
+) -> None:
+    effective = EffectiveInterval(utc(2026, 1, 10))
+    value = _setup(sqlite_store, "reuse-overlap")
+    result_id, acceptance_id = _complete(value, "reuse-overlap")
+    successor_id = _successor_obligation(sqlite_store, value, "reuse-overlap", effective=effective)
+    case_assignment = _continued_validity_assignment(
+        value, "reuse-overlap-case", effective=effective
+    )
+    _continued_validity_assignment(
+        value,
+        "reuse-overlap-configuration",
+        effective=effective,
+        target_type=RoleTargetType.CONFIGURATION,
+        target_id=str(value.foundation.context.configuration_id),
+    )
+    with pytest.raises(DomainRuleViolation, match="CONFLICT"):
+        _commit_reuse(
+            value,
+            "reuse-overlap",
+            successor_obligation_version_id=successor_id,
+            prior_result_version_id=result_id,
+            prior_acceptance_version_id=acceptance_id,
+            accountable_actor_id=value.foundation.context.assessor_id,
+            assignment_version_id=case_assignment,
+            mechanism_version_id=None,
+            delegation_chain_version_ids=(),
+            effective=effective,
+        )
+
+
+def test_continued_validity_rejects_invalid_delegation_chain(
+    sqlite_store: SQLiteIntegrityStore,
+) -> None:
+    effective = EffectiveInterval(utc(2026, 1, 10))
+    value = _setup(sqlite_store, "reuse-delegation")
+    result_id, acceptance_id = _complete(value, "reuse-delegation")
+    successor_id = _successor_obligation(
+        sqlite_store, value, "reuse-delegation", effective=effective
+    )
+    assignment_id = _continued_validity_assignment(value, "reuse-delegation", effective=effective)
+    with pytest.raises(DomainRuleViolation, match="delegation"):
+        _commit_reuse(
+            value,
+            "reuse-delegation",
+            successor_obligation_version_id=successor_id,
+            prior_result_version_id=result_id,
+            prior_acceptance_version_id=acceptance_id,
+            accountable_actor_id=value.foundation.context.assessor_id,
+            assignment_version_id=assignment_id,
+            mechanism_version_id=None,
+            delegation_chain_version_ids=(RecordVersionId.new(),),
+            effective=effective,
+        )
+
+
+def test_continued_validity_rejects_fabricated_mechanism_and_accepts_exact_governed_one(
+    sqlite_store: SQLiteIntegrityStore,
+) -> None:
+    effective = EffectiveInterval(utc(2026, 1, 10))
+    fabricated = _setup(sqlite_store, "reuse-fabricated-mechanism")
+    fabricated_result, fabricated_acceptance = _complete(fabricated, "reuse-fabricated-mechanism")
+    fabricated_successor = _successor_obligation(
+        sqlite_store, fabricated, "reuse-fabricated-mechanism", effective=effective
+    )
+    with pytest.raises(DomainRuleViolation, match="NOT ESTABLISHED"):
+        _commit_reuse(
+            fabricated,
+            "reuse-fabricated-mechanism",
+            successor_obligation_version_id=fabricated_successor,
+            prior_result_version_id=fabricated_result,
+            prior_acceptance_version_id=fabricated_acceptance,
+            accountable_actor_id=fabricated.foundation.context.assessor_id,
+            assignment_version_id=None,
+            mechanism_version_id=RecordVersionId.new(),
+            delegation_chain_version_ids=(),
+            effective=effective,
+        )
+
+    governed = _setup(sqlite_store, "reuse-governed-mechanism")
+    governed_result, governed_acceptance = _complete(governed, "reuse-governed-mechanism")
+    governed_successor = _successor_obligation(
+        sqlite_store, governed, "reuse-governed-mechanism", effective=effective
+    )
+    mechanism_id = _continued_validity_mechanism(
+        governed,
+        "reuse-governed-mechanism",
+        successor_obligation_version_id=governed_successor,
+        effective=effective,
+    )
+    _commit_reuse(
+        governed,
+        "reuse-governed-mechanism",
+        successor_obligation_version_id=governed_successor,
+        prior_result_version_id=governed_result,
+        prior_acceptance_version_id=governed_acceptance,
+        accountable_actor_id=governed.foundation.context.assessor_id,
+        assignment_version_id=None,
+        mechanism_version_id=mechanism_id,
+        delegation_chain_version_ids=(),
+        effective=effective,
+    )
+    assert (
+        governed.service.evaluate_prerequisites(
+            decision_version_id=governed.foundation.decision_version_id,
+            configuration_version_id=governed.foundation.context.configuration_version_id,
+            effective_at=effective.start,
         ).result
         is AggregatePrerequisiteResult.SATISFIED
     )

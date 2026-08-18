@@ -186,6 +186,32 @@ class Increment5Transaction(Increment4Transaction, Protocol):
 
     def replacement_detail(self, version_id: RecordVersionId) -> dict[str, object] | None: ...
 
+    def add_continued_validity_mechanism(
+        self,
+        *,
+        mechanism_id: RecordId,
+        version_id: RecordVersionId,
+        successor_obligation_version_id: RecordVersionId,
+        case_id: RecordId,
+        intervention_id: RecordId,
+        intervention_version_id: RecordVersionId,
+        decision_version_id: RecordVersionId,
+        configuration_id: RecordId,
+        configuration_version_id: RecordVersionId,
+        accountable_actor_id: RecordId,
+        rule_version: str,
+        authority_scope: str,
+        authority_source: str,
+    ) -> None: ...
+
+    def continued_validity_mechanism_detail(
+        self, version_id: RecordVersionId
+    ) -> dict[str, object] | None: ...
+
+    def continued_validity_mechanism_versions(
+        self, *, successor_obligation_version_id: RecordVersionId
+    ) -> tuple[RecordVersionId, ...]: ...
+
     def add_reuse_determination(
         self,
         *,
@@ -196,7 +222,8 @@ class Increment5Transaction(Increment4Transaction, Protocol):
         prior_acceptance_version_id: RecordVersionId,
         accountable_actor_id: RecordId,
         accountable_assignment_version_id: RecordVersionId | None,
-        accountable_mechanism: str | None,
+        accountable_mechanism_version_id: RecordVersionId | None,
+        delegation_chain_version_ids: tuple[RecordVersionId, ...],
         all_coverage_established: bool,
     ) -> None: ...
 

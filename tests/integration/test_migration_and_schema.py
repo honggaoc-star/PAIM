@@ -374,8 +374,11 @@ def test_increment_5_normalized_schema_constraints_indexes_triggers_and_foreign_
         "completion_acceptance_delegations",
         "intervention_replacement_records",
         "intervention_replacement_versions",
+        "continued_validity_mechanism_records",
+        "continued_validity_mechanism_versions",
         "continued_validity_records",
         "continued_validity_versions",
+        "continued_validity_delegations",
         "prerequisite_evaluation_basis_records",
         "prerequisite_evaluation_basis_versions",
         "prerequisite_evaluation_basis_items",
@@ -403,6 +406,9 @@ def test_increment_5_normalized_schema_constraints_indexes_triggers_and_foreign_
         item["name"]
         for item in inspector.get_check_constraints("activation_authorization_versions")
     } >= {"ck_activation_authority_path"}
+    assert {
+        item["name"] for item in inspector.get_check_constraints("continued_validity_versions")
+    } >= {"ck_continued_validity_accountability"}
     assert {item["name"] for item in inspector.get_indexes("obligation_versions")} >= {
         "ix_obligation_set_type"
     }
@@ -421,6 +427,19 @@ def test_increment_5_normalized_schema_constraints_indexes_triggers_and_foreign_
         ("accountable_assignment_version_id",),
         ("accountable_mechanism_version_id",),
     } <= acceptance_foreign_keys
+    continued_validity_foreign_keys = {
+        tuple(item["constrained_columns"])
+        for item in inspector.get_foreign_keys("continued_validity_versions")
+    }
+    assert {
+        ("version_id",),
+        ("successor_obligation_version_id",),
+        ("prior_completion_result_version_id",),
+        ("prior_acceptance_version_id",),
+        ("accountable_actor_id",),
+        ("accountable_assignment_version_id",),
+        ("accountable_mechanism_version_id",),
+    } <= continued_validity_foreign_keys
     with sqlite_store.engine.connect() as connection:
         triggers = set(
             connection.execute(

@@ -1993,6 +1993,75 @@ Index(
     intervention_replacement_versions.c.obligation_version_id,
 )
 
+continued_validity_mechanism_records = Table(
+    "continued_validity_mechanism_records",
+    metadata,
+    Column("mechanism_id", String(36), ForeignKey("records.record_id"), primary_key=True),
+)
+continued_validity_mechanism_versions = Table(
+    "continued_validity_mechanism_versions",
+    metadata,
+    Column("version_id", String(36), ForeignKey("record_versions.version_id"), primary_key=True),
+    Column(
+        "mechanism_id",
+        String(36),
+        ForeignKey("continued_validity_mechanism_records.mechanism_id"),
+        nullable=False,
+    ),
+    Column(
+        "successor_obligation_version_id",
+        String(36),
+        ForeignKey("obligation_versions.version_id"),
+        nullable=False,
+    ),
+    Column("case_id", String(36), ForeignKey("paim_cases.case_id"), nullable=False),
+    Column(
+        "intervention_id",
+        String(36),
+        ForeignKey("intervention_records.intervention_id"),
+        nullable=False,
+    ),
+    Column(
+        "intervention_version_id",
+        String(36),
+        ForeignKey("intervention_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "decision_version_id",
+        String(36),
+        ForeignKey("decision_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "configuration_id",
+        String(36),
+        ForeignKey("managed_configurations.configuration_id"),
+        nullable=False,
+    ),
+    Column(
+        "configuration_version_id",
+        String(36),
+        ForeignKey("managed_configuration_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "accountable_actor_id",
+        String(36),
+        ForeignKey("paim_actors.actor_id"),
+        nullable=False,
+    ),
+    Column("rule_version", Text, nullable=False),
+    Column("authority_scope", Text, nullable=False),
+    Column("authority_source", Text, nullable=False),
+)
+Index(
+    "ix_continued_validity_mechanism_context",
+    continued_validity_mechanism_versions.c.successor_obligation_version_id,
+    continued_validity_mechanism_versions.c.decision_version_id,
+    continued_validity_mechanism_versions.c.configuration_version_id,
+)
+
 continued_validity_records = Table(
     "continued_validity_records",
     metadata,
@@ -2033,17 +2102,41 @@ continued_validity_versions = Table(
         ForeignKey("role_assignment_versions.version_id"),
         nullable=True,
     ),
-    Column("accountable_mechanism", Text, nullable=True),
+    Column(
+        "accountable_mechanism_version_id",
+        String(36),
+        ForeignKey("continued_validity_mechanism_versions.version_id"),
+        nullable=True,
+    ),
     Column("all_coverage_established", Boolean, nullable=False),
     CheckConstraint(
-        "(accountable_assignment_version_id IS NOT NULL AND accountable_mechanism IS NULL) OR "
-        "(accountable_assignment_version_id IS NULL AND accountable_mechanism IS NOT NULL)",
+        "(accountable_assignment_version_id IS NOT NULL AND "
+        "accountable_mechanism_version_id IS NULL) OR "
+        "(accountable_assignment_version_id IS NULL AND "
+        "accountable_mechanism_version_id IS NOT NULL)",
         name="ck_continued_validity_accountability",
     ),
 )
 Index(
     "ix_continued_validity_obligation",
     continued_validity_versions.c.successor_obligation_version_id,
+)
+continued_validity_delegations = Table(
+    "continued_validity_delegations",
+    metadata,
+    Column(
+        "determination_version_id",
+        String(36),
+        ForeignKey("continued_validity_versions.version_id"),
+        primary_key=True,
+    ),
+    Column("ordinal", BigInteger, primary_key=True),
+    Column(
+        "assignment_version_id",
+        String(36),
+        ForeignKey("role_assignment_versions.version_id"),
+        nullable=False,
+    ),
 )
 
 prerequisite_evaluation_basis_records = Table(

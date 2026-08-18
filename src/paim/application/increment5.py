@@ -28,6 +28,11 @@ from paim.domain.increment5 import (
     CompletionAccountabilityNotEstablished,
     CompletionAccountabilityResolution,
     CompletionResultVersionInput,
+    ContinuedValidityAccountabilityConflict,
+    ContinuedValidityAccountabilityFound,
+    ContinuedValidityAccountabilityNotEstablished,
+    ContinuedValidityAccountabilityResolution,
+    ContinuedValidityMechanismVersionInput,
     InterventionStatus,
     InterventionVersionInput,
     LearningItemVersionInput,
@@ -68,6 +73,7 @@ from paim.integrity.time import Clock, from_epoch_microseconds, require_utc
 from paim.persistence.ports import CommandOutcome, IdempotencyFact
 
 _COMPLETION_ACCEPTOR_ROLE = "Intervention Completion Acceptor"
+_CONTINUED_VALIDITY_ACCEPTOR_ROLE = "Continued Validity Acceptor"
 
 
 def _exactly_one(value: RecordVersionId | None, mechanism: str | RecordVersionId | None) -> bool:
@@ -884,10 +890,243 @@ class Increment5ApplicationService(Increment4ApplicationService):
             reason_outcome="EXACT_INTERVENTION_REPLACEMENT_PRESERVES_PREDECESSOR",
         )
 
+    def commit_continued_validity_mechanism(
+        self, meta: CommandMeta, value: ContinuedValidityMechanismVersionInput
+    ) -> CommandOutcome:
+        if (
+            not value.rule_version.strip()
+            or not value.authority_scope.strip()
+            or not value.authority_source.strip()
+        ):
+            raise DomainRuleViolation(
+                "Continued Validity mechanism requires retained rule, scope, and authority source"
+            )
+        content: dict[str, JsonValue] = {
+            "successor_obligation_version_id": str(value.successor_obligation_version_id),
+            "case_id": str(value.case_id),
+            "intervention_id": str(value.intervention_id),
+            "intervention_version_id": str(value.intervention_version_id),
+            "decision_version_id": str(value.decision_version_id),
+            "configuration_id": str(value.configuration_id),
+            "configuration_version_id": str(value.configuration_version_id),
+            "accountable_actor_id": str(value.accountable_actor_id),
+            "rule_version": value.rule_version,
+            "authority_scope": value.authority_scope,
+            "authority_source": value.authority_source,
+        }
+
+        def project(base: object) -> None:
+            transaction = cast("Increment5Transaction", base)
+            obligation = transaction.obligation_detail(value.successor_obligation_version_id)
+            intervention = transaction.intervention_detail(value.intervention_version_id)
+            decision = transaction.decision_detail(value.decision_version_id)
+            context = transaction.configuration_version_context(value.configuration_version_id)
+            if (
+                obligation is None
+                or obligation.intervention_id != value.intervention_id
+                or obligation.intervention_version_id != value.intervention_version_id
+                or obligation.decision_version_id != value.decision_version_id
+                or obligation.configuration_version_id != value.configuration_version_id
+                or intervention is None
+                or intervention.case_id != value.case_id
+                or intervention.configuration_id != value.configuration_id
+                or decision is None
+                or decision.case_id != value.case_id
+                or decision.configuration_id != value.configuration_id
+                or decision.configuration_version_id != value.configuration_version_id
+                or context is None
+                or context.configuration_id != value.configuration_id
+                or context.owning_case_id != value.case_id
+                or not transaction.actor_exists(value.accountable_actor_id)
+            ):
+                raise DomainRuleViolation(
+                    "Continued Validity mechanism exact governed context is ineligible"
+                )
+            transaction.add_continued_validity_mechanism(
+                mechanism_id=value.mechanism_id,
+                version_id=value.version_id,
+                successor_obligation_version_id=value.successor_obligation_version_id,
+                case_id=value.case_id,
+                intervention_id=value.intervention_id,
+                intervention_version_id=value.intervention_version_id,
+                decision_version_id=value.decision_version_id,
+                configuration_id=value.configuration_id,
+                configuration_version_id=value.configuration_version_id,
+                accountable_actor_id=value.accountable_actor_id,
+                rule_version=value.rule_version,
+                authority_scope=value.authority_scope,
+                authority_source=value.authority_source,
+            )
+
+        return self._commit_version(
+            meta=meta,
+            record_id=value.mechanism_id,
+            version_id=value.version_id,
+            family="continued-validity-mechanism",
+            scope=(
+                f"successor-obligation-version:{value.successor_obligation_version_id}:"
+                f"mechanism:{value.mechanism_id}"
+            ),
+            content=content,
+            effective=value.effective,
+            expected_version_id=value.expected_version_id,
+            relationship_reason=value.relationship_reason,
+            relationship_type=value.relationship_type,
+            project=project,
+            reason_outcome="GOVERNED_CONTINUED_VALIDITY_MECHANISM_RECORDED",
+        )
+
+    def _continued_validity_accountability_in_transaction(
+        self,
+        transaction: Increment5Transaction,
+        *,
+        obligation: ObligationDetail,
+        effective_at: datetime,
+        known_at: datetime,
+    ) -> ContinuedValidityAccountabilityResolution:
+        intervention = transaction.intervention_detail(obligation.intervention_version_id)
+        decision = transaction.decision_detail(obligation.decision_version_id)
+        context = transaction.configuration_version_context(obligation.configuration_version_id)
+        if intervention is None or decision is None or context is None:
+            return ContinuedValidityAccountabilityNotEstablished()
+        targets = (
+            ("intervention", str(obligation.intervention_id)),
+            ("decision", str(decision.decision_id)),
+            ("configuration", str(context.configuration_id)),
+            ("case", str(context.owning_case_id)),
+        )
+        assignment_candidates: set[RecordVersionId] = set()
+        for record_id in transaction.role_assignment_records(
+            role=_CONTINUED_VALIDITY_ACCEPTOR_ROLE, targets=targets
+        ):
+            for candidate in transaction.get_history(record_id).versions:
+                detail = transaction.role_assignment_detail(candidate.version_id)
+                if (
+                    detail is not None
+                    and detail.accountable
+                    and (detail.target_type.value, detail.target_id) in targets
+                    and self._assignment_current(
+                        transaction,
+                        candidate.version_id,
+                        effective_at=effective_at,
+                        known_at=known_at,
+                    )
+                ):
+                    assignment_candidates.add(candidate.version_id)
+        mechanism_candidates = {
+            version_id
+            for version_id in transaction.continued_validity_mechanism_versions(
+                successor_obligation_version_id=obligation.version_id
+            )
+            if (
+                (mechanism_detail := transaction.continued_validity_mechanism_detail(version_id))
+                is not None
+                and mechanism_detail["case_id"] == str(context.owning_case_id)
+                and mechanism_detail["intervention_id"] == str(obligation.intervention_id)
+                and mechanism_detail["intervention_version_id"]
+                == str(obligation.intervention_version_id)
+                and mechanism_detail["decision_version_id"] == str(obligation.decision_version_id)
+                and mechanism_detail["configuration_id"] == str(context.configuration_id)
+                and mechanism_detail["configuration_version_id"]
+                == str(obligation.configuration_version_id)
+                and self._is_current(
+                    transaction,
+                    version_id,
+                    effective_at=effective_at,
+                    known_at=known_at,
+                )
+            )
+        }
+        candidates = assignment_candidates | mechanism_candidates
+        if not candidates:
+            return ContinuedValidityAccountabilityNotEstablished()
+        if len(candidates) > 1:
+            return ContinuedValidityAccountabilityConflict(frozenset(candidates))
+        selected = next(iter(candidates))
+        if selected in assignment_candidates:
+            return ContinuedValidityAccountabilityFound(selected, None)
+        return ContinuedValidityAccountabilityFound(None, selected)
+
+    def _validate_continued_validity_accountability(
+        self,
+        transaction: Increment5Transaction,
+        *,
+        obligation: ObligationDetail,
+        actor_id: RecordId,
+        assignment_version_id: RecordVersionId | None,
+        mechanism_version_id: RecordVersionId | None,
+        delegation_chain_version_ids: tuple[RecordVersionId, ...],
+        effective_at: datetime,
+        known_at: datetime,
+    ) -> None:
+        if not _exactly_one(assignment_version_id, mechanism_version_id):
+            raise DomainRuleViolation("continued-validity requires exactly one accountability path")
+        resolution = self._continued_validity_accountability_in_transaction(
+            transaction,
+            obligation=obligation,
+            effective_at=effective_at,
+            known_at=known_at,
+        )
+        if isinstance(resolution, ContinuedValidityAccountabilityConflict):
+            raise DomainRuleViolation(resolution.reason)
+        if mechanism_version_id is not None:
+            if delegation_chain_version_ids:
+                raise DomainRuleViolation(
+                    "governed continued-validity mechanism cannot cite a Role delegation chain"
+                )
+            if not isinstance(resolution, ContinuedValidityAccountabilityFound) or (
+                resolution.mechanism_version_id != mechanism_version_id
+                or resolution.assignment_version_id is not None
+            ):
+                raise DomainRuleViolation("CONTINUED VALIDITY ACCOUNTABILITY NOT ESTABLISHED")
+            mechanism = transaction.continued_validity_mechanism_detail(mechanism_version_id)
+            if mechanism is None or mechanism["accountable_actor_id"] != str(actor_id):
+                raise DomainRuleViolation("Continued Validity actor/mechanism mismatch")
+            return
+        assert assignment_version_id is not None
+        if not isinstance(resolution, ContinuedValidityAccountabilityFound) or (
+            resolution.assignment_version_id != assignment_version_id
+            or resolution.mechanism_version_id is not None
+        ):
+            raise DomainRuleViolation("CONTINUED VALIDITY ACCOUNTABILITY NOT ESTABLISHED")
+        assignment = transaction.role_assignment_detail(assignment_version_id)
+        if assignment is None or assignment.actor_id != actor_id:
+            raise DomainRuleViolation("Continued Validity actor/assignment mismatch")
+        if assignment.delegated_from_version_id is not None and not delegation_chain_version_ids:
+            raise DomainRuleViolation("delegated continued-validity requires exact chain")
+        if delegation_chain_version_ids:
+            if delegation_chain_version_ids[-1] != assignment_version_id:
+                raise DomainRuleViolation(
+                    "delegation chain must terminate at Continued Validity Acceptor"
+                )
+            previous: RecordVersionId | None = None
+            for link_id in delegation_chain_version_ids:
+                link = transaction.role_assignment_detail(link_id)
+                if (
+                    link is None
+                    or not link.accountable
+                    or link.role != _CONTINUED_VALIDITY_ACCEPTOR_ROLE
+                    or not self._assignment_current(
+                        transaction,
+                        link_id,
+                        effective_at=effective_at,
+                        known_at=known_at,
+                    )
+                    or (previous is None and link.delegated_from_version_id is not None)
+                    or (previous is not None and link.delegated_from_version_id != previous)
+                ):
+                    raise DomainRuleViolation(
+                        "invalid, expired, superseded, unrelated, or incomplete delegation"
+                    )
+                previous = link_id
+
     def commit_reuse_determination(
         self, meta: CommandMeta, value: ReuseDeterminationVersionInput
     ) -> CommandOutcome:
-        if not _exactly_one(value.accountable_assignment_version_id, value.accountable_mechanism):
+        if not _exactly_one(
+            value.accountable_assignment_version_id,
+            value.accountable_mechanism_version_id,
+        ):
             raise DomainRuleViolation("continued-validity requires exactly one accountability path")
         coverage = (
             value.unchanged_configuration_content,
@@ -907,7 +1146,14 @@ class Increment5ApplicationService(Increment4ApplicationService):
                 if value.accountable_assignment_version_id
                 else None
             ),
-            "accountable_mechanism": value.accountable_mechanism,
+            "accountable_mechanism_version_id": (
+                str(value.accountable_mechanism_version_id)
+                if value.accountable_mechanism_version_id
+                else None
+            ),
+            "delegation_chain_version_ids": [
+                str(version_id) for version_id in value.delegation_chain_version_ids
+            ],
             "unchanged_configuration_content": value.unchanged_configuration_content,
             "boundary_conditions_covered": value.boundary_conditions_covered,
             "completion_criteria_covered": value.completion_criteria_covered,
@@ -945,22 +1191,16 @@ class Increment5ApplicationService(Increment4ApplicationService):
                 or not transaction.actor_exists(value.accountable_actor_id)
             ):
                 raise DomainRuleViolation("continued-validity exact prior basis is ineligible")
-            if value.accountable_assignment_version_id is not None:
-                assignment = transaction.role_assignment_detail(
-                    value.accountable_assignment_version_id
-                )
-                if (
-                    assignment is None
-                    or assignment.actor_id != value.accountable_actor_id
-                    or not assignment.accountable
-                    or not self._assignment_current(
-                        transaction,
-                        value.accountable_assignment_version_id,
-                        effective_at=value.effective.start,
-                        known_at=self._clock.now(),
-                    )
-                ):
-                    raise DomainRuleViolation("continued-validity accountability is ineligible")
+            self._validate_continued_validity_accountability(
+                transaction,
+                obligation=obligation,
+                actor_id=value.accountable_actor_id,
+                assignment_version_id=value.accountable_assignment_version_id,
+                mechanism_version_id=value.accountable_mechanism_version_id,
+                delegation_chain_version_ids=value.delegation_chain_version_ids,
+                effective_at=value.effective.start,
+                known_at=self._clock.now(),
+            )
             transaction.add_reuse_determination(
                 determination_id=value.determination_id,
                 version_id=value.version_id,
@@ -969,7 +1209,8 @@ class Increment5ApplicationService(Increment4ApplicationService):
                 prior_acceptance_version_id=value.prior_acceptance_version_id,
                 accountable_actor_id=value.accountable_actor_id,
                 accountable_assignment_version_id=(value.accountable_assignment_version_id),
-                accountable_mechanism=value.accountable_mechanism,
+                accountable_mechanism_version_id=(value.accountable_mechanism_version_id),
+                delegation_chain_version_ids=value.delegation_chain_version_ids,
                 all_coverage_established=all(coverage),
             )
 
