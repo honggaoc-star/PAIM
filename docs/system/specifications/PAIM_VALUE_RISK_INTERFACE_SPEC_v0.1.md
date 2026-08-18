@@ -366,7 +366,7 @@ Withdrawal, correction, supersession, staleness, or Evidence change after a hist
 
 ### 13.8 Normative selection examples
 
-1. Two co-current ready Value Inputs for the same Configuration/use do not produce a winner. Until an accountable acceptance/supersession establishes one eligible result, Value selection is conflict and the handoff is blocked.
+1. Two co-current ready Value Inputs for the same Configuration/use do not produce a winner and do not themselves create authoritative selection conflict. While zero eligible Acceptance/Selection Versions exist, Value selection is `INPUT SELECTION NOT ESTABLISHED` and the handoff is blocked. If two or more incompatible co-current eligible Acceptance/Selection Versions later compete for that same explicit context, selection is `INPUT SELECTION CONFLICT — UNRESOLVED` until an accountable history-preserving resolution establishes one eligible result.
 2. One accepted Value Input and one accepted Risk Input, each bound to the same exact governing Configuration Version and each with an eligible Acceptance/Selection Version, satisfy the input-cardinality portion of the handoff.
 3. Reusing a frozen Risk Input for a later use creates a new Risk Acceptance/Selection Version referencing the same immutable Risk Input Version.
 4. A selected Input withdrawn before Integration readiness becomes ineligible. The same withdrawal after a historical Decision preserves the historical basis and creates only prospective attention/reassessment where material.
