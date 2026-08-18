@@ -51,7 +51,7 @@ The roadmap preserves the ten increments in Platform Architecture §23.
 | 3 — Evidence, Authority, and independent Value/Risk intake | Evidence/Authority/Gaps, applicability seams, separate Value/Risk freeze/history | `CLOSED — P1 GATE` — IRR-006 and IRR-008 plus Increment 2 foundations |
 | 4 — Integration, Boundary, Decision, and Authorization Basis | Integration, hybrid Boundary, immutable Decision, exact authorization chain | `CLOSED — UPSTREAM GATE` — accepted Increments 1–3 and their P1 resolutions |
 | 5 — Intervention and Learning | Intervention requirements/completion, target operation guard, decision-specific Learning | `CLOSED — P1 RE-REVIEW GATE` — IRR-010 design accepted and specs hardened; independent closure review plus accepted Increments 1–4 still required |
-| 6 — Reassessment and Interim Operating Disposition | Trigger/Reassessment workflow, restrictive overlays, confirmation/successor, history | `CLOSED — P1 GATE` — IRR-011 for full workflow; IRR-014 for stronger-state automation; accepted Increments 1–5 |
+| 6 — Reassessment and Interim Operating Disposition | Trigger/Reassessment workflow, restrictive overlays, confirmation/successor, history | `CLOSED — P1 RE-REVIEW GATE` — IRR-011 design accepted and specs hardened, pending independent closure review; IRR-014 remains conditional for stronger-state automation; accepted Increments 1–5 |
 | 7 — projections, Management Register, reports, and hooks | Rebuildable projections, Register, queues, reports, notification intents | `CLOSED — P1 GATE` — IRR-012 plus cumulative upstream semantics |
 | 8 — external adapters, security hardening, and operational readiness | Selected adapters, segmentation, recovery, observability, degraded operation | `CLOSED — UPSTREAM GATE` with adapter-specific P1 conditions |
 | 9 — integrated behavioral and human validation | Complete scenario, regression, longitudinal, and practitioner validation | `CLOSED — P1 GATE` — all nine P1 findings and all implementation increments |
@@ -97,7 +97,7 @@ The graph expresses semantic dependency, not implementation coupling. Dashed edg
 | IRR-008 | Increment 3 | Increment 1 and Increment 2 | Authoritative Evidence Applicability, evidence reuse/current-use selection, automated applicability checks |
 | IRR-009 | Conditional in Increment 6/8; hard for complete Increment 9 | Increments 1–5 and any Reassessment scope excluding authoritative Observation | First-class Observation persistence, Observation-to-Evidence/Trigger conversion, automated monitoring record semantics |
 | IRR-010 | Increment 5 | Increments 1–4 | `SPEC HARDENED — INDEPENDENT RE-REVIEW REQUIRED`: accepted design package and coordinated normative wording exist, but Increment 5 implementation remains blocked until gate re-review confirms closure |
-| IRR-011 | Increment 6 | Increments 1–5 | Automated Trigger merge/deduplication, concurrent Reassessment coordination, one Reassessment closing another's work |
+| IRR-011 | Increment 6 | Increments 1–5 | `SPEC HARDENED — INDEPENDENT RE-REVIEW REQUIRED`: accepted Case-scoped Trigger identity, immutable many-to-many membership/Trigger Sets, grouping/duplicate/coverage determinations, bounded concurrency, no-merge rule, accountability, and completion coordination exist; implementation remains blocked pending closure review |
 | IRR-012 | Increment 7 | Increments 1–6 | Authoritative Register population/aggregation rule, shared dependency equivalence, concentration analytics |
 | IRR-013 / CON-002 | Increment 2 | Increment 1 | General Role Assignment scope resolution/precedence and permission derivation from competing assignments |
 | IRR-014 | Conditional in Increment 6; hard for complete Increment 9 | Increments 1–5 and non-ordered state handling | Automated stronger/broader-state detection, state ranking, state-derived escalation oracle |
@@ -174,11 +174,11 @@ The graph expresses semantic dependency, not implementation coupling. Dashed edg
 
 | Gate element | Requirement |
 |---|---|
-| Hard P1 prerequisites | IRR-011 for the full Trigger/Reassessment workflow. IRR-014 is hard only for automated stronger/broader-state detection and complete state-escalation behavior. |
+| Hard P1 prerequisites | IRR-011 is design-accepted and normatively hardened but remains open pending independent coordinated-spec re-review. IRR-014 is hard only for automated stronger/broader-state detection and complete state-escalation behavior. |
 | P1 findings deferred | IRR-009 if the scope excludes first-class Observation; IRR-012; IRR-014 if state changes remain explicit proposals with no inferred ordering. |
-| Blocked behavior until clarification | Trigger deduplication/merge; many-trigger Reassessment coordination; concurrent Reassessment ordering/supersession; cross-case trigger propagation automation; stronger-state inference/ranking; Observation-to-Trigger automation if IRR-009 remains open. |
-| Specification changes | Case Lifecycle and Reassessment for IRR-011; Integration/Decision, Intervention/Learning, Reassessment, Management Register, and Behavioral Validation for IRR-014 when that conditional gate is opened. |
-| Acceptance evidence | Many-to-many Trigger/Reassessment rules; no-lost-trigger examples; same-Decision concurrency and outcome coordination; cross-case trigger behavior; explicit conflict; if state automation is included, accepted state traits/relation and indeterminate behavior; Reassessment overlay test set. |
+| Blocked behavior until re-review | Increment 6 code; Trigger/Reassessment automation; any semantic deduplication/grouping, merge/absorption, concurrency/coverage/coordination, cancellation/supersession, or completion behavior not confirmed by independent review; stronger-state inference/ranking; Observation-to-Trigger automation if IRR-009 remains open. |
+| Specification changes | Coordinated IRR-011 hardening in Reassessment, Case Lifecycle, Roles/Accountability, Integrity, Integration/Decision, Intervention/Learning, Behavioral Validation, and architecture/roadmap traceability; accepted design package `PAIM_INCREMENT_6_REASSESSMENT_DESIGN_DECISION_v0.1.md`. IRR-014 owners remain unchanged until that conditional gate opens. |
+| Acceptance evidence | Independent review confirms exact Trigger identity/replay, five Determination outcomes, immutable many-to-many Trigger Sets, grouping/duplicate determinations, bounded concurrency/overlap, no v0.1 merge, cancellation/supersession, five coverage states, exact statuses, separate accountability, cross-Case source behavior, same-Decision/successor coordination, restrictive overlays, all hard oracles, and preserved IRR-009/012/014 boundaries. |
 | Completion evidence | Trigger provenance, current Decision/Boundary preservation, restrictive overlay intersection/expiry, exactly one Confirmation/successor path, longitudinal history, and concurrency behavior limited to the accepted specification. |
 
 ### 4.8 Increment 7 — projections, Management Register, reports, and hooks
@@ -225,7 +225,7 @@ This section identifies where later clarification must occur. It does not prescr
 | IRR-008 | `../system/specifications/PAIM_EVIDENCE_AND_AUTHORITY_SPEC_v0.1.md` | Managed Configuration; Value/Risk Interface; Integrity | Versioned Evidence Applicability identity, many-to-many targets, assessor/rationale/scope/dual time/history/conflict |
 | IRR-009 | System Architecture plus either a new bounded Observation specification or explicit amendments to Intervention/Learning and Reassessment | Behavioral Validation; Evidence/Authority; Integrity | Human decision whether Observation is authoritative; if yes, minimum contract; if no, authoritative substitutes and conversion/linkage |
 | IRR-010 | `../system/specifications/PAIM_INTERVENTION_AND_LEARNING_SPEC_v0.1.md`; `../system/specifications/PAIM_CASE_LIFECYCLE_SPEC_v0.1.md` | Integration/Decision; Roles/Accountability; Integrity; Behavioral Validation; accepted `PAIM_INCREMENT_5_INTERVENTION_DESIGN_DECISION_v0.1.md` | Hardened exact Obligation package, three types, all-of guard, Completion Result/Acceptance, Completion Acceptor, replacement/reuse, Prerequisite Evaluation Basis, genuine governed Activation Authorization, prior-operation behavior; independent closure re-review still required |
-| IRR-011 | `../system/specifications/PAIM_REASSESSMENT_SPEC_v0.1.md`; `../system/specifications/PAIM_CASE_LIFECYCLE_SPEC_v0.1.md` | Integrity; Management Register; Behavioral Validation | Trigger/Reassessment cardinality, duplicate/merge/supersession/concurrency, cross-case propagation, outcome coordination |
+| IRR-011 | `../system/specifications/PAIM_REASSESSMENT_SPEC_v0.1.md`; `../system/specifications/PAIM_CASE_LIFECYCLE_SPEC_v0.1.md`; accepted `PAIM_INCREMENT_6_REASSESSMENT_DESIGN_DECISION_v0.1.md` | Roles/Accountability; Integrity; Integration/Decision; Intervention/Learning; Behavioral Validation; Architecture | Hardened Trigger identity/replay/determination, immutable many-to-many membership/Trigger Sets, grouping/duplicate/coverage, bounded concurrency/overlap, no merge, cancellation/supersession, status, accountability, overlays, completion coordination, cross-Case provenance, deferred IRR boundaries; independent closure re-review still required |
 | IRR-012 | `../system/specifications/PAIM_MANAGEMENT_REGISTER_SPEC_v0.1.md` | Roles/Accountability; all projected source specifications; Integrity | Entry population/unit, multi-valued aggregation, exact source/time, shared-dependency identity/equivalence, conflict display |
 | IRR-013 / CON-002 | `../system/specifications/PAIM_ROLES_AND_ACCOUNTABILITY_SPEC_v0.1.md` | Managed Configuration; Case Lifecycle; Evidence/Authority; Integrity | Typed assignment target, optional Case relation, multi-scope precedence, delegation/effective-time behavior, explicit conflict |
 | IRR-014 | `../system/specifications/PAIM_INTEGRATION_AND_DECISION_SPEC_v0.1.md` | Intervention/Learning; Reassessment; Management Register; Behavioral Validation | Minimum state traits, active/inactive/terminal effect, organization-configured stronger/broader relation, indeterminate comparison |
@@ -257,10 +257,10 @@ After the first cluster, IRR-006 and IRR-008 may proceed in parallel if they sha
 ### 6.3 Third cluster — operation, intervention, reassessment, and state
 
 - IRR-010's accepted/hardened semantics depend on IRR-007 for target Configuration and IRR-013 for Completion Acceptor scope/accountability; independent re-review must confirm that conformance before closure.
-- IRR-011 depends on accepted Case/Configuration/Decision scope so concurrency is coordinated against the right management object.
+- IRR-011's accepted design and hardened specifications depend on accepted Case/Configuration/Decision scope so concurrency is coordinated against the right management object; independent closure re-review remains required.
 - IRR-014 depends on IRR-007's separation of Configuration status/purpose from AI operating state.
 
-IRR-010, IRR-011, and IRR-014 may be separate bounded issues after the first cluster. IRR-014 need not block basic explicit state storage, but it must precede automated stronger-state triggers and final escalation tests.
+IRR-010 and IRR-011 were resolved through separate bounded design, hardening, and review-gate sequences after the first cluster; IRR-011 remains pending its independent closure review at this checkpoint. IRR-014 remains a separate bounded issue and need not block basic explicit state storage, but it must precede automated stronger-state triggers and final escalation tests.
 
 ### 6.4 Observation after Evidence and Trigger semantics
 
@@ -289,7 +289,7 @@ The following questions require PAIM design authority. Engineering may present o
 | IRR-008 | Who determines applicability, to which target types, and how do competing applicability judgments coexist/resolve? | Relationship storage, search/indexing, applicability workspace |
 | IRR-009 | Is Observation an authoritative PAIM record or not? What is the authoritative bridge from operation to Evidence/Trigger? | Telemetry adapter, ingestion mechanism, retention/indexing |
 | IRR-010 | **DECIDED, HARDENED, PENDING RE-REVIEW:** exact obligation types, all-of aggregation, Completion Acceptance accountability, and Activation Authorization are defined by the accepted design package and coordinated governing specs. | After independent closure only: task integration, guard implementation, interaction design, indexing |
-| IRR-011 | When are triggers merged, duplicated, related, or superseded? How are concurrent Reassessments coordinated and closed? | Orchestration, queue mechanics, locking/concurrency mechanism |
+| IRR-011 | **DECIDED, HARDENED, PENDING RE-REVIEW:** Case-scoped Trigger identity/replay, immutable many-to-many Trigger Sets, no-auto-grouping, bounded concurrency, explicit overlap/coverage conflict, no v0.1 merge, cancellation/supersession, status, accountability, completion coordination, and cross-Case provenance are defined by the accepted design package and coordinated governing specs. | After independent closure only: orchestration layout, physical relationship storage, indexing, locking/concurrency mechanism, and interaction design |
 | IRR-012 | Which entities populate the Register, how are multi-valued facts shown/summarized, and how is shared dependency sameness established? | Projection store, filters, report format, matching tooling |
 | IRR-013 / CON-002 | What scope types and precedence policy govern simultaneous assignments? How are delegation and explicit conflict handled? | Permission engine, directory mapping, scope indexes |
 | IRR-014 | What traits define an operating state, and how is stronger/broader/transitional/inactive relation configured without a universal linear rank? | State configuration interface, relation evaluation, visualization |
@@ -415,7 +415,11 @@ The gate is not closed merely because wording is present. Before Increment 5 cod
 
 ### 10.4 Before full Increment 6
 
-Resolve IRR-011 Trigger/Reassessment cardinality and concurrency. Resolve IRR-014 before including stronger/broader-state automation; otherwise keep state changes explicit and ordering indeterminate.
+IRR-011 design authority is accepted in `PAIM_INCREMENT_6_REASSESSMENT_DESIGN_DECISION_v0.1.md`. Coordinated governing hardening defines Case-scoped Trigger identity/replay/determination, immutable many-to-many Trigger Sets, accountable grouping and duplicate disposition, bounded concurrency/overlap, no v0.1 merge, cancellation/supersession, no-lost-trigger coverage, exact statuses, separate accountability functions, same-Decision/successor coordination, cross-Case source provenance, restrictive overlays, and dual-time history.
+
+The gate is not closed merely because wording is present. Before Increment 6 code, an independent focused re-review must confirm that the hardened Reassessment, Case Lifecycle, Roles/Accountability, Integrity, Integration/Decision, Intervention/Learning, Behavioral Validation, Platform Architecture, and roadmap artifacts are cross-consistent and make the accepted hard oracles deterministic. Until that review accepts closure, Increment 6 remains blocked.
+
+IRR-009 and IRR-012 remain deferred. Resolve IRR-014 before including stronger/broader-state automation; otherwise keep state values explicit and ordering indeterminate.
 
 ### 10.5 Before Observation automation
 

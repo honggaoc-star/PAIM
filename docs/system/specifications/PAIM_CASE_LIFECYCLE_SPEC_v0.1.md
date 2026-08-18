@@ -431,16 +431,19 @@ A condition has occurred that requires management to determine whether the curre
 
 Record:
 
-- trigger;
+- exact authoritative Trigger identity/Version, source provenance, and current Trigger Determination;
 - date;
 - affected configuration/decision;
 - reason reassessment is required;
 - whether operation may continue pending reassessment;
-- required analytical refresh.
+- required analytical refresh; and
+- the current Trigger Coverage result, including explicit unassigned or conflict rather than reliance on a queue.
+
+One Case lifecycle state may coexist with multiple Trigger and Reassessment identities. `REASSESSMENT_DUE` does not imply one Trigger ↔ one Reassessment, does not group Triggers, and does not select a Reassessment winner. Every eligible Trigger requiring reassessment remains subject to the no-lost-trigger coverage invariant in `PAIM_REASSESSMENT_SPEC_v0.1.md`, §38.5.
 
 ### Exit condition
 
-Case moves to `REOPENED` or, where the trigger is determined immaterial under established rules, returns to `OPERATING_OBSERVING` with documented rationale.
+The Case moves to `REOPENED` when at least one eligible current Trigger requires reassessment. It may return to `OPERATING_OBSERVING` without Reassessment only when every applicable current Trigger has one eligible non-reassessment Trigger Determination, no determination/coverage conflict remains, and the exact accountable rationale is retained. One immaterial Trigger does not clear another requiring, unassigned, or conflicting Trigger.
 
 ## 13. State: REOPENED
 
@@ -477,6 +480,10 @@ The route depends on what changed. The confirmation routes require the immutable
 ### Historical requirement
 
 The prior decision remains intact as a historical record.
+
+Multiple open Reassessments may coexist while the Case is `REOPENED` only under the exact non-overlap/eligible-coordination contract in `PAIM_REASSESSMENT_SPEC_v0.1.md`, §38.3. The single Case lifecycle state does not collapse their separate Reassessment statuses, Trigger Sets, scopes, owners, analyses, Interim Operating Dispositions, or outcomes.
+
+One Reassessment completing, being cancelled, or being superseded does not automatically close another Reassessment or move the Case out of `REOPENED`. A transition from `REOPENED` that depends on Reassessment completion requires all affected eligible Triggers to have compatible current coverage, no unresolved overlap/coverage/current-governance conflict, and the exact completed outcome basis required by the Integrity specification. Remaining active, unassigned, or conflicting work keeps the applicable management condition visible.
 
 ## 14. State: CLOSED
 
@@ -547,6 +554,12 @@ Uncertainty remains until evidence supports a change in status/classification.
 ### 16.6 No silent authority resolution
 
 `AUTHORITY UNRESOLVED` may change only when governing authority/evidence is obtained or the decision is reframed so the unresolved authority is no longer material.
+
+### 16.7 No silent Reassessment coordination or closure
+
+Trigger grouping, Reassessment coexistence, duplicate disposition, overlap resolution, cancellation, supersession, and Trigger coverage transfer require their exact accountable records. A new Decision, Configuration, Trigger, Reassessment row, timestamp, severity, queue position, or status never groups, closes, cancels, or supersedes another Reassessment automatically.
+
+Before a Reassessment-dependent lifecycle transition, the platform prospectively revalidates the exact current Decision/Configuration, Trigger coverage, overlap/coordination, accountability, authority, and outcome at effective time and optional knowledge cutoff. A predecessor-bound Reassessment cannot complete as current after a successor Decision becomes effective; continuing work uses the explicit successor-Reassessment and Trigger carry-forward contract.
 
 ## 17. Case Trigger Model
 

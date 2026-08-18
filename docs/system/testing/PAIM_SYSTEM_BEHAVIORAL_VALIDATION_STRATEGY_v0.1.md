@@ -574,23 +574,50 @@ Test whether:
 
 ## 25. Reassessment Tests
 
-Test:
+Every scenario preserves the prior Decision and its exact historical basis, uses exact effective/recorded/knowledge context, preserves Value/Risk independence, and returns explicit absence/conflict rather than a heuristic winner.
 
-- incident;
-- control failure;
-- provider/model change;
-- authority resolution;
-- capacity change;
-- completed learning;
-- stronger-state request;
-- scheduled review.
+The hard-oracle Reassessment scenario set is:
 
-Expected behavior:
+1. **One Trigger → one Reassessment:** one Case-scoped Trigger, one eligible Trigger Determination, one `OPEN` Reassessment Version, one immutable membership, and `LINKED_ACTIVE` coverage.
+2. **Two compatible Triggers before start:** same context proves only potential compatibility. One eligible grouping determination may create one first Reassessment Version binding both exact Trigger Versions; otherwise they remain unassigned/separate.
+3. **Second compatible Trigger after open:** eligible grouping plus a successor Reassessment Version atomically binds the expanded exact Trigger Set; the predecessor Set remains unchanged.
+4. **Exact replay:** same source occurrence/Case/question/idempotency identity returns the original Trigger outcome or payload mismatch and creates no duplicate.
+5. **Materially changed source Version:** same occurrence/Case/question creates a successor Trigger Version; a distinct question needs accountable new identity. Prior Version remains.
+6. **One source event affects two Cases:** distinct Case-scoped Triggers cite the same exact source provenance; no cross-Case merge, outcome, authority, or satisfaction transfer.
+7. **Unrelated same-Case Triggers:** no grouping by recency, category, severity, or source similarity; each remains independently covered/unassigned.
+8. **Non-overlapping concurrent Reassessments:** coexistence requires mechanically disjoint structured scope or one eligible coordination determination.
+9. **Overlapping concurrent Reassessments:** return `REASSESSMENT OVERLAP CONFLICT — UNRESOLVED`; neither completes or changes disposition for affected overlap by last-writer-wins.
+10. **Attempted Trigger consumption:** one Reassessment cannot consume another's Trigger absent exact Membership, coordination, successor Reassessment Version, and preserved prior relationship.
+11. **Merge request:** reject as unsupported in v0.1 without changing either identity, Trigger Set, status, or history.
+12. **Cancellation/supersession:** preserve all Reassessment/Trigger history and atomically establish compatible prospective coverage for every unresolved Trigger.
+13. **Trigger correction/withdrawal after completion:** historical completed basis remains; corrected/withdrawn Version is prospectively ineligible and may create new attention/Trigger.
+14. **Eligible requiring Trigger unassigned:** return `REASSESSMENT_REQUIRED_UNASSIGNED`; the Trigger remains in authoritative queries without relying on a UI queue.
+15. **Exactly one completion path:** commit `COMPLETED_CONFIRMED` plus Confirmation or `COMPLETED_SUCCESSOR_DECISION` plus authorized successor bundle atomically; zero/both are rejected.
+16. **First same-Decision Reassessment completes:** another does not auto-close and must prospectively revalidate current governance, scope, coverage, accountability, and authority.
+17. **Successor Decision becomes effective:** predecessor-bound open work remains historical and cannot complete as current; explicit successor Reassessment/rebase and Trigger carry-forward are required.
+18. **Conflicting Interim Operating Dispositions:** apply exact determinable restrictive intersection; suspend affected scope if indeterminate; use no state ranking.
+19. **Explicit operating-state value:** carry/compare identity and exact authorized applicability only; stronger/broader/priority inference is unavailable.
+20. **Existing/external source without Observation:** exact Evidence, Authority Gap, Intervention/Learning, Configuration, or explicit human/external provenance can source a Trigger; no Observation is created.
+21. **Queue/timestamp/severity coordination attempt:** has no authoritative effect and cannot group, prioritize, cancel, supersede, or merge.
+22. **Later role expiry versus withdrawal/revocation:** routine later expiry preserves valid historical action; withdrawal/revocation/supersession is prospective and blocks future reliance.
+23. **Unauthorized duplicate/coordination action:** returns accountability not established/conflict; software permission or Case ownership cannot substitute.
+24. **No Management Register:** Case-scoped Trigger selection, coverage, concurrency, disposition, and completion remain deterministic from authoritative records.
 
-- prior decision preserved;
-- trigger recorded;
-- current applicability reviewed;
-- successor decision created if needed.
+Additional negative and metamorphic hard oracles are:
+
+25. Two incompatible eligible current Trigger Determinations return `TRIGGER DETERMINATION CONFLICT — UNRESOLVED`; recency never selects.
+26. Exact same Case/Decision/Configuration context without eligible grouping does not group Triggers.
+27. Missing or indeterminate affected scope cannot prove non-overlap and returns overlap conflict absent eligible coordination.
+28. Cancelling/superseding a Reassessment with an unresolved Trigger and no atomic compatible coverage disposition fails with no partial status/coverage change.
+29. Two incompatible current coverage results return `TRIGGER COVERAGE CONFLICT — UNRESOLVED`; no desirable-status winner exists.
+30. Two distinct Trigger identities claimed as duplicates require one eligible identity-level Duplicate Disposition naming the canonical Trigger; semantic similarity or missing authority fails.
+31. A fabricated/free-form governed-mechanism token cannot authorize Trigger Determination, grouping, duplicate disposition, coordination, cancellation, supersession, or coverage action.
+32. A genuine governed mechanism is eligible only with exact identity, rule/version, scope, authority source, actor/function where applicable, limits, effective period, and history.
+33. A stale expected Reassessment/Trigger Set/current-selection precondition rejects rather than silently rebasing concurrent membership or completion.
+34. A future-effective successor Decision changes eligibility only at its effective time; queries at different knowledge cutoffs reconstruct what PAIM knew without rewriting history.
+35. A completed Reassessment sourced by incident, control failure, provider/model change, authority resolution, capacity change, completed Learning, explicit stronger-state request, or scheduled review preserves exact Trigger provenance and uses the same cardinality/concurrency rules.
+
+Metamorphic checks must show that changing only the exact Case, Decision Version, Configuration Version, Trigger Version, source Version, structured scope, membership, Trigger Determination, accountable assignment/mechanism, delegation link, effective time, knowledge cutoff, or successor-Decision effective time changes prospective eligibility as specified without rewriting historical results.
 
 ## 26. Portfolio Tests
 

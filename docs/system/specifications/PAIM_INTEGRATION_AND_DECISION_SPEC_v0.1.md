@@ -647,6 +647,14 @@ Possible triggers:
 - proposed stronger operating state;
 - scheduled review.
 
+Multiple Reassessments may concern the same initiating Decision only under the exact scope/coexistence contract in `PAIM_REASSESSMENT_SPEC_v0.1.md`, §38. One Reassessment's completion never automatically closes, confirms, cancels, supersedes, rebases, or transfers Trigger coverage for another.
+
+Before an unchanged-Decision Confirmation or successor/amendment Decision is committed, the Reassessment completion operation must prospectively revalidate the exact current Decision and governing Configuration, exact Trigger Set and coverage, absence of unresolved grouping/overlap/coordination conflict, Reassessment accountability, and required authority at the completion effective time and optional knowledge cutoff.
+
+If one concurrent Reassessment confirms the current Decision unchanged, another may continue only after that prospective revalidation. If a successor/amendment Decision becomes effective, predecessor-bound Reassessment work remains historical but cannot complete as current against the stale Decision/Configuration context. Continuing it prospectively requires an explicit accountable coordination determination, a new/successor Reassessment identity bound to the current Decision/Configuration, exact Trigger carry-forward relationships, and explicit predecessor cancellation/supersession where applicable.
+
+A future-effective successor affects Reassessment eligibility only from its effective time. Recorded time and knowledge cutoff remain independently reconstructable. No completion, Decision, creation time, recency, or row order is an implicit winner.
+
 ## 30. Interim and Transitional Decisions
 
 PAIM explicitly supports interim decisions.

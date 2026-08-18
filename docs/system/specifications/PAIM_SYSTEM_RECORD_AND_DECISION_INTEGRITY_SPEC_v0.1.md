@@ -295,6 +295,12 @@ For one exact Decision Version, target Configuration Version, effective time, an
 
 For one exact Obligation, Completion Acceptance selection returns one eligible Acceptance, `ACCEPTANCE NOT ESTABLISHED`, or `COMPLETION ACCEPTANCE CONFLICT — UNRESOLVED`. Accountability resolves separately as one eligible Completion Acceptor assignment/mechanism, explicit vacancy, or explicit conflict for the exact Intervention/Decision/target-Configuration/owning-Case target set. No scope, time, ownership, role, directory, or permission fallback selects a winner.
 
+For one exact Trigger identity/Version, Case/Decision/Configuration context, management question, effective time, and optional knowledge cutoff, Trigger Determination selection returns one eligible determination, `TRIGGER DETERMINATION NOT ESTABLISHED`, or `TRIGGER DETERMINATION CONFLICT — UNRESOLVED`. Exact command replay is identity/idempotency based; semantic similarity never deduplicates or selects.
+
+For one exact Reassessment identity, current selection returns one eligible Reassessment Version with its immutable exact Trigger Set, explicit not established, or explicit conflict. Multiple open Reassessments in one Case are permitted only in distinguishable non-competing scope or through one eligible accountable compatibility/coordination determination. Shared or indeterminate scope is `REASSESSMENT OVERLAP CONFLICT — UNRESOLVED`; no recency, severity, hierarchy, breadth, or software-priority winner exists.
+
+For one current eligible Trigger requiring reassessment, Trigger Coverage selection returns one compatible result from `REASSESSMENT_REQUIRED_UNASSIGNED`, `LINKED_ACTIVE`, `BLOCKED_CONFLICT`, `SATISFIED_BY_COMPLETED_REASSESSMENT`, or `DUPLICATE_DISPOSITIONED`; it must not return silent absence. Incompatible plurality is `TRIGGER COVERAGE CONFLICT — UNRESOLVED`.
+
 ### 3.12 Exact historical retrieval
 
 Every finalized record must retain exact version references for the authoritative records it relied upon. In particular, an authorized Decision and its related Integration, Reassessment, and Interim Operating Disposition chain must collectively retain references sufficient to retrieve:
@@ -312,6 +318,7 @@ Every finalized record must retain exact version references for the authoritativ
 - accountable assignment/mechanism relationships and materiality or identity-continuity determinations relied upon;
 - required Intervention and Learning relationships;
 - exact Obligation Set/Obligation, Intervention, Completion Result, Completion Acceptance, replacement/reuse, Prerequisite Evaluation Basis, and Activation Authorization Versions relied upon for target activation;
+- exact Trigger, Trigger Determination, Trigger-to-Reassessment Membership, Reassessment Trigger Set, grouping/compatibility, duplicate disposition, overlap/coordination, Trigger Coverage, Reassessment status/action, Interim Operating Disposition, and completion-basis Versions relied upon;
 - predecessor/successor records.
 
 Later correction, withdrawal, status change, or supersession must not change the historical reconstruction.
@@ -749,6 +756,12 @@ The confirmation record must identify:
 
 A Decision Confirmation does not create new authority, extend the effective period of the existing Decision, broaden its Boundary, or cure an expired/withdrawn authorization basis. If continued operation requires any such change, an authorized successor/amendment Decision is required.
 
+Immediately before completion, the platform prospectively revalidates the exact current Decision and governing Configuration, Reassessment Version and Trigger Set, Trigger Determinations/coverage, grouping/coordination and overlap, Reassessment Owner accountability/delegation/mechanism, and required Decision/confirmation authority at the completion effective time and knowledge cutoff.
+
+Completion is one semantic transaction: the completed Reassessment Version/status, exactly one Confirmation or successor/amendment Decision path, disposition ending effects, Trigger coverage outcomes, and allowed lifecycle transition become authoritative together or not at all. Zero or both outcome paths, blocked/unresolved inputs, stale expected Versions, or unresolved overlap commits no partial completed state.
+
+One concurrent Reassessment's unchanged-Decision Confirmation does not close another. If a successor/amendment Decision becomes effective, an open predecessor-bound Reassessment remains historical analysis but cannot complete as current. Prospective continuation requires explicit accountable coordination, a new/successor Reassessment identity bound to the current Decision/Configuration, exact Trigger carry-forward relationships, and explicit predecessor cancellation/supersession. Future-effective successors affect eligibility only from their effective time.
+
 ### 7.6 Resolution of “confirm with conditions”
 
 “Confirm with conditions” is permitted without a successor Decision only when the changed item is operational implementation detail that does not change:
@@ -816,6 +829,17 @@ The PAIM system must enforce or surface violation of the following invariants:
 44. Activation guard evaluation, Prerequisite Evaluation Basis, Activation Authorization, operating event, and Lifecycle Transition Event commit atomically.
 45. Every successor/amendment Decision has its own Obligation Set; prior completion reuse requires exact accountable continued-validity determination and never carries silently.
 46. Later role, Evidence, Intervention, Acceptance, obligation, replacement, or Decision change never rewrites a historical activation basis; future eligibility remains prospective and fail-closed.
+47. Every finalized Reassessment Version binds one complete immutable exact Trigger Set; membership changes create successor Reassessment and relationship Versions rather than mutation.
+48. Trigger/Reassessment membership is many-to-many only through exact versioned relationships, distinguishable scope, and required accountable grouping/coordination.
+49. Exact replay does not create another Trigger; source/content similarity never establishes duplicate identity, grouping, coverage, or a winner.
+50. Every eligible Trigger requiring reassessment has one compatible explicit coverage result or explicit coverage conflict and never disappears from authoritative queries.
+51. `CANCELLED` and `SUPERSEDED` Reassessment actions are accountable, prospective, history-preserving, and atomically preserve/disposition every unresolved Trigger; neither occurs automatically.
+52. Reassessment merge/absorption does not exist in v0.1.
+53. Concurrent Reassessments coexist only for mechanically disjoint scope or eligible accountable compatibility; shared/indeterminate scope is explicit overlap conflict.
+54. Concurrent restrictive Interim Operating Dispositions use exact intersection or affected-scope suspension when indeterminate and never use operating-state rank, recency, severity, or permissiveness.
+55. Reassessment completion prospectively revalidates current governance and commits exactly one outcome atomically; another completion or successor Decision never silently closes or rebases open work.
+56. Trigger Determiner, Reassessment Owner, Reassessment Coordination Authority, and Decision Authority are distinct substantive functions; software permission, technical principal, ownership, or queue assignment never substitutes.
+57. Later Trigger correction/withdrawal, role expiry/revocation, cancellation, supersession, or successor Decision does not rewrite historical knowledge-time or completed basis; prospective eligibility remains fail-closed.
 
 ## 9. Integrity behavior and test candidates
 
@@ -899,7 +923,8 @@ The system must leave to accountable human or established organizational authori
 - management judgment among alternatives;
 - legitimacy of organizational authority sources;
 - authorization of Decisions and Interim Operating Dispositions;
-- whether a trigger is immaterial under the current Decision;
+- Trigger materiality/Determination;
+- semantic Trigger grouping, identity-level duplicate disposition, Reassessment compatibility/coordination, cancellation, supersession, and Trigger coverage transfer;
 - whether an implementation-detail change is non-substantive under §7.6;
 - legitimacy and assignment of an accountable actor/mechanism;
 - substantive Completion Acceptance;
@@ -915,11 +940,10 @@ This specification does not attempt to resolve all P1 findings from the implemen
 The following remain for bounded later work unless another accepted specification already resolves them:
 
 - whether Observation is a separate authoritative record;
-- full trigger/reassessment concurrency and merge rules;
 - Management Register aggregation and shared-dependency identity;
 - canonical stronger/broader relations among organization-specific operating states.
 
-These remaining items are IRR-009, IRR-011, IRR-012, and IRR-014 respectively. IRR-010 Intervention semantics are normatively hardened by the Intervention, Case Lifecycle, Integration/Decision, Roles, and this cross-cutting specification, subject to independent gate re-review. The hardening does not define Observation persistence, Trigger/Reassessment concurrency, Register aggregation/shared-dependency equivalence, or stronger/broader operating-state ranking.
+These remaining items are IRR-009, IRR-012, and IRR-014 respectively. IRR-011 Trigger/Reassessment semantics are normatively hardened by the Reassessment, Case Lifecycle, Roles/Accountability, Integration/Decision, Intervention/Learning, Behavioral Validation, and this cross-cutting specification, subject to independent Increment 6 gate-closure re-review. Reassessment merge/absorption is explicitly unavailable in v0.1 rather than deferred as an implementation choice. IRR-010 Intervention semantics are likewise normatively hardened by their owning/conforming specifications and have completed their independent gate review. This hardening does not define Observation persistence, Register aggregation/shared-dependency equivalence, or stronger/broader operating-state ranking.
 
 Configuration ownership and v0.1 governing cardinality are resolved by the Managed Configuration and Case Lifecycle specifications: exactly one owning Case per Configuration identity and at most one governing Configuration per Case/effective time. Cross-Case sharing, dependency equivalence, and reuse beyond explicit relationships remain deferred with IRR-012.
 

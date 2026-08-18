@@ -77,39 +77,45 @@ Reassessment must preserve the prior decision and its historical basis.
 
 ## 3. Reassessment Identity
 
-Every material reassessment should have a durable identity.
+Every material Reassessment has a stable Reassessment ID and immutable Reassessment Version IDs under the common integrity contract.
 
-Minimum fields:
+One Reassessment identity binds exactly:
 
-- Reassessment ID
-- Reassessment Version ID
-- Case ID
-- current Decision ID/version
-- current Configuration ID/version
-- trigger ID/type
-- status
-- owner/coordinator
-- date initiated
-- date completed
-- recorded time and effective time/interval
-- predecessor/successor reassessment where relevant
+- one owning Case;
+- one initiating governing Decision Version;
+- one governing/target Configuration Version;
+- one explicit purpose and structured affected scope sufficient for overlap checks;
+- one Reassessment Owner accountability relationship;
+- one lifecycle/status history; and
+- predecessor/successor Reassessment identity where relevant.
+
+Every finalized Reassessment Version additionally binds one complete immutable **Trigger Set** containing exact Trigger Version IDs and exact Trigger-to-Reassessment Membership Version IDs, plus its content, status at finalization where applicable, recorded time, effective time/interval, and exact relied-upon records.
+
+Adding or removing an eligible Trigger from an open Reassessment creates a successor Reassessment Version and a successor immutable Trigger Set. The predecessor Version and Trigger Set remain unchanged. Analytical refresh within the same Case, initiating Decision, target Configuration, substantive purpose/scope, and Trigger Set retains the Reassessment identity but creates any new content/basis Version required by the integrity contract.
+
+Changing Case, initiating Decision Version, governing/target Configuration Version, or substantive purpose/scope requires a new/successor Reassessment identity. It must not be represented merely as another Version of the prior identity.
+
+If the governing Decision or Configuration is absent or conflicting, a proposed initiation may preserve that explicit absence/conflict. It cannot become `OPEN` and must not invent an identity or Version to satisfy the fields above.
 
 ## 4. Reassessment Status
 
-Possible statuses include:
+The v0.1 Reassessment statuses are exactly:
 
-- due;
-- opened;
-- evidence refresh in progress;
-- ready for integration;
-- decision pending;
-- completed;
-- cancelled with rationale;
-- superseded.
+- `PROPOSED` — identity/scope is recorded, but opening context or accountability is not yet established;
+- `OPEN` — exact context, Reassessment Owner, and Trigger Set are established;
+- `ANALYSIS_IN_PROGRESS` — accountable review has begun;
+- `AWAITING_DECISION_AUTHORITY` — review is ready for its outcome path, but required confirmation/successor authority is not established;
+- `BLOCKED_CONFLICT` — an explicit Trigger, membership, grouping, overlap, coverage, authority, accountability, or currentness conflict blocks the affected action;
+- `COMPLETED_CONFIRMED` — the Reassessment atomically produced its immutable unchanged-Decision Confirmation;
+- `COMPLETED_SUCCESSOR_DECISION` — the Reassessment atomically produced its authorized successor/amendment Decision path;
+- `CANCELLED` — accountable termination without completion; and
+- `SUPERSEDED` — accountable prospective replacement by one named successor Reassessment.
 
-The exact platform vocabulary may later be refined.
+`REASSESSMENT_DUE` and `REOPENED` are Case lifecycle states, not Reassessment statuses. `REASSESSMENT_REQUIRED_UNASSIGNED` is a Trigger coverage state, not a Reassessment status. Blocked, conflicting, unassigned, awaiting authority, or otherwise unresolved work is never completed.
 
-Status events do not mutate finalized Reassessment content. Finalized versions, status history, current selection, correction, and supersession follow `PAIM_SYSTEM_RECORD_AND_DECISION_INTEGRITY_SPEC_v0.1.md`, §3.
+Allowed prospective progress is `PROPOSED` → `OPEN` → `ANALYSIS_IN_PROGRESS` → `AWAITING_DECISION_AUTHORITY` → exactly one completion status. `OPEN`, `ANALYSIS_IN_PROGRESS`, and `AWAITING_DECISION_AUTHORITY` may enter or leave `BLOCKED_CONFLICT` only through a recorded resolution/status event that preserves the conflict history. Any non-terminal active status may become `CANCELLED` or `SUPERSEDED` only under §38.6. Terminal statuses do not reopen; continuing work uses an explicitly linked successor Reassessment.
+
+Status events do not mutate finalized Reassessment content. A Trigger Set, purpose/scope, rationale, conclusion, accountability, or other substantive-content change requires a new Reassessment Version. Finalized versions, status history, current selection, correction, and supersession follow `PAIM_SYSTEM_RECORD_AND_DECISION_INTEGRITY_SPEC_v0.1.md`, §3.
 
 ## 5. Trigger Types
 
@@ -218,34 +224,41 @@ Event-driven reassessment should not wait for the next scheduled review when the
 
 ## 7. Trigger Record
 
-A material trigger should support:
+An authoritative Trigger has a stable Trigger ID and immutable Trigger Version IDs. One Trigger identity represents one established source occurrence, one exact affected/owning Case, and one declared management question. Every finalized Trigger Version retains at minimum:
 
-- Trigger ID
-- type
-- date/time
-- source
-- description
-- affected configuration
-- affected decision
-- affected boundary/control/evidence/authority
-- severity/materiality assessment where relevant
-- whether current operation may continue
-- required immediate action
-- reassessment status
+- exact Trigger ID and Trigger Version ID;
+- exact affected/owning Case;
+- exact initiating/current governing Decision Version and governing Configuration Version when established, or explicit absence/conflict rather than invented identifiers;
+- trigger type/category and declared management question/structured affected scope;
+- exact existing PAIM source family, Record ID, and Record Version ID, or explicit human/external source system, source-event identity, actor/provenance, and received/knowledge time;
+- description/rationale and exact affected boundary, control, Evidence, Authority, Intervention, Learning, or other references where known;
+- effective time, recorded time, and source knowledge context;
+- predecessor, correction, supersession, and withdrawal relationships; and
+- one current accountable Trigger Determination under §8.
+
+Exact replay identity is identity-level: the same established source occurrence identity, exact affected Case, declared management question, and command idempotency identity. Exact replay returns the original authoritative outcome or explicit payload mismatch; it does not create another Trigger.
+
+A materially updated Version of the same established source occurrence, Case, and management question creates a successor Trigger Version and preserves its predecessor. A distinct management question creates a distinct Trigger identity only through an accountable determination. Similar text, category, timestamp, severity, provider name, source family, or software classification must not deduplicate or establish identity.
+
+One external/provider/control/source event affecting multiple Cases creates distinct Case-scoped Trigger identities that cite the same exact source provenance. Each Case independently establishes its Trigger Determination, Reassessment, accountability, Decision, Configuration, Interim Operating Disposition, and outcome. Source similarity or a provider-name match does not create a Trigger for another Case and does not transfer authority, satisfaction, or outcome.
+
+This contract does not create an Observation record, Observation identity/version/cardinality, retention rule, or automated Observation-to-Trigger conversion.
 
 ## 8. Materiality
 
 Not every new observation requires full reassessment.
 
-The system should distinguish:
+Every current Trigger has exactly one eligible accountable Trigger Determination, explicit `TRIGGER DETERMINATION NOT ESTABLISHED`, or `TRIGGER DETERMINATION CONFLICT — UNRESOLVED`. The determination outcomes are exactly:
 
-- informational update;
-- monitor;
-- analytical refresh;
-- formal reassessment;
-- immediate intervention/suspension plus reassessment.
+- `INFORMATIONAL`;
+- `MONITOR`;
+- `ANALYTICAL_REFRESH`;
+- `REASSESSMENT_REQUIRED`; and
+- `IMMEDIATE_DISPOSITION_AND_REASSESSMENT`.
 
-Materiality remains a management judgment informed by the current decision and boundary.
+The determination retains its stable identity/immutable Version, exact Trigger Version, Case/Decision/Configuration context, outcome, rationale, actor, exact accountable Role Assignment Version or genuine governed mechanism Version/reference, exact delegation chain where used, effective time, recorded time, and correction/supersession/withdrawal history.
+
+Materiality remains an accountable management judgment informed by the current Decision and Boundary. Source type, category, severity, timestamp, queue priority, text similarity, provider identity, row order, recency, hierarchy, breadth, specificity, ownership, technical principal, and software permission do not establish materiality or select a winner. Two incompatible eligible current determinations are conflict with all candidates retained; recency never resolves them.
 
 ## 9. Immediate Operating Disposition
 
@@ -484,7 +497,7 @@ D2 becomes current according to its effective status/date.
 
 If reassessment confirms the current decision, the system should still preserve a Reassessment Record showing:
 
-- trigger;
+- exact immutable Trigger Set and Membership Versions;
 - evidence reviewed;
 - authority reviewed;
 - rationale;
@@ -500,13 +513,15 @@ Do not silently mark the case unchanged without a record.
 Minimum content:
 
 ### Identity
-- Reassessment ID
-- Case ID
-- prior Decision ID
-- Configuration ID/version
-- trigger
-- dates
-- owner/status
+- Reassessment ID/Version
+- exact owning Case ID
+- exact initiating governing Decision ID/Version
+- exact governing/target Configuration ID/Version
+- explicit purpose and structured affected scope
+- exact immutable Trigger Set and Membership Versions
+- effective/recorded/knowledge context
+- exact Reassessment Owner accountability
+- status and predecessor/successor history
 
 ### Review
 - configuration review
@@ -706,7 +721,117 @@ Future tests should include:
 11. Scheduled reassessment occurs with no material change.
 12. Boundary breach is remediated but still requires recorded review.
 
-## 38. Open Questions
+## 38. Trigger, Membership, Concurrency, and Coverage Contract
+
+### 38.1 Many-to-many membership and immutable Trigger Set
+
+Trigger-to-Reassessment cardinality is many-to-many. One Trigger may feed multiple Reassessments only for explicitly distinguishable scopes/purposes or explicit successor coordination. One Reassessment may bind multiple Trigger Versions.
+
+Every Trigger-to-Reassessment Membership is authoritative and versioned. It retains stable Membership ID, immutable Membership Version ID, exact Trigger Version, exact Reassessment identity/Version, membership purpose/scope, accountable grouping/coordination determination where required, effective/recorded time, and correction/supersession/withdrawal history.
+
+Every finalized Reassessment Version binds its complete immutable exact Trigger Set. One Reassessment must not silently consume another's Trigger. Adding or removing membership from an open Reassessment atomically creates the Membership fact and successor Reassessment Version/Trigger Set, or creates neither.
+
+### 38.2 Grouping and duplicate disposition
+
+Software may mechanically establish exact Case, initiating Decision Version, governing/target Configuration Version, and structured affected-scope facts. It must not semantically group Triggers. Same exact context establishes only potential compatibility.
+
+An authoritative **Trigger Grouping/Compatibility Determination** retains exact Trigger Versions, target Reassessment identity/Version, exact context and structured scope, outcome/rationale, actor, one eligible accountable assignment or governed mechanism, delegation where used, effective/recorded time, and immutable history. Selection returns one eligible determination, `TRIGGER GROUPING NOT ESTABLISHED`, or `TRIGGER GROUPING CONFLICT — UNRESOLVED`.
+
+Different Cases, initiating Decision Versions, target Configuration Versions, or substantively unrelated purposes are mechanically incompatible for one Reassessment identity. Timestamp, severity, category, source similarity, scope breadth, owner, queue priority, and software permission never establish compatibility or select a winner.
+
+Exact idempotent replay under §7 creates no second Trigger and requires no substantive duplicate disposition. A claim that two distinct Trigger identities represent one management obligation requires an authoritative **Duplicate Disposition** by Reassessment Coordination Authority. It names the exact canonical Trigger Version and prospective coverage basis and returns one eligible disposition, `DUPLICATE DISPOSITION NOT ESTABLISHED`, or `DUPLICATE DISPOSITION CONFLICT — UNRESOLVED`. Semantic similarity alone is ineligible.
+
+### 38.3 Concurrent Reassessments and overlap
+
+Multiple open Reassessments may coexist in one Case only when:
+
+1. their declared structured affected scopes are mechanically disjoint; or
+2. one eligible accountable compatibility/coordination determination establishes coexistence for the exact Versions, context, scope, and time.
+
+A shared Trigger, shared affected exact record/scope, competing proposed Decision consequence, or missing/indeterminate scope is `REASSESSMENT OVERLAP CONFLICT — UNRESOLVED` absent an eligible coordination determination. Conflict preserves both analyses/history and blocks completion and scope-changing Interim Operating Disposition action for the affected overlap.
+
+Creation time, recency, severity, owner, role hierarchy, broader/narrower scope, row order, and software priority never establish non-overlap or select a Reassessment winner.
+
+### 38.4 No merge in v0.1
+
+`MERGED` is not a PAIM v0.1 Reassessment status or action. No Reassessment absorption operation exists. Coordination is exactly one of:
+
+- explicit non-overlapping coexistence;
+- authorized cancellation; or
+- authorized history-preserving supersession.
+
+Any future merge is outside Increment 6. If later accepted, it must create a new successor Reassessment preserving every predecessor identity/Version, Trigger relationship, accountability, rationale, and time. It must not absorb or destructively collapse a predecessor.
+
+### 38.5 Trigger coverage and no-lost-trigger invariant
+
+For each current eligible Trigger whose current Trigger Determination is `REASSESSMENT_REQUIRED` or `IMMEDIATE_DISPOSITION_AND_REASSESSMENT`, authoritative selection at an exact effective time and optional knowledge cutoff returns exactly one compatible **Trigger Coverage State**:
+
+- `REASSESSMENT_REQUIRED_UNASSIGNED` — visible and awaiting accountable assignment;
+- `LINKED_ACTIVE` — linked to at least one eligible active Reassessment, with multiple links permitted only for distinguishable scope or eligible coordination;
+- `BLOCKED_CONFLICT` — assignment, grouping, overlap, authority, accountability, or currentness conflict prevents valid active coverage;
+- `SATISFIED_BY_COMPLETED_REASSESSMENT` — an exact completed outcome explicitly covers the Trigger Version; or
+- `DUPLICATE_DISPOSITIONED` — an eligible identity-level duplicate disposition names the canonical Trigger and exact prospective coverage basis.
+
+No eligible requiring Trigger may be absent from this result. More than one incompatible current coverage result is `TRIGGER COVERAGE CONFLICT — UNRESOLVED`; the system must not select by recency, status desirability, or convenience. A corrected, withdrawn, or superseded Trigger Version is prospectively ineligible, while all historical coverage remains exactly reconstructable.
+
+Queues, dashboards, notifications, and Register views are derived and cannot substitute for this invariant.
+
+### 38.6 Cancellation and supersession
+
+`CANCELLED` and `SUPERSEDED` are explicit accountable prospective actions, never automatic consequences of a newer Decision, Configuration, Trigger, Reassessment, source correction, duplicate claim, or later row.
+
+Cancellation ends planned work without a completed Reassessment outcome. It retains exact Reassessment/Trigger scope, rationale, actor, accountable assignment/mechanism and delegation, effective/recorded time, and history. Supersession additionally names exactly one successor Reassessment identity/Version and replacement scope. Neither means the predecessor was invalid historically.
+
+One Reassessment cannot close another. Before cancellation or supersession commits, every unresolved eligible Trigger in the predecessor Trigger Set must atomically retain or acquire one compatible prospective coverage result under §38.5. Failure leaves the Reassessment and all Trigger coverage unchanged.
+
+### 38.7 Accountability
+
+Trigger Determination uses the substantive `Trigger Determiner` function. Reassessment content/status progression uses `Reassessment Owner`. Grouping, duplicate disposition, compatibility/overlap coordination, cancellation, supersession, and Trigger coverage transfer use `Reassessment Coordination Authority`.
+
+Each action resolves exactly one eligible accountable Role Assignment or genuine governed organizational mechanism, explicit not established, or explicit conflict under `PAIM_ROLES_AND_ACCOUNTABILITY_SPEC_v0.1.md`. The applicable typed target set is the exact initiating Decision, exact target Configuration, and owning Case; the exact Intervention is additionally applicable only when it is the Trigger source/scope. Assignments retain their own target type and are never converted into another scope.
+
+No broad/narrow, recency, specificity, hierarchy, ownership, technical-principal, administrator, queue, or software-permission winner exists. Delegation and governed mechanisms must be exact, versioned, scoped, time-valid, complete, and fail closed. Decision Authority remains separately required for Interim Operating Dispositions and successor/amendment Decisions under the existing Authorization Basis contracts.
+
+Later routine role expiry does not rewrite a historically valid Reassessment action. Expiry, revocation, withdrawal, or supersession is prospective for future actions.
+
+### 38.8 Completion and concurrent current-governance validation
+
+Immediately before completion, the platform revalidates at the completion effective time and knowledge cutoff:
+
+- exact current Decision and governing Configuration;
+- exact Reassessment Version and Trigger Set;
+- Trigger Determinations and coverage;
+- grouping/coordination and absence of unresolved overlap;
+- Reassessment Owner accountability and required delegation/mechanism; and
+- Decision/confirmation authority required by the governing contracts.
+
+Completion is one semantic transaction producing exactly `COMPLETED_CONFIRMED` plus its immutable Decision Confirmation, or `COMPLETED_SUCCESSOR_DECISION` plus the authorized successor/amendment Decision, Boundary Snapshot, and Decision Authorization Basis. Zero paths, both paths, or any blocked/unresolved basis is invalid and commits no partial completed state.
+
+If one concurrent Reassessment confirms the same Decision unchanged, others do not automatically close. They may continue only after prospective revalidation. If a successor/amendment Decision becomes effective, an open predecessor-bound Reassessment remains historical analysis but cannot complete as current against stale governance. Prospective continuation requires an accountable coordination determination, a new/successor Reassessment identity bound to the current Decision/Configuration, explicit Trigger carry-forward memberships, and explicit predecessor cancellation/supersession where applicable.
+
+A future-effective successor changes eligibility only from its effective time. Recorded time and knowledge cutoff remain independently queryable.
+
+### 38.9 Concurrent Interim Operating Dispositions
+
+Each Reassessment may support its own historical and current eligible Interim Operating Dispositions. Independently valid current dispositions may coexist. Effective operation remains the exact current Decision/Boundary intersected with every applicable valid restrictive disposition under the Integrity specification, §7.
+
+The determinable intersection applies; an indeterminate intersection suspends affected scope pending authorized determination. Expiry is prospective. Strongest state, severity, newest, ordinal, broader/narrower, and IRR-014 ranking are never used.
+
+### 38.10 Dual-time and historical reconstruction
+
+All Trigger, Determination, Membership, Trigger Set, Grouping/Compatibility, Duplicate Disposition, Coverage, Reassessment Version/status, cancellation/supersession, Interim Disposition, and outcome selection reuses the common integrity kernel. Commands depending on current state carry expected-Version/current-selection preconditions; stale commands reject or surface conflict and never silently rebase.
+
+Historical reconstruction retains the exact Trigger Set and memberships; Trigger Determinations and coverage; grouping, duplicate, and coordination determinations; Reassessment Versions/status events; analytical inputs; Evidence/Authority; Value/Risk refreshes; Decision/Configuration/Boundary; accountability/delegation/mechanisms; Interim Dispositions; effective, recorded, and knowledge context; and exactly one completed outcome basis.
+
+Later correction, withdrawal, role expiry, supersession, cancellation, or successor Decision never rewrites prior knowledge-time or completed basis. Prospective eligibility remains fail-closed.
+
+### 38.11 Deferred boundaries
+
+- **IRR-009:** no Observation identity/version/cardinality, persistence, retention, or automated Observation-to-Trigger conversion is defined. Allowed sources are exact existing PAIM records and explicit human/external events with retained provenance.
+- **IRR-012:** no Management Register population, shared-dependency equivalence, concentration aggregation, cross-Case prioritization, or Register-driven workflow is required.
+- **IRR-014:** exact operating-state values may be retained and compared only for identity and exact authorized applicability. No stronger, broader, more-restrictive, escalation-rank, automatic-target-state, priority, materiality, or grouping inference is permitted.
+
+## 39. Open Questions
 
 Deferred to later specifications/platform design:
 
@@ -717,11 +842,10 @@ Deferred to later specifications/platform design:
 - incident-system integration;
 - evidence refresh workflow;
 - organization-specific scheduling and presentation of future-effective successor decisions;
-- simultaneous reassessments;
 - portfolio-level reassessment;
 - closure/retention policy.
 
-## 39. Completion Impact
+## 40. Completion Impact
 
 This specification completes the core closed-loop management sequence:
 
@@ -729,7 +853,7 @@ This specification completes the core closed-loop management sequence:
 
 The remaining major system specifications are increasingly portfolio/governance oriented rather than core single-case logic.
 
-## 40. Next Specification
+## 41. Next Specification
 
 Create:
 
@@ -748,7 +872,7 @@ It should formalize the cross-case management view:
 - provider/model concentration;
 - management attention indicators.
 
-## 41. Repository Placement
+## 42. Repository Placement
 
 ```text
 400. Practical AI Management/
@@ -763,7 +887,7 @@ It should formalize the cross-case management view:
         └── PAIM_REASSESSMENT_SPEC_v0.1.md
 ```
 
-## 42. Conclusion
+## 43. Conclusion
 
 The Reassessment specification makes PAIM explicitly longitudinal.
 
