@@ -10,6 +10,7 @@ from paim.domain.increment3 import (
     AcceptanceSelectionDetail,
     AnalyticalInputDetail,
     ApplicabilityTargetType,
+    AuthorityApplicabilityContext,
     EvidenceApplicabilityDetail,
     LaneFitnessDetail,
     MaterialEvidenceBasisInput,
@@ -234,7 +235,19 @@ class Increment3Transaction(Increment2Transaction, Protocol):
         target_type: ApplicabilityTargetType,
         target_id: str,
         target_version_id: RecordVersionId | None,
+        case_id: RecordId | None,
+        configuration_version_id: RecordVersionId | None,
     ) -> bool: ...
+
+    def authority_applicability_context(
+        self,
+        *,
+        target_type: ApplicabilityTargetType,
+        target_id: str,
+        target_version_id: RecordVersionId | None,
+        case_id: RecordId | None,
+        configuration_version_id: RecordVersionId | None,
+    ) -> AuthorityApplicabilityContext | None: ...
 
 
 class Increment3Store(Protocol):

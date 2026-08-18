@@ -800,3 +800,316 @@ def test_exact_accountability_and_atomic_acceptance_rollback(
         ),
         InputSelectionNotEstablished,
     )
+
+
+def test_authority_gap_question_applicability_is_exact_and_reconstructable(
+    sqlite_store: SQLiteIntegrityStore,
+) -> None:
+    ctx = context(sqlite_store, "gap-question")
+    evidence_id, evidence_version = evidence(ctx, "gap-question")
+    gap_id, gap_version = RecordId.new(), RecordVersionId.new()
+    ctx.service.commit_authority_gap(
+        meta("gap-question-record"),
+        AuthorityGapVersionInput(
+            gap_id,
+            gap_version,
+            ctx.case_id,
+            ctx.configuration_id,
+            ctx.configuration_version_id,
+            "AUTH-Q-17",
+            "Which authority controls this bounded use?",
+            "privacy-authority",
+            "authority remains unresolved",
+            {"source": "policy register"},
+            EFFECTIVE,
+        ),
+    )
+    first_id, first_version = RecordId.new(), RecordVersionId.new()
+    ctx.service.commit_evidence_applicability(
+        meta("gap-question-first"),
+        EvidenceApplicabilityVersionInput(
+            first_id,
+            first_version,
+            evidence_id,
+            evidence_version,
+            ApplicabilityTargetType.AUTHORITY_GAP,
+            "AUTH-Q-17",
+            None,
+            "authority-resolution",
+            "privacy-authority",
+            ctx.case_id,
+            ctx.configuration_id,
+            ctx.configuration_version_id,
+            ApplicabilityOutcome.APPLICABLE,
+            (),
+            (),
+            "evidence bears on the exact authority question",
+            ctx.assessor_id,
+            None,
+            "authority-applicability board",
+            EFFECTIVE,
+        ),
+    )
+    assert ctx.service.select_evidence_applicability(
+        evidence_version_id=evidence_version,
+        target_type=ApplicabilityTargetType.AUTHORITY_GAP,
+        target_id="AUTH-Q-17",
+        target_version_id=None,
+        purpose="authority-resolution",
+        assessed_scope="privacy-authority",
+        effective_at=EFFECTIVE.start,
+        case_id=ctx.case_id,
+        configuration_version_id=ctx.configuration_version_id,
+    ) == ApplicabilityFound(first_version)
+    assert isinstance(
+        ctx.service.select_evidence_applicability(
+            evidence_version_id=evidence_version,
+            target_type=ApplicabilityTargetType.AUTHORITY_GAP,
+            target_id="AUTH-Q-18",
+            target_version_id=None,
+            purpose="authority-resolution",
+            assessed_scope="privacy-authority",
+            effective_at=EFFECTIVE.start,
+            case_id=ctx.case_id,
+            configuration_version_id=ctx.configuration_version_id,
+        ),
+        ApplicabilityNotEstablished,
+    )
+    assert isinstance(
+        ctx.service.select_evidence_applicability(
+            evidence_version_id=evidence_version,
+            target_type=ApplicabilityTargetType.AUTHORITY_GAP,
+            target_id="AUTH-Q-17",
+            target_version_id=None,
+            purpose="authority-resolution",
+            assessed_scope="privacy-authority",
+            effective_at=EFFECTIVE.start,
+            case_id=RecordId.new(),
+            configuration_version_id=RecordVersionId.new(),
+        ),
+        ApplicabilityNotEstablished,
+    )
+
+    later = Increment3ApplicationService(sqlite_store, FixedClock(utc(2026, 3, 1)))
+    second_version = RecordVersionId.new()
+    later.commit_evidence_applicability(
+        meta("gap-question-correction"),
+        EvidenceApplicabilityVersionInput(
+            first_id,
+            second_version,
+            evidence_id,
+            evidence_version,
+            ApplicabilityTargetType.AUTHORITY_GAP,
+            "AUTH-Q-17",
+            None,
+            "authority-resolution",
+            "privacy-authority",
+            ctx.case_id,
+            ctx.configuration_id,
+            ctx.configuration_version_id,
+            ApplicabilityOutcome.CONDITIONALLY_APPLICABLE,
+            ("policy interpretation confirmed",),
+            ("no broader authority inference",),
+            "corrected bounded judgment",
+            ctx.assessor_id,
+            None,
+            "authority-applicability board",
+            EFFECTIVE,
+            expected_version_id=first_version,
+            relationship_type=RelationshipType.CORRECTION,
+            relationship_reason="correct authority-question assessment",
+        ),
+    )
+    assert later.select_evidence_applicability(
+        evidence_version_id=evidence_version,
+        target_type=ApplicabilityTargetType.AUTHORITY_GAP,
+        target_id="AUTH-Q-17",
+        target_version_id=None,
+        purpose="authority-resolution",
+        assessed_scope="privacy-authority",
+        effective_at=EFFECTIVE.start,
+        known_at=utc(2026, 2, 15),
+        case_id=ctx.case_id,
+        configuration_version_id=ctx.configuration_version_id,
+    ) == ApplicabilityFound(first_version)
+    assert later.select_evidence_applicability(
+        evidence_version_id=evidence_version,
+        target_type=ApplicabilityTargetType.AUTHORITY_GAP,
+        target_id="AUTH-Q-17",
+        target_version_id=None,
+        purpose="authority-resolution",
+        assessed_scope="privacy-authority",
+        effective_at=EFFECTIVE.start,
+        case_id=ctx.case_id,
+        configuration_version_id=ctx.configuration_version_id,
+    ) == ApplicabilityFound(second_version)
+    assert sqlite_store.get_version(first_version) is not None
+
+
+def test_non_configuration_authority_applicability_uses_typed_accountability(
+    sqlite_store: SQLiteIntegrityStore,
+) -> None:
+    ctx = context(sqlite_store, "authority-accountability")
+    evidence_id, evidence_version = evidence(ctx, "authority-accountability")
+    authority_id, authority_version = RecordId.new(), RecordVersionId.new()
+    ctx.service.commit_authority_record(
+        meta("authority-accountability-record"),
+        AuthorityVersionInput(
+            authority_id,
+            authority_version,
+            None,
+            None,
+            None,
+            "policy",
+            "enterprise-policy:v3",
+            {"policy_version": "v3"},
+            "privacy-domain",
+            "privacy review required",
+            {"clause": "P-12"},
+            EFFECTIVE,
+        ),
+    )
+
+    exact_id, exact_version = RecordId.new(), RecordVersionId.new()
+    ctx.service.commit_role_assignment(
+        meta("authority-accountability-exact-role"),
+        RoleAssignmentVersionInput(
+            exact_id,
+            exact_version,
+            ctx.assessor_id,
+            "Authority Owner",
+            RoleTargetType.AUTHORITY_DOMAIN,
+            "privacy-domain",
+            None,
+            True,
+            "authority-accountability",
+            DelegationEffect.NONE,
+            None,
+            EFFECTIVE,
+        ),
+    )
+    applicability_id, applicability_version = RecordId.new(), RecordVersionId.new()
+    ctx.service.commit_evidence_applicability(
+        meta("authority-accountability-valid"),
+        EvidenceApplicabilityVersionInput(
+            applicability_id,
+            applicability_version,
+            evidence_id,
+            evidence_version,
+            ApplicabilityTargetType.AUTHORITY_RECORD_VERSION,
+            str(authority_id),
+            authority_version,
+            "authority-maintenance",
+            "privacy-domain",
+            None,
+            None,
+            None,
+            ApplicabilityOutcome.APPLICABLE,
+            (),
+            (),
+            "exact authority-domain accountability",
+            ctx.assessor_id,
+            exact_version,
+            None,
+            EFFECTIVE,
+        ),
+    )
+    assert ctx.service.select_evidence_applicability(
+        evidence_version_id=evidence_version,
+        target_type=ApplicabilityTargetType.AUTHORITY_RECORD_VERSION,
+        target_id=str(authority_id),
+        target_version_id=authority_version,
+        purpose="authority-maintenance",
+        assessed_scope="privacy-domain",
+        effective_at=EFFECTIVE.start,
+    ) == ApplicabilityFound(applicability_version)
+
+    unrelated_version = RecordVersionId.new()
+    ctx.service.commit_role_assignment(
+        meta("authority-accountability-unrelated-role"),
+        RoleAssignmentVersionInput(
+            RecordId.new(),
+            unrelated_version,
+            ctx.assessor_id,
+            "Authority Owner",
+            RoleTargetType.AUTHORITY_DOMAIN,
+            "security-domain",
+            None,
+            True,
+            "authority-accountability",
+            DelegationEffect.NONE,
+            None,
+            EFFECTIVE,
+        ),
+    )
+    with pytest.raises(DomainRuleViolation, match="target-context accountability"):
+        ctx.service.commit_evidence_applicability(
+            meta("authority-accountability-unrelated-rejected"),
+            EvidenceApplicabilityVersionInput(
+                RecordId.new(),
+                RecordVersionId.new(),
+                evidence_id,
+                evidence_version,
+                ApplicabilityTargetType.AUTHORITY_RECORD_VERSION,
+                str(authority_id),
+                authority_version,
+                "authority-maintenance",
+                "unrelated-check",
+                None,
+                None,
+                None,
+                ApplicabilityOutcome.APPLICABLE,
+                (),
+                (),
+                "unrelated assignment must not authorize",
+                ctx.assessor_id,
+                unrelated_version,
+                None,
+                EFFECTIVE,
+            ),
+        )
+
+    broad_version = RecordVersionId.new()
+    ctx.service.commit_role_assignment(
+        meta("authority-accountability-broad-role"),
+        RoleAssignmentVersionInput(
+            RecordId.new(),
+            broad_version,
+            ctx.assessor_id,
+            "Authority Owner",
+            RoleTargetType.ORGANIZATION,
+            "privacy-domain",
+            None,
+            True,
+            "authority-accountability",
+            DelegationEffect.NONE,
+            None,
+            EFFECTIVE,
+        ),
+    )
+    with pytest.raises(DomainRuleViolation, match="conflicting target-context"):
+        ctx.service.commit_evidence_applicability(
+            meta("authority-accountability-conflict"),
+            EvidenceApplicabilityVersionInput(
+                RecordId.new(),
+                RecordVersionId.new(),
+                evidence_id,
+                evidence_version,
+                ApplicabilityTargetType.AUTHORITY_RECORD_VERSION,
+                str(authority_id),
+                authority_version,
+                "authority-maintenance",
+                "conflict-check",
+                None,
+                None,
+                None,
+                ApplicabilityOutcome.APPLICABLE,
+                (),
+                (),
+                "broad and narrow remain conflict",
+                ctx.assessor_id,
+                exact_version,
+                None,
+                EFFECTIVE,
+            ),
+        )

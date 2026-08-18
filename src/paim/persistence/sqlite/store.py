@@ -20,6 +20,7 @@ from paim.domain.increment3 import (
     AnalyticalLane,
     ApplicabilityOutcome,
     ApplicabilityTargetType,
+    AuthorityApplicabilityContext,
     EvidenceApplicabilityDetail,
     FitnessOutcome,
     LaneFitnessDetail,
@@ -793,6 +794,12 @@ class SQLiteIntegrityTransaction:
             target_type=ApplicabilityTargetType(cast("str", row["target_type"])),
             target_id=cast("str", row["target_id"]),
             target_version_id=(RecordVersionId.parse(target_version) if target_version else None),
+            case_id=(RecordId.parse(cast("str", row["case_id"])) if row["case_id"] else None),
+            configuration_version_id=(
+                RecordVersionId.parse(cast("str", row["configuration_version_id"]))
+                if row["configuration_version_id"]
+                else None
+            ),
             purpose=cast("str", row["purpose"]),
             assessed_scope=cast("str", row["assessed_scope"]),
             outcome=ApplicabilityOutcome(cast("str", row["outcome"])),
@@ -1221,6 +1228,8 @@ class SQLiteIntegrityTransaction:
         target_type: ApplicabilityTargetType,
         target_id: str,
         target_version_id: RecordVersionId | None,
+        case_id: RecordId | None,
+        configuration_version_id: RecordVersionId | None,
     ) -> bool:
         if target_type is ApplicabilityTargetType.MANAGED_CONFIGURATION_VERSION:
             if target_version_id is None:
@@ -1244,23 +1253,89 @@ class SQLiteIntegrityTransaction:
                 and detail.lane is expected_lane
                 and str(detail.input_id) == target_id
             )
+        return (
+            self.authority_applicability_context(
+                target_type=target_type,
+                target_id=target_id,
+                target_version_id=target_version_id,
+                case_id=case_id,
+                configuration_version_id=configuration_version_id,
+            )
+            is not None
+        )
+
+    def authority_applicability_context(
+        self,
+        *,
+        target_type: ApplicabilityTargetType,
+        target_id: str,
+        target_version_id: RecordVersionId | None,
+        case_id: RecordId | None,
+        configuration_version_id: RecordVersionId | None,
+    ) -> AuthorityApplicabilityContext | None:
         if target_type is ApplicabilityTargetType.AUTHORITY_RECORD_VERSION:
             if target_version_id is None:
-                return False
-            value = self._connection.scalar(
-                select(authority_record_versions.c.authority_id).where(
-                    authority_record_versions.c.version_id == str(target_version_id)
+                return None
+            row = (
+                self._connection.execute(
+                    select(authority_record_versions).where(
+                        authority_record_versions.c.version_id == str(target_version_id),
+                        authority_record_versions.c.authority_id == target_id,
+                    )
                 )
+                .mappings()
+                .one_or_none()
             )
-            return value is not None and cast("str", value) == target_id
-        if target_version_id is None:
-            return False
-        row = self._connection.execute(
-            select(authority_gap_versions.c.gap_id, authority_gap_versions.c.question_id).where(
-                authority_gap_versions.c.version_id == str(target_version_id)
-            )
-        ).one_or_none()
-        return row is not None and target_id in {cast("str", row[0]), cast("str", row[1])}
+        elif target_type is ApplicabilityTargetType.AUTHORITY_GAP:
+            query = select(authority_gap_versions)
+            if target_version_id is not None:
+                query = query.where(
+                    authority_gap_versions.c.version_id == str(target_version_id),
+                    or_(
+                        authority_gap_versions.c.gap_id == target_id,
+                        authority_gap_versions.c.question_id == target_id,
+                    ),
+                )
+            else:
+                query = query.where(authority_gap_versions.c.question_id == target_id)
+                if case_id is not None:
+                    query = query.where(authority_gap_versions.c.case_id == str(case_id))
+                if configuration_version_id is not None:
+                    query = query.where(
+                        authority_gap_versions.c.configuration_version_id
+                        == str(configuration_version_id)
+                    )
+            rows = self._connection.execute(query).mappings().all()
+            contexts = {
+                (
+                    cast("str", item["gap_id"]),
+                    cast("str", item["case_id"]),
+                    cast("str", item["configuration_id"]),
+                    cast("str", item["configuration_version_id"]),
+                    cast("str", item["authority_scope"]),
+                )
+                for item in rows
+            }
+            if len(contexts) != 1:
+                return None
+            row = rows[0]
+        else:
+            return None
+        if row is None:
+            return None
+        row_case = cast("str | None", row["case_id"])
+        row_configuration = cast("str | None", row["configuration_id"])
+        row_configuration_version = cast("str | None", row["configuration_version_id"])
+        return AuthorityApplicabilityContext(
+            case_id=RecordId.parse(row_case) if row_case else None,
+            configuration_id=(RecordId.parse(row_configuration) if row_configuration else None),
+            configuration_version_id=(
+                RecordVersionId.parse(row_configuration_version)
+                if row_configuration_version
+                else None
+            ),
+            authority_scope=cast("str", row["authority_scope"]),
+        )
 
     def add_status_event(self, status: StatusEvent) -> None:
         self._connection.execute(

@@ -248,11 +248,21 @@ class EvidenceApplicabilityDetail:
     target_type: ApplicabilityTargetType
     target_id: str
     target_version_id: RecordVersionId | None
+    case_id: RecordId | None
+    configuration_version_id: RecordVersionId | None
     purpose: str
     assessed_scope: str
     outcome: ApplicabilityOutcome
     accountable_assignment_version_id: RecordVersionId | None
     accountable_mechanism: str | None
+
+
+@dataclass(frozen=True, slots=True)
+class AuthorityApplicabilityContext:
+    case_id: RecordId | None
+    configuration_id: RecordId | None
+    configuration_version_id: RecordVersionId | None
+    authority_scope: str
 
 
 @dataclass(frozen=True, slots=True)

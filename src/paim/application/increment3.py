@@ -37,6 +37,7 @@ from paim.domain.models import (
     CommandMeta,
     GoverningConfigurationConflict,
     GoverningConfigurationFound,
+    RoleTargetType,
 )
 from paim.integrity import (
     EventId,
@@ -64,9 +65,15 @@ def _accountability_present(
 
 def _applicability_scope(value: EvidenceApplicabilityVersionInput) -> str:
     target_version = str(value.target_version_id) if value.target_version_id else "question"
+    question_context = (
+        f":case:{value.case_id}:configuration-version:{value.configuration_version_id}"
+        if value.target_version_id is None
+        else ""
+    )
     return (
         f"evidence-version:{value.evidence_version_id}:target:{value.target_type.value}:"
-        f"{value.target_id}:{target_version}:purpose:{value.purpose}:scope:{value.assessed_scope}"
+        f"{value.target_id}:{target_version}{question_context}:"
+        f"purpose:{value.purpose}:scope:{value.assessed_scope}"
     )
 
 
@@ -162,6 +169,80 @@ class Increment3ApplicationService(Increment2ApplicationService):
             effective_at=effective_at,
             known_at=known_at,
         )
+
+    def _validate_applicability_accountability(
+        self,
+        transaction: Increment3Transaction,
+        *,
+        value: EvidenceApplicabilityVersionInput,
+        effective_at: datetime,
+        known_at: datetime,
+    ) -> None:
+        if not _accountability_present(
+            value.accountable_assignment_version_id, value.accountable_mechanism
+        ):
+            raise DomainRuleViolation("exactly one accountable assignment or mechanism is required")
+        if value.accountable_mechanism:
+            return
+        assert value.accountable_assignment_version_id is not None
+        assignment = transaction.role_assignment_detail(value.accountable_assignment_version_id)
+        if assignment is None or not assignment.accountable:
+            raise DomainRuleViolation(
+                "accountable provenance must reference an accountable assignment"
+            )
+
+        targets: tuple[tuple[RoleTargetType, str], ...]
+        if value.target_type in {
+            ApplicabilityTargetType.MANAGED_CONFIGURATION_VERSION,
+            ApplicabilityTargetType.VALUE_INPUT_VERSION,
+            ApplicabilityTargetType.RISK_INPUT_VERSION,
+        }:
+            if value.configuration_id is None:
+                raise DomainRuleViolation(
+                    "Configuration target Applicability requires exact Configuration context"
+                )
+            targets = ((RoleTargetType.CONFIGURATION, str(value.configuration_id)),)
+        else:
+            authority = transaction.authority_applicability_context(
+                target_type=value.target_type,
+                target_id=value.target_id,
+                target_version_id=value.target_version_id,
+                case_id=value.case_id,
+                configuration_version_id=value.configuration_version_id,
+            )
+            if authority is None:
+                raise DomainRuleViolation("exact Authority target context is not established")
+            if authority.configuration_id is not None:
+                targets = ((RoleTargetType.CONFIGURATION, str(authority.configuration_id)),)
+            elif authority.case_id is not None:
+                targets = ((RoleTargetType.CASE, str(authority.case_id)),)
+            else:
+                targets = tuple(
+                    (target_type, authority.authority_scope)
+                    for target_type in (
+                        RoleTargetType.AUTHORITY_DOMAIN,
+                        RoleTargetType.BUSINESS_UNIT,
+                        RoleTargetType.ORGANIZATION,
+                    )
+                )
+
+        accountable: set[RecordVersionId] = set()
+        for target_type, target_id in targets:
+            for version_id in self._current_role_versions(
+                transaction,
+                role=assignment.role,
+                target_type=target_type,
+                target_id=target_id,
+                effective_at=effective_at,
+                known_at=known_at,
+            ):
+                detail = transaction.role_assignment_detail(version_id)
+                if detail is not None and detail.accountable:
+                    accountable.add(version_id)
+        if accountable != {value.accountable_assignment_version_id}:
+            raise DomainRuleViolation(
+                "vacant or conflicting target-context accountability blocks Applicability"
+            )
 
     def commit_evidence(self, meta: CommandMeta, value: EvidenceVersionInput) -> CommandOutcome:
         if not value.source.strip() or not value.provenance or not value.content:
@@ -406,8 +487,13 @@ class Increment3ApplicationService(Increment2ApplicationService):
             raise DomainRuleViolation(
                 "Applicability target, purpose, scope, and rationale are required"
             )
-        if value.target_version_id is None:
-            raise DomainRuleViolation("Increment 3 Applicability requires an exact target Version")
+        if (
+            value.target_version_id is None
+            and value.target_type is not ApplicabilityTargetType.AUTHORITY_GAP
+        ):
+            raise DomainRuleViolation(
+                "versioned Increment 3 Applicability target requires an exact target Version"
+            )
         context_fields = (
             value.case_id,
             value.configuration_id,
@@ -447,6 +533,8 @@ class Increment3ApplicationService(Increment2ApplicationService):
                 target_type=value.target_type,
                 target_id=value.target_id,
                 target_version_id=value.target_version_id,
+                case_id=value.case_id,
+                configuration_version_id=value.configuration_version_id,
             ):
                 raise DomainRuleViolation(
                     "Applicability target identity/version is not established"
@@ -477,11 +565,9 @@ class Increment3ApplicationService(Increment2ApplicationService):
                         "Applicability context does not match the exact target "
                         "Configuration Version"
                     )
-            self._validate_accountability(
+            self._validate_applicability_accountability(
                 transaction,
-                assignment_version_id=value.accountable_assignment_version_id,
-                mechanism=value.accountable_mechanism,
-                configuration_id=value.configuration_id,
+                value=value,
                 effective_at=value.effective.start,
                 known_at=recorded_at,
             )
@@ -493,6 +579,8 @@ class Increment3ApplicationService(Increment2ApplicationService):
                     or displaced_detail.target_type is not value.target_type
                     or displaced_detail.target_id != value.target_id
                     or displaced_detail.target_version_id != value.target_version_id
+                    or displaced_detail.case_id != value.case_id
+                    or displaced_detail.configuration_version_id != value.configuration_version_id
                     or displaced_detail.purpose != value.purpose
                     or displaced_detail.assessed_scope != value.assessed_scope
                 ):
@@ -601,15 +689,29 @@ class Increment3ApplicationService(Increment2ApplicationService):
         evidence_version_id: RecordVersionId,
         target_type: ApplicabilityTargetType,
         target_id: str,
-        target_version_id: RecordVersionId,
+        target_version_id: RecordVersionId | None,
         purpose: str,
         assessed_scope: str,
         effective_at: datetime,
         known_at: datetime,
+        case_id: RecordId | None = None,
+        configuration_version_id: RecordVersionId | None = None,
     ) -> ApplicabilitySelection:
+        if (
+            target_type is ApplicabilityTargetType.AUTHORITY_GAP
+            and target_version_id is None
+            and (case_id is None or configuration_version_id is None)
+        ):
+            return ApplicabilityNotEstablished("AUTHORITY GAP QUESTION CONTEXT NOT ESTABLISHED")
+        target_version = str(target_version_id) if target_version_id else "question"
+        question_context = (
+            f":case:{case_id}:configuration-version:{configuration_version_id}"
+            if target_version_id is None
+            else ""
+        )
         scope = (
             f"evidence-version:{evidence_version_id}:target:{target_type.value}:{target_id}:"
-            f"{target_version_id}:purpose:{purpose}:scope:{assessed_scope}"
+            f"{target_version}{question_context}:purpose:{purpose}:scope:{assessed_scope}"
         )
         result = transaction.select_current(
             SelectionQuery(
@@ -633,11 +735,13 @@ class Increment3ApplicationService(Increment2ApplicationService):
         evidence_version_id: RecordVersionId,
         target_type: ApplicabilityTargetType,
         target_id: str,
-        target_version_id: RecordVersionId,
+        target_version_id: RecordVersionId | None,
         purpose: str,
         assessed_scope: str,
         effective_at: datetime,
         known_at: datetime | None = None,
+        case_id: RecordId | None = None,
+        configuration_version_id: RecordVersionId | None = None,
     ) -> ApplicabilitySelection:
         effective_at = require_utc(effective_at)
         knowledge_time = require_utc(known_at or self._clock.now())
@@ -652,6 +756,8 @@ class Increment3ApplicationService(Increment2ApplicationService):
                 assessed_scope=assessed_scope,
                 effective_at=effective_at,
                 known_at=knowledge_time,
+                case_id=case_id,
+                configuration_version_id=configuration_version_id,
             )
 
     def commit_analytical_input(
