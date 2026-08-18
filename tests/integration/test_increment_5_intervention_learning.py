@@ -1,0 +1,504 @@
+from __future__ import annotations
+
+from dataclasses import dataclass, replace
+
+import pytest
+
+from paim.application import DomainRuleViolation, Increment5ApplicationService
+from paim.domain import (
+    ActivationAuthorityKind,
+    ActivationRequest,
+    AggregatePrerequisiteResult,
+    CaseLifecycleState,
+    CompletionAcceptanceOutcome,
+    CompletionAcceptanceStatus,
+    CompletionAcceptanceVersionInput,
+    CompletionCriterionResult,
+    CompletionResultVersionInput,
+    CriterionOutcome,
+    DelegationEffect,
+    EvidenceAttention,
+    EvidenceClassification,
+    EvidenceVersionInput,
+    InterventionStatus,
+    InterventionVersionInput,
+    LearningItemVersionInput,
+    LearningStatus,
+    ObligationResult,
+    ObligationSetVersionInput,
+    ObligationVersionInput,
+    PreauthorizedActivationMechanismInput,
+    RequirementType,
+    RoleAssignmentVersionInput,
+    RoleTargetType,
+)
+from paim.integrity import FixedClock, RecordId, RecordVersionId
+from paim.persistence.sqlite import SQLiteIntegrityStore
+from tests.helpers import utc
+from tests.integration.test_increment_3_foundation import meta
+from tests.integration.test_increment_4_foundation import (
+    EFFECTIVE,
+    Foundation,
+    authorization,
+    foundation,
+)
+
+NOW = utc(2026, 2, 1)
+
+
+@dataclass(frozen=True)
+class Increment5Fixture:
+    service: Increment5ApplicationService
+    foundation: Foundation
+    authorization_basis_version_id: RecordVersionId
+    intervention_id: RecordId
+    intervention_version_id: RecordVersionId
+    obligation_set_version_id: RecordVersionId
+    obligation_id: RecordId | None
+    obligation_version_id: RecordVersionId | None
+    acceptor_assignment_version_id: RecordVersionId | None
+    evidence_version_id: RecordVersionId
+
+
+def _setup(
+    store: SQLiteIntegrityStore,
+    key: str,
+    *,
+    requirement_type: RequirementType | None = RequirementType.REQUIRED_BEFORE_OPERATION,
+    intervention_status: InterventionStatus = InterventionStatus.COMPLETED,
+    acceptor_target: RoleTargetType | None = RoleTargetType.INTERVENTION,
+    preauthorized: tuple[PreauthorizedActivationMechanismInput, ...] = (),
+) -> Increment5Fixture:
+    fx = foundation(store, key)
+    service = Increment5ApplicationService(store, FixedClock(NOW))
+    basis = replace(
+        authorization(fx, key),
+        preauthorized_activation_mechanisms=preauthorized,
+    )
+    service.authorize_decision(meta(f"{key}-authorize"), basis)
+
+    intervention_id, intervention_version_id = RecordId.new(), RecordVersionId.new()
+    service.commit_intervention(
+        meta(f"{key}-intervention"),
+        InterventionVersionInput(
+            intervention_id,
+            intervention_version_id,
+            fx.context.case_id,
+            fx.decision_version_id,
+            fx.context.configuration_id,
+            fx.context.configuration_version_id,
+            fx.context.assessor_id,
+            None,
+            "governed:intervention-owner",
+            intervention_status,
+            "Bounded operating intervention",
+            "exact authorized Decision and Configuration",
+            {"source": "implementation-record"},
+            ("control installed",),
+            "suspend and remediate",
+            EFFECTIVE,
+        ),
+    )
+
+    assignment_version_id: RecordVersionId | None = None
+    if acceptor_target is not None:
+        target_id = {
+            RoleTargetType.INTERVENTION: intervention_id,
+            RoleTargetType.DECISION: fx.decision_id,
+            RoleTargetType.CONFIGURATION: fx.context.configuration_id,
+            RoleTargetType.CASE: fx.context.case_id,
+        }[acceptor_target]
+        assignment_id, assignment_version_id = RecordId.new(), RecordVersionId.new()
+        service.commit_role_assignment(
+            meta(f"{key}-acceptor"),
+            RoleAssignmentVersionInput(
+                assignment_id,
+                assignment_version_id,
+                fx.context.assessor_id,
+                "Intervention Completion Acceptor",
+                acceptor_target,
+                str(target_id),
+                fx.context.case_id,
+                True,
+                "completion-acceptance",
+                DelegationEffect.NONE,
+                None,
+                EFFECTIVE,
+            ),
+        )
+
+    obligation_id: RecordId | None = None
+    obligation_version_id: RecordVersionId | None = None
+    obligations: tuple[ObligationVersionInput, ...] = ()
+    if requirement_type is not None:
+        obligation_id, obligation_version_id = RecordId.new(), RecordVersionId.new()
+        obligations = (
+            ObligationVersionInput(
+                obligation_id,
+                obligation_version_id,
+                intervention_id,
+                intervention_version_id,
+                requirement_type,
+                ("control installed",),
+                (fx.clause_version_id,),
+                ("bounded continuation only",),
+                ("control:capacity",),
+                ("do not exceed boundary",),
+                "exact Decision prerequisite",
+                {"source": "authorized-decision"},
+                requirement_type is RequirementType.REQUIRED_AFTER_OPERATION,
+                (
+                    ("complete within 30 days",)
+                    if requirement_type is RequirementType.REQUIRED_AFTER_OPERATION
+                    else ()
+                ),
+            ),
+        )
+    obligation_set_id, obligation_set_version_id = RecordId.new(), RecordVersionId.new()
+    service.commit_obligation_set(
+        meta(f"{key}-obligation-set"),
+        ObligationSetVersionInput(
+            obligation_set_id,
+            obligation_set_version_id,
+            fx.decision_id,
+            fx.decision_version_id,
+            fx.context.case_id,
+            fx.context.configuration_id,
+            fx.context.configuration_version_id,
+            obligations,
+            "explicit activation prerequisite basis",
+            EFFECTIVE,
+        ),
+    )
+
+    evidence_id, evidence_version_id = RecordId.new(), RecordVersionId.new()
+    service.commit_evidence(
+        meta(f"{key}-evidence"),
+        EvidenceVersionInput(
+            evidence_id,
+            evidence_version_id,
+            fx.context.case_id,
+            fx.context.configuration_id,
+            fx.context.configuration_version_id,
+            EvidenceClassification.OBSERVED,
+            "completion-source:v1",
+            {"source_version": "v1"},
+            {"control_installed": True},
+            utc(2026, 1, 15),
+            EFFECTIVE,
+            EvidenceAttention.CURRENT,
+        ),
+    )
+    return Increment5Fixture(
+        service,
+        fx,
+        basis.version_id,
+        intervention_id,
+        intervention_version_id,
+        obligation_set_version_id,
+        obligation_id,
+        obligation_version_id,
+        assignment_version_id,
+        evidence_version_id,
+    )
+
+
+def _complete(
+    value: Increment5Fixture,
+    key: str,
+    *,
+    accept: bool = True,
+    acceptance_status: CompletionAcceptanceStatus = CompletionAcceptanceStatus.CURRENT,
+) -> tuple[RecordVersionId, RecordVersionId]:
+    assert value.obligation_version_id is not None
+    result_id, result_version_id = RecordId.new(), RecordVersionId.new()
+    value.service.commit_completion_result(
+        meta(f"{key}-result"),
+        CompletionResultVersionInput(
+            result_id,
+            result_version_id,
+            value.obligation_version_id,
+            value.intervention_version_id,
+            value.foundation.decision_version_id,
+            value.foundation.context.configuration_version_id,
+            (CompletionCriterionResult("control installed", CriterionOutcome.MET, "verified"),),
+            (value.evidence_version_id,),
+            {"source": "completion-inspection"},
+            value.foundation.context.assessor_id,
+            (),
+            None,
+            None,
+            EFFECTIVE,
+        ),
+    )
+    acceptance_id, acceptance_version_id = RecordId.new(), RecordVersionId.new()
+    value.service.commit_completion_acceptance(
+        meta(f"{key}-acceptance"),
+        CompletionAcceptanceVersionInput(
+            acceptance_id,
+            acceptance_version_id,
+            value.obligation_version_id,
+            value.intervention_version_id,
+            result_version_id,
+            value.foundation.decision_version_id,
+            value.foundation.context.configuration_version_id,
+            ("capacity boundary",),
+            (
+                CompletionAcceptanceOutcome.ACCEPTED
+                if accept
+                else CompletionAcceptanceOutcome.REJECTED
+            ),
+            "accountable assessment of the exact Completion Result",
+            (),
+            (),
+            value.foundation.context.assessor_id,
+            value.acceptor_assignment_version_id,
+            None if value.acceptor_assignment_version_id else "governed:completion-board",
+            (),
+            EFFECTIVE,
+            status=acceptance_status,
+        ),
+    )
+    return result_version_id, acceptance_version_id
+
+
+def _activation(
+    value: Increment5Fixture, *, mechanism: RecordVersionId | None = None
+) -> ActivationRequest:
+    fx = value.foundation
+    return ActivationRequest(
+        RecordId.new(),
+        RecordVersionId.new(),
+        RecordId.new(),
+        RecordVersionId.new(),
+        str(RecordId.new()),
+        fx.context.case_id,
+        fx.decision_version_id,
+        fx.context.configuration_id,
+        fx.context.configuration_version_id,
+        fx.snapshot_version_id,
+        "bounded continuation",
+        (
+            ActivationAuthorityKind.ORGANIZATIONAL_MECHANISM
+            if mechanism
+            else ActivationAuthorityKind.DECISION_AUTHORITY
+        ),
+        None if mechanism else fx.context.assessor_id,
+        None if mechanism else fx.authority_assignment_version_id,
+        mechanism,
+        value.authorization_basis_version_id,
+        "narrow-scope",
+        ("bounded continuation only",),
+        EFFECTIVE,
+        (),
+        "activate only after exact prerequisites pass",
+        EFFECTIVE.start,
+    )
+
+
+def test_completion_requires_separate_current_acceptance_and_preserves_conflict(
+    sqlite_store: SQLiteIntegrityStore,
+) -> None:
+    value = _setup(sqlite_store, "acceptance")
+    assert value.obligation_version_id is not None
+    before = value.service.evaluate_prerequisites(
+        decision_version_id=value.foundation.decision_version_id,
+        configuration_version_id=value.foundation.context.configuration_version_id,
+        effective_at=EFFECTIVE.start,
+    )
+    assert before.result is AggregatePrerequisiteResult.NOT_ESTABLISHED
+
+    _complete(value, "acceptance-first")
+    accepted = value.service.evaluate_prerequisites(
+        decision_version_id=value.foundation.decision_version_id,
+        configuration_version_id=value.foundation.context.configuration_version_id,
+        effective_at=EFFECTIVE.start,
+    )
+    assert accepted.result is AggregatePrerequisiteResult.SATISFIED
+    assert accepted.obligations[0].result is ObligationResult.SATISFIED
+
+    _complete(value, "acceptance-second")
+    conflict = value.service.evaluate_prerequisites(
+        decision_version_id=value.foundation.decision_version_id,
+        configuration_version_id=value.foundation.context.configuration_version_id,
+        effective_at=EFFECTIVE.start,
+    )
+    assert conflict.result is AggregatePrerequisiteResult.CONFLICT
+
+
+@pytest.mark.parametrize(
+    ("status", "expected"),
+    [
+        (InterventionStatus.PROPOSED, AggregatePrerequisiteResult.INCOMPLETE),
+        (InterventionStatus.PARTIALLY_COMPLETED, AggregatePrerequisiteResult.INCOMPLETE),
+        (InterventionStatus.BLOCKED, AggregatePrerequisiteResult.BLOCKED),
+        (InterventionStatus.FAILED, AggregatePrerequisiteResult.BLOCKED),
+        (InterventionStatus.CANCELLED, AggregatePrerequisiteResult.BLOCKED),
+    ],
+)
+def test_intervention_status_has_deterministic_prerequisite_mapping(
+    sqlite_store: SQLiteIntegrityStore,
+    status: InterventionStatus,
+    expected: AggregatePrerequisiteResult,
+) -> None:
+    value = _setup(sqlite_store, f"status-{status.value}", intervention_status=status)
+    evaluation = value.service.evaluate_prerequisites(
+        decision_version_id=value.foundation.decision_version_id,
+        configuration_version_id=value.foundation.context.configuration_version_id,
+        effective_at=EFFECTIVE.start,
+    )
+    assert evaluation.result is expected
+
+
+def test_required_after_optional_and_explicit_zero_do_not_block_activation_gate(
+    sqlite_store: SQLiteIntegrityStore,
+) -> None:
+    for key, requirement in (
+        ("required-after", RequirementType.REQUIRED_AFTER_OPERATION),
+        ("optional", RequirementType.OPTIONAL),
+        ("zero", None),
+    ):
+        value = _setup(sqlite_store, key, requirement_type=requirement)
+        evaluation = value.service.evaluate_prerequisites(
+            decision_version_id=value.foundation.decision_version_id,
+            configuration_version_id=value.foundation.context.configuration_version_id,
+            effective_at=EFFECTIVE.start,
+        )
+        assert evaluation.result is AggregatePrerequisiteResult.NOT_REQUIRED
+
+
+def test_completion_acceptor_exact_scope_and_overlap_rules(
+    sqlite_store: SQLiteIntegrityStore,
+) -> None:
+    case_scoped = _setup(sqlite_store, "case-acceptor", acceptor_target=RoleTargetType.CASE)
+    _complete(case_scoped, "case-acceptor")
+    assert (
+        case_scoped.service.evaluate_prerequisites(
+            decision_version_id=case_scoped.foundation.decision_version_id,
+            configuration_version_id=case_scoped.foundation.context.configuration_version_id,
+            effective_at=EFFECTIVE.start,
+        ).result
+        is AggregatePrerequisiteResult.SATISFIED
+    )
+
+    conflict = _setup(sqlite_store, "acceptor-overlap", acceptor_target=RoleTargetType.CASE)
+    assignment_id, assignment_version_id = RecordId.new(), RecordVersionId.new()
+    conflict.service.commit_role_assignment(
+        meta("acceptor-overlap-second-acceptor"),
+        RoleAssignmentVersionInput(
+            assignment_id,
+            assignment_version_id,
+            conflict.foundation.context.assessor_id,
+            "Intervention Completion Acceptor",
+            RoleTargetType.INTERVENTION,
+            str(conflict.intervention_id),
+            conflict.foundation.context.case_id,
+            True,
+            "overlapping accountable assignment",
+            DelegationEffect.NONE,
+            None,
+            EFFECTIVE,
+        ),
+    )
+    with pytest.raises(DomainRuleViolation, match="CONFLICT"):
+        _complete(conflict, "acceptor-overlap")
+
+
+def test_withdrawn_acceptance_is_historical_but_not_future_eligible(
+    sqlite_store: SQLiteIntegrityStore,
+) -> None:
+    value = _setup(sqlite_store, "withdrawn")
+    _complete(value, "withdrawn", acceptance_status=CompletionAcceptanceStatus.WITHDRAWN)
+    evaluation = value.service.evaluate_prerequisites(
+        decision_version_id=value.foundation.decision_version_id,
+        configuration_version_id=value.foundation.context.configuration_version_id,
+        effective_at=EFFECTIVE.start,
+    )
+    assert evaluation.result is AggregatePrerequisiteResult.NOT_ESTABLISHED
+    assert sqlite_store.count_rows("completion_acceptance_versions") == 1
+
+
+def test_activation_is_atomic_and_requires_genuine_authority(
+    sqlite_store: SQLiteIntegrityStore,
+) -> None:
+    value = _setup(sqlite_store, "activation")
+    _complete(value, "activation")
+    rejected = replace(_activation(value), authority_scope="unrelated-scope")
+    before = (
+        sqlite_store.count_rows("prerequisite_evaluation_basis_versions"),
+        sqlite_store.count_rows("activation_authorization_versions"),
+        sqlite_store.count_rows("target_activation_events"),
+    )
+    with pytest.raises(DomainRuleViolation, match="does not cover exact target"):
+        value.service.activate_target(meta("activation-invalid"), rejected)
+    assert before == (
+        sqlite_store.count_rows("prerequisite_evaluation_basis_versions"),
+        sqlite_store.count_rows("activation_authorization_versions"),
+        sqlite_store.count_rows("target_activation_events"),
+    )
+    result = value.service.activate_target(meta("activation-valid"), _activation(value))
+    assert result.activated
+    assert (
+        value.service.current_lifecycle_state(
+            case_id=value.foundation.context.case_id,
+            effective_at=EFFECTIVE.start,
+        )
+        is CaseLifecycleState.OPERATING_OBSERVING
+    )
+
+
+def test_exact_preauthorized_mechanism_and_learning_are_bounded(
+    sqlite_store: SQLiteIntegrityStore,
+) -> None:
+    mechanism_version_id = RecordVersionId.new()
+    mechanism = PreauthorizedActivationMechanismInput(
+        RecordId.new(),
+        mechanism_version_id,
+        "activation-rule-v1",
+        "narrow-scope",
+        "authority-policy:v1",
+        ("bounded continuation only",),
+        EFFECTIVE,
+    )
+    value = _setup(sqlite_store, "mechanism", requirement_type=None, preauthorized=(mechanism,))
+    result = value.service.activate_target(
+        meta("mechanism-activation"), _activation(value, mechanism=mechanism_version_id)
+    )
+    assert result.activated
+
+    decision = sqlite_store.get_version(value.foundation.decision_version_id)
+    assert decision is not None
+    uncertainty_version_id = RecordVersionId.parse(
+        str(decision.content["decision_limiting_uncertainty_version_ids"][0])
+    )
+    learning_id, learning_version_id = RecordId.new(), RecordVersionId.new()
+    value.service.commit_learning_item(
+        meta("mechanism-learning"),
+        LearningItemVersionInput(
+            learning_id,
+            learning_version_id,
+            value.foundation.context.case_id,
+            value.foundation.decision_version_id,
+            value.foundation.context.configuration_id,
+            value.foundation.context.configuration_version_id,
+            uncertainty_version_id,
+            "Does the control remain effective?",
+            "reduce decision-limiting uncertainty",
+            "longitudinal control evidence",
+            value.foundation.context.assessor_id,
+            None,
+            "governed:learning-owner",
+            "monthly observation",
+            LearningStatus.ACTIVE,
+            None,
+            (),
+            (),
+            None,
+            None,
+            {"source": "decision-learning-plan"},
+            EFFECTIVE,
+        ),
+    )
+    stored = sqlite_store.get_version(learning_version_id)
+    assert stored is not None and stored.family == "learning-item"
+    assert stored.content["successor_decision_version_id"] is None

@@ -65,6 +65,17 @@ class DecisionStatus(StrEnum):
 
 
 @dataclass(frozen=True, slots=True)
+class PreauthorizedActivationMechanismInput:
+    mechanism_id: RecordId
+    mechanism_version_id: RecordVersionId
+    rule_version: str
+    scope: str
+    authority_source: str
+    limits: tuple[str, ...]
+    effective: EffectiveInterval
+
+
+@dataclass(frozen=True, slots=True)
 class IntegrationVersionInput:
     integration_id: RecordId
     version_id: RecordVersionId
@@ -263,6 +274,7 @@ class DecisionAuthorizationBasisVersionInput:
     expected_version_id: RecordVersionId | None = None
     relationship_type: RelationshipType = RelationshipType.SUPERSESSION
     relationship_reason: str | None = None
+    preauthorized_activation_mechanisms: tuple[PreauthorizedActivationMechanismInput, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)

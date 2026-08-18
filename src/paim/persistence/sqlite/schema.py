@@ -1514,6 +1514,806 @@ decision_authorization_gaps = Table(
     ),
 )
 
+# Increment 5 authoritative Intervention, activation, and Learning families.
+decision_preauthorized_activation_mechanisms = Table(
+    "decision_preauthorized_activation_mechanisms",
+    metadata,
+    Column("mechanism_version_id", String(36), primary_key=True),
+    Column("mechanism_id", String(36), nullable=False),
+    Column(
+        "basis_version_id",
+        String(36),
+        ForeignKey("decision_authorization_basis_versions.version_id"),
+        nullable=False,
+    ),
+    Column("rule_version", Text, nullable=False),
+    Column("scope", Text, nullable=False),
+    Column("authority_source", Text, nullable=False),
+    Column("limits_json", Text, nullable=False),
+    Column("effective_from_us", BigInteger, nullable=False),
+    Column("effective_to_us", BigInteger, nullable=True),
+    CheckConstraint(
+        "effective_to_us IS NULL OR effective_to_us > effective_from_us",
+        name="ck_activation_mechanism_effective",
+    ),
+)
+Index(
+    "ix_activation_mechanism_basis",
+    decision_preauthorized_activation_mechanisms.c.basis_version_id,
+    decision_preauthorized_activation_mechanisms.c.mechanism_id,
+)
+
+intervention_records = Table(
+    "intervention_records",
+    metadata,
+    Column("intervention_id", String(36), ForeignKey("records.record_id"), primary_key=True),
+)
+intervention_versions = Table(
+    "intervention_versions",
+    metadata,
+    Column("version_id", String(36), ForeignKey("record_versions.version_id"), primary_key=True),
+    Column(
+        "intervention_id",
+        String(36),
+        ForeignKey("intervention_records.intervention_id"),
+        nullable=False,
+    ),
+    Column("case_id", String(36), ForeignKey("paim_cases.case_id"), nullable=False),
+    Column(
+        "decision_version_id",
+        String(36),
+        ForeignKey("decision_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "configuration_id",
+        String(36),
+        ForeignKey("managed_configurations.configuration_id"),
+        nullable=False,
+    ),
+    Column(
+        "configuration_version_id",
+        String(36),
+        ForeignKey("managed_configuration_versions.version_id"),
+        nullable=False,
+    ),
+    Column("owner_actor_id", String(36), ForeignKey("paim_actors.actor_id"), nullable=False),
+    Column(
+        "owner_assignment_version_id",
+        String(36),
+        ForeignKey("role_assignment_versions.version_id"),
+        nullable=True,
+    ),
+    Column("accountable_mechanism", Text, nullable=True),
+    Column("status", Text, nullable=False),
+    CheckConstraint(
+        "status IN ('PROPOSED','PLANNED','IN_PROGRESS','BLOCKED','PARTIALLY_COMPLETED',"
+        "'COMPLETED','FAILED','CANCELLED','SUPERSEDED')",
+        name="ck_intervention_status",
+    ),
+    CheckConstraint(
+        "(owner_assignment_version_id IS NOT NULL AND accountable_mechanism IS NULL) OR "
+        "(owner_assignment_version_id IS NULL AND accountable_mechanism IS NOT NULL)",
+        name="ck_intervention_accountability",
+    ),
+)
+Index(
+    "ix_intervention_context",
+    intervention_versions.c.case_id,
+    intervention_versions.c.decision_version_id,
+    intervention_versions.c.configuration_version_id,
+)
+
+obligation_set_records = Table(
+    "obligation_set_records",
+    metadata,
+    Column("obligation_set_id", String(36), ForeignKey("records.record_id"), primary_key=True),
+)
+obligation_set_versions = Table(
+    "obligation_set_versions",
+    metadata,
+    Column("version_id", String(36), ForeignKey("record_versions.version_id"), primary_key=True),
+    Column(
+        "obligation_set_id",
+        String(36),
+        ForeignKey("obligation_set_records.obligation_set_id"),
+        nullable=False,
+    ),
+    Column("decision_id", String(36), ForeignKey("decision_records.decision_id"), nullable=False),
+    Column(
+        "decision_version_id",
+        String(36),
+        ForeignKey("decision_versions.version_id"),
+        nullable=False,
+    ),
+    Column("case_id", String(36), ForeignKey("paim_cases.case_id"), nullable=False),
+    Column(
+        "configuration_id",
+        String(36),
+        ForeignKey("managed_configurations.configuration_id"),
+        nullable=False,
+    ),
+    Column(
+        "configuration_version_id",
+        String(36),
+        ForeignKey("managed_configuration_versions.version_id"),
+        nullable=False,
+    ),
+)
+Index(
+    "ix_obligation_set_context_time",
+    obligation_set_versions.c.decision_version_id,
+    obligation_set_versions.c.configuration_version_id,
+)
+
+obligation_records = Table(
+    "obligation_records",
+    metadata,
+    Column("obligation_id", String(36), ForeignKey("records.record_id"), primary_key=True),
+)
+obligation_versions = Table(
+    "obligation_versions",
+    metadata,
+    Column("version_id", String(36), ForeignKey("record_versions.version_id"), primary_key=True),
+    Column(
+        "obligation_id",
+        String(36),
+        ForeignKey("obligation_records.obligation_id"),
+        nullable=False,
+    ),
+    Column(
+        "obligation_set_version_id",
+        String(36),
+        ForeignKey("obligation_set_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "decision_version_id",
+        String(36),
+        ForeignKey("decision_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "configuration_version_id",
+        String(36),
+        ForeignKey("managed_configuration_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "intervention_id",
+        String(36),
+        ForeignKey("intervention_records.intervention_id"),
+        nullable=False,
+    ),
+    Column(
+        "intervention_version_id",
+        String(36),
+        ForeignKey("intervention_versions.version_id"),
+        nullable=False,
+    ),
+    Column("requirement_type", Text, nullable=False),
+    Column("post_operation_permitted", Boolean, nullable=False),
+    Column("post_operation_timing_conditions_json", Text, nullable=False),
+    CheckConstraint(
+        "requirement_type IN ('REQUIRED_BEFORE_OPERATION','REQUIRED_AFTER_OPERATION','OPTIONAL')",
+        name="ck_obligation_requirement_type",
+    ),
+)
+Index(
+    "ix_obligation_set_type",
+    obligation_versions.c.obligation_set_version_id,
+    obligation_versions.c.requirement_type,
+)
+
+completion_result_records = Table(
+    "completion_result_records",
+    metadata,
+    Column("result_id", String(36), ForeignKey("records.record_id"), primary_key=True),
+)
+completion_result_versions = Table(
+    "completion_result_versions",
+    metadata,
+    Column("version_id", String(36), ForeignKey("record_versions.version_id"), primary_key=True),
+    Column(
+        "result_id",
+        String(36),
+        ForeignKey("completion_result_records.result_id"),
+        nullable=False,
+    ),
+    Column(
+        "obligation_version_id",
+        String(36),
+        ForeignKey("obligation_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "intervention_version_id",
+        String(36),
+        ForeignKey("intervention_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "decision_version_id",
+        String(36),
+        ForeignKey("decision_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "configuration_version_id",
+        String(36),
+        ForeignKey("managed_configuration_versions.version_id"),
+        nullable=False,
+    ),
+    Column("performer_actor_id", String(36), ForeignKey("paim_actors.actor_id"), nullable=False),
+)
+Index(
+    "ix_completion_result_obligation",
+    completion_result_versions.c.obligation_version_id,
+)
+completion_result_criteria = Table(
+    "completion_result_criteria",
+    metadata,
+    Column(
+        "result_version_id",
+        String(36),
+        ForeignKey("completion_result_versions.version_id"),
+        primary_key=True,
+    ),
+    Column("ordinal", BigInteger, primary_key=True),
+    Column("criterion", Text, nullable=False),
+    Column("outcome", Text, nullable=False),
+    Column("rationale", Text, nullable=False),
+    CheckConstraint(
+        "outcome IN ('MET','NOT_MET','INDETERMINATE')", name="ck_completion_criterion_outcome"
+    ),
+)
+completion_result_evidence = Table(
+    "completion_result_evidence",
+    metadata,
+    Column(
+        "result_version_id",
+        String(36),
+        ForeignKey("completion_result_versions.version_id"),
+        primary_key=True,
+    ),
+    Column(
+        "evidence_version_id",
+        String(36),
+        ForeignKey("evidence_versions.version_id"),
+        primary_key=True,
+    ),
+)
+
+completion_acceptance_records = Table(
+    "completion_acceptance_records",
+    metadata,
+    Column("acceptance_id", String(36), ForeignKey("records.record_id"), primary_key=True),
+)
+completion_acceptance_versions = Table(
+    "completion_acceptance_versions",
+    metadata,
+    Column("version_id", String(36), ForeignKey("record_versions.version_id"), primary_key=True),
+    Column(
+        "acceptance_id",
+        String(36),
+        ForeignKey("completion_acceptance_records.acceptance_id"),
+        nullable=False,
+    ),
+    Column(
+        "obligation_version_id",
+        String(36),
+        ForeignKey("obligation_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "intervention_version_id",
+        String(36),
+        ForeignKey("intervention_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "completion_result_version_id",
+        String(36),
+        ForeignKey("completion_result_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "decision_version_id",
+        String(36),
+        ForeignKey("decision_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "configuration_version_id",
+        String(36),
+        ForeignKey("managed_configuration_versions.version_id"),
+        nullable=False,
+    ),
+    Column("outcome", Text, nullable=False),
+    Column("status", Text, nullable=False),
+    Column("accountable_actor_id", String(36), ForeignKey("paim_actors.actor_id"), nullable=False),
+    Column(
+        "accountable_assignment_version_id",
+        String(36),
+        ForeignKey("role_assignment_versions.version_id"),
+        nullable=True,
+    ),
+    Column("accountable_mechanism", Text, nullable=True),
+    CheckConstraint("outcome IN ('ACCEPTED','REJECTED')", name="ck_completion_acceptance_outcome"),
+    CheckConstraint(
+        "status IN ('CURRENT','WITHDRAWN','SUPERSEDED')",
+        name="ck_completion_acceptance_status",
+    ),
+    CheckConstraint(
+        "(accountable_assignment_version_id IS NOT NULL AND accountable_mechanism IS NULL) OR "
+        "(accountable_assignment_version_id IS NULL AND accountable_mechanism IS NOT NULL)",
+        name="ck_completion_acceptance_accountability",
+    ),
+)
+Index(
+    "ix_completion_acceptance_obligation",
+    completion_acceptance_versions.c.obligation_version_id,
+)
+completion_acceptance_delegations = Table(
+    "completion_acceptance_delegations",
+    metadata,
+    Column(
+        "acceptance_version_id",
+        String(36),
+        ForeignKey("completion_acceptance_versions.version_id"),
+        primary_key=True,
+    ),
+    Column("ordinal", BigInteger, primary_key=True),
+    Column(
+        "assignment_version_id",
+        String(36),
+        ForeignKey("role_assignment_versions.version_id"),
+        nullable=False,
+    ),
+)
+
+intervention_replacement_records = Table(
+    "intervention_replacement_records",
+    metadata,
+    Column("replacement_id", String(36), ForeignKey("records.record_id"), primary_key=True),
+)
+intervention_replacement_versions = Table(
+    "intervention_replacement_versions",
+    metadata,
+    Column("version_id", String(36), ForeignKey("record_versions.version_id"), primary_key=True),
+    Column(
+        "replacement_id",
+        String(36),
+        ForeignKey("intervention_replacement_records.replacement_id"),
+        nullable=False,
+    ),
+    Column(
+        "obligation_version_id",
+        String(36),
+        ForeignKey("obligation_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "predecessor_intervention_version_id",
+        String(36),
+        ForeignKey("intervention_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "replacement_intervention_version_id",
+        String(36),
+        ForeignKey("intervention_versions.version_id"),
+        nullable=False,
+    ),
+    Column("substantive_change", Boolean, nullable=False),
+    Column(
+        "successor_decision_version_id",
+        String(36),
+        ForeignKey("decision_versions.version_id"),
+        nullable=True,
+    ),
+    CheckConstraint(
+        "predecessor_intervention_version_id <> replacement_intervention_version_id",
+        name="ck_replacement_distinct_interventions",
+    ),
+)
+Index(
+    "ix_replacement_obligation",
+    intervention_replacement_versions.c.obligation_version_id,
+)
+
+continued_validity_records = Table(
+    "continued_validity_records",
+    metadata,
+    Column("determination_id", String(36), ForeignKey("records.record_id"), primary_key=True),
+)
+continued_validity_versions = Table(
+    "continued_validity_versions",
+    metadata,
+    Column("version_id", String(36), ForeignKey("record_versions.version_id"), primary_key=True),
+    Column(
+        "determination_id",
+        String(36),
+        ForeignKey("continued_validity_records.determination_id"),
+        nullable=False,
+    ),
+    Column(
+        "successor_obligation_version_id",
+        String(36),
+        ForeignKey("obligation_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "prior_completion_result_version_id",
+        String(36),
+        ForeignKey("completion_result_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "prior_acceptance_version_id",
+        String(36),
+        ForeignKey("completion_acceptance_versions.version_id"),
+        nullable=False,
+    ),
+    Column("accountable_actor_id", String(36), ForeignKey("paim_actors.actor_id"), nullable=False),
+    Column(
+        "accountable_assignment_version_id",
+        String(36),
+        ForeignKey("role_assignment_versions.version_id"),
+        nullable=True,
+    ),
+    Column("accountable_mechanism", Text, nullable=True),
+    Column("all_coverage_established", Boolean, nullable=False),
+    CheckConstraint(
+        "(accountable_assignment_version_id IS NOT NULL AND accountable_mechanism IS NULL) OR "
+        "(accountable_assignment_version_id IS NULL AND accountable_mechanism IS NOT NULL)",
+        name="ck_continued_validity_accountability",
+    ),
+)
+Index(
+    "ix_continued_validity_obligation",
+    continued_validity_versions.c.successor_obligation_version_id,
+)
+
+prerequisite_evaluation_basis_records = Table(
+    "prerequisite_evaluation_basis_records",
+    metadata,
+    Column("basis_id", String(36), ForeignKey("records.record_id"), primary_key=True),
+)
+prerequisite_evaluation_basis_versions = Table(
+    "prerequisite_evaluation_basis_versions",
+    metadata,
+    Column("version_id", String(36), ForeignKey("record_versions.version_id"), primary_key=True),
+    Column(
+        "basis_id",
+        String(36),
+        ForeignKey("prerequisite_evaluation_basis_records.basis_id"),
+        nullable=False,
+    ),
+    Column(
+        "decision_version_id",
+        String(36),
+        ForeignKey("decision_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "configuration_version_id",
+        String(36),
+        ForeignKey("managed_configuration_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "boundary_snapshot_version_id",
+        String(36),
+        ForeignKey("boundary_snapshot_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "obligation_set_version_id",
+        String(36),
+        ForeignKey("obligation_set_versions.version_id"),
+        nullable=False,
+    ),
+    Column("aggregate_result", Text, nullable=False),
+    Column("effective_at_us", BigInteger, nullable=False),
+    Column("knowledge_cutoff_us", BigInteger, nullable=False),
+    CheckConstraint(
+        "aggregate_result IN ('SATISFIED','NOT_REQUIRED','NOT_ESTABLISHED','INCOMPLETE',"
+        "'BLOCKED','CONFLICT')",
+        name="ck_prerequisite_basis_result",
+    ),
+)
+prerequisite_evaluation_basis_items = Table(
+    "prerequisite_evaluation_basis_items",
+    metadata,
+    Column(
+        "basis_version_id",
+        String(36),
+        ForeignKey("prerequisite_evaluation_basis_versions.version_id"),
+        primary_key=True,
+    ),
+    Column("ordinal", BigInteger, primary_key=True),
+    Column(
+        "obligation_version_id",
+        String(36),
+        ForeignKey("obligation_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "intervention_version_id",
+        String(36),
+        ForeignKey("intervention_versions.version_id"),
+        nullable=True,
+    ),
+    Column(
+        "completion_result_version_id",
+        String(36),
+        ForeignKey("completion_result_versions.version_id"),
+        nullable=True,
+    ),
+    Column(
+        "completion_acceptance_version_id",
+        String(36),
+        ForeignKey("completion_acceptance_versions.version_id"),
+        nullable=True,
+    ),
+    Column(
+        "replacement_version_id",
+        String(36),
+        ForeignKey("intervention_replacement_versions.version_id"),
+        nullable=True,
+    ),
+    Column(
+        "reuse_determination_version_id",
+        String(36),
+        ForeignKey("continued_validity_versions.version_id"),
+        nullable=True,
+    ),
+    Column("result", Text, nullable=False),
+    Column("diagnostics_json", Text, nullable=False),
+    CheckConstraint(
+        "result IN ('SATISFIED','NOT_ESTABLISHED','INCOMPLETE','BLOCKED','CONFLICT')",
+        name="ck_prerequisite_item_result",
+    ),
+)
+
+activation_authorization_records = Table(
+    "activation_authorization_records",
+    metadata,
+    Column("authorization_id", String(36), ForeignKey("records.record_id"), primary_key=True),
+)
+activation_authorization_versions = Table(
+    "activation_authorization_versions",
+    metadata,
+    Column("version_id", String(36), ForeignKey("record_versions.version_id"), primary_key=True),
+    Column(
+        "authorization_id",
+        String(36),
+        ForeignKey("activation_authorization_records.authorization_id"),
+        nullable=False,
+    ),
+    Column(
+        "decision_version_id",
+        String(36),
+        ForeignKey("decision_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "configuration_version_id",
+        String(36),
+        ForeignKey("managed_configuration_versions.version_id"),
+        nullable=False,
+    ),
+    Column("operating_state", Text, nullable=False),
+    Column(
+        "boundary_snapshot_version_id",
+        String(36),
+        ForeignKey("boundary_snapshot_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "prerequisite_basis_version_id",
+        String(36),
+        ForeignKey("prerequisite_evaluation_basis_versions.version_id"),
+        nullable=False,
+    ),
+    Column("authority_kind", Text, nullable=False),
+    Column("authority_actor_id", String(36), ForeignKey("paim_actors.actor_id"), nullable=True),
+    Column(
+        "authority_assignment_version_id",
+        String(36),
+        ForeignKey("role_assignment_versions.version_id"),
+        nullable=True,
+    ),
+    Column(
+        "mechanism_version_id",
+        String(36),
+        ForeignKey("decision_preauthorized_activation_mechanisms.mechanism_version_id"),
+        nullable=True,
+    ),
+    Column(
+        "decision_authorization_basis_version_id",
+        String(36),
+        ForeignKey("decision_authorization_basis_versions.version_id"),
+        nullable=False,
+    ),
+    Column("authority_scope", Text, nullable=False),
+    Column("authority_limits_json", Text, nullable=False),
+    Column("authority_effective_from_us", BigInteger, nullable=False),
+    Column("authority_effective_to_us", BigInteger, nullable=True),
+    Column("activation_effective_at_us", BigInteger, nullable=False),
+    CheckConstraint(
+        "authority_kind IN ('DECISION_AUTHORITY','ORGANIZATIONAL_MECHANISM')",
+        name="ck_activation_authority_kind",
+    ),
+    CheckConstraint(
+        "(authority_kind = 'DECISION_AUTHORITY' AND authority_actor_id IS NOT NULL "
+        "AND authority_assignment_version_id IS NOT NULL AND mechanism_version_id IS NULL) OR "
+        "(authority_kind = 'ORGANIZATIONAL_MECHANISM' AND authority_actor_id IS NULL "
+        "AND authority_assignment_version_id IS NULL AND mechanism_version_id IS NOT NULL)",
+        name="ck_activation_authority_path",
+    ),
+)
+Index(
+    "ix_activation_authorization_context",
+    activation_authorization_versions.c.decision_version_id,
+    activation_authorization_versions.c.configuration_version_id,
+    activation_authorization_versions.c.activation_effective_at_us,
+)
+activation_authorization_delegations = Table(
+    "activation_authorization_delegations",
+    metadata,
+    Column(
+        "authorization_version_id",
+        String(36),
+        ForeignKey("activation_authorization_versions.version_id"),
+        primary_key=True,
+    ),
+    Column("ordinal", BigInteger, primary_key=True),
+    Column(
+        "assignment_version_id",
+        String(36),
+        ForeignKey("role_assignment_versions.version_id"),
+        nullable=False,
+    ),
+)
+
+target_activation_events = Table(
+    "target_activation_events",
+    metadata,
+    Column("event_id", String(36), primary_key=True),
+    Column("case_id", String(36), ForeignKey("paim_cases.case_id"), nullable=False),
+    Column(
+        "decision_version_id",
+        String(36),
+        ForeignKey("decision_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "configuration_version_id",
+        String(36),
+        ForeignKey("managed_configuration_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "boundary_snapshot_version_id",
+        String(36),
+        ForeignKey("boundary_snapshot_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "prerequisite_basis_version_id",
+        String(36),
+        ForeignKey("prerequisite_evaluation_basis_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "activation_authorization_version_id",
+        String(36),
+        ForeignKey("activation_authorization_versions.version_id"),
+        nullable=False,
+    ),
+    Column("operating_state", Text, nullable=False),
+    Column("lifecycle_event_id", String(36), ForeignKey("status_events.event_id"), nullable=False),
+    Column("effective_at_us", BigInteger, nullable=False),
+    Column("recorded_at_us", BigInteger, nullable=False),
+    Column("knowledge_cutoff_us", BigInteger, nullable=False),
+)
+Index(
+    "ix_target_activation_history",
+    target_activation_events.c.case_id,
+    target_activation_events.c.effective_at_us,
+    target_activation_events.c.recorded_at_us,
+)
+
+learning_item_records = Table(
+    "learning_item_records",
+    metadata,
+    Column("learning_item_id", String(36), ForeignKey("records.record_id"), primary_key=True),
+)
+learning_item_versions = Table(
+    "learning_item_versions",
+    metadata,
+    Column("version_id", String(36), ForeignKey("record_versions.version_id"), primary_key=True),
+    Column(
+        "learning_item_id",
+        String(36),
+        ForeignKey("learning_item_records.learning_item_id"),
+        nullable=False,
+    ),
+    Column("case_id", String(36), ForeignKey("paim_cases.case_id"), nullable=False),
+    Column(
+        "decision_version_id",
+        String(36),
+        ForeignKey("decision_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "configuration_id",
+        String(36),
+        ForeignKey("managed_configurations.configuration_id"),
+        nullable=False,
+    ),
+    Column(
+        "configuration_version_id",
+        String(36),
+        ForeignKey("managed_configuration_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "uncertainty_version_id",
+        String(36),
+        ForeignKey("uncertainty_classification_versions.version_id"),
+        nullable=False,
+    ),
+    Column("owner_actor_id", String(36), ForeignKey("paim_actors.actor_id"), nullable=False),
+    Column(
+        "owner_assignment_version_id",
+        String(36),
+        ForeignKey("role_assignment_versions.version_id"),
+        nullable=True,
+    ),
+    Column("accountable_mechanism", Text, nullable=True),
+    Column("status", Text, nullable=False),
+    Column(
+        "successor_decision_version_id",
+        String(36),
+        ForeignKey("decision_versions.version_id"),
+        nullable=True,
+    ),
+    CheckConstraint(
+        "status IN ('PROPOSED','ACTIVE','AWAITING_EVIDENCE','COMPLETED','INCONCLUSIVE',"
+        "'CANCELLED','SUPERSEDED')",
+        name="ck_learning_item_status",
+    ),
+    CheckConstraint(
+        "(owner_assignment_version_id IS NOT NULL AND accountable_mechanism IS NULL) OR "
+        "(owner_assignment_version_id IS NULL AND accountable_mechanism IS NOT NULL)",
+        name="ck_learning_item_accountability",
+    ),
+)
+Index(
+    "ix_learning_item_decision",
+    learning_item_versions.c.case_id,
+    learning_item_versions.c.decision_version_id,
+)
+learning_item_evidence = Table(
+    "learning_item_evidence",
+    metadata,
+    Column(
+        "learning_item_version_id",
+        String(36),
+        ForeignKey("learning_item_versions.version_id"),
+        primary_key=True,
+    ),
+    Column(
+        "evidence_version_id",
+        String(36),
+        ForeignKey("evidence_versions.version_id"),
+        primary_key=True,
+    ),
+)
+
 IMMUTABILITY_TRIGGERS: tuple[str, ...] = (
     """
     CREATE TRIGGER prevent_finalized_version_update

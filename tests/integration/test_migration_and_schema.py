@@ -25,7 +25,7 @@ def test_alembic_head_foreign_keys_and_immutability_triggers_exist(
     with sqlite_store.engine.connect() as connection:
         assert connection.exec_driver_sql("PRAGMA foreign_keys").scalar_one() == 1
         assert connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one() == (
-            "0004_increment_4"
+            "0005_increment_5"
         )
         trigger_names = set(
             connection.execute(
@@ -138,7 +138,7 @@ def test_upgrade_from_increment_2_revision_to_increment_3_head(tmp_path: Path) -
         with engine.connect() as connection:
             assert (
                 connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
-                == "0004_increment_4"
+                == "0005_increment_5"
             )
     finally:
         engine.dispose()
@@ -216,7 +216,7 @@ def test_increment_2_schema_tables_constraints_indexes_and_upgrade_from_incremen
         with engine.connect() as connection:
             assert connection.execute(
                 text("SELECT version_num FROM alembic_version")
-            ).scalar_one() == ("0004_increment_4")
+            ).scalar_one() == ("0005_increment_5")
     finally:
         engine.dispose()
 
@@ -345,7 +345,121 @@ def test_upgrade_from_increment_3_revision_to_increment_4_head(tmp_path: Path) -
         with engine.connect() as connection:
             assert (
                 connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
-                == "0004_increment_4"
+                == "0005_increment_5"
+            )
+    finally:
+        engine.dispose()
+
+
+def test_increment_5_normalized_schema_constraints_indexes_triggers_and_foreign_keys(
+    sqlite_store: SQLiteIntegrityStore,
+) -> None:
+    inspector = inspect(sqlite_store.engine)
+    increment_5_tables = {
+        "decision_preauthorized_activation_mechanisms",
+        "intervention_records",
+        "intervention_versions",
+        "obligation_set_records",
+        "obligation_set_versions",
+        "obligation_records",
+        "obligation_versions",
+        "completion_result_records",
+        "completion_result_versions",
+        "completion_result_criteria",
+        "completion_result_evidence",
+        "completion_acceptance_records",
+        "completion_acceptance_versions",
+        "completion_acceptance_delegations",
+        "intervention_replacement_records",
+        "intervention_replacement_versions",
+        "continued_validity_records",
+        "continued_validity_versions",
+        "prerequisite_evaluation_basis_records",
+        "prerequisite_evaluation_basis_versions",
+        "prerequisite_evaluation_basis_items",
+        "activation_authorization_records",
+        "activation_authorization_versions",
+        "activation_authorization_delegations",
+        "target_activation_events",
+        "learning_item_records",
+        "learning_item_versions",
+        "learning_item_evidence",
+    }
+    assert increment_5_tables <= set(inspector.get_table_names())
+    assert {item["name"] for item in inspector.get_check_constraints("intervention_versions")} >= {
+        "ck_intervention_status",
+        "ck_intervention_accountability",
+    }
+    assert {
+        item["name"] for item in inspector.get_check_constraints("completion_acceptance_versions")
+    } >= {
+        "ck_completion_acceptance_outcome",
+        "ck_completion_acceptance_status",
+        "ck_completion_acceptance_accountability",
+    }
+    assert {
+        item["name"]
+        for item in inspector.get_check_constraints("activation_authorization_versions")
+    } >= {"ck_activation_authority_path"}
+    assert {item["name"] for item in inspector.get_indexes("obligation_versions")} >= {
+        "ix_obligation_set_type"
+    }
+    acceptance_foreign_keys = {
+        tuple(item["constrained_columns"])
+        for item in inspector.get_foreign_keys("completion_acceptance_versions")
+    }
+    assert {
+        ("version_id",),
+        ("obligation_version_id",),
+        ("intervention_version_id",),
+        ("completion_result_version_id",),
+        ("decision_version_id",),
+        ("configuration_version_id",),
+        ("accountable_actor_id",),
+        ("accountable_assignment_version_id",),
+    } <= acceptance_foreign_keys
+    with sqlite_store.engine.connect() as connection:
+        triggers = set(
+            connection.execute(
+                text("SELECT name FROM sqlite_master WHERE type = 'trigger'")
+            ).scalars()
+        )
+    for table in increment_5_tables:
+        assert f"prevent_{table}_update" in triggers
+        assert f"prevent_{table}_delete" in triggers
+    with (
+        sqlite_store.engine.begin() as connection,
+        pytest.raises(DBAPIError, match="FOREIGN KEY"),
+    ):
+        connection.execute(
+            text(
+                """INSERT INTO completion_result_evidence
+                (result_version_id, evidence_version_id)
+                VALUES ('missing-result', 'missing-evidence')"""
+            )
+        )
+
+
+def test_upgrade_from_increment_4_revision_to_increment_5_head(tmp_path: Path) -> None:
+    database_path = (tmp_path / "upgrade-from-increment-4.sqlite3").as_posix()
+    database_url = f"sqlite+pysqlite:///{database_path}"
+    config = alembic_config(database_url)
+    command.upgrade(config, "0004_increment_4")
+    engine = create_engine(database_url)
+    try:
+        assert "intervention_versions" not in inspect(engine).get_table_names()
+        command.upgrade(config, "head")
+        assert {
+            "intervention_versions",
+            "completion_acceptance_versions",
+            "prerequisite_evaluation_basis_versions",
+            "activation_authorization_versions",
+            "learning_item_versions",
+        } <= set(inspect(engine).get_table_names())
+        with engine.connect() as connection:
+            assert (
+                connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
+                == "0005_increment_5"
             )
     finally:
         engine.dispose()

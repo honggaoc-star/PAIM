@@ -37,6 +37,20 @@ from paim.domain.increment4 import (
     DecisionStatus,
     IntegrationDetail,
     IntegrationStatus,
+    PreauthorizedActivationMechanismInput,
+)
+from paim.domain.increment5 import (
+    CompletionAcceptanceDetail,
+    CompletionAcceptanceOutcome,
+    CompletionAcceptanceStatus,
+    CompletionCriterionResult,
+    CompletionResultDetail,
+    CriterionOutcome,
+    InterventionDetail,
+    InterventionStatus,
+    ObligationDetail,
+    ObligationSetDetail,
+    RequirementType,
 )
 from paim.domain.models import (
     ConfigurationVersionContext,
@@ -76,6 +90,9 @@ from paim.persistence.ports import (
     WriterContention,
 )
 from paim.persistence.sqlite.schema import (
+    activation_authorization_delegations,
+    activation_authorization_records,
+    activation_authorization_versions,
     affected_use_references,
     analytical_input_versions,
     analytical_inputs,
@@ -97,13 +114,23 @@ from paim.persistence.sqlite.schema import (
     bounded_proceed_versions,
     candidate_disposition_versions,
     candidate_dispositions,
+    completion_acceptance_delegations,
+    completion_acceptance_records,
+    completion_acceptance_versions,
+    completion_result_criteria,
+    completion_result_evidence,
+    completion_result_records,
+    completion_result_versions,
     configuration_determinations,
+    continued_validity_records,
+    continued_validity_versions,
     decision_authority_gaps,
     decision_authority_records,
     decision_authorization_basis_records,
     decision_authorization_basis_versions,
     decision_authorization_delegations,
     decision_authorization_gaps,
+    decision_preauthorized_activation_mechanisms,
     decision_records,
     decision_uncertainty_links,
     decision_versions,
@@ -121,22 +148,37 @@ from paim.persistence.sqlite.schema import (
     integration_material_applicability,
     integration_records,
     integration_versions,
+    intervention_records,
+    intervention_replacement_records,
+    intervention_replacement_versions,
+    intervention_versions,
     lane_fitness_records,
     lane_fitness_versions,
+    learning_item_evidence,
+    learning_item_records,
+    learning_item_versions,
     managed_configuration_versions,
     managed_configurations,
     material_evidence_basis,
     metadata,
+    obligation_records,
+    obligation_set_records,
+    obligation_set_versions,
+    obligation_versions,
     paim_actor_versions,
     paim_actors,
     paim_case_links,
     paim_case_versions,
     paim_cases,
+    prerequisite_evaluation_basis_items,
+    prerequisite_evaluation_basis_records,
+    prerequisite_evaluation_basis_versions,
     record_versions,
     records,
     role_assignment_versions,
     role_assignments,
     status_events,
+    target_activation_events,
     uncertainty_classification_records,
     uncertainty_classification_versions,
     version_relationships,
@@ -2013,6 +2055,7 @@ class SQLiteIntegrityTransaction:
         authorization_effective_at: datetime,
         authority_gap_version_ids: tuple[RecordVersionId, ...],
         bounded_proceed_version_id: RecordVersionId | None,
+        preauthorized_activation_mechanisms: tuple[PreauthorizedActivationMechanismInput, ...],
     ) -> None:
         if not self._identity_exists(
             decision_authorization_basis_records,
@@ -2065,6 +2108,55 @@ class SQLiteIntegrityTransaction:
                     basis_version_id=str(version_id), gap_version_id=str(gap_id)
                 )
             )
+        self.add_preauthorized_activation_mechanisms(
+            basis_version_id=version_id,
+            mechanisms=preauthorized_activation_mechanisms,
+        )
+
+    def add_preauthorized_activation_mechanisms(
+        self,
+        *,
+        basis_version_id: RecordVersionId,
+        mechanisms: tuple[PreauthorizedActivationMechanismInput, ...],
+    ) -> None:
+        for mechanism in mechanisms:
+            self.connection.execute(
+                insert(decision_preauthorized_activation_mechanisms).values(
+                    mechanism_id=str(mechanism.mechanism_id),
+                    mechanism_version_id=str(mechanism.mechanism_version_id),
+                    basis_version_id=str(basis_version_id),
+                    rule_version=mechanism.rule_version,
+                    scope=mechanism.scope,
+                    authority_source=mechanism.authority_source,
+                    limits_json=json.dumps(mechanism.limits),
+                    effective_from_us=to_epoch_microseconds(mechanism.effective.start),
+                    effective_to_us=(
+                        to_epoch_microseconds(mechanism.effective.end)
+                        if mechanism.effective.end
+                        else None
+                    ),
+                )
+            )
+
+    def preauthorized_activation_mechanism(
+        self,
+        *,
+        basis_version_id: RecordVersionId,
+        mechanism_version_id: RecordVersionId,
+    ) -> dict[str, object] | None:
+        row = (
+            self.connection.execute(
+                select(decision_preauthorized_activation_mechanisms).where(
+                    decision_preauthorized_activation_mechanisms.c.basis_version_id
+                    == str(basis_version_id),
+                    decision_preauthorized_activation_mechanisms.c.mechanism_version_id
+                    == str(mechanism_version_id),
+                )
+            )
+            .mappings()
+            .first()
+        )
+        return dict(row) if row is not None else None
 
     def authorization_basis_detail(
         self, version_id: RecordVersionId
@@ -2128,6 +2220,756 @@ class SQLiteIntegrityTransaction:
             )
         ).scalar_one_or_none()
         return cast("str | None", row)
+
+    def add_intervention(
+        self,
+        *,
+        intervention_id: RecordId,
+        version_id: RecordVersionId,
+        case_id: RecordId,
+        decision_version_id: RecordVersionId,
+        configuration_id: RecordId,
+        configuration_version_id: RecordVersionId,
+        owner_actor_id: RecordId,
+        owner_assignment_version_id: RecordVersionId | None,
+        accountable_mechanism: str | None,
+        status: str,
+    ) -> None:
+        if not self._identity_exists(
+            intervention_records, intervention_records.c.intervention_id, str(intervention_id)
+        ):
+            self.connection.execute(
+                insert(intervention_records).values(intervention_id=str(intervention_id))
+            )
+        self.connection.execute(
+            insert(intervention_versions).values(
+                version_id=str(version_id),
+                intervention_id=str(intervention_id),
+                case_id=str(case_id),
+                decision_version_id=str(decision_version_id),
+                configuration_id=str(configuration_id),
+                configuration_version_id=str(configuration_version_id),
+                owner_actor_id=str(owner_actor_id),
+                owner_assignment_version_id=(
+                    str(owner_assignment_version_id) if owner_assignment_version_id else None
+                ),
+                accountable_mechanism=accountable_mechanism,
+                status=status,
+            )
+        )
+
+    def intervention_detail(self, version_id: RecordVersionId) -> InterventionDetail | None:
+        row = (
+            self.connection.execute(
+                select(intervention_versions).where(
+                    intervention_versions.c.version_id == str(version_id)
+                )
+            )
+            .mappings()
+            .first()
+        )
+        if row is None:
+            return None
+        return InterventionDetail(
+            RecordId.parse(cast("str", row["intervention_id"])),
+            version_id,
+            RecordId.parse(cast("str", row["case_id"])),
+            RecordVersionId.parse(cast("str", row["decision_version_id"])),
+            RecordId.parse(cast("str", row["configuration_id"])),
+            RecordVersionId.parse(cast("str", row["configuration_version_id"])),
+            RecordId.parse(cast("str", row["owner_actor_id"])),
+            InterventionStatus(cast("str", row["status"])),
+        )
+
+    def add_obligation_set(
+        self,
+        *,
+        obligation_set_id: RecordId,
+        version_id: RecordVersionId,
+        decision_id: RecordId,
+        decision_version_id: RecordVersionId,
+        case_id: RecordId,
+        configuration_id: RecordId,
+        configuration_version_id: RecordVersionId,
+    ) -> None:
+        if not self._identity_exists(
+            obligation_set_records,
+            obligation_set_records.c.obligation_set_id,
+            str(obligation_set_id),
+        ):
+            self.connection.execute(
+                insert(obligation_set_records).values(obligation_set_id=str(obligation_set_id))
+            )
+        self.connection.execute(
+            insert(obligation_set_versions).values(
+                version_id=str(version_id),
+                obligation_set_id=str(obligation_set_id),
+                decision_id=str(decision_id),
+                decision_version_id=str(decision_version_id),
+                case_id=str(case_id),
+                configuration_id=str(configuration_id),
+                configuration_version_id=str(configuration_version_id),
+            )
+        )
+
+    def add_obligation(
+        self,
+        *,
+        obligation_id: RecordId,
+        version_id: RecordVersionId,
+        obligation_set_version_id: RecordVersionId,
+        decision_version_id: RecordVersionId,
+        configuration_version_id: RecordVersionId,
+        intervention_id: RecordId,
+        intervention_version_id: RecordVersionId,
+        requirement_type: str,
+        post_operation_permitted: bool,
+        post_operation_timing_conditions: tuple[str, ...],
+    ) -> None:
+        if not self._identity_exists(
+            obligation_records, obligation_records.c.obligation_id, str(obligation_id)
+        ):
+            self.connection.execute(
+                insert(obligation_records).values(obligation_id=str(obligation_id))
+            )
+        self.connection.execute(
+            insert(obligation_versions).values(
+                version_id=str(version_id),
+                obligation_id=str(obligation_id),
+                obligation_set_version_id=str(obligation_set_version_id),
+                decision_version_id=str(decision_version_id),
+                configuration_version_id=str(configuration_version_id),
+                intervention_id=str(intervention_id),
+                intervention_version_id=str(intervention_version_id),
+                requirement_type=requirement_type,
+                post_operation_permitted=post_operation_permitted,
+                post_operation_timing_conditions_json=json.dumps(post_operation_timing_conditions),
+            )
+        )
+
+    def obligation_set_detail(self, version_id: RecordVersionId) -> ObligationSetDetail | None:
+        row = (
+            self.connection.execute(
+                select(obligation_set_versions).where(
+                    obligation_set_versions.c.version_id == str(version_id)
+                )
+            )
+            .mappings()
+            .first()
+        )
+        if row is None:
+            return None
+        obligations = self.connection.execute(
+            select(obligation_versions.c.version_id).where(
+                obligation_versions.c.obligation_set_version_id == str(version_id)
+            )
+        ).scalars()
+        return ObligationSetDetail(
+            RecordId.parse(cast("str", row["obligation_set_id"])),
+            version_id,
+            RecordId.parse(cast("str", row["decision_id"])),
+            RecordVersionId.parse(cast("str", row["decision_version_id"])),
+            RecordId.parse(cast("str", row["case_id"])),
+            RecordId.parse(cast("str", row["configuration_id"])),
+            RecordVersionId.parse(cast("str", row["configuration_version_id"])),
+            tuple(RecordVersionId.parse(cast("str", item)) for item in obligations),
+        )
+
+    def obligation_set_versions(
+        self,
+        *,
+        decision_version_id: RecordVersionId,
+        configuration_version_id: RecordVersionId,
+    ) -> tuple[RecordVersionId, ...]:
+        rows = self.connection.execute(
+            select(obligation_set_versions.c.version_id).where(
+                obligation_set_versions.c.decision_version_id == str(decision_version_id),
+                obligation_set_versions.c.configuration_version_id == str(configuration_version_id),
+            )
+        ).scalars()
+        return tuple(RecordVersionId.parse(cast("str", item)) for item in rows)
+
+    def obligation_detail(self, version_id: RecordVersionId) -> ObligationDetail | None:
+        row = (
+            self.connection.execute(
+                select(obligation_versions).where(
+                    obligation_versions.c.version_id == str(version_id)
+                )
+            )
+            .mappings()
+            .first()
+        )
+        if row is None:
+            return None
+        return ObligationDetail(
+            RecordId.parse(cast("str", row["obligation_id"])),
+            version_id,
+            RecordVersionId.parse(cast("str", row["obligation_set_version_id"])),
+            RecordVersionId.parse(cast("str", row["decision_version_id"])),
+            RecordVersionId.parse(cast("str", row["configuration_version_id"])),
+            RecordId.parse(cast("str", row["intervention_id"])),
+            RecordVersionId.parse(cast("str", row["intervention_version_id"])),
+            RequirementType(cast("str", row["requirement_type"])),
+            bool(row["post_operation_permitted"]),
+            tuple(
+                cast(
+                    "list[str]",
+                    json.loads(cast("str", row["post_operation_timing_conditions_json"])),
+                )
+            ),
+        )
+
+    def add_completion_result(
+        self,
+        *,
+        result_id: RecordId,
+        version_id: RecordVersionId,
+        obligation_version_id: RecordVersionId,
+        intervention_version_id: RecordVersionId,
+        decision_version_id: RecordVersionId,
+        configuration_version_id: RecordVersionId,
+        criteria: tuple[CompletionCriterionResult, ...],
+        evidence_version_ids: tuple[RecordVersionId, ...],
+        performer_actor_id: RecordId,
+    ) -> None:
+        if not self._identity_exists(
+            completion_result_records, completion_result_records.c.result_id, str(result_id)
+        ):
+            self.connection.execute(
+                insert(completion_result_records).values(result_id=str(result_id))
+            )
+        self.connection.execute(
+            insert(completion_result_versions).values(
+                version_id=str(version_id),
+                result_id=str(result_id),
+                obligation_version_id=str(obligation_version_id),
+                intervention_version_id=str(intervention_version_id),
+                decision_version_id=str(decision_version_id),
+                configuration_version_id=str(configuration_version_id),
+                performer_actor_id=str(performer_actor_id),
+            )
+        )
+        for ordinal, criterion in enumerate(criteria):
+            self.connection.execute(
+                insert(completion_result_criteria).values(
+                    result_version_id=str(version_id),
+                    ordinal=ordinal,
+                    criterion=criterion.criterion,
+                    outcome=criterion.outcome.value,
+                    rationale=criterion.rationale,
+                )
+            )
+        for evidence_id in evidence_version_ids:
+            self.connection.execute(
+                insert(completion_result_evidence).values(
+                    result_version_id=str(version_id), evidence_version_id=str(evidence_id)
+                )
+            )
+
+    def completion_result_detail(
+        self, version_id: RecordVersionId
+    ) -> CompletionResultDetail | None:
+        row = (
+            self.connection.execute(
+                select(completion_result_versions).where(
+                    completion_result_versions.c.version_id == str(version_id)
+                )
+            )
+            .mappings()
+            .first()
+        )
+        if row is None:
+            return None
+        criteria_rows = (
+            self.connection.execute(
+                select(completion_result_criteria)
+                .where(completion_result_criteria.c.result_version_id == str(version_id))
+                .order_by(completion_result_criteria.c.ordinal)
+            )
+            .mappings()
+            .all()
+        )
+        evidence_rows = self.connection.execute(
+            select(completion_result_evidence.c.evidence_version_id).where(
+                completion_result_evidence.c.result_version_id == str(version_id)
+            )
+        ).scalars()
+        return CompletionResultDetail(
+            RecordId.parse(cast("str", row["result_id"])),
+            version_id,
+            RecordVersionId.parse(cast("str", row["obligation_version_id"])),
+            RecordVersionId.parse(cast("str", row["intervention_version_id"])),
+            RecordVersionId.parse(cast("str", row["decision_version_id"])),
+            RecordVersionId.parse(cast("str", row["configuration_version_id"])),
+            tuple(
+                CompletionCriterionResult(
+                    cast("str", item["criterion"]),
+                    CriterionOutcome(cast("str", item["outcome"])),
+                    cast("str", item["rationale"]),
+                )
+                for item in criteria_rows
+            ),
+            tuple(RecordVersionId.parse(cast("str", item)) for item in evidence_rows),
+        )
+
+    def completion_result_versions(
+        self, *, obligation_version_id: RecordVersionId
+    ) -> tuple[RecordVersionId, ...]:
+        rows = self.connection.execute(
+            select(completion_result_versions.c.version_id).where(
+                completion_result_versions.c.obligation_version_id == str(obligation_version_id)
+            )
+        ).scalars()
+        return tuple(RecordVersionId.parse(cast("str", item)) for item in rows)
+
+    def add_completion_acceptance(
+        self,
+        *,
+        acceptance_id: RecordId,
+        version_id: RecordVersionId,
+        obligation_version_id: RecordVersionId,
+        intervention_version_id: RecordVersionId,
+        completion_result_version_id: RecordVersionId,
+        decision_version_id: RecordVersionId,
+        configuration_version_id: RecordVersionId,
+        outcome: str,
+        status: str,
+        accountable_actor_id: RecordId,
+        accountable_assignment_version_id: RecordVersionId | None,
+        accountable_mechanism: str | None,
+        delegation_chain_version_ids: tuple[RecordVersionId, ...],
+    ) -> None:
+        if not self._identity_exists(
+            completion_acceptance_records,
+            completion_acceptance_records.c.acceptance_id,
+            str(acceptance_id),
+        ):
+            self.connection.execute(
+                insert(completion_acceptance_records).values(acceptance_id=str(acceptance_id))
+            )
+        self.connection.execute(
+            insert(completion_acceptance_versions).values(
+                version_id=str(version_id),
+                acceptance_id=str(acceptance_id),
+                obligation_version_id=str(obligation_version_id),
+                intervention_version_id=str(intervention_version_id),
+                completion_result_version_id=str(completion_result_version_id),
+                decision_version_id=str(decision_version_id),
+                configuration_version_id=str(configuration_version_id),
+                outcome=outcome,
+                status=status,
+                accountable_actor_id=str(accountable_actor_id),
+                accountable_assignment_version_id=(
+                    str(accountable_assignment_version_id)
+                    if accountable_assignment_version_id
+                    else None
+                ),
+                accountable_mechanism=accountable_mechanism,
+            )
+        )
+        for ordinal, assignment_id in enumerate(delegation_chain_version_ids):
+            self.connection.execute(
+                insert(completion_acceptance_delegations).values(
+                    acceptance_version_id=str(version_id),
+                    ordinal=ordinal,
+                    assignment_version_id=str(assignment_id),
+                )
+            )
+
+    def completion_acceptance_detail(
+        self, version_id: RecordVersionId
+    ) -> CompletionAcceptanceDetail | None:
+        row = (
+            self.connection.execute(
+                select(completion_acceptance_versions).where(
+                    completion_acceptance_versions.c.version_id == str(version_id)
+                )
+            )
+            .mappings()
+            .first()
+        )
+        if row is None:
+            return None
+        return CompletionAcceptanceDetail(
+            RecordId.parse(cast("str", row["acceptance_id"])),
+            version_id,
+            RecordVersionId.parse(cast("str", row["obligation_version_id"])),
+            RecordVersionId.parse(cast("str", row["intervention_version_id"])),
+            RecordVersionId.parse(cast("str", row["completion_result_version_id"])),
+            RecordVersionId.parse(cast("str", row["decision_version_id"])),
+            RecordVersionId.parse(cast("str", row["configuration_version_id"])),
+            CompletionAcceptanceOutcome(cast("str", row["outcome"])),
+            RecordId.parse(cast("str", row["accountable_actor_id"])),
+            (
+                RecordVersionId.parse(cast("str", row["accountable_assignment_version_id"]))
+                if row["accountable_assignment_version_id"]
+                else None
+            ),
+            cast("str | None", row["accountable_mechanism"]),
+            CompletionAcceptanceStatus(cast("str", row["status"])),
+        )
+
+    def completion_acceptance_versions(
+        self, *, obligation_version_id: RecordVersionId
+    ) -> tuple[RecordVersionId, ...]:
+        rows = self.connection.execute(
+            select(completion_acceptance_versions.c.version_id).where(
+                completion_acceptance_versions.c.obligation_version_id == str(obligation_version_id)
+            )
+        ).scalars()
+        return tuple(RecordVersionId.parse(cast("str", item)) for item in rows)
+
+    def add_replacement(
+        self,
+        *,
+        replacement_id: RecordId,
+        version_id: RecordVersionId,
+        obligation_version_id: RecordVersionId,
+        predecessor_intervention_version_id: RecordVersionId,
+        replacement_intervention_version_id: RecordVersionId,
+        substantive_change: bool,
+        successor_decision_version_id: RecordVersionId | None,
+    ) -> None:
+        if not self._identity_exists(
+            intervention_replacement_records,
+            intervention_replacement_records.c.replacement_id,
+            str(replacement_id),
+        ):
+            self.connection.execute(
+                insert(intervention_replacement_records).values(replacement_id=str(replacement_id))
+            )
+        self.connection.execute(
+            insert(intervention_replacement_versions).values(
+                version_id=str(version_id),
+                replacement_id=str(replacement_id),
+                obligation_version_id=str(obligation_version_id),
+                predecessor_intervention_version_id=str(predecessor_intervention_version_id),
+                replacement_intervention_version_id=str(replacement_intervention_version_id),
+                substantive_change=substantive_change,
+                successor_decision_version_id=(
+                    str(successor_decision_version_id) if successor_decision_version_id else None
+                ),
+            )
+        )
+
+    def replacement_versions(
+        self, *, obligation_version_id: RecordVersionId
+    ) -> tuple[RecordVersionId, ...]:
+        rows = self.connection.execute(
+            select(intervention_replacement_versions.c.version_id).where(
+                intervention_replacement_versions.c.obligation_version_id
+                == str(obligation_version_id)
+            )
+        ).scalars()
+        return tuple(RecordVersionId.parse(cast("str", item)) for item in rows)
+
+    def replacement_detail(self, version_id: RecordVersionId) -> dict[str, object] | None:
+        row = (
+            self.connection.execute(
+                select(intervention_replacement_versions).where(
+                    intervention_replacement_versions.c.version_id == str(version_id)
+                )
+            )
+            .mappings()
+            .first()
+        )
+        return dict(row) if row is not None else None
+
+    def add_reuse_determination(
+        self,
+        *,
+        determination_id: RecordId,
+        version_id: RecordVersionId,
+        successor_obligation_version_id: RecordVersionId,
+        prior_completion_result_version_id: RecordVersionId,
+        prior_acceptance_version_id: RecordVersionId,
+        accountable_actor_id: RecordId,
+        accountable_assignment_version_id: RecordVersionId | None,
+        accountable_mechanism: str | None,
+        all_coverage_established: bool,
+    ) -> None:
+        if not self._identity_exists(
+            continued_validity_records,
+            continued_validity_records.c.determination_id,
+            str(determination_id),
+        ):
+            self.connection.execute(
+                insert(continued_validity_records).values(determination_id=str(determination_id))
+            )
+        self.connection.execute(
+            insert(continued_validity_versions).values(
+                version_id=str(version_id),
+                determination_id=str(determination_id),
+                successor_obligation_version_id=str(successor_obligation_version_id),
+                prior_completion_result_version_id=str(prior_completion_result_version_id),
+                prior_acceptance_version_id=str(prior_acceptance_version_id),
+                accountable_actor_id=str(accountable_actor_id),
+                accountable_assignment_version_id=(
+                    str(accountable_assignment_version_id)
+                    if accountable_assignment_version_id
+                    else None
+                ),
+                accountable_mechanism=accountable_mechanism,
+                all_coverage_established=all_coverage_established,
+            )
+        )
+
+    def reuse_determination_versions(
+        self, *, successor_obligation_version_id: RecordVersionId
+    ) -> tuple[RecordVersionId, ...]:
+        rows = self.connection.execute(
+            select(continued_validity_versions.c.version_id).where(
+                continued_validity_versions.c.successor_obligation_version_id
+                == str(successor_obligation_version_id)
+            )
+        ).scalars()
+        return tuple(RecordVersionId.parse(cast("str", item)) for item in rows)
+
+    def reuse_determination_detail(self, version_id: RecordVersionId) -> dict[str, object] | None:
+        row = (
+            self.connection.execute(
+                select(continued_validity_versions).where(
+                    continued_validity_versions.c.version_id == str(version_id)
+                )
+            )
+            .mappings()
+            .first()
+        )
+        return dict(row) if row is not None else None
+
+    def add_prerequisite_evaluation_basis(
+        self,
+        *,
+        basis_id: RecordId,
+        version_id: RecordVersionId,
+        decision_version_id: RecordVersionId,
+        configuration_version_id: RecordVersionId,
+        boundary_snapshot_version_id: RecordVersionId,
+        obligation_set_version_id: RecordVersionId,
+        aggregate_result: str,
+        effective_at: datetime,
+        knowledge_cutoff: datetime,
+    ) -> None:
+        if not self._identity_exists(
+            prerequisite_evaluation_basis_records,
+            prerequisite_evaluation_basis_records.c.basis_id,
+            str(basis_id),
+        ):
+            self.connection.execute(
+                insert(prerequisite_evaluation_basis_records).values(basis_id=str(basis_id))
+            )
+        self.connection.execute(
+            insert(prerequisite_evaluation_basis_versions).values(
+                version_id=str(version_id),
+                basis_id=str(basis_id),
+                decision_version_id=str(decision_version_id),
+                configuration_version_id=str(configuration_version_id),
+                boundary_snapshot_version_id=str(boundary_snapshot_version_id),
+                obligation_set_version_id=str(obligation_set_version_id),
+                aggregate_result=aggregate_result,
+                effective_at_us=to_epoch_microseconds(effective_at),
+                knowledge_cutoff_us=to_epoch_microseconds(knowledge_cutoff),
+            )
+        )
+
+    def add_prerequisite_basis_item(
+        self,
+        *,
+        basis_version_id: RecordVersionId,
+        ordinal: int,
+        obligation_version_id: RecordVersionId,
+        intervention_version_id: RecordVersionId | None,
+        completion_result_version_id: RecordVersionId | None,
+        completion_acceptance_version_id: RecordVersionId | None,
+        replacement_version_id: RecordVersionId | None,
+        reuse_determination_version_id: RecordVersionId | None,
+        result: str,
+        diagnostics: tuple[str, ...],
+    ) -> None:
+        self.connection.execute(
+            insert(prerequisite_evaluation_basis_items).values(
+                basis_version_id=str(basis_version_id),
+                ordinal=ordinal,
+                obligation_version_id=str(obligation_version_id),
+                intervention_version_id=(
+                    str(intervention_version_id) if intervention_version_id else None
+                ),
+                completion_result_version_id=(
+                    str(completion_result_version_id) if completion_result_version_id else None
+                ),
+                completion_acceptance_version_id=(
+                    str(completion_acceptance_version_id)
+                    if completion_acceptance_version_id
+                    else None
+                ),
+                replacement_version_id=(
+                    str(replacement_version_id) if replacement_version_id else None
+                ),
+                reuse_determination_version_id=(
+                    str(reuse_determination_version_id) if reuse_determination_version_id else None
+                ),
+                result=result,
+                diagnostics_json=json.dumps(diagnostics),
+            )
+        )
+
+    def add_activation_authorization(
+        self,
+        *,
+        authorization_id: RecordId,
+        version_id: RecordVersionId,
+        decision_version_id: RecordVersionId,
+        configuration_version_id: RecordVersionId,
+        operating_state: str,
+        boundary_snapshot_version_id: RecordVersionId,
+        prerequisite_basis_version_id: RecordVersionId,
+        authority_kind: str,
+        authority_actor_id: RecordId | None,
+        authority_assignment_version_id: RecordVersionId | None,
+        mechanism_version_id: RecordVersionId | None,
+        decision_authorization_basis_version_id: RecordVersionId,
+        authority_scope: str,
+        authority_limits: tuple[str, ...],
+        authority_effective_from: datetime,
+        authority_effective_to: datetime | None,
+        delegation_chain_version_ids: tuple[RecordVersionId, ...],
+        activation_effective_at: datetime,
+    ) -> None:
+        if not self._identity_exists(
+            activation_authorization_records,
+            activation_authorization_records.c.authorization_id,
+            str(authorization_id),
+        ):
+            self.connection.execute(
+                insert(activation_authorization_records).values(
+                    authorization_id=str(authorization_id)
+                )
+            )
+        self.connection.execute(
+            insert(activation_authorization_versions).values(
+                version_id=str(version_id),
+                authorization_id=str(authorization_id),
+                decision_version_id=str(decision_version_id),
+                configuration_version_id=str(configuration_version_id),
+                operating_state=operating_state,
+                boundary_snapshot_version_id=str(boundary_snapshot_version_id),
+                prerequisite_basis_version_id=str(prerequisite_basis_version_id),
+                authority_kind=authority_kind,
+                authority_actor_id=str(authority_actor_id) if authority_actor_id else None,
+                authority_assignment_version_id=(
+                    str(authority_assignment_version_id)
+                    if authority_assignment_version_id
+                    else None
+                ),
+                mechanism_version_id=(str(mechanism_version_id) if mechanism_version_id else None),
+                decision_authorization_basis_version_id=str(
+                    decision_authorization_basis_version_id
+                ),
+                authority_scope=authority_scope,
+                authority_limits_json=json.dumps(authority_limits),
+                authority_effective_from_us=to_epoch_microseconds(authority_effective_from),
+                authority_effective_to_us=(
+                    to_epoch_microseconds(authority_effective_to)
+                    if authority_effective_to
+                    else None
+                ),
+                activation_effective_at_us=to_epoch_microseconds(activation_effective_at),
+            )
+        )
+        for ordinal, assignment_id in enumerate(delegation_chain_version_ids):
+            self.connection.execute(
+                insert(activation_authorization_delegations).values(
+                    authorization_version_id=str(version_id),
+                    ordinal=ordinal,
+                    assignment_version_id=str(assignment_id),
+                )
+            )
+
+    def add_target_activation_event(
+        self,
+        *,
+        event_id: str,
+        case_id: RecordId,
+        decision_version_id: RecordVersionId,
+        configuration_version_id: RecordVersionId,
+        boundary_snapshot_version_id: RecordVersionId,
+        prerequisite_basis_version_id: RecordVersionId,
+        activation_authorization_version_id: RecordVersionId,
+        operating_state: str,
+        lifecycle_event_id: str,
+        effective_at: datetime,
+        recorded_at: datetime,
+        knowledge_cutoff: datetime,
+    ) -> None:
+        self.connection.execute(
+            insert(target_activation_events).values(
+                event_id=event_id,
+                case_id=str(case_id),
+                decision_version_id=str(decision_version_id),
+                configuration_version_id=str(configuration_version_id),
+                boundary_snapshot_version_id=str(boundary_snapshot_version_id),
+                prerequisite_basis_version_id=str(prerequisite_basis_version_id),
+                activation_authorization_version_id=str(activation_authorization_version_id),
+                operating_state=operating_state,
+                lifecycle_event_id=lifecycle_event_id,
+                effective_at_us=to_epoch_microseconds(effective_at),
+                recorded_at_us=to_epoch_microseconds(recorded_at),
+                knowledge_cutoff_us=to_epoch_microseconds(knowledge_cutoff),
+            )
+        )
+
+    def add_learning_item(
+        self,
+        *,
+        learning_item_id: RecordId,
+        version_id: RecordVersionId,
+        case_id: RecordId,
+        decision_version_id: RecordVersionId,
+        configuration_id: RecordId,
+        configuration_version_id: RecordVersionId,
+        uncertainty_version_id: RecordVersionId,
+        owner_actor_id: RecordId,
+        owner_assignment_version_id: RecordVersionId | None,
+        accountable_mechanism: str | None,
+        status: str,
+        evidence_version_ids: tuple[RecordVersionId, ...],
+        successor_decision_version_id: RecordVersionId | None,
+    ) -> None:
+        if not self._identity_exists(
+            learning_item_records,
+            learning_item_records.c.learning_item_id,
+            str(learning_item_id),
+        ):
+            self.connection.execute(
+                insert(learning_item_records).values(learning_item_id=str(learning_item_id))
+            )
+        self.connection.execute(
+            insert(learning_item_versions).values(
+                version_id=str(version_id),
+                learning_item_id=str(learning_item_id),
+                case_id=str(case_id),
+                decision_version_id=str(decision_version_id),
+                configuration_id=str(configuration_id),
+                configuration_version_id=str(configuration_version_id),
+                uncertainty_version_id=str(uncertainty_version_id),
+                owner_actor_id=str(owner_actor_id),
+                owner_assignment_version_id=(
+                    str(owner_assignment_version_id) if owner_assignment_version_id else None
+                ),
+                accountable_mechanism=accountable_mechanism,
+                status=status,
+                successor_decision_version_id=(
+                    str(successor_decision_version_id) if successor_decision_version_id else None
+                ),
+            )
+        )
+        for evidence_id in evidence_version_ids:
+            self.connection.execute(
+                insert(learning_item_evidence).values(
+                    learning_item_version_id=str(version_id),
+                    evidence_version_id=str(evidence_id),
+                )
+            )
 
     def add_status_event(self, status: StatusEvent) -> None:
         self._connection.execute(

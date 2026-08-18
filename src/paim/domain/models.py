@@ -18,6 +18,8 @@ class CaseLifecycleState(StrEnum):
     READY_FOR_INTEGRATION = "ready_for_integration"
     DECISION_PENDING = "decision_pending"
     DECIDED = "decided"
+    INTERVENTION_IN_PROGRESS = "intervention_in_progress"
+    OPERATING_OBSERVING = "operating_observing"
 
 
 class ConfigurationMaturity(StrEnum):

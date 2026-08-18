@@ -13,6 +13,7 @@ from paim.domain.increment4 import (
     BoundarySnapshotDetail,
     DecisionDetail,
     IntegrationDetail,
+    PreauthorizedActivationMechanismInput,
 )
 from paim.integrity import RecordId, RecordVersionId
 
@@ -179,6 +180,7 @@ class Increment4Transaction(Increment3Transaction, Protocol):
         authorization_effective_at: datetime,
         authority_gap_version_ids: tuple[RecordVersionId, ...],
         bounded_proceed_version_id: RecordVersionId | None,
+        preauthorized_activation_mechanisms: tuple[PreauthorizedActivationMechanismInput, ...],
     ) -> None: ...
 
     def authorization_basis_detail(
