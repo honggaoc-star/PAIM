@@ -5,6 +5,7 @@ from paim.application.increment2 import (
     DomainRuleViolation,
     Increment2ApplicationService,
 )
+from paim.application.increment3 import Increment3ApplicationService
 from paim.application.service import (
     CommitStatusCommand,
     CommitVersionCommand,
@@ -20,6 +21,7 @@ __all__ = [
     "DomainRuleViolation",
     "IdempotencyKeyReuseConflict",
     "Increment2ApplicationService",
+    "Increment3ApplicationService",
     "IntegrityApplicationService",
     "StalePrecondition",
 ]

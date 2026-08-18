@@ -25,7 +25,7 @@ def test_alembic_head_foreign_keys_and_immutability_triggers_exist(
     with sqlite_store.engine.connect() as connection:
         assert connection.exec_driver_sql("PRAGMA foreign_keys").scalar_one() == 1
         assert connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one() == (
-            "0002_increment_2"
+            "0003_increment_3"
         )
         trigger_names = set(
             connection.execute(
@@ -43,6 +43,54 @@ def test_alembic_head_foreign_keys_and_immutability_triggers_exist(
         "prevent_governing_configuration_designations_update",
         "prevent_role_assignment_versions_update",
     } <= trigger_names
+
+
+def test_increment_3_normalized_schema_constraints_indexes_and_triggers(
+    sqlite_store: SQLiteIntegrityStore,
+) -> None:
+    inspector = inspect(sqlite_store.engine)
+    increment_3_tables = {
+        "evidence_records",
+        "evidence_versions",
+        "authority_records",
+        "authority_record_versions",
+        "authority_gaps",
+        "authority_gap_versions",
+        "exact_evidence_links",
+        "affected_use_references",
+        "evidence_applicability_records",
+        "evidence_applicability_versions",
+        "analytical_inputs",
+        "analytical_input_versions",
+        "candidate_dispositions",
+        "candidate_disposition_versions",
+        "lane_fitness_records",
+        "lane_fitness_versions",
+        "material_evidence_basis",
+        "input_acceptance_records",
+        "input_acceptance_versions",
+    }
+    assert increment_3_tables <= set(inspector.get_table_names())
+    assert {
+        constraint["name"]
+        for constraint in inspector.get_check_constraints("evidence_applicability_versions")
+    } >= {"ck_applicability_outcome", "ck_applicability_target_type"}
+    assert {
+        constraint["name"]
+        for constraint in inspector.get_check_constraints("analytical_input_versions")
+    } >= {"ck_analytical_input_version_lane"}
+    assert {
+        index["name"] for index in inspector.get_indexes("evidence_applicability_versions")
+    } >= {"ix_applicability_exact_context"}
+    with sqlite_store.engine.connect() as connection:
+        triggers = set(
+            connection.execute(
+                text("SELECT name FROM sqlite_master WHERE type = 'trigger'")
+            ).scalars()
+        )
+    for table in increment_3_tables:
+        assert f"prevent_{table}_update" in triggers
+        assert f"prevent_{table}_delete" in triggers
 
 
 def test_database_rejects_finalized_content_update_and_foreign_key_violation(
@@ -117,6 +165,6 @@ def test_increment_2_schema_tables_constraints_indexes_and_upgrade_from_incremen
         with engine.connect() as connection:
             assert connection.execute(
                 text("SELECT version_num FROM alembic_version")
-            ).scalar_one() == ("0002_increment_2")
+            ).scalar_one() == ("0003_increment_3")
     finally:
         engine.dispose()

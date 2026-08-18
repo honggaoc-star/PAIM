@@ -349,6 +349,479 @@ Index(
     configuration_determinations.c.determination_kind,
 )
 
+evidence_records = Table(
+    "evidence_records",
+    metadata,
+    Column("evidence_id", String(36), ForeignKey("records.record_id"), primary_key=True),
+)
+
+evidence_versions = Table(
+    "evidence_versions",
+    metadata,
+    Column("version_id", String(36), ForeignKey("record_versions.version_id"), primary_key=True),
+    Column("evidence_id", String(36), ForeignKey("evidence_records.evidence_id"), nullable=False),
+    Column("case_id", String(36), ForeignKey("paim_cases.case_id"), nullable=True),
+    Column(
+        "configuration_id",
+        String(36),
+        ForeignKey("managed_configurations.configuration_id"),
+        nullable=True,
+    ),
+    Column(
+        "configuration_version_id",
+        String(36),
+        ForeignKey("managed_configuration_versions.version_id"),
+        nullable=True,
+    ),
+    Column("classification", Text, nullable=False),
+    Column("source", Text, nullable=False),
+    Column("provenance_json", Text, nullable=False),
+    Column("observed_at_us", BigInteger, nullable=True),
+    Column("attention", Text, nullable=False),
+    CheckConstraint(
+        "classification IN ('observed', 'supported_inference', "
+        "'estimate', 'assumption', 'unknown')",
+        name="ck_evidence_classification",
+    ),
+    CheckConstraint(
+        "attention IN ('current', 'refresh_required', 'stale')",
+        name="ck_evidence_attention",
+    ),
+)
+Index(
+    "ix_evidence_versions_context",
+    evidence_versions.c.evidence_id,
+    evidence_versions.c.configuration_version_id,
+)
+
+authority_records = Table(
+    "authority_records",
+    metadata,
+    Column("authority_id", String(36), ForeignKey("records.record_id"), primary_key=True),
+)
+
+authority_record_versions = Table(
+    "authority_record_versions",
+    metadata,
+    Column("version_id", String(36), ForeignKey("record_versions.version_id"), primary_key=True),
+    Column(
+        "authority_id", String(36), ForeignKey("authority_records.authority_id"), nullable=False
+    ),
+    Column("case_id", String(36), ForeignKey("paim_cases.case_id"), nullable=True),
+    Column(
+        "configuration_id",
+        String(36),
+        ForeignKey("managed_configurations.configuration_id"),
+        nullable=True,
+    ),
+    Column(
+        "configuration_version_id",
+        String(36),
+        ForeignKey("managed_configuration_versions.version_id"),
+        nullable=True,
+    ),
+    Column("category", Text, nullable=False),
+    Column("source", Text, nullable=False),
+    Column("provenance_json", Text, nullable=False),
+    Column("authority_scope", Text, nullable=False),
+    Column("requirement", Text, nullable=False),
+)
+Index(
+    "ix_authority_versions_context",
+    authority_record_versions.c.authority_id,
+    authority_record_versions.c.configuration_version_id,
+)
+
+authority_gaps = Table(
+    "authority_gaps",
+    metadata,
+    Column("gap_id", String(36), ForeignKey("records.record_id"), primary_key=True),
+)
+
+authority_gap_versions = Table(
+    "authority_gap_versions",
+    metadata,
+    Column("version_id", String(36), ForeignKey("record_versions.version_id"), primary_key=True),
+    Column("gap_id", String(36), ForeignKey("authority_gaps.gap_id"), nullable=False),
+    Column("case_id", String(36), ForeignKey("paim_cases.case_id"), nullable=False),
+    Column(
+        "configuration_id",
+        String(36),
+        ForeignKey("managed_configurations.configuration_id"),
+        nullable=False,
+    ),
+    Column(
+        "configuration_version_id",
+        String(36),
+        ForeignKey("managed_configuration_versions.version_id"),
+        nullable=False,
+    ),
+    Column("question_id", Text, nullable=False),
+    Column("question", Text, nullable=False),
+    Column("authority_scope", Text, nullable=False),
+    Column("rationale", Text, nullable=False),
+    Column("provenance_json", Text, nullable=False),
+)
+Index(
+    "ix_authority_gaps_context",
+    authority_gap_versions.c.case_id,
+    authority_gap_versions.c.configuration_version_id,
+)
+
+exact_evidence_links = Table(
+    "exact_evidence_links",
+    metadata,
+    Column(
+        "source_version_id", String(36), ForeignKey("record_versions.version_id"), primary_key=True
+    ),
+    Column(
+        "evidence_version_id",
+        String(36),
+        ForeignKey("evidence_versions.version_id"),
+        primary_key=True,
+    ),
+    Column("link_role", Text, primary_key=True),
+)
+
+affected_use_references = Table(
+    "affected_use_references",
+    metadata,
+    Column(
+        "source_version_id", String(36), ForeignKey("record_versions.version_id"), primary_key=True
+    ),
+    Column("use_reference", Text, primary_key=True),
+)
+
+evidence_applicability_records = Table(
+    "evidence_applicability_records",
+    metadata,
+    Column("applicability_id", String(36), ForeignKey("records.record_id"), primary_key=True),
+)
+
+evidence_applicability_versions = Table(
+    "evidence_applicability_versions",
+    metadata,
+    Column("version_id", String(36), ForeignKey("record_versions.version_id"), primary_key=True),
+    Column(
+        "applicability_id",
+        String(36),
+        ForeignKey("evidence_applicability_records.applicability_id"),
+        nullable=False,
+    ),
+    Column(
+        "evidence_version_id",
+        String(36),
+        ForeignKey("evidence_versions.version_id"),
+        nullable=False,
+    ),
+    Column("target_type", Text, nullable=False),
+    Column("target_id", Text, nullable=False),
+    Column(
+        "target_version_id", String(36), ForeignKey("record_versions.version_id"), nullable=True
+    ),
+    Column("purpose", Text, nullable=False),
+    Column("assessed_scope", Text, nullable=False),
+    Column("case_id", String(36), ForeignKey("paim_cases.case_id"), nullable=True),
+    Column(
+        "configuration_id",
+        String(36),
+        ForeignKey("managed_configurations.configuration_id"),
+        nullable=True,
+    ),
+    Column(
+        "configuration_version_id",
+        String(36),
+        ForeignKey("managed_configuration_versions.version_id"),
+        nullable=True,
+    ),
+    Column("outcome", Text, nullable=False),
+    Column("conditions_json", Text, nullable=False),
+    Column("limitations_json", Text, nullable=False),
+    Column("rationale", Text, nullable=False),
+    Column("assessor_actor_id", String(36), ForeignKey("paim_actors.actor_id"), nullable=False),
+    Column(
+        "accountable_assignment_version_id",
+        String(36),
+        ForeignKey("role_assignment_versions.version_id"),
+        nullable=True,
+    ),
+    Column("accountable_mechanism", Text, nullable=True),
+    CheckConstraint(
+        "target_type IN ('managed_configuration_version', 'value_input_version', "
+        "'risk_input_version', 'authority_record_version', 'authority_gap')",
+        name="ck_applicability_target_type",
+    ),
+    CheckConstraint(
+        "outcome IN ('APPLICABLE', 'CONDITIONALLY_APPLICABLE', 'PARTIALLY_APPLICABLE', "
+        "'NOT_APPLICABLE', 'INDETERMINATE')",
+        name="ck_applicability_outcome",
+    ),
+    CheckConstraint(
+        "(accountable_assignment_version_id IS NOT NULL AND accountable_mechanism IS NULL) OR "
+        "(accountable_assignment_version_id IS NULL AND accountable_mechanism IS NOT NULL)",
+        name="ck_applicability_accountability_exactly_one",
+    ),
+)
+Index(
+    "ix_applicability_exact_context",
+    evidence_applicability_versions.c.evidence_version_id,
+    evidence_applicability_versions.c.target_type,
+    evidence_applicability_versions.c.target_id,
+    evidence_applicability_versions.c.target_version_id,
+    evidence_applicability_versions.c.purpose,
+    evidence_applicability_versions.c.assessed_scope,
+)
+
+analytical_inputs = Table(
+    "analytical_inputs",
+    metadata,
+    Column("input_id", String(36), ForeignKey("records.record_id"), primary_key=True),
+    Column("lane", Text, nullable=False),
+    CheckConstraint("lane IN ('VALUE', 'RISK')", name="ck_analytical_input_lane"),
+)
+
+analytical_input_versions = Table(
+    "analytical_input_versions",
+    metadata,
+    Column("version_id", String(36), ForeignKey("record_versions.version_id"), primary_key=True),
+    Column("input_id", String(36), ForeignKey("analytical_inputs.input_id"), nullable=False),
+    Column("lane", Text, nullable=False),
+    Column("case_id", String(36), ForeignKey("paim_cases.case_id"), nullable=False),
+    Column(
+        "configuration_id",
+        String(36),
+        ForeignKey("managed_configurations.configuration_id"),
+        nullable=False,
+    ),
+    Column(
+        "configuration_version_id",
+        String(36),
+        ForeignKey("managed_configuration_versions.version_id"),
+        nullable=False,
+    ),
+    Column("purpose", Text, nullable=False),
+    Column("finding", Text, nullable=False),
+    Column("boundary", Text, nullable=False),
+    Column("uncertainties_json", Text, nullable=False),
+    Column("implication", Text, nullable=False),
+    Column("provenance_json", Text, nullable=False),
+    CheckConstraint("lane IN ('VALUE', 'RISK')", name="ck_analytical_input_version_lane"),
+)
+Index(
+    "ix_analytical_inputs_selection_context",
+    analytical_input_versions.c.lane,
+    analytical_input_versions.c.configuration_version_id,
+    analytical_input_versions.c.purpose,
+)
+
+candidate_dispositions = Table(
+    "candidate_dispositions",
+    metadata,
+    Column("disposition_id", String(36), ForeignKey("records.record_id"), primary_key=True),
+)
+
+candidate_disposition_versions = Table(
+    "candidate_disposition_versions",
+    metadata,
+    Column("version_id", String(36), ForeignKey("record_versions.version_id"), primary_key=True),
+    Column(
+        "disposition_id",
+        String(36),
+        ForeignKey("candidate_dispositions.disposition_id"),
+        nullable=False,
+    ),
+    Column(
+        "input_version_id",
+        String(36),
+        ForeignKey("analytical_input_versions.version_id"),
+        nullable=False,
+    ),
+    Column("lane", Text, nullable=False),
+    Column(
+        "configuration_version_id",
+        String(36),
+        ForeignKey("managed_configuration_versions.version_id"),
+        nullable=False,
+    ),
+    Column("use_context", Text, nullable=False),
+    Column("purpose", Text, nullable=False),
+    Column("disposition", Text, nullable=False),
+    Column("rationale", Text, nullable=False),
+    Column(
+        "accountable_assignment_version_id",
+        String(36),
+        ForeignKey("role_assignment_versions.version_id"),
+        nullable=True,
+    ),
+    Column("accountable_mechanism", Text, nullable=True),
+    CheckConstraint("lane IN ('VALUE', 'RISK')", name="ck_candidate_disposition_lane"),
+    CheckConstraint(
+        "disposition IN ('NON_SELECTED', 'DISSENTING', 'REJECTED_FOR_USE', "
+        "'WITHDRAWN', 'SUPERSEDED')",
+        name="ck_candidate_disposition_outcome",
+    ),
+)
+Index(
+    "ix_candidate_disposition_context",
+    candidate_disposition_versions.c.input_version_id,
+    candidate_disposition_versions.c.use_context,
+    candidate_disposition_versions.c.purpose,
+)
+
+lane_fitness_records = Table(
+    "lane_fitness_records",
+    metadata,
+    Column("fitness_id", String(36), ForeignKey("records.record_id"), primary_key=True),
+)
+
+lane_fitness_versions = Table(
+    "lane_fitness_versions",
+    metadata,
+    Column("version_id", String(36), ForeignKey("record_versions.version_id"), primary_key=True),
+    Column("fitness_id", String(36), ForeignKey("lane_fitness_records.fitness_id"), nullable=False),
+    Column("lane", Text, nullable=False),
+    Column(
+        "input_version_id",
+        String(36),
+        ForeignKey("analytical_input_versions.version_id"),
+        nullable=False,
+    ),
+    Column("case_id", String(36), ForeignKey("paim_cases.case_id"), nullable=False),
+    Column(
+        "configuration_id",
+        String(36),
+        ForeignKey("managed_configurations.configuration_id"),
+        nullable=False,
+    ),
+    Column(
+        "configuration_version_id",
+        String(36),
+        ForeignKey("managed_configuration_versions.version_id"),
+        nullable=False,
+    ),
+    Column("use_context", Text, nullable=False),
+    Column("purpose", Text, nullable=False),
+    Column("outcome", Text, nullable=False),
+    Column("rationale", Text, nullable=False),
+    Column("indeterminate_treatment", Text, nullable=True),
+    Column("decision_limiting", Boolean, nullable=False),
+    Column(
+        "accountable_assignment_version_id",
+        String(36),
+        ForeignKey("role_assignment_versions.version_id"),
+        nullable=True,
+    ),
+    Column("accountable_mechanism", Text, nullable=True),
+    CheckConstraint("lane IN ('VALUE', 'RISK')", name="ck_lane_fitness_lane"),
+    CheckConstraint("outcome IN ('SUPPORTABLE', 'BLOCKED')", name="ck_lane_fitness_outcome"),
+    CheckConstraint("length(trim(rationale)) > 0", name="ck_lane_fitness_rationale"),
+    CheckConstraint(
+        "(accountable_assignment_version_id IS NOT NULL AND accountable_mechanism IS NULL) OR "
+        "(accountable_assignment_version_id IS NULL AND accountable_mechanism IS NOT NULL)",
+        name="ck_lane_fitness_accountability_exactly_one",
+    ),
+)
+Index(
+    "ix_lane_fitness_context",
+    lane_fitness_versions.c.lane,
+    lane_fitness_versions.c.configuration_version_id,
+    lane_fitness_versions.c.use_context,
+    lane_fitness_versions.c.purpose,
+)
+
+material_evidence_basis = Table(
+    "material_evidence_basis",
+    metadata,
+    Column(
+        "fitness_version_id",
+        String(36),
+        ForeignKey("lane_fitness_versions.version_id"),
+        primary_key=True,
+    ),
+    Column(
+        "evidence_version_id",
+        String(36),
+        ForeignKey("evidence_versions.version_id"),
+        primary_key=True,
+    ),
+    Column(
+        "applicability_version_id",
+        String(36),
+        ForeignKey("evidence_applicability_versions.version_id"),
+        primary_key=True,
+    ),
+    Column("role", Text, nullable=False),
+    Column("required_support", Boolean, nullable=False),
+    Column("claimed_scope", Text, nullable=False),
+)
+
+input_acceptance_records = Table(
+    "input_acceptance_records",
+    metadata,
+    Column("acceptance_id", String(36), ForeignKey("records.record_id"), primary_key=True),
+)
+
+input_acceptance_versions = Table(
+    "input_acceptance_versions",
+    metadata,
+    Column("version_id", String(36), ForeignKey("record_versions.version_id"), primary_key=True),
+    Column(
+        "acceptance_id",
+        String(36),
+        ForeignKey("input_acceptance_records.acceptance_id"),
+        nullable=False,
+    ),
+    Column("lane", Text, nullable=False),
+    Column(
+        "input_version_id",
+        String(36),
+        ForeignKey("analytical_input_versions.version_id"),
+        nullable=False,
+    ),
+    Column("case_id", String(36), ForeignKey("paim_cases.case_id"), nullable=False),
+    Column(
+        "configuration_id",
+        String(36),
+        ForeignKey("managed_configurations.configuration_id"),
+        nullable=False,
+    ),
+    Column(
+        "configuration_version_id",
+        String(36),
+        ForeignKey("managed_configuration_versions.version_id"),
+        nullable=False,
+    ),
+    Column("use_context", Text, nullable=False),
+    Column("purpose", Text, nullable=False),
+    Column("rationale", Text, nullable=False),
+    Column(
+        "accountable_assignment_version_id",
+        String(36),
+        ForeignKey("role_assignment_versions.version_id"),
+        nullable=True,
+    ),
+    Column("accountable_mechanism", Text, nullable=True),
+    Column(
+        "fitness_version_id",
+        String(36),
+        ForeignKey("lane_fitness_versions.version_id"),
+        nullable=False,
+    ),
+    CheckConstraint("lane IN ('VALUE', 'RISK')", name="ck_input_acceptance_lane"),
+    CheckConstraint(
+        "(accountable_assignment_version_id IS NOT NULL AND accountable_mechanism IS NULL) OR "
+        "(accountable_assignment_version_id IS NULL AND accountable_mechanism IS NOT NULL)",
+        name="ck_input_acceptance_accountability_exactly_one",
+    ),
+)
+Index(
+    "ix_input_acceptance_selection_context",
+    input_acceptance_versions.c.lane,
+    input_acceptance_versions.c.configuration_version_id,
+    input_acceptance_versions.c.use_context,
+    input_acceptance_versions.c.purpose,
+)
+
 IMMUTABILITY_TRIGGERS: tuple[str, ...] = (
     """
     CREATE TRIGGER prevent_finalized_version_update
