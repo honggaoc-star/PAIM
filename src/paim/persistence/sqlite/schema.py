@@ -1353,10 +1353,37 @@ bounded_proceed_versions = Table(
         nullable=True,
     ),
     Column("authority_mechanism", Text, nullable=True),
+    Column(
+        "authority_record_version_id",
+        String(36),
+        ForeignKey("authority_record_versions.version_id"),
+        nullable=True,
+    ),
     CheckConstraint(
         "(authority_assignment_version_id IS NOT NULL AND authority_mechanism IS NULL) OR "
         "(authority_assignment_version_id IS NULL AND authority_mechanism IS NOT NULL)",
         name="ck_bounded_proceed_authority",
+    ),
+    CheckConstraint(
+        "authority_record_version_id IS NOT NULL OR authority_mechanism IS NOT NULL",
+        name="ck_bounded_proceed_authority_source",
+    ),
+)
+bounded_proceed_delegations = Table(
+    "bounded_proceed_delegations",
+    metadata,
+    Column(
+        "bounded_proceed_version_id",
+        String(36),
+        ForeignKey("bounded_proceed_versions.version_id"),
+        primary_key=True,
+    ),
+    Column("ordinal", BigInteger, primary_key=True),
+    Column(
+        "assignment_version_id",
+        String(36),
+        ForeignKey("role_assignment_versions.version_id"),
+        nullable=False,
     ),
 )
 bounded_proceed_boundary_clauses = Table(

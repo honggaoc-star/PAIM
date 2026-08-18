@@ -92,6 +92,7 @@ from paim.persistence.sqlite.schema import (
     boundary_snapshot_records,
     boundary_snapshot_versions,
     bounded_proceed_boundary_clauses,
+    bounded_proceed_delegations,
     bounded_proceed_records,
     bounded_proceed_versions,
     candidate_disposition_versions,
@@ -1920,6 +1921,8 @@ class SQLiteIntegrityTransaction:
         actor_id: RecordId,
         authority_assignment_version_id: RecordVersionId | None,
         authority_mechanism: str | None,
+        authority_record_version_id: RecordVersionId | None,
+        delegation_chain_version_ids: tuple[RecordVersionId, ...],
     ) -> None:
         if not self._identity_exists(
             bounded_proceed_records,
@@ -1945,8 +1948,19 @@ class SQLiteIntegrityTransaction:
                     else None
                 ),
                 authority_mechanism=authority_mechanism,
+                authority_record_version_id=(
+                    str(authority_record_version_id) if authority_record_version_id else None
+                ),
             )
         )
+        for ordinal, assignment_id in enumerate(delegation_chain_version_ids):
+            self.connection.execute(
+                insert(bounded_proceed_delegations).values(
+                    bounded_proceed_version_id=str(version_id),
+                    ordinal=ordinal,
+                    assignment_version_id=str(assignment_id),
+                )
+            )
         for clause_id in boundary_clause_version_ids:
             self.connection.execute(
                 insert(bounded_proceed_boundary_clauses).values(

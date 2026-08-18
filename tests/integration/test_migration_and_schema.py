@@ -247,6 +247,7 @@ def test_increment_4_normalized_schema_constraints_indexes_triggers_and_foreign_
         "decision_authority_gaps",
         "bounded_proceed_records",
         "bounded_proceed_versions",
+        "bounded_proceed_delegations",
         "bounded_proceed_boundary_clauses",
         "decision_authorization_basis_records",
         "decision_authorization_basis_versions",
@@ -266,6 +267,10 @@ def test_increment_4_normalized_schema_constraints_indexes_triggers_and_foreign_
         constraint["name"]
         for constraint in inspector.get_check_constraints("decision_authorization_basis_versions")
     } >= {"ck_decision_authorization_authority", "ck_decision_authorization_source"}
+    assert {
+        constraint["name"]
+        for constraint in inspector.get_check_constraints("bounded_proceed_versions")
+    } >= {"ck_bounded_proceed_authority", "ck_bounded_proceed_authority_source"}
     assert {index["name"] for index in inspector.get_indexes("decision_versions")} >= {
         "ix_decision_current_context"
     }
@@ -281,6 +286,17 @@ def test_increment_4_normalized_schema_constraints_indexes_triggers_and_foreign_
         ("configuration_version_id",),
         ("bounded_proceed_version_id",),
     } <= authorization_foreign_keys
+    bounded_proceed_foreign_keys = {
+        tuple(item["constrained_columns"])
+        for item in inspector.get_foreign_keys("bounded_proceed_versions")
+    }
+    assert {
+        ("version_id",),
+        ("decision_version_id",),
+        ("unresolved_gap_version_id",),
+        ("authority_assignment_version_id",),
+        ("authority_record_version_id",),
+    } <= bounded_proceed_foreign_keys
     with sqlite_store.engine.connect() as connection:
         triggers = set(
             connection.execute(

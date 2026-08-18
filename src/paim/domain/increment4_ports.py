@@ -151,6 +151,8 @@ class Increment4Transaction(Increment3Transaction, Protocol):
         actor_id: RecordId,
         authority_assignment_version_id: RecordVersionId | None,
         authority_mechanism: str | None,
+        authority_record_version_id: RecordVersionId | None,
+        delegation_chain_version_ids: tuple[RecordVersionId, ...],
     ) -> None: ...
 
     def bounded_proceed_detail(self, version_id: RecordVersionId) -> dict[str, str] | None: ...

@@ -414,6 +414,34 @@ def authorization(
     )
 
 
+def bounded_proceed(
+    fx: Foundation,
+    *,
+    authority_assignment_version_id: RecordVersionId,
+    delegation_chain_version_ids: tuple[RecordVersionId, ...] = (),
+) -> BoundedProceedVersionInput:
+    assert fx.authority_gap_version_id is not None
+    return BoundedProceedVersionInput(
+        determination_id=RecordId.new(),
+        version_id=RecordVersionId.new(),
+        decision_version_id=fx.decision_version_id,
+        unresolved_gap_version_id=fx.authority_gap_version_id,
+        blocked_broader_decision="broader deployment",
+        narrower_scope="narrow-scope",
+        boundary_clause_version_ids=(fx.clause_version_id,),
+        operating_state="bounded continuation",
+        rationale="broader authority is unresolved; narrower operation is covered",
+        conditions=("remain inside exact Boundary",),
+        review_trigger="authority resolution or Boundary change",
+        actor_id=fx.context.assessor_id,
+        authority_assignment_version_id=authority_assignment_version_id,
+        authority_mechanism=None,
+        authority_record_version_id=fx.authority_version_id,
+        delegation_chain_version_ids=delegation_chain_version_ids,
+        effective=EFFECTIVE,
+    )
+
+
 def test_integration_preserves_exact_independent_analytical_basis_and_is_not_decision(
     sqlite_store: SQLiteIntegrityStore,
 ) -> None:
@@ -986,6 +1014,8 @@ def test_bounded_proceed_keeps_gap_unresolved_and_requires_exact_scope(
             fx.context.assessor_id,
             fx.authority_assignment_version_id,
             None,
+            fx.authority_version_id,
+            (),
             EFFECTIVE,
         ),
     )
@@ -1013,6 +1043,190 @@ def test_bounded_proceed_keeps_gap_unresolved_and_requires_exact_scope(
             known_at=NOW,
         )
     assert sqlite_store.count_rows("decision_authorization_basis_versions") == 1
+
+
+def test_bounded_proceed_rejects_unrelated_scope_decision_authority(
+    sqlite_store: SQLiteIntegrityStore,
+) -> None:
+    fx = foundation(sqlite_store, "bounded-unrelated", include_authority_gap=True)
+    unrelated_case_id = RecordId.new()
+    fx.context.service.commit_case(
+        meta("bounded-unrelated-scope-case"),
+        CaseVersionInput(
+            unrelated_case_id,
+            RecordVersionId.new(),
+            "unrelated authority scope",
+            EFFECTIVE,
+        ),
+    )
+    unrelated_assignment = RecordVersionId.new()
+    fx.context.service.commit_role_assignment(
+        meta("bounded-unrelated-authority"),
+        RoleAssignmentVersionInput(
+            RecordId.new(),
+            unrelated_assignment,
+            fx.context.assessor_id,
+            "Decision Authority",
+            RoleTargetType.CASE,
+            str(unrelated_case_id),
+            unrelated_case_id,
+            True,
+            "unrelated-decision-authority",
+            DelegationEffect.NONE,
+            None,
+            EFFECTIVE,
+        ),
+    )
+    with pytest.raises(DomainRuleViolation, match="unrelated-scope"):
+        fx.context.service.commit_bounded_proceed(
+            meta("bounded-unrelated-attempt"),
+            bounded_proceed(
+                fx,
+                authority_assignment_version_id=unrelated_assignment,
+            ),
+        )
+    assert sqlite_store.count_rows("bounded_proceed_versions") == 0
+
+
+def test_bounded_proceed_rejects_competing_applicable_decision_authority(
+    sqlite_store: SQLiteIntegrityStore,
+) -> None:
+    fx = foundation(sqlite_store, "bounded-conflict", include_authority_gap=True)
+    fx.context.service.commit_role_assignment(
+        meta("bounded-conflict-configuration-authority"),
+        RoleAssignmentVersionInput(
+            RecordId.new(),
+            RecordVersionId.new(),
+            fx.context.assessor_id,
+            "Decision Authority",
+            RoleTargetType.CONFIGURATION,
+            str(fx.context.configuration_id),
+            fx.context.case_id,
+            True,
+            "competing-decision-authority",
+            DelegationEffect.NONE,
+            None,
+            EFFECTIVE,
+        ),
+    )
+    with pytest.raises(DomainRuleViolation, match="explicit conflict"):
+        fx.context.service.commit_bounded_proceed(
+            meta("bounded-conflict-attempt"),
+            bounded_proceed(
+                fx,
+                authority_assignment_version_id=fx.authority_assignment_version_id,
+            ),
+        )
+    assert sqlite_store.count_rows("bounded_proceed_versions") == 0
+
+
+def test_bounded_proceed_rejects_expired_exact_delegation_chain(
+    sqlite_store: SQLiteIntegrityStore,
+) -> None:
+    fx = foundation(sqlite_store, "bounded-expired", include_authority_gap=True)
+    expired_delegation = RecordVersionId.new()
+    fx.context.service.commit_role_assignment(
+        meta("bounded-expired-intermediate"),
+        RoleAssignmentVersionInput(
+            RecordId.new(),
+            expired_delegation,
+            fx.context.assessor_id,
+            "Decision Authority",
+            RoleTargetType.CONFIGURATION,
+            str(fx.context.configuration_id),
+            fx.context.case_id,
+            True,
+            "delegated-decision-authority",
+            DelegationEffect.SUPPLEMENT,
+            fx.authority_assignment_version_id,
+            EffectiveInterval(utc(2025, 12, 1), utc(2025, 12, 31)),
+        ),
+    )
+    terminal_delegation = RecordVersionId.new()
+    fx.context.service.commit_role_assignment(
+        meta("bounded-expired-terminal"),
+        RoleAssignmentVersionInput(
+            RecordId.new(),
+            terminal_delegation,
+            fx.context.assessor_id,
+            "Decision Authority",
+            RoleTargetType.DECISION,
+            str(fx.decision_id),
+            fx.context.case_id,
+            True,
+            "delegated-decision-authority",
+            DelegationEffect.SUPPLEMENT,
+            expired_delegation,
+            EFFECTIVE,
+        ),
+    )
+    with pytest.raises(DomainRuleViolation, match="invalid, expired"):
+        fx.context.service.commit_bounded_proceed(
+            meta("bounded-expired-attempt"),
+            bounded_proceed(
+                fx,
+                authority_assignment_version_id=terminal_delegation,
+                delegation_chain_version_ids=(
+                    fx.authority_assignment_version_id,
+                    expired_delegation,
+                    terminal_delegation,
+                ),
+            ),
+        )
+    assert sqlite_store.count_rows("bounded_proceed_versions") == 0
+
+
+def test_bounded_proceed_valid_exact_narrower_delegation_chain_succeeds(
+    sqlite_store: SQLiteIntegrityStore,
+) -> None:
+    fx = foundation(sqlite_store, "bounded-delegated", include_authority_gap=True)
+    delegated_assignment = RecordVersionId.new()
+    fx.context.service.commit_role_assignment(
+        meta("bounded-delegated-authority"),
+        RoleAssignmentVersionInput(
+            RecordId.new(),
+            delegated_assignment,
+            fx.context.assessor_id,
+            "Decision Authority",
+            RoleTargetType.CONFIGURATION,
+            str(fx.context.configuration_id),
+            fx.context.case_id,
+            True,
+            "delegated-decision-authority",
+            DelegationEffect.SUPPLEMENT,
+            fx.authority_assignment_version_id,
+            EFFECTIVE,
+        ),
+    )
+    exact_chain = (fx.authority_assignment_version_id, delegated_assignment)
+    bounded = bounded_proceed(
+        fx,
+        authority_assignment_version_id=delegated_assignment,
+        delegation_chain_version_ids=exact_chain,
+    )
+    fx.context.service.commit_bounded_proceed(meta("bounded-delegated-determination"), bounded)
+    assert fx.authority_gap_version_id is not None
+    basis = replace(
+        authorization(
+            fx,
+            "bounded-delegated",
+            gaps=(fx.authority_gap_version_id,),
+            bounded_proceed_version_id=bounded.version_id,
+        ),
+        authority_assignment_version_id=delegated_assignment,
+        delegation_chain_version_ids=exact_chain,
+    )
+    fx.context.service.authorize_decision(meta("bounded-delegated-auth"), basis)
+    assert sqlite_store.count_rows("bounded_proceed_versions") == 1
+    assert sqlite_store.count_rows("bounded_proceed_delegations") == 2
+    assert isinstance(
+        fx.context.service.current_authorized_decision(
+            case_id=fx.context.case_id,
+            configuration_version_id=fx.context.configuration_version_id,
+            effective_at=EFFECTIVE.start,
+        ),
+        AuthorizedDecisionFound,
+    )
 
 
 def test_successor_decision_and_later_authority_change_preserve_historical_reconstruction(
@@ -1132,35 +1346,28 @@ def test_unresolved_gap_without_bounded_proceed_or_beyond_scope_is_blocked(
             meta("bounded-negative-absent"),
             authorization(fx, "absent", gaps=(gap_version,)),
         )
-    overbroad_version = RecordVersionId.new()
-    fx.context.service.commit_bounded_proceed(
-        meta("bounded-negative-overbroad"),
-        BoundedProceedVersionInput(
-            RecordId.new(),
-            overbroad_version,
-            fx.decision_version_id,
-            gap_version,
-            "unbounded deployment",
-            "broader-scope",
-            (fx.clause_version_id,),
-            "bounded continuation",
-            "attempts to exceed the established narrower authority",
-            (),
-            "review now",
-            fx.context.assessor_id,
-            fx.authority_assignment_version_id,
-            None,
-            EFFECTIVE,
-        ),
-    )
-    with pytest.raises(DomainRuleViolation, match="exact narrower Decision"):
-        fx.context.service.authorize_decision(
-            meta("bounded-negative-overbroad-auth"),
-            authorization(
-                fx,
-                "overbroad",
-                gaps=(gap_version,),
-                bounded_proceed_version_id=overbroad_version,
+    with pytest.raises(DomainRuleViolation, match="scope does not cover exact Decision"):
+        fx.context.service.commit_bounded_proceed(
+            meta("bounded-negative-overbroad"),
+            BoundedProceedVersionInput(
+                RecordId.new(),
+                RecordVersionId.new(),
+                fx.decision_version_id,
+                gap_version,
+                "unbounded deployment",
+                "broader-scope",
+                (fx.clause_version_id,),
+                "bounded continuation",
+                "attempts to exceed the established narrower authority",
+                (),
+                "review now",
+                fx.context.assessor_id,
+                fx.authority_assignment_version_id,
+                None,
+                fx.authority_version_id,
+                (),
+                EFFECTIVE,
             ),
         )
+    assert sqlite_store.count_rows("bounded_proceed_versions") == 0
     assert sqlite_store.count_rows("decision_authorization_basis_versions") == 0

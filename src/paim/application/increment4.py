@@ -600,28 +600,35 @@ class Increment4ApplicationService(Increment3ApplicationService):
         )
         return isinstance(current, SelectionFound) and current.candidate.version_id == version_id
 
-    def _validate_decision_authority(
+    def _validate_exact_decision_authority(
         self,
         transaction: Increment4Transaction,
         *,
-        value: DecisionAuthorizationBasisVersionInput,
-        decision: object,
+        decision: DecisionDetail,
+        actor_id: RecordId,
+        authority_assignment_version_id: RecordVersionId | None,
+        authority_mechanism: str | None,
+        authority_record_version_id: RecordVersionId | None,
+        delegation_chain_version_ids: tuple[RecordVersionId, ...],
+        authorized_scope: str,
+        configuration_id: RecordId,
+        configuration_version_id: RecordVersionId,
+        operating_state_coverage: tuple[str, ...],
         effective_at: datetime,
         known_at: datetime,
     ) -> None:
-        decision_detail = cast("DecisionDetail", decision)
-        if not _one_authority(value.authority_assignment_version_id, value.authority_mechanism):
+        if not _one_authority(authority_assignment_version_id, authority_mechanism):
             raise DomainRuleViolation(
                 "missing authority: exactly one authority assignment or mechanism is required"
             )
-        if value.configuration_id != decision_detail.configuration_id or (
-            value.configuration_version_id != decision_detail.configuration_version_id
+        if configuration_id != decision.configuration_id or (
+            configuration_version_id != decision.configuration_version_id
         ):
             raise DomainRuleViolation("Decision authority Configuration coverage mismatch")
-        if decision_detail.operating_state not in value.operating_state_coverage:
+        if decision.operating_state not in operating_state_coverage:
             raise DomainRuleViolation("Decision authority operating-state coverage mismatch")
-        if value.authority_record_version_id is not None:
-            authority = transaction.get_version(value.authority_record_version_id)
+        if authority_record_version_id is not None:
+            authority = transaction.get_version(authority_record_version_id)
             if authority is None or authority.family != "authority-record":
                 raise DomainRuleViolation("required Authority Record is not established")
             current = transaction.select_current(
@@ -634,35 +641,31 @@ class Increment4ApplicationService(Increment3ApplicationService):
                 )
             )
             if not isinstance(current, SelectionFound) or (
-                current.candidate.version_id != value.authority_record_version_id
+                current.candidate.version_id != authority_record_version_id
             ):
                 raise DomainRuleViolation("Authority Record is expired, withdrawn, or superseded")
-            if (
-                transaction.authority_record_scope(value.authority_record_version_id)
-                != value.authorized_scope
-            ):
+            if transaction.authority_record_scope(authority_record_version_id) != authorized_scope:
                 raise DomainRuleViolation("Authority Record scope does not cover exact Decision")
-        elif not value.authority_mechanism:
+        elif not authority_mechanism:
             raise DomainRuleViolation("missing required Authority Record or mechanism")
 
-        if value.authority_mechanism:
-            if value.delegation_chain_version_ids:
+        if authority_mechanism:
+            if delegation_chain_version_ids:
                 raise DomainRuleViolation(
                     "organizational mechanism cannot fabricate a Role Assignment delegation chain"
                 )
             return
 
-        assert value.authority_assignment_version_id is not None
-        assignment = transaction.role_assignment_detail(value.authority_assignment_version_id)
+        assert authority_assignment_version_id is not None
+        assignment = transaction.role_assignment_detail(authority_assignment_version_id)
         if (
             assignment is None
             or not assignment.accountable
             or assignment.role.casefold().replace(" ", "_") != "decision_authority"
-            or assignment.actor_id != value.authorization_actor_id
-            or str(assignment.actor_id) != value.decision_authority_identity
+            or assignment.actor_id != actor_id
             or not self._assignment_current(
                 transaction,
-                value.authority_assignment_version_id,
+                authority_assignment_version_id,
                 effective_at=effective_at,
                 known_at=known_at,
             )
@@ -671,12 +674,43 @@ class Increment4ApplicationService(Increment3ApplicationService):
                 "authority vacancy or invalid Decision Authority assignment blocks authorization"
             )
         applicable_targets = (
-            (RoleTargetType.DECISION.value, str(decision_detail.decision_id)),
-            (RoleTargetType.CONFIGURATION.value, str(decision_detail.configuration_id)),
-            (RoleTargetType.CASE.value, str(decision_detail.case_id)),
+            (RoleTargetType.DECISION.value, str(decision.decision_id)),
+            (RoleTargetType.CONFIGURATION.value, str(decision.configuration_id)),
+            (RoleTargetType.CASE.value, str(decision.case_id)),
         )
         if (assignment.target_type.value, assignment.target_id) not in applicable_targets:
             raise DomainRuleViolation("unrelated-scope Decision Authority is ineligible")
+
+        chain = delegation_chain_version_ids
+        if assignment.delegated_from_version_id is not None and not chain:
+            raise DomainRuleViolation(
+                "delegated Decision Authority requires exact delegation chain"
+            )
+        if chain:
+            if chain[-1] != authority_assignment_version_id:
+                raise DomainRuleViolation("delegation chain must terminate at Decision Authority")
+            previous: RecordVersionId | None = None
+            for link_id in chain:
+                link = transaction.role_assignment_detail(link_id)
+                if (
+                    link is None
+                    or not link.accountable
+                    or link.role.casefold().replace(" ", "_") != "decision_authority"
+                    or (link.target_type.value, link.target_id) not in applicable_targets
+                    or not self._assignment_current(
+                        transaction,
+                        link_id,
+                        effective_at=effective_at,
+                        known_at=known_at,
+                    )
+                    or (previous is None and link.delegated_from_version_id is not None)
+                    or (previous is not None and link.delegated_from_version_id != previous)
+                ):
+                    raise DomainRuleViolation(
+                        "invalid, expired, revoked, or out-of-scope delegation"
+                    )
+                previous = link_id
+
         record_ids = transaction.role_assignment_records(
             role=assignment.role, targets=applicable_targets
         )
@@ -693,36 +727,43 @@ class Increment4ApplicationService(Increment3ApplicationService):
                     detail = transaction.role_assignment_detail(candidate.version_id)
                     if detail is not None and detail.accountable:
                         applicable.add(candidate.version_id)
-        if applicable != {value.authority_assignment_version_id}:
+        established_chain = set(chain) if chain else {authority_assignment_version_id}
+        if applicable != established_chain:
             raise DomainRuleViolation(
                 "incompatible applicable Decision Authority assignments — explicit conflict"
             )
 
-        chain = value.delegation_chain_version_ids
-        if assignment.delegated_from_version_id is not None and not chain:
+    def _validate_decision_authority(
+        self,
+        transaction: Increment4Transaction,
+        *,
+        value: DecisionAuthorizationBasisVersionInput,
+        decision: DecisionDetail,
+        effective_at: datetime,
+        known_at: datetime,
+    ) -> None:
+        if (
+            value.authority_assignment_version_id is not None
+            and str(value.authorization_actor_id) != value.decision_authority_identity
+        ):
             raise DomainRuleViolation(
-                "delegated Decision Authority requires exact delegation chain"
+                "Decision Authority identity must match the attributable authorization actor"
             )
-        if chain:
-            if chain[-1] != value.authority_assignment_version_id:
-                raise DomainRuleViolation("delegation chain must terminate at Decision Authority")
-            previous: RecordVersionId | None = None
-            for link_id in chain:
-                link = transaction.role_assignment_detail(link_id)
-                if (
-                    link is None
-                    or not self._assignment_current(
-                        transaction,
-                        link_id,
-                        effective_at=effective_at,
-                        known_at=known_at,
-                    )
-                    or (previous is not None and link.delegated_from_version_id != previous)
-                ):
-                    raise DomainRuleViolation(
-                        "invalid, expired, revoked, or out-of-scope delegation"
-                    )
-                previous = link_id
+        self._validate_exact_decision_authority(
+            transaction,
+            decision=decision,
+            actor_id=value.authorization_actor_id,
+            authority_assignment_version_id=value.authority_assignment_version_id,
+            authority_mechanism=value.authority_mechanism,
+            authority_record_version_id=value.authority_record_version_id,
+            delegation_chain_version_ids=value.delegation_chain_version_ids,
+            authorized_scope=value.authorized_scope,
+            configuration_id=value.configuration_id,
+            configuration_version_id=value.configuration_version_id,
+            operating_state_coverage=value.operating_state_coverage,
+            effective_at=effective_at,
+            known_at=known_at,
+        )
 
     def commit_bounded_proceed(
         self, meta: CommandMeta, value: BoundedProceedVersionInput
@@ -756,6 +797,14 @@ class Increment4ApplicationService(Increment3ApplicationService):
                 else None
             ),
             "authority_mechanism": value.authority_mechanism,
+            "authority_record_version_id": (
+                str(value.authority_record_version_id)
+                if value.authority_record_version_id
+                else None
+            ),
+            "delegation_chain_version_ids": [
+                str(item) for item in value.delegation_chain_version_ids
+            ],
         }
 
         def project(base: object) -> None:
@@ -777,24 +826,21 @@ class Increment4ApplicationService(Increment3ApplicationService):
                 raise DomainRuleViolation(
                     "bounded proceed must bind exact Decision Boundary clauses"
                 )
-            if value.authority_assignment_version_id is not None:
-                assignment = transaction.role_assignment_detail(
-                    value.authority_assignment_version_id
-                )
-                if (
-                    assignment is None
-                    or assignment.role.casefold().replace(" ", "_") != "decision_authority"
-                    or assignment.actor_id != value.actor_id
-                    or not self._assignment_current(
-                        transaction,
-                        value.authority_assignment_version_id,
-                        effective_at=value.effective.start,
-                        known_at=self._clock.now(),
-                    )
-                ):
-                    raise DomainRuleViolation(
-                        "bounded proceed actor lacks established Decision Authority"
-                    )
+            self._validate_exact_decision_authority(
+                transaction,
+                decision=decision,
+                actor_id=value.actor_id,
+                authority_assignment_version_id=value.authority_assignment_version_id,
+                authority_mechanism=value.authority_mechanism,
+                authority_record_version_id=value.authority_record_version_id,
+                delegation_chain_version_ids=value.delegation_chain_version_ids,
+                authorized_scope=value.narrower_scope,
+                configuration_id=decision.configuration_id,
+                configuration_version_id=decision.configuration_version_id,
+                operating_state_coverage=(value.operating_state,),
+                effective_at=value.effective.start,
+                known_at=self._clock.now(),
+            )
             transaction.add_bounded_proceed(
                 determination_id=value.determination_id,
                 version_id=value.version_id,
@@ -807,6 +853,8 @@ class Increment4ApplicationService(Increment3ApplicationService):
                 actor_id=value.actor_id,
                 authority_assignment_version_id=value.authority_assignment_version_id,
                 authority_mechanism=value.authority_mechanism,
+                authority_record_version_id=value.authority_record_version_id,
+                delegation_chain_version_ids=value.delegation_chain_version_ids,
             )
 
         return self._commit_version(
@@ -1018,6 +1066,8 @@ class Increment4ApplicationService(Increment3ApplicationService):
                     raise DomainRuleViolation("bounded-proceed determination is not current")
                 bounded_assignment = bounded.content.get("authority_assignment_version_id")
                 bounded_mechanism = bounded.content.get("authority_mechanism")
+                bounded_authority_record = bounded.content.get("authority_record_version_id")
+                bounded_delegation_chain = bounded.content.get("delegation_chain_version_ids")
                 if (
                     bounded_assignment
                     != (
@@ -1026,6 +1076,14 @@ class Increment4ApplicationService(Increment3ApplicationService):
                         else None
                     )
                     or bounded_mechanism != value.authority_mechanism
+                    or bounded_authority_record
+                    != (
+                        str(value.authority_record_version_id)
+                        if value.authority_record_version_id
+                        else None
+                    )
+                    or bounded_delegation_chain
+                    != [str(item) for item in value.delegation_chain_version_ids]
                 ):
                     raise DomainRuleViolation(
                         "bounded proceed was not made by the exact Decision Authority"
