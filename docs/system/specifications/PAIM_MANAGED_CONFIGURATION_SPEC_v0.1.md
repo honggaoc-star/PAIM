@@ -96,7 +96,7 @@ The system must preserve the following orthogonal dimensions rather than encode 
 - **configuration purpose** — for example proposed, experimental, alternative, or fallback; and
 - **authorization and AI operating state** — established only by the applicable Management Decision, not by Configuration status or purpose.
 
-For PAIM v0.1, one Case has at most one governing Configuration at an effective time. A purpose label does not make a Configuration governing, authorized, or operating. A proposed, experimental, alternative, or fallback Configuration may coexist with the governing Configuration only as a separately identifiable non-governing alternative until an authorized Decision and governing-currentness event establish otherwise.
+For PAIM v0.1, one Case has at most one governing Configuration at an effective time. A purpose label does not make a Configuration governing, authorized, or operating. A proposed, experimental, alternative, or fallback Configuration may coexist with the governing Configuration only as a separately identifiable non-governing alternative until an accountable, history-preserving governing-currentness designation/event establishes it as the Case's one governing Configuration for the effective time. Authorization and AI operating state remain separate and are established only by the applicable Management Decision.
 
 For example:
 
