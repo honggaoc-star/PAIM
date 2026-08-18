@@ -323,7 +323,7 @@ For one explicit Value or Risk lane, Configuration Version, bounded use/purpose,
 
 The platform must not choose by newest/latest date, owner, readiness/status label, row order, specificity, directory hierarchy, or convenience. Value and Risk selection are evaluated independently. No shared acceptance shortcut or combined score may satisfy both lanes.
 
-Two or more co-current `ready` candidate Inputs for the same lane/Configuration/use are a pre-acceptance selection conflict, not absence and not permission to pick one silently. The resolving acceptance semantic commit must identify the accepted Input and record explicit non-selected/dissenting/rejected-for-use dispositions or supersession for every competing candidate material to that use. After resolution, exactly one accepted/frozen Input is eligible.
+Zero eligible Acceptance/Selection Versions returns `INPUT SELECTION NOT ESTABLISHED`, regardless of how many co-current `ready` candidate Inputs exist. Two or more ready candidates remain preserved candidate alternatives and do not create authoritative selection conflict merely by being ready. Selection conflict arises only when two or more incompatible co-current eligible Acceptance/Selection Versions compete for the same explicit lane, exact Configuration Version, bounded use/purpose, effective time, and optional knowledge cutoff. An acceptance semantic commit that establishes one eligible selection must identify the accepted Input and record explicit non-selected/dissenting/rejected-for-use dispositions or supersession for every competing candidate material to that use. The resulting found selection is exactly one accepted/frozen Input and its exact Acceptance/Selection Version.
 
 ### 13.3 Acceptance accountability
 
@@ -752,7 +752,7 @@ Future tests should include:
 8. Use an input outside its applicability.
 9. Resolve a contributing uncertainty and create a successor input.
 10. Construct inputs from fuller evidence without exposing the other leg during analysis.
-11. Create two ready Value candidates for one use and confirm conflict until explicit accountable resolution.
+11. Create two ready Value candidates for one use and confirm `INPUT SELECTION NOT ESTABLISHED` while no eligible Acceptance/Selection Version exists; create two incompatible co-current eligible acceptances and confirm `INPUT SELECTION CONFLICT — UNRESOLVED`; then retain one accountable eligible acceptance with explicit competitor dispositions and confirm the one accepted/frozen Input and exact Acceptance/Selection Version are found.
 12. Reuse one frozen Input for a later use and confirm a new acceptance references the same Input Version.
 13. Withdraw a selected Input before readiness and block; withdraw it after a historical Decision and preserve history.
 14. Reject an unrelated-scope acceptance assignment and expose broad/narrow accountable conflict without implicit precedence.
