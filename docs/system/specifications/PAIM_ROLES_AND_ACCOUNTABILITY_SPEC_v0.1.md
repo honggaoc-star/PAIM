@@ -62,22 +62,34 @@ Operation / Learning / Reassessment
 
 These responsibilities may be combined in small organizations, but their functions should remain distinguishable.
 
+Where a governed record, judgment, or determination requires accountability, the system must resolve exactly one accountable Role Assignment or one explicitly governed accountable mechanism for the declared scope and effective time. Multiple compatible performers may contribute to the same PAIM role without becoming co-accountable by default. No eligible accountable result is explicit vacancy/not established; more than one incompatible result is explicit accountability conflict.
+
 ## 3. Role Identity
 
-A role assignment should support:
+A Role Assignment is an authoritative, versioned relationship between a PAIM actor and a PAIM function for exactly one typed target and effective interval. It is distinct from:
+
+- the authenticated **technical principal** used to access software;
+- the attributable **PAIM actor** who performs a PAIM action;
+- the **accountable assignment or mechanism** that owns a required governed obligation; and
+- **Decision Authority**, which becomes valid for an exact Decision only through the complete Decision Authorization Basis.
+
+A role assignment must support:
 
 - Role Assignment ID
-- Case ID
+- Role Assignment Version ID
 - role type
-- person/team/organizational role
-- effective period where relevant
+- assigned PAIM actor or explicitly identified organizational mechanism
+- target/scope type
+- target/scope ID
+- Case ID only when the target is Case-derived under §26
+- effective period
 - delegated-from relationship where relevant
 - status
-- scope
 - assigned by/source
 - predecessor/successor assignment
+- recorded time
 
-The platform may later bind these assignments to authenticated users.
+The platform may bind a technical principal to a PAIM actor for attributable access, but it must preserve both identities. A directory group, login, software role, or permission must not create a PAIM Role Assignment, accountability, or Decision Authority by itself.
 
 ## 4. Core PAIM Roles
 
@@ -234,6 +246,8 @@ Makes or authorizes the PAIM management judgment.
 Decision authority must be established by organizational governance, delegation, policy, role, committee charter, or another legitimate mechanism.
 
 PAIM does not invent decision authority.
+
+A Role Assignment naming `Decision Authority` identifies a candidate actor and scope input only. It does not authorize a Decision by itself. Every authorized Decision must retain the exact, complete Decision Authorization Basis required by `PAIM_SYSTEM_RECORD_AND_DECISION_INTEGRITY_SPEC_v0.1.md`, §6; technical principal identity, software access, role label, role participation, and accountability are insufficient substitutes.
 
 ## 12. Decision Authority Gap
 
@@ -439,6 +453,8 @@ The role may be optional as a separate designation.
 
 This table defines default accountability, not mandatory organizational staffing.
 
+For each row that requires accountable ownership, the governing record must reference one eligible accountable Role Assignment or one explicitly governed accountable mechanism for its exact scope/time. Multiple compatible performers may contribute under the same or different assignments. If no accountable result exists, ownership is vacant/not established. If incompatible accountable results overlap, the record is in explicit accountability conflict until resolved through recorded assignment, supersession, delegation, or another accepted authority mechanism.
+
 ## 23. Role Conflicts
 
 Potential conflicts include:
@@ -492,17 +508,23 @@ If the same person occupies multiple roles, the record should show that fact.
 
 ## 26. Role Assignment Scope
 
-A role assignment may be scoped to:
+A Role Assignment has exactly one typed target. PAIM v0.1 supports the following scope types already named by this specification:
 
-- one case;
-- one configuration;
-- one decision;
-- one intervention;
-- one authority domain;
-- one business unit;
-- organization-wide function.
+| Scope type | Required target identity | Case ID rule |
+|---|---|---|
+| `ORGANIZATION` | Organization ID | Case ID must be absent. |
+| `BUSINESS_UNIT` | Business Unit ID and owning Organization ID | Case ID must be absent. |
+| `CASE` | Case ID | Case ID is required and is the target ID. |
+| `CONFIGURATION` | Configuration ID and its one owning Case relationship | Owning Case ID is required as context; the Configuration ID is the target. |
+| `DECISION` | Decision ID/version and associated Case/Configuration | Associated Case ID is required as context; the Decision is the target. |
+| `INTERVENTION` | Intervention ID and associated Case/Configuration | Associated Case ID is required as context; the Intervention is the target. |
+| `AUTHORITY_DOMAIN` | Authority-domain ID and organizational context | Case ID is absent unless the authority domain is explicitly Case-scoped. |
 
-The system should not assume organization-wide authority from a case-specific assignment.
+An organization-wide or business-unit assignment must not use a fictitious Case ID. A Configuration-, Decision-, or Intervention-scoped assignment must not be treated as Case-wide merely because the owning Case is recorded as context.
+
+Multiple compatible performers may hold the same PAIM role for the same target/effective time. Compatibility means their functions are additive and do not compete for a required singular accountable or authority outcome. Where accountability is required, the separate accountable result follows §§2 and 22.
+
+Broad and narrow applicable assignments have no implicit precedence. A specific assignment does not automatically override a broader assignment, and a broader assignment does not automatically override a narrower one. Compatible/additive assignments may coexist. Competing accountability or authority assignments produce explicit conflict until displacement or relationship is established through recorded supersession, delegation, or a later accepted versioned policy. Recency, breadth, specificity, directory hierarchy, and software permission must not select a winner.
 
 ## 27. Role Assignment Status
 
@@ -519,6 +541,8 @@ Historical assignments should remain inspectable for prior decisions.
 
 Assignment/delegation currentness is derived under `PAIM_SYSTEM_RECORD_AND_DECISION_INTEGRITY_SPEC_v0.1.md`, §3.11. Overlapping incompatible assignments or delegation chains produce explicit unresolved authorization conflict; the platform must not choose by recency or breadth.
 
+Role resolution for a requested role, typed target, and effective time may return multiple compatible performer assignments. Accountability resolution for an obligation that requires one owner returns exactly one eligible accountable assignment/mechanism, explicit vacancy/not established, or explicit accountability conflict. Authorization resolution remains separately governed by the Decision Authorization Basis.
+
 ## 28. Accountability During Absence or Change
 
 When an accountable role changes:
@@ -528,6 +552,8 @@ When an accountable role changes:
 - identify open obligations;
 - transfer ownership explicitly;
 - do not silently orphan interventions, learning items, or authority gaps.
+
+A temporary or delegated assignment must identify whether it supplements performer capacity, transfers accountability, or retains accountability with the delegator. Displacement is never inferred from narrower scope or newer effective time. Expiry, revocation, or absence of a successor creates explicit vacancy for any unresolved obligation; incompatible successors create conflict.
 
 ## 29. Accountability for Shared Controls
 
@@ -627,6 +653,8 @@ A user may need different permissions across different cases.
 
 Detailed authorization design belongs in platform architecture.
 
+Permission evaluation must preserve technical principal, PAIM actor, Role Assignment, accountable assignment/mechanism, and Decision Authority as separate facts. Software access may allow an actor to attempt an action; it must not resolve accountability conflict or satisfy the Decision Authorization Basis.
+
 ## 36. Historical Record Protection
 
 No role should be able to silently rewrite authoritative historical records.
@@ -670,7 +698,14 @@ The system should surface:
 - expired/revoked authority used for current decision;
 - technical administrator making substantive changes without assigned role;
 - role assignment outside its scope;
-- orphaned obligations after role change.
+- orphaned obligations after role change;
+- organization/business-unit assignment carrying a fictitious mandatory Case ID;
+- missing or malformed typed assignment target;
+- vacancy where a governed record, judgment, or determination requires accountability;
+- incompatible plural accountable assignments or mechanisms for the same obligation/scope/time;
+- broad/narrow role overlap being treated as an implicit winner;
+- delegation or supersession that does not state whether accountability is retained or transferred;
+- technical principal, software role, or permission being treated as a PAIM actor, accountable assignment, or Decision Authority without the required relationship/basis.
 
 These checks support accountability; they do not replace organizational governance.
 
@@ -688,6 +723,11 @@ Future tests should include:
 8. Authority Owner resolves an Authority Gap but does not automatically authorize expansion.
 9. Decision Authority changes; prior decision remains attributable to prior authority.
 10. Learning Item becomes orphaned after staff change and is surfaced.
+11. Organization-wide and business-unit Role Assignments are represented without Case ID.
+12. Multiple compatible role performers coexist while one explicit assignment/mechanism remains accountable.
+13. No accountable assignment produces vacancy; incompatible accountable assignments produce conflict with no winner.
+14. Broad and narrow assignments overlap and neither wins without explicit supersession, delegation, or accepted policy.
+15. A Decision Authority role holder with software permission but no complete Decision Authorization Basis cannot authorize a Decision.
 
 ## 41. Open Questions
 
