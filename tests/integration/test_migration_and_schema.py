@@ -82,6 +82,17 @@ def test_increment_3_normalized_schema_constraints_indexes_and_triggers(
     assert {
         index["name"] for index in inspector.get_indexes("evidence_applicability_versions")
     } >= {"ix_applicability_exact_context"}
+    applicability_foreign_keys = {
+        tuple(foreign_key["constrained_columns"])
+        for foreign_key in inspector.get_foreign_keys("evidence_applicability_versions")
+    }
+    assert {
+        ("version_id",),
+        ("evidence_version_id",),
+        ("target_version_id",),
+        ("assessor_actor_id",),
+        ("accountable_assignment_version_id",),
+    } <= applicability_foreign_keys
     with sqlite_store.engine.connect() as connection:
         triggers = set(
             connection.execute(
@@ -91,6 +102,46 @@ def test_increment_3_normalized_schema_constraints_indexes_and_triggers(
     for table in increment_3_tables:
         assert f"prevent_{table}_update" in triggers
         assert f"prevent_{table}_delete" in triggers
+    with (
+        sqlite_store.engine.begin() as connection,
+        pytest.raises(DBAPIError, match="FOREIGN KEY"),
+    ):
+        connection.execute(
+            text(
+                """INSERT INTO exact_evidence_links
+                (source_version_id, evidence_version_id, link_role)
+                VALUES (:source, :evidence, 'invalid-fk-oracle')"""
+            ),
+            {
+                "source": "00000000-0000-7000-8000-000000000101",
+                "evidence": "00000000-0000-7000-8000-000000000102",
+            },
+        )
+
+
+def test_upgrade_from_increment_2_revision_to_increment_3_head(tmp_path: Path) -> None:
+    database_path = (tmp_path / "upgrade-from-increment-2.sqlite3").as_posix()
+    database_url = f"sqlite+pysqlite:///{database_path}"
+    config = alembic_config(database_url)
+    command.upgrade(config, "0002_increment_2")
+    engine = create_engine(database_url)
+    try:
+        assert "evidence_records" not in inspect(engine).get_table_names()
+        command.upgrade(config, "head")
+        inspector = inspect(engine)
+        assert {
+            "evidence_records",
+            "evidence_applicability_versions",
+            "analytical_input_versions",
+            "input_acceptance_versions",
+        } <= set(inspector.get_table_names())
+        with engine.connect() as connection:
+            assert (
+                connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
+                == "0003_increment_3"
+            )
+    finally:
+        engine.dispose()
 
 
 def test_database_rejects_finalized_content_update_and_foreign_key_violation(

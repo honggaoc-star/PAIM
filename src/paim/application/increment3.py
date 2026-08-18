@@ -47,6 +47,7 @@ from paim.integrity import (
     RelationshipType,
     SelectionAbsent,
     SelectionCandidate,
+    SelectionConflict,
     SelectionFound,
     SelectionQuery,
     StatusEvent,
@@ -201,7 +202,11 @@ class Increment3ApplicationService(Increment2ApplicationService):
                 raise DomainRuleViolation(
                     "Configuration target Applicability requires exact Configuration context"
                 )
-            targets = ((RoleTargetType.CONFIGURATION, str(value.configuration_id)),)
+            assert value.case_id is not None
+            targets = (
+                (RoleTargetType.CONFIGURATION, str(value.configuration_id)),
+                (RoleTargetType.CASE, str(value.case_id)),
+            )
         else:
             authority = transaction.authority_applicability_context(
                 target_type=value.target_type,
@@ -213,25 +218,47 @@ class Increment3ApplicationService(Increment2ApplicationService):
             if authority is None:
                 raise DomainRuleViolation("exact Authority target context is not established")
             if authority.configuration_id is not None:
-                targets = ((RoleTargetType.CONFIGURATION, str(authority.configuration_id)),)
+                assert authority.case_id is not None
+                targets = (
+                    (RoleTargetType.CONFIGURATION, str(authority.configuration_id)),
+                    (RoleTargetType.CASE, str(authority.case_id)),
+                )
             elif authority.case_id is not None:
                 targets = ((RoleTargetType.CASE, str(authority.case_id)),)
             else:
                 targets = ((RoleTargetType.AUTHORITY_DOMAIN, authority.authority_scope),)
 
-        accountable: set[RecordVersionId] = set()
-        for target_type, target_id in targets:
-            for version_id in self._current_role_versions(
-                transaction,
-                role=assignment.role,
-                target_type=target_type,
-                target_id=target_id,
-                effective_at=effective_at,
-                known_at=known_at,
-            ):
-                detail = transaction.role_assignment_detail(version_id)
-                if detail is not None and detail.accountable:
-                    accountable.add(version_id)
+        assignment_ids = transaction.role_assignment_records(
+            role=assignment.role,
+            targets=tuple((target_type.value, target_id) for target_type, target_id in targets),
+        )
+        current_versions: set[RecordVersionId] = set()
+        for assignment_id in assignment_ids:
+            history = transaction.get_history(assignment_id)
+            if not history.versions:
+                continue
+            exemplar = next(iter(history.versions))
+            current = transaction.select_current(
+                SelectionQuery(
+                    family="role-assignment",
+                    scope=exemplar.scope,
+                    effective_at=effective_at,
+                    known_at=known_at,
+                    record_id=assignment_id,
+                )
+            )
+            if isinstance(current, SelectionFound):
+                current_versions.add(current.candidate.version_id)
+            elif isinstance(current, SelectionConflict):
+                current_versions.update(candidate.version_id for candidate in current.candidates)
+        accountable = {
+            version_id
+            for version_id in current_versions
+            if (
+                (detail := transaction.role_assignment_detail(version_id)) is not None
+                and detail.accountable
+            )
+        }
         if accountable != {value.accountable_assignment_version_id}:
             raise DomainRuleViolation(
                 "vacant or conflicting target-context accountability blocks Applicability"

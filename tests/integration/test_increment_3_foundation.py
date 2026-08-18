@@ -889,6 +889,89 @@ def test_exact_accountability_and_atomic_acceptance_rollback(
     )
 
 
+@pytest.mark.parametrize(
+    "target_type,lane",
+    [
+        (ApplicabilityTargetType.MANAGED_CONFIGURATION_VERSION, None),
+        (ApplicabilityTargetType.VALUE_INPUT_VERSION, AnalyticalLane.VALUE),
+        (ApplicabilityTargetType.RISK_INPUT_VERSION, AnalyticalLane.RISK),
+    ],
+)
+def test_owning_case_assignment_satisfies_configuration_bound_applicability(
+    sqlite_store: SQLiteIntegrityStore,
+    target_type: ApplicabilityTargetType,
+    lane: AnalyticalLane | None,
+) -> None:
+    ctx = context(sqlite_store, f"case-accountability-{target_type.value}")
+    evidence_id, evidence_version = evidence(ctx, f"case-accountability-{target_type.value}")
+    if lane is None:
+        target_id = str(ctx.configuration_id)
+        target_version_id = ctx.configuration_version_id
+    else:
+        input_id, input_version = analytical_input(
+            ctx,
+            f"case-accountability-{lane.value}",
+            lane,
+            (evidence_version,),
+        )
+        target_id = str(input_id)
+        target_version_id = input_version
+
+    case_assignment_version = RecordVersionId.new()
+    ctx.service.commit_role_assignment(
+        meta(f"case-accountability-{target_type.value}-role"),
+        RoleAssignmentVersionInput(
+            RecordId.new(),
+            case_assignment_version,
+            ctx.assessor_id,
+            "Applicability Owner",
+            RoleTargetType.CASE,
+            str(ctx.case_id),
+            ctx.case_id,
+            True,
+            "applicability-accountability",
+            DelegationEffect.NONE,
+            None,
+            EFFECTIVE,
+        ),
+    )
+    applicability_version = RecordVersionId.new()
+    ctx.service.commit_evidence_applicability(
+        meta(f"case-accountability-{target_type.value}-applicability"),
+        EvidenceApplicabilityVersionInput(
+            RecordId.new(),
+            applicability_version,
+            evidence_id,
+            evidence_version,
+            target_type,
+            target_id,
+            target_version_id,
+            "operating-plan",
+            "owning-case-accountability",
+            ctx.case_id,
+            ctx.configuration_id,
+            ctx.configuration_version_id,
+            ApplicabilityOutcome.APPLICABLE,
+            (),
+            (),
+            "owning Case assignment is explicitly applicable",
+            ctx.assessor_id,
+            case_assignment_version,
+            None,
+            EFFECTIVE,
+        ),
+    )
+    assert ctx.service.select_evidence_applicability(
+        evidence_version_id=evidence_version,
+        target_type=target_type,
+        target_id=target_id,
+        target_version_id=target_version_id,
+        purpose="operating-plan",
+        assessed_scope="owning-case-accountability",
+        effective_at=EFFECTIVE.start,
+    ) == ApplicabilityFound(applicability_version)
+
+
 def test_authority_gap_question_applicability_is_exact_and_reconstructable(
     sqlite_store: SQLiteIntegrityStore,
 ) -> None:
