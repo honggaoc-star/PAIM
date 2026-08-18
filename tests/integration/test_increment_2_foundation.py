@@ -258,29 +258,66 @@ def test_configuration_requires_existing_exactly_one_owner_and_rolls_back(
     assert sqlite_store.count_rows("managed_configurations") == 0
 
 
-def test_governing_absence_alternative_and_same_case_conflict_have_no_fallback(
+@pytest.mark.parametrize(
+    "purpose",
+    [
+        ConfigurationPurpose.PROPOSED,
+        ConfigurationPurpose.EXPERIMENTAL,
+        ConfigurationPurpose.ALTERNATIVE,
+        ConfigurationPurpose.FALLBACK,
+    ],
+)
+def test_non_governing_purpose_cannot_be_designated_selected_or_satisfy_lifecycle(
     sqlite_store: SQLiteIntegrityStore,
+    purpose: ConfigurationPurpose,
 ) -> None:
-    case_id, _ = add_case(sqlite_store, "governing")
-    _, proposed = add_configuration(
-        sqlite_store, "proposed", case_id, purpose=ConfigurationPurpose.PROPOSED
-    )
-    _, fallback = add_configuration(
-        sqlite_store, "fallback", case_id, purpose=ConfigurationPurpose.FALLBACK
+    case_id, _ = add_case(sqlite_store, f"ineligible-{purpose.value}")
+    _, configuration_version = add_configuration(
+        sqlite_store,
+        f"ineligible-{purpose.value}",
+        case_id,
+        purpose=purpose,
     )
     domain = service(sqlite_store)
+    with pytest.raises(DomainRuleViolation, match="ineligible for governing designation"):
+        designate(
+            sqlite_store,
+            f"attempt-{purpose.value}",
+            case_id,
+            configuration_version,
+        )
     assert isinstance(
         domain.select_governing_configuration(case_id=case_id, effective_at=utc(2026, 1, 1)),
         GoverningConfigurationAbsent,
     )
-    designate(sqlite_store, "first", case_id, proposed)
+    transition = domain.transition_case(
+        meta(f"transition-ineligible-{purpose.value}"),
+        case_id=case_id,
+        target_state=CaseLifecycleState.CONFIGURATION_DEFINED,
+        effective_at=utc(2026, 1, 1),
+    )
+    assert not transition.accepted
+    assert "NOT ESTABLISHED" in transition.reason
+    assert sqlite_store.count_rows("governing_configuration_designations") == 0
+
+
+def test_candidate_designation_selects_and_same_case_candidates_conflict_without_winner(
+    sqlite_store: SQLiteIntegrityStore,
+) -> None:
+    case_id, _ = add_case(sqlite_store, "governing-candidate")
+    _, first_configuration = add_configuration(sqlite_store, "candidate-first", case_id)
+    _, second_configuration = add_configuration(sqlite_store, "candidate-second", case_id)
+    domain = service(sqlite_store)
+    designate(sqlite_store, "candidate-first", case_id, first_configuration)
     selected = domain.select_governing_configuration(case_id=case_id, effective_at=utc(2026, 1, 1))
     assert isinstance(selected, GoverningConfigurationFound)
-    assert selected.configuration_version_id == proposed
-    designate(sqlite_store, "second", case_id, fallback)
+    assert selected.configuration_version_id == first_configuration
+    designate(sqlite_store, "candidate-second", case_id, second_configuration)
     conflict = domain.select_governing_configuration(case_id=case_id, effective_at=utc(2026, 1, 1))
     assert isinstance(conflict, GoverningConfigurationConflict)
-    assert conflict.configuration_version_ids == frozenset({proposed, fallback})
+    assert conflict.configuration_version_ids == frozenset(
+        {first_configuration, second_configuration}
+    )
 
 
 def test_governing_known_at_reconstruction_preserves_later_correction_history(

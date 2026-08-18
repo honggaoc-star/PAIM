@@ -18,6 +18,7 @@ from paim.domain.models import (
     CaseVersionInput,
     CommandMeta,
     ConfigurationDeterminationInput,
+    ConfigurationPurpose,
     ConfigurationVersionInput,
     DelegationEffect,
     DeterminationKind,
@@ -40,6 +41,7 @@ from paim.integrity import (
     RelationshipId,
     RelationshipType,
     SelectionAbsent,
+    SelectionCandidate,
     SelectionConflict,
     SelectionFound,
     SelectionQuery,
@@ -610,6 +612,11 @@ class Increment2ApplicationService:
                 raise DomainRuleViolation(
                     "governing Configuration must be finalized and owned by the designated Case"
                 )
+            if context.purpose != ConfigurationPurpose.CANDIDATE.value:
+                raise DomainRuleViolation(
+                    "proposed, experimental, alternative, and fallback purpose is "
+                    "ineligible for governing designation"
+                )
             self._validate_accountable_provenance(
                 transaction,
                 assignment_version_id=value.accountable_assignment_version_id,
@@ -665,22 +672,38 @@ class Increment2ApplicationService:
                 known_at=known_at,
             )
         )
+        candidates: tuple[SelectionCandidate, ...]
         if isinstance(result, SelectionAbsent):
-            return GoverningConfigurationAbsent()
-        if isinstance(result, SelectionFound):
-            row = transaction.governing_designation_detail(result.candidate.version_id)
-            assert row is not None
-            return GoverningConfigurationFound(
-                designation_version_id=result.candidate.version_id,
-                configuration_version_id=row.configuration_version_id,
-            )
-        designation_ids = frozenset(candidate.version_id for candidate in result.candidates)
-        configuration_values: set[RecordVersionId] = set()
-        for candidate in result.candidates:
+            candidates = ()
+        elif isinstance(result, SelectionFound):
+            candidates = (result.candidate,)
+        else:
+            candidates = tuple(result.candidates)
+
+        eligible: list[tuple[RecordVersionId, RecordVersionId]] = []
+        for candidate in candidates:
             detail = transaction.governing_designation_detail(candidate.version_id)
-            assert detail is not None
-            configuration_values.add(detail.configuration_version_id)
-        configuration_ids = frozenset(configuration_values)
+            if detail is None:
+                continue
+            context = transaction.configuration_version_context(detail.configuration_version_id)
+            if (
+                context is not None
+                and context.owning_case_id == case_id
+                and context.maturity == "finalized"
+                and context.purpose == ConfigurationPurpose.CANDIDATE.value
+            ):
+                eligible.append((candidate.version_id, detail.configuration_version_id))
+
+        if not eligible:
+            return GoverningConfigurationAbsent()
+        if len(eligible) == 1:
+            designation_version_id, configuration_version_id = eligible[0]
+            return GoverningConfigurationFound(
+                designation_version_id=designation_version_id,
+                configuration_version_id=configuration_version_id,
+            )
+        designation_ids = frozenset(designation for designation, _ in eligible)
+        configuration_ids = frozenset(configuration for _, configuration in eligible)
         return GoverningConfigurationConflict(designation_ids, configuration_ids)
 
     def select_governing_configuration(
