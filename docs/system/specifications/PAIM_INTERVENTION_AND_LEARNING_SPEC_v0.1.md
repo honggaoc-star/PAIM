@@ -123,19 +123,19 @@ Minimum identity fields:
 
 ## 5. Intervention Status
 
-Possible statuses include:
+The normative PAIM v0.1 implementation statuses are exactly:
 
-- proposed;
-- planned;
-- in progress;
-- blocked;
-- partially completed;
-- completed;
-- failed;
-- cancelled;
-- superseded.
+- `PROPOSED`;
+- `PLANNED`;
+- `IN_PROGRESS`;
+- `BLOCKED`;
+- `PARTIALLY_COMPLETED`;
+- `COMPLETED`;
+- `FAILED`;
+- `CANCELLED`; and
+- `SUPERSEDED`.
 
-The exact platform vocabulary may later be refined.
+Overdue or other attention state is a status event/attention condition, not a completion outcome. Intervention implementation status, Completion Result, Completion Acceptance, prerequisite satisfaction, and Activation Authorization are separate facts. `COMPLETED` never means accepted complete by itself.
 
 A completed decision does not imply that its intervention has been completed.
 
@@ -259,6 +259,122 @@ Examples:
 - evidence-generation mechanism active.
 
 Completion criteria may be qualitative or quantitative.
+
+### 11.1 Decision-to-Intervention Obligation and Obligation Set
+
+Every authorized Decision Version must have one authoritative **Decision-to-Intervention Obligation Set Version**, including when the set explicitly contains no obligations. The set and each contained **Obligation Version** have stable record identity, immutable version identity, effective/recorded time, current-selection, correction, amendment, supersession, and exact-history semantics under the Integrity specification.
+
+An Obligation Version binds at minimum:
+
+- exact Decision ID/Version;
+- exact target Configuration ID/Version;
+- exact Intervention ID and required Intervention Version, or one explicit allowed successor/replacement relationship;
+- requirement type;
+- completion criteria or exact governing Intervention-Version reference;
+- relevant Boundary clauses, Decision conditions, controls, and prohibitions;
+- rationale and provenance;
+- effective and recorded time; and
+- predecessor, amendment, supersession, replacement, and reuse relationships where applicable.
+
+The requirement belongs to the exact Decision obligation package. It is not a Configuration-global or Intervention-global property and does not transfer to another Decision implicitly.
+
+The normative v0.1 requirement types are exactly:
+
+- `REQUIRED_BEFORE_OPERATION` — target operation is blocked until the obligation is satisfied;
+- `REQUIRED_AFTER_OPERATION` — initial target operation may precede completion only when the exact Decision explicitly permits that timing and retains its conditions; and
+- `OPTIONAL` — the Intervention does not block target activation and never becomes mandatory through age, operator preference, or software configuration.
+
+Learning remains a separate record family and is not another Intervention requirement type.
+
+### 11.2 Completion Result
+
+A **Completion Result** has stable identity and immutable Versions. A finalized Completion Result Version contains at minimum:
+
+- exact Intervention Version;
+- exact Obligation Version;
+- exact Decision and target Configuration Versions;
+- criterion-by-criterion results using exactly `MET`, `NOT_MET`, or `INDETERMINATE`;
+- exact Evidence Record/Version references and provenance;
+- performer/attestor actor;
+- limitations, residual exposure, and fallback/remediation state;
+- effective and recorded time; and
+- immutable correction/supersession history.
+
+Every required criterion must be `MET` before a Completion Acceptance may be eligible. This is a mechanical eligibility condition only. Work status, evidence presence, or all-`MET` criteria never creates Completion Acceptance.
+
+### 11.3 Completion Acceptance
+
+A **Completion Acceptance** has stable identity and immutable Versions distinct from the Completion Result. Its minimum content is:
+
+- exact Obligation, Intervention Version, and Completion Result Version;
+- exact Decision and target Configuration Versions;
+- exact material Boundary/condition references;
+- outcome exactly `ACCEPTED` or `REJECTED`;
+- rationale, exceptions, and limitations;
+- accountable actor plus exact applicable Role Assignment Version or explicitly governed organizational mechanism;
+- exact delegation/supersession provenance where used;
+- effective and recorded time; and
+- correction, withdrawal, and supersession history.
+
+For one exact obligation, effective time, and optional knowledge cutoff, authoritative selection returns one eligible Acceptance, `ACCEPTANCE NOT ESTABLISHED`, or `COMPLETION ACCEPTANCE CONFLICT — UNRESOLVED`. No newest, specificity, breadth, ownership, directory, hierarchy, row-order, or software-permission winner is permitted.
+
+Acceptance accountability and any delegation must be valid at the Acceptance effective time. Later routine role expiry does not rewrite a historically valid Acceptance. A corrected, withdrawn, or superseded Acceptance is prospectively ineligible for a future activation, while the historical basis remains reconstructable.
+
+### 11.4 Per-obligation result
+
+The normative per-obligation results are exactly `SATISFIED`, `NOT_ESTABLISHED`, `INCOMPLETE`, `BLOCKED`, and `CONFLICT`:
+
+| Current authoritative facts | Obligation result |
+|---|---|
+| `COMPLETED` plus one eligible current `ACCEPTED` Acceptance for the exact Completion Result | `SATISFIED` |
+| `COMPLETED` plus no eligible Acceptance | `NOT_ESTABLISHED` |
+| `COMPLETED` plus current `REJECTED` Acceptance | `BLOCKED` |
+| `PROPOSED`, `PLANNED`, `IN_PROGRESS`, or `PARTIALLY_COMPLETED` | `INCOMPLETE` |
+| `BLOCKED`, `FAILED`, or `CANCELLED` without one valid current replacement | `BLOCKED` |
+| `SUPERSEDED` required Intervention without one exact valid current replacement relationship | `NOT_ESTABLISHED` |
+| incompatible current results, Acceptances, obligations, or replacements | `CONFLICT` |
+
+A `SUPERSEDED` predecessor is excluded prospectively only through one exact valid current replacement. Two incompatible replacements are `CONFLICT`; no valid replacement is `NOT_ESTABLISHED`. Historical predecessors remain reconstructable.
+
+### 11.5 Aggregate prerequisite satisfaction
+
+For one exact Decision Version, target Configuration Version, effective time, and optional knowledge cutoff, select one eligible current Obligation Set, explicit absence, or explicit conflict. Evaluate every current `REQUIRED_BEFORE_OPERATION` obligation using an all-of rule. PAIM v0.1 does not define one-of-N groups, ordered prerequisites, condition expressions, recurrence, or a generic workflow language.
+
+The normative aggregate results are exactly `SATISFIED`, `NOT_REQUIRED`, `NOT_ESTABLISHED`, `INCOMPLETE`, `BLOCKED`, and `CONFLICT`. Derivation is staged rather than scored:
+
+1. Obligation Set conflict returns `CONFLICT`; absence returns `NOT_ESTABLISHED`.
+2. One explicit eligible set with zero required-before obligations returns `NOT_REQUIRED`; missing data never does.
+3. Any required relationship/result/Acceptance/replacement conflict returns `CONFLICT`.
+4. Required exact source absence returns `NOT_ESTABLISHED`.
+5. Any terminal unsatisfied required-before obligation returns `BLOCKED`.
+6. Any remaining non-terminal unsatisfied required-before obligation returns `INCOMPLETE`.
+7. Only all required-before obligations `SATISFIED` returns aggregate `SATISFIED`.
+
+Every contributing result and diagnostic remains available; the aggregate is not a universal Intervention score.
+
+### 11.6 Prerequisite Evaluation Basis
+
+Current aggregate satisfaction is deterministically derived from authoritative Obligation Set/Obligation, Intervention, Completion Result, Completion Acceptance, replacement, and reuse records. Any cache or projection is non-authoritative and rebuildable.
+
+Every target activation retains one immutable **Prerequisite Evaluation Basis** containing the exact relied-upon versions, per-obligation and aggregate results, effective time, recorded time, and knowledge cutoff sufficient for historical reconstruction.
+
+### 11.7 Fallback, remediation, and replacement
+
+Fallback or remediation satisfies an obligation only through an explicit replacement/successor relationship and its own exact Completion Result plus eligible Completion Acceptance. If it changes operating state, Boundary, target Configuration, or a substantive Decision condition, an authorized successor/amendment Decision is required. The label `fallback` never supplies authority or satisfaction.
+
+### 11.8 Successor Decision and reuse
+
+Every substantive successor/amendment Decision has its own exact Obligation Set. Prior Completion Results or Acceptances never carry forward silently. Reuse requires an exact accountable continued-validity determination covering unchanged relevant Configuration content, Boundary/conditions, completion criteria, Evidence applicability, and acceptance scope. A changed target Configuration requires explicit coverage of the new Version. Absent eligible reuse, the successor obligation is `NOT_ESTABLISHED`.
+
+Removal, replacement, and reuse operate prospectively and preserve predecessor history. Later role, Evidence, Intervention, Acceptance, Decision, or obligation change never rewrites the historical Decision or activation basis.
+
+### 11.9 Required-after-operation and optional commitments
+
+Incomplete `REQUIRED_AFTER_OPERATION` does not block initial activation only under the exact Decision permission and retained timing/conditions. It remains a mandatory visible commitment; later overdue, blocked, failed, cancelled, or materially partial state creates attention through existing extension points but does not silently change the Decision.
+
+A required-after Obligation without that exact Decision permission or required timing/conditions makes the Obligation Set ineligible for activation and returns aggregate `NOT_ESTABLISHED`; the platform must not silently treat the item as optional.
+
+Incomplete `OPTIONAL` never blocks activation. Neither category resolves Reassessment, Interim Operating Disposition, Observation, Register, or operating-state-ranking semantics.
 
 ## 12. Intervention Dependencies
 
@@ -557,6 +673,8 @@ Different operating states may imply different intervention burdens.
 
 Case lifecycle state `INTERVENTION_IN_PROGRESS` may coexist with continued operation under the prior/current authorized Decision. The target configuration must not become operating merely because intervention has begun. The governing coexistence and transition rules are in `PAIM_SYSTEM_RECORD_AND_DECISION_INTEGRITY_SPEC_v0.1.md`, §§5.3 and 5.6.
 
+Satisfied prerequisites alone never authorize target operation. Entry into `OPERATING_OBSERVING` requires the exact Prerequisite Evaluation Basis and Activation Authorization governed by the Case Lifecycle and Integrity specifications. Activation authority is either an applicable Decision Authority acting explicitly or a genuine governed organizational activation mechanism explicitly pre-authorized in the exact Decision Authorization Basis, with its rule/version/scope/authority retained. A technical/software rule, checklist, Case Owner, Intervention Owner, administrator permission, or technical principal alone is not such a mechanism.
+
 Examples:
 
 ### Experiment
@@ -733,7 +851,7 @@ This specification does not prescribe UI or project-management tooling.
 
 Future tests should include:
 
-1. Decision requires a new control; operation cannot enter authorized state until implemented.
+1. Decision requires a new control; target operation cannot activate until the exact required-before obligation is `COMPLETED`, supported by an all-`MET` Completion Result, and has one eligible `ACCEPTED` Completion Acceptance plus valid Activation Authorization.
 2. Intervention becomes blocked; system surfaces operational consequence.
 3. Intervention fails; reassessment is triggered.
 4. Partial implementation leaves a required control absent.
@@ -760,6 +878,8 @@ Deferred to later specifications/platform design:
 - monitoring automation;
 - incident-management integration;
 - external-provider task integration.
+
+IRR-009 Observation persistence, IRR-011 Trigger/Reassessment concurrency, IRR-012 Management Register aggregation, and IRR-014 operating-state ranking remain explicitly deferred. This specification does not define a universal Intervention score, universal segregation-of-duties rule, or generic workflow/condition/dependency engine.
 
 ## 42. Completion Impact
 

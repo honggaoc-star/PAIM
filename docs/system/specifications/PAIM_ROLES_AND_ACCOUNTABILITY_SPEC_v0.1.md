@@ -331,6 +331,25 @@ Owns implementation of one or more required interventions.
 
 An Intervention Owner does not automatically have authority to change the underlying PAIM decision.
 
+### 15.1 Intervention Completion Acceptor
+
+**Intervention Completion Acceptor** is the separately accountable function that accepts or rejects whether an exact Completion Result satisfies an exact Decision-to-Intervention Obligation. It is not conferred by Intervention ownership, authorship, evidence production, Decision participation, software permission, or technical-principal identity.
+
+For Role Assignment accountability, the explicitly applicable typed target set for one exact obligation consists of:
+
+- the exact Intervention;
+- the exact Decision;
+- the exact target Configuration; and
+- that Configuration's owning Case.
+
+Each assignment retains its own typed target. A Case-scoped assignment applicable to an obligation does not become Intervention-, Decision-, or Configuration-scoped. An organization/business-unit mechanism is eligible only through an explicitly established identity/mapping or governed organizational mechanism; PAIM must not synthesize identity from scope text.
+
+Resolution returns exactly one eligible accountable assignment/mechanism, `COMPLETION ACCEPTANCE ACCOUNTABILITY NOT ESTABLISHED`, or `COMPLETION ACCEPTANCE ACCOUNTABILITY CONFLICT — UNRESOLVED`. Broad/narrow scope, recency, role hierarchy, ownership, directory group, software permission, and Decision participation establish no implicit winner.
+
+The same actor may be Intervention Owner and Completion Acceptor only when both functions are independently established and both exact relationships are retained. This permits organization-specific staffing without making self-acceptance automatic. A later segregation-of-duties policy may be stricter.
+
+Delegated acceptance must cite the exact delegation chain and fail closed when any link is expired, revoked, superseded, unrelated in scope, incomplete, or conflicting.
+
 ## 16. Evidence Owner
 
 ### Purpose
@@ -468,6 +487,7 @@ The role may be optional as a separate designation.
 | PAIM Integration Record | Integration owner/facilitator |
 | Management Decision Record | Decision Authority |
 | Intervention Record | Intervention Owner |
+| Intervention Completion Acceptance | exact Intervention/Decision/target-Configuration/owning-Case Completion Acceptor assignment or governed mechanism |
 | Learning Item | assigned learning/evidence owner |
 | Reassessment Record | Case/Reassessment Owner |
 | Management Register | derived system view; management ownership |
@@ -477,6 +497,8 @@ This table defines default accountability, not mandatory organizational staffing
 For each row that requires accountable ownership, the governing record must reference one eligible accountable Role Assignment or one explicitly governed accountable mechanism for its exact scope/time. Multiple compatible performers may contribute under the same or different assignments. If no accountable result exists, ownership is vacant/not established. If incompatible accountable results overlap, the record is in explicit accountability conflict until resolved through recorded assignment, supersession, delegation, or another accepted authority mechanism.
 
 For Input Acceptance/Selection and Evidence Applicability, the governing record must validate accountability against the obligation's exact target context rather than against whatever target is stored on the cited assignment. A valid assignment for unrelated Case or Configuration B cannot authorize an obligation for Case or Configuration A.
+
+Intervention Completion Acceptance follows the same fail-closed principle against the exact applicable typed target set in §15.1. An assignment valid only for unrelated Intervention, Decision, Configuration, or Case is ineligible. One eligible accountable result is valid; zero is vacancy/not established; incompatible plurality is explicit conflict.
 
 ## 23. Role Conflicts
 
@@ -716,6 +738,11 @@ The system should surface:
 - case with no Case Owner;
 - decision with no Decision Authority;
 - intervention with no owner;
+- Completion Acceptance with no eligible Intervention Completion Acceptor;
+- Intervention Owner self-accepting without a separately applicable acceptance assignment/mechanism;
+- unrelated-scope Completion Acceptor being treated as eligible;
+- broad/narrow Completion Acceptor overlap being resolved by recency, specificity, hierarchy, ownership, directory group, or permission;
+- expired/revoked/superseded/incomplete acceptance delegation being used;
 - Authority Gap with no owner where resolution is required;
 - frozen input with no analytical owner/source;
 - expired/revoked authority used for current decision;
@@ -728,12 +755,14 @@ The system should surface:
 - incompatible plural accountable assignments or mechanisms for the same obligation/scope/time;
 - broad/narrow role overlap being treated as an implicit winner;
 - delegation or supersession that does not state whether accountability is retained or transferred;
-- technical principal, software role, or permission being treated as a PAIM actor, accountable assignment, or Decision Authority without the required relationship/basis.
+- technical principal, software role, or permission being treated as a PAIM actor, accountable assignment, or Decision Authority without the required relationship/basis;
 - analytical readiness or authorship being treated as Value/Risk acceptance accountability;
 - one acceptance shortcut being used for both Value and Risk lanes;
 - Input acceptance or Evidence Applicability using an accountable assignment valid only for an unrelated target;
 - broad/narrow competing acceptance or applicability assignments being resolved by specificity, recency, directory hierarchy, or permission;
-- Input acceptance being treated as Decision Authority.
+- Input acceptance being treated as Decision Authority;
+- Completion Acceptance or satisfied prerequisites being treated as Activation Authorization;
+- technical/software checklist or permission being treated as a governed organizational activation mechanism.
 
 These checks support accountability; they do not replace organizational governance.
 
