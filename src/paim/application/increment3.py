@@ -217,14 +217,7 @@ class Increment3ApplicationService(Increment2ApplicationService):
             elif authority.case_id is not None:
                 targets = ((RoleTargetType.CASE, str(authority.case_id)),)
             else:
-                targets = tuple(
-                    (target_type, authority.authority_scope)
-                    for target_type in (
-                        RoleTargetType.AUTHORITY_DOMAIN,
-                        RoleTargetType.BUSINESS_UNIT,
-                        RoleTargetType.ORGANIZATION,
-                    )
-                )
+                targets = ((RoleTargetType.AUTHORITY_DOMAIN, authority.authority_scope),)
 
         accountable: set[RecordVersionId] = set()
         for target_type, target_id in targets:

@@ -743,6 +743,93 @@ def test_exact_accountability_and_atomic_acceptance_rollback(
             ),
         )
 
+    exact_version = RecordVersionId.new()
+    ctx.service.commit_role_assignment(
+        meta("accountability-exact-configuration-role"),
+        RoleAssignmentVersionInput(
+            RecordId.new(),
+            exact_version,
+            ctx.assessor_id,
+            "Applicability Owner",
+            RoleTargetType.CONFIGURATION,
+            str(ctx.configuration_id),
+            ctx.case_id,
+            True,
+            "applicability-accountability",
+            DelegationEffect.NONE,
+            None,
+            EFFECTIVE,
+        ),
+    )
+    ctx.service.commit_evidence_applicability(
+        meta("accountability-exact-valid"),
+        EvidenceApplicabilityVersionInput(
+            RecordId.new(),
+            RecordVersionId.new(),
+            evidence_id,
+            evidence_version,
+            ApplicabilityTargetType.VALUE_INPUT_VERSION,
+            str(value[0]),
+            value[1],
+            "operating-plan",
+            "exact-accountability-scope",
+            ctx.case_id,
+            ctx.configuration_id,
+            ctx.configuration_version_id,
+            ApplicabilityOutcome.APPLICABLE,
+            (),
+            (),
+            "exact Configuration assignment applies",
+            ctx.assessor_id,
+            exact_version,
+            None,
+            EFFECTIVE,
+        ),
+    )
+    ctx.service.commit_role_assignment(
+        meta("accountability-broad-case-role"),
+        RoleAssignmentVersionInput(
+            RecordId.new(),
+            RecordVersionId.new(),
+            ctx.assessor_id,
+            "Applicability Owner",
+            RoleTargetType.CASE,
+            str(ctx.case_id),
+            ctx.case_id,
+            True,
+            "applicability-accountability",
+            DelegationEffect.NONE,
+            None,
+            EFFECTIVE,
+        ),
+    )
+    with pytest.raises(DomainRuleViolation, match="conflicting target-context"):
+        ctx.service.commit_evidence_applicability(
+            meta("accountability-broad-narrow-conflict"),
+            EvidenceApplicabilityVersionInput(
+                RecordId.new(),
+                RecordVersionId.new(),
+                evidence_id,
+                evidence_version,
+                ApplicabilityTargetType.VALUE_INPUT_VERSION,
+                str(value[0]),
+                value[1],
+                "operating-plan",
+                "conflict-accountability-scope",
+                ctx.case_id,
+                ctx.configuration_id,
+                ctx.configuration_version_id,
+                ApplicabilityOutcome.APPLICABLE,
+                (),
+                (),
+                "Case and Configuration accountability conflict",
+                ctx.assessor_id,
+                exact_version,
+                None,
+                EFFECTIVE,
+            ),
+        )
+
     fitness_id, fitness_version = RecordId.new(), RecordVersionId.new()
     ctx.service.commit_lane_fitness(
         meta("accountability-fitness"),
@@ -1064,51 +1151,6 @@ def test_non_configuration_authority_applicability_uses_typed_accountability(
                 "unrelated assignment must not authorize",
                 ctx.assessor_id,
                 unrelated_version,
-                None,
-                EFFECTIVE,
-            ),
-        )
-
-    broad_version = RecordVersionId.new()
-    ctx.service.commit_role_assignment(
-        meta("authority-accountability-broad-role"),
-        RoleAssignmentVersionInput(
-            RecordId.new(),
-            broad_version,
-            ctx.assessor_id,
-            "Authority Owner",
-            RoleTargetType.ORGANIZATION,
-            "privacy-domain",
-            None,
-            True,
-            "authority-accountability",
-            DelegationEffect.NONE,
-            None,
-            EFFECTIVE,
-        ),
-    )
-    with pytest.raises(DomainRuleViolation, match="conflicting target-context"):
-        ctx.service.commit_evidence_applicability(
-            meta("authority-accountability-conflict"),
-            EvidenceApplicabilityVersionInput(
-                RecordId.new(),
-                RecordVersionId.new(),
-                evidence_id,
-                evidence_version,
-                ApplicabilityTargetType.AUTHORITY_RECORD_VERSION,
-                str(authority_id),
-                authority_version,
-                "authority-maintenance",
-                "conflict-check",
-                None,
-                None,
-                None,
-                ApplicabilityOutcome.APPLICABLE,
-                (),
-                (),
-                "broad and narrow remain conflict",
-                ctx.assessor_id,
-                exact_version,
                 None,
                 EFFECTIVE,
             ),
