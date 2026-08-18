@@ -1129,6 +1129,7 @@ class Increment4ApplicationService(Increment3ApplicationService):
                 authorization_effective_at=value_effective,
                 authority_gap_version_ids=value.authority_gap_version_ids,
                 bounded_proceed_version_id=value.bounded_proceed_version_id,
+                preauthorized_activation_mechanisms=(value.preauthorized_activation_mechanisms),
             )
 
         def after_version(
