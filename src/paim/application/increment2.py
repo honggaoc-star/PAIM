@@ -99,6 +99,7 @@ class Increment2ApplicationService:
         relationship_reason: str | None,
         project: Callable[[Increment2Transaction], None],
         reason_outcome: str,
+        relationship_type: RelationshipType = RelationshipType.SUPERSESSION,
         after_version: Callable[
             [Increment2Transaction, datetime],
             tuple[tuple[EventId, ...], tuple[RecordVersionId, ...]],
@@ -169,7 +170,7 @@ class Increment2ApplicationService:
                     relationship_id=RelationshipId.new(),
                     source_version_id=expected_version_id,
                     target_version_id=version_id,
-                    relationship_type=RelationshipType.SUPERSESSION,
+                    relationship_type=relationship_type,
                     recorded_at=recorded_at,
                     reason=cast("str", relationship_reason),
                 )

@@ -6,6 +6,7 @@ import json
 from collections.abc import Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar
+from datetime import datetime
 from typing import Any, cast
 
 from sqlalchemy import Connection, Engine, create_engine, event, func, insert, or_, select
@@ -13,6 +14,18 @@ from sqlalchemy.engine import RowMapping
 from sqlalchemy.exc import OperationalError
 
 from paim.audit.models import ActorResolution, AuditFact
+from paim.domain.increment3 import (
+    AcceptanceSelectionDetail,
+    AnalyticalInputDetail,
+    AnalyticalLane,
+    ApplicabilityOutcome,
+    ApplicabilityTargetType,
+    AuthorityApplicabilityContext,
+    EvidenceApplicabilityDetail,
+    FitnessOutcome,
+    LaneFitnessDetail,
+    MaterialEvidenceBasisInput,
+)
 from paim.domain.models import (
     ConfigurationVersionContext,
     DelegationEffect,
@@ -37,6 +50,8 @@ from paim.integrity.records import (
 from paim.integrity.selection import (
     CurrentSelection,
     SelectionCandidate,
+    SelectionConflict,
+    SelectionFound,
     SelectionQuery,
     select_current,
 )
@@ -49,12 +64,31 @@ from paim.persistence.ports import (
     WriterContention,
 )
 from paim.persistence.sqlite.schema import (
+    affected_use_references,
+    analytical_input_versions,
+    analytical_inputs,
     audit_facts,
+    authority_gap_versions,
+    authority_gaps,
+    authority_record_versions,
+    authority_records,
+    candidate_disposition_versions,
+    candidate_dispositions,
     configuration_determinations,
+    evidence_applicability_records,
+    evidence_applicability_versions,
+    evidence_records,
+    evidence_versions,
+    exact_evidence_links,
     governing_configuration_designations,
     idempotency_facts,
+    input_acceptance_records,
+    input_acceptance_versions,
+    lane_fitness_records,
+    lane_fitness_versions,
     managed_configuration_versions,
     managed_configurations,
+    material_evidence_basis,
     metadata,
     paim_actor_versions,
     paim_actors,
@@ -541,6 +575,766 @@ class SQLiteIntegrityTransaction:
                 ),
                 accountable_mechanism=accountable_mechanism,
             )
+        )
+
+    def _identity_exists(self, table: Any, column: Any, value: str) -> bool:
+        return (
+            self._connection.scalar(select(func.count()).select_from(table).where(column == value))
+            == 1
+        )
+
+    def add_evidence(
+        self,
+        *,
+        evidence_id: RecordId,
+        version_id: RecordVersionId,
+        case_id: RecordId | None,
+        configuration_id: RecordId | None,
+        configuration_version_id: RecordVersionId | None,
+        classification: str,
+        source: str,
+        provenance_json: str,
+        observed_at_us: int | None,
+        attention: str,
+    ) -> None:
+        if not self._identity_exists(
+            evidence_records, evidence_records.c.evidence_id, str(evidence_id)
+        ):
+            self._connection.execute(insert(evidence_records).values(evidence_id=str(evidence_id)))
+        self._connection.execute(
+            insert(evidence_versions).values(
+                version_id=str(version_id),
+                evidence_id=str(evidence_id),
+                case_id=str(case_id) if case_id else None,
+                configuration_id=str(configuration_id) if configuration_id else None,
+                configuration_version_id=(
+                    str(configuration_version_id) if configuration_version_id else None
+                ),
+                classification=classification,
+                source=source,
+                provenance_json=provenance_json,
+                observed_at_us=observed_at_us,
+                attention=attention,
+            )
+        )
+
+    def add_authority_record(
+        self,
+        *,
+        authority_id: RecordId,
+        version_id: RecordVersionId,
+        case_id: RecordId | None,
+        configuration_id: RecordId | None,
+        configuration_version_id: RecordVersionId | None,
+        category: str,
+        source: str,
+        provenance_json: str,
+        authority_scope: str,
+        requirement: str,
+    ) -> None:
+        if not self._identity_exists(
+            authority_records, authority_records.c.authority_id, str(authority_id)
+        ):
+            self._connection.execute(
+                insert(authority_records).values(authority_id=str(authority_id))
+            )
+        self._connection.execute(
+            insert(authority_record_versions).values(
+                version_id=str(version_id),
+                authority_id=str(authority_id),
+                case_id=str(case_id) if case_id else None,
+                configuration_id=str(configuration_id) if configuration_id else None,
+                configuration_version_id=(
+                    str(configuration_version_id) if configuration_version_id else None
+                ),
+                category=category,
+                source=source,
+                provenance_json=provenance_json,
+                authority_scope=authority_scope,
+                requirement=requirement,
+            )
+        )
+
+    def add_authority_gap(
+        self,
+        *,
+        gap_id: RecordId,
+        version_id: RecordVersionId,
+        case_id: RecordId,
+        configuration_id: RecordId,
+        configuration_version_id: RecordVersionId,
+        question_id: str,
+        question: str,
+        authority_scope: str,
+        rationale: str,
+        provenance_json: str,
+    ) -> None:
+        if not self._identity_exists(authority_gaps, authority_gaps.c.gap_id, str(gap_id)):
+            self._connection.execute(insert(authority_gaps).values(gap_id=str(gap_id)))
+        self._connection.execute(
+            insert(authority_gap_versions).values(
+                version_id=str(version_id),
+                gap_id=str(gap_id),
+                case_id=str(case_id),
+                configuration_id=str(configuration_id),
+                configuration_version_id=str(configuration_version_id),
+                question_id=question_id,
+                question=question,
+                authority_scope=authority_scope,
+                rationale=rationale,
+                provenance_json=provenance_json,
+            )
+        )
+
+    def add_exact_evidence_link(
+        self,
+        *,
+        source_version_id: RecordVersionId,
+        evidence_version_id: RecordVersionId,
+        link_role: str,
+    ) -> None:
+        self._connection.execute(
+            insert(exact_evidence_links).values(
+                source_version_id=str(source_version_id),
+                evidence_version_id=str(evidence_version_id),
+                link_role=link_role,
+            )
+        )
+
+    def add_affected_use_reference(
+        self, *, source_version_id: RecordVersionId, use_reference: str
+    ) -> None:
+        self._connection.execute(
+            insert(affected_use_references).values(
+                source_version_id=str(source_version_id), use_reference=use_reference
+            )
+        )
+
+    def add_evidence_applicability(
+        self,
+        *,
+        applicability_id: RecordId,
+        version_id: RecordVersionId,
+        evidence_version_id: RecordVersionId,
+        target_type: str,
+        target_id: str,
+        target_version_id: RecordVersionId | None,
+        purpose: str,
+        assessed_scope: str,
+        case_id: RecordId | None,
+        configuration_id: RecordId | None,
+        configuration_version_id: RecordVersionId | None,
+        outcome: str,
+        conditions_json: str,
+        limitations_json: str,
+        rationale: str,
+        assessor_actor_id: RecordId,
+        accountable_assignment_version_id: RecordVersionId | None,
+        accountable_mechanism: str | None,
+    ) -> None:
+        if not self._identity_exists(
+            evidence_applicability_records,
+            evidence_applicability_records.c.applicability_id,
+            str(applicability_id),
+        ):
+            self._connection.execute(
+                insert(evidence_applicability_records).values(
+                    applicability_id=str(applicability_id)
+                )
+            )
+        self._connection.execute(
+            insert(evidence_applicability_versions).values(
+                version_id=str(version_id),
+                applicability_id=str(applicability_id),
+                evidence_version_id=str(evidence_version_id),
+                target_type=target_type,
+                target_id=target_id,
+                target_version_id=str(target_version_id) if target_version_id else None,
+                purpose=purpose,
+                assessed_scope=assessed_scope,
+                case_id=str(case_id) if case_id else None,
+                configuration_id=str(configuration_id) if configuration_id else None,
+                configuration_version_id=(
+                    str(configuration_version_id) if configuration_version_id else None
+                ),
+                outcome=outcome,
+                conditions_json=conditions_json,
+                limitations_json=limitations_json,
+                rationale=rationale,
+                assessor_actor_id=str(assessor_actor_id),
+                accountable_assignment_version_id=(
+                    str(accountable_assignment_version_id)
+                    if accountable_assignment_version_id
+                    else None
+                ),
+                accountable_mechanism=accountable_mechanism,
+            )
+        )
+
+    def evidence_applicability_detail(
+        self, version_id: RecordVersionId
+    ) -> EvidenceApplicabilityDetail | None:
+        row = (
+            self._connection.execute(
+                select(evidence_applicability_versions).where(
+                    evidence_applicability_versions.c.version_id == str(version_id)
+                )
+            )
+            .mappings()
+            .one_or_none()
+        )
+        if row is None:
+            return None
+        target_version = cast("str | None", row["target_version_id"])
+        assignment = cast("str | None", row["accountable_assignment_version_id"])
+        return EvidenceApplicabilityDetail(
+            version_id=version_id,
+            applicability_id=RecordId.parse(cast("str", row["applicability_id"])),
+            evidence_version_id=RecordVersionId.parse(cast("str", row["evidence_version_id"])),
+            target_type=ApplicabilityTargetType(cast("str", row["target_type"])),
+            target_id=cast("str", row["target_id"]),
+            target_version_id=(RecordVersionId.parse(target_version) if target_version else None),
+            case_id=(RecordId.parse(cast("str", row["case_id"])) if row["case_id"] else None),
+            configuration_version_id=(
+                RecordVersionId.parse(cast("str", row["configuration_version_id"]))
+                if row["configuration_version_id"]
+                else None
+            ),
+            purpose=cast("str", row["purpose"]),
+            assessed_scope=cast("str", row["assessed_scope"]),
+            outcome=ApplicabilityOutcome(cast("str", row["outcome"])),
+            accountable_assignment_version_id=(
+                RecordVersionId.parse(assignment) if assignment else None
+            ),
+            accountable_mechanism=cast("str | None", row["accountable_mechanism"]),
+        )
+
+    def add_analytical_input(
+        self,
+        *,
+        input_id: RecordId,
+        version_id: RecordVersionId,
+        lane: str,
+        case_id: RecordId,
+        configuration_id: RecordId,
+        configuration_version_id: RecordVersionId,
+        purpose: str,
+        finding: str,
+        boundary: str,
+        uncertainties_json: str,
+        implication: str,
+        provenance_json: str,
+    ) -> None:
+        existing_lane = self._connection.scalar(
+            select(analytical_inputs.c.lane).where(analytical_inputs.c.input_id == str(input_id))
+        )
+        if existing_lane is None:
+            self._connection.execute(
+                insert(analytical_inputs).values(input_id=str(input_id), lane=lane)
+            )
+        elif existing_lane != lane:
+            raise ValueError("analytical Input identity cannot change Value/Risk lane")
+        self._connection.execute(
+            insert(analytical_input_versions).values(
+                version_id=str(version_id),
+                input_id=str(input_id),
+                lane=lane,
+                case_id=str(case_id),
+                configuration_id=str(configuration_id),
+                configuration_version_id=str(configuration_version_id),
+                purpose=purpose,
+                finding=finding,
+                boundary=boundary,
+                uncertainties_json=uncertainties_json,
+                implication=implication,
+                provenance_json=provenance_json,
+            )
+        )
+
+    def analytical_input_detail(self, version_id: RecordVersionId) -> AnalyticalInputDetail | None:
+        row = (
+            self._connection.execute(
+                select(analytical_input_versions).where(
+                    analytical_input_versions.c.version_id == str(version_id)
+                )
+            )
+            .mappings()
+            .one_or_none()
+        )
+        if row is None:
+            return None
+        return AnalyticalInputDetail(
+            version_id=version_id,
+            input_id=RecordId.parse(cast("str", row["input_id"])),
+            lane=AnalyticalLane(cast("str", row["lane"])),
+            case_id=RecordId.parse(cast("str", row["case_id"])),
+            configuration_id=RecordId.parse(cast("str", row["configuration_id"])),
+            configuration_version_id=RecordVersionId.parse(
+                cast("str", row["configuration_version_id"])
+            ),
+            purpose=cast("str", row["purpose"]),
+            implication=cast("str", row["implication"]),
+        )
+
+    def analytical_input_versions(
+        self,
+        *,
+        lane: str,
+        configuration_version_id: RecordVersionId,
+        purpose: str,
+    ) -> tuple[RecordVersionId, ...]:
+        values = self._connection.execute(
+            select(analytical_input_versions.c.version_id).where(
+                analytical_input_versions.c.lane == lane,
+                analytical_input_versions.c.configuration_version_id
+                == str(configuration_version_id),
+                analytical_input_versions.c.purpose == purpose,
+            )
+        ).scalars()
+        return tuple(RecordVersionId.parse(cast("str", value)) for value in values)
+
+    def add_candidate_disposition(
+        self,
+        *,
+        disposition_id: RecordId,
+        version_id: RecordVersionId,
+        input_version_id: RecordVersionId,
+        lane: str,
+        configuration_version_id: RecordVersionId,
+        use_context: str,
+        purpose: str,
+        disposition: str,
+        rationale: str,
+        accountable_assignment_version_id: RecordVersionId | None,
+        accountable_mechanism: str | None,
+    ) -> None:
+        if not self._identity_exists(
+            candidate_dispositions, candidate_dispositions.c.disposition_id, str(disposition_id)
+        ):
+            self._connection.execute(
+                insert(candidate_dispositions).values(disposition_id=str(disposition_id))
+            )
+        self._connection.execute(
+            insert(candidate_disposition_versions).values(
+                version_id=str(version_id),
+                disposition_id=str(disposition_id),
+                input_version_id=str(input_version_id),
+                lane=lane,
+                configuration_version_id=str(configuration_version_id),
+                use_context=use_context,
+                purpose=purpose,
+                disposition=disposition,
+                rationale=rationale,
+                accountable_assignment_version_id=(
+                    str(accountable_assignment_version_id)
+                    if accountable_assignment_version_id
+                    else None
+                ),
+                accountable_mechanism=accountable_mechanism,
+            )
+        )
+
+    def candidate_has_disposition(
+        self,
+        *,
+        input_version_id: RecordVersionId,
+        lane: str,
+        configuration_version_id: RecordVersionId,
+        use_context: str,
+        purpose: str,
+        effective_at: datetime,
+        known_at: datetime,
+    ) -> bool:
+        rows = self._connection.execute(
+            select(
+                candidate_disposition_versions.c.disposition_id,
+                records.c.scope,
+            )
+            .join(
+                record_versions,
+                record_versions.c.version_id == candidate_disposition_versions.c.version_id,
+            )
+            .join(records, records.c.record_id == record_versions.c.record_id)
+            .where(
+                candidate_disposition_versions.c.input_version_id == str(input_version_id),
+                candidate_disposition_versions.c.lane == lane,
+                candidate_disposition_versions.c.configuration_version_id
+                == str(configuration_version_id),
+                candidate_disposition_versions.c.use_context == use_context,
+                candidate_disposition_versions.c.purpose == purpose,
+            )
+        ).mappings()
+        for row in rows:
+            selection = self.select_current(
+                SelectionQuery(
+                    family="candidate-disposition",
+                    scope=cast("str", row["scope"]),
+                    effective_at=effective_at,
+                    known_at=known_at,
+                    record_id=RecordId.parse(cast("str", row["disposition_id"])),
+                )
+            )
+            if isinstance(selection, SelectionFound):
+                return True
+        return False
+
+    def add_lane_fitness(
+        self,
+        *,
+        fitness_id: RecordId,
+        version_id: RecordVersionId,
+        lane: str,
+        input_version_id: RecordVersionId,
+        case_id: RecordId,
+        configuration_id: RecordId,
+        configuration_version_id: RecordVersionId,
+        use_context: str,
+        purpose: str,
+        outcome: str,
+        rationale: str,
+        indeterminate_treatment: str | None,
+        decision_limiting: bool,
+        accountable_assignment_version_id: RecordVersionId | None,
+        accountable_mechanism: str | None,
+        material_evidence: tuple[MaterialEvidenceBasisInput, ...],
+    ) -> None:
+        if not self._identity_exists(
+            lane_fitness_records, lane_fitness_records.c.fitness_id, str(fitness_id)
+        ):
+            self._connection.execute(
+                insert(lane_fitness_records).values(fitness_id=str(fitness_id))
+            )
+        self._connection.execute(
+            insert(lane_fitness_versions).values(
+                version_id=str(version_id),
+                fitness_id=str(fitness_id),
+                lane=lane,
+                input_version_id=str(input_version_id),
+                case_id=str(case_id),
+                configuration_id=str(configuration_id),
+                configuration_version_id=str(configuration_version_id),
+                use_context=use_context,
+                purpose=purpose,
+                outcome=outcome,
+                rationale=rationale,
+                indeterminate_treatment=indeterminate_treatment,
+                decision_limiting=decision_limiting,
+                accountable_assignment_version_id=(
+                    str(accountable_assignment_version_id)
+                    if accountable_assignment_version_id
+                    else None
+                ),
+                accountable_mechanism=accountable_mechanism,
+            )
+        )
+        for basis in material_evidence:
+            self._connection.execute(
+                insert(material_evidence_basis).values(
+                    fitness_version_id=str(version_id),
+                    evidence_version_id=str(basis.evidence_version_id),
+                    applicability_version_id=str(basis.applicability_version_id),
+                    role=basis.role,
+                    required_support=basis.required_support,
+                    claimed_scope=basis.claimed_scope,
+                )
+            )
+
+    def lane_fitness_detail(self, version_id: RecordVersionId) -> LaneFitnessDetail | None:
+        row = (
+            self._connection.execute(
+                select(lane_fitness_versions).where(
+                    lane_fitness_versions.c.version_id == str(version_id)
+                )
+            )
+            .mappings()
+            .one_or_none()
+        )
+        if row is None:
+            return None
+        return LaneFitnessDetail(
+            version_id=version_id,
+            lane=AnalyticalLane(cast("str", row["lane"])),
+            input_version_id=RecordVersionId.parse(cast("str", row["input_version_id"])),
+            configuration_version_id=RecordVersionId.parse(
+                cast("str", row["configuration_version_id"])
+            ),
+            use_context=cast("str", row["use_context"]),
+            purpose=cast("str", row["purpose"]),
+            outcome=FitnessOutcome(cast("str", row["outcome"])),
+            rationale=cast("str", row["rationale"]),
+            indeterminate_treatment=cast("str | None", row["indeterminate_treatment"]),
+            decision_limiting=cast("bool", row["decision_limiting"]),
+        )
+
+    def material_evidence_basis(
+        self, fitness_version_id: RecordVersionId
+    ) -> tuple[MaterialEvidenceBasisInput, ...]:
+        rows = self._connection.execute(
+            select(material_evidence_basis).where(
+                material_evidence_basis.c.fitness_version_id == str(fitness_version_id)
+            )
+        ).mappings()
+        return tuple(
+            MaterialEvidenceBasisInput(
+                evidence_version_id=RecordVersionId.parse(cast("str", row["evidence_version_id"])),
+                applicability_version_id=RecordVersionId.parse(
+                    cast("str", row["applicability_version_id"])
+                ),
+                role=cast("str", row["role"]),
+                required_support=cast("bool", row["required_support"]),
+                claimed_scope=cast("str", row["claimed_scope"]),
+            )
+            for row in rows
+        )
+
+    def add_acceptance_selection(
+        self,
+        *,
+        acceptance_id: RecordId,
+        version_id: RecordVersionId,
+        lane: str,
+        input_version_id: RecordVersionId,
+        case_id: RecordId,
+        configuration_id: RecordId,
+        configuration_version_id: RecordVersionId,
+        use_context: str,
+        purpose: str,
+        rationale: str,
+        accountable_assignment_version_id: RecordVersionId | None,
+        accountable_mechanism: str | None,
+        fitness_version_id: RecordVersionId,
+    ) -> None:
+        if not self._identity_exists(
+            input_acceptance_records, input_acceptance_records.c.acceptance_id, str(acceptance_id)
+        ):
+            self._connection.execute(
+                insert(input_acceptance_records).values(acceptance_id=str(acceptance_id))
+            )
+        self._connection.execute(
+            insert(input_acceptance_versions).values(
+                version_id=str(version_id),
+                acceptance_id=str(acceptance_id),
+                lane=lane,
+                input_version_id=str(input_version_id),
+                case_id=str(case_id),
+                configuration_id=str(configuration_id),
+                configuration_version_id=str(configuration_version_id),
+                use_context=use_context,
+                purpose=purpose,
+                rationale=rationale,
+                accountable_assignment_version_id=(
+                    str(accountable_assignment_version_id)
+                    if accountable_assignment_version_id
+                    else None
+                ),
+                accountable_mechanism=accountable_mechanism,
+                fitness_version_id=str(fitness_version_id),
+            )
+        )
+
+    def acceptance_selection_detail(
+        self, version_id: RecordVersionId
+    ) -> AcceptanceSelectionDetail | None:
+        row = (
+            self._connection.execute(
+                select(input_acceptance_versions).where(
+                    input_acceptance_versions.c.version_id == str(version_id)
+                )
+            )
+            .mappings()
+            .one_or_none()
+        )
+        if row is None:
+            return None
+        return AcceptanceSelectionDetail(
+            version_id=version_id,
+            acceptance_id=RecordId.parse(cast("str", row["acceptance_id"])),
+            lane=AnalyticalLane(cast("str", row["lane"])),
+            input_version_id=RecordVersionId.parse(cast("str", row["input_version_id"])),
+            case_id=RecordId.parse(cast("str", row["case_id"])),
+            configuration_id=RecordId.parse(cast("str", row["configuration_id"])),
+            configuration_version_id=RecordVersionId.parse(
+                cast("str", row["configuration_version_id"])
+            ),
+            use_context=cast("str", row["use_context"]),
+            purpose=cast("str", row["purpose"]),
+            fitness_version_id=RecordVersionId.parse(cast("str", row["fitness_version_id"])),
+        )
+
+    def version_statuses(
+        self,
+        *,
+        version_id: RecordVersionId,
+        effective_at: datetime,
+        known_at: datetime,
+    ) -> tuple[str, ...]:
+        values = self._connection.execute(
+            select(status_events.c.new_status).where(
+                status_events.c.target_version_id == str(version_id),
+                status_events.c.effective_at_us <= to_epoch_microseconds(effective_at),
+                status_events.c.recorded_at_us <= to_epoch_microseconds(known_at),
+            )
+        ).scalars()
+        return tuple(cast("str", value) for value in values)
+
+    def evidence_attention(self, version_id: RecordVersionId) -> str | None:
+        value = self._connection.execute(
+            select(evidence_versions.c.attention).where(
+                evidence_versions.c.version_id == str(version_id)
+            )
+        ).scalar_one_or_none()
+        return cast("str | None", value)
+
+    def current_authority_gap_versions(
+        self,
+        *,
+        case_id: RecordId,
+        configuration_version_id: RecordVersionId,
+        effective_at: datetime,
+        known_at: datetime,
+    ) -> tuple[RecordVersionId, ...]:
+        rows = self._connection.execute(
+            select(authority_gap_versions.c.gap_id, records.c.scope)
+            .join(
+                record_versions, record_versions.c.version_id == authority_gap_versions.c.version_id
+            )
+            .join(records, records.c.record_id == record_versions.c.record_id)
+            .where(
+                authority_gap_versions.c.case_id == str(case_id),
+                authority_gap_versions.c.configuration_version_id == str(configuration_version_id),
+            )
+            .distinct()
+        ).mappings()
+        current: list[RecordVersionId] = []
+        for row in rows:
+            result = self.select_current(
+                SelectionQuery(
+                    family="authority-gap",
+                    scope=cast("str", row["scope"]),
+                    effective_at=effective_at,
+                    known_at=known_at,
+                    record_id=RecordId.parse(cast("str", row["gap_id"])),
+                )
+            )
+            if isinstance(result, SelectionFound):
+                current.append(result.candidate.version_id)
+            elif isinstance(result, SelectionConflict):
+                current.extend(candidate.version_id for candidate in result.candidates)
+        return tuple(current)
+
+    def exact_target_exists(
+        self,
+        *,
+        target_type: ApplicabilityTargetType,
+        target_id: str,
+        target_version_id: RecordVersionId | None,
+        case_id: RecordId | None,
+        configuration_version_id: RecordVersionId | None,
+    ) -> bool:
+        if target_type is ApplicabilityTargetType.MANAGED_CONFIGURATION_VERSION:
+            if target_version_id is None:
+                return False
+            context = self.configuration_version_context(target_version_id)
+            return context is not None and str(context.configuration_id) == target_id
+        if target_type in {
+            ApplicabilityTargetType.VALUE_INPUT_VERSION,
+            ApplicabilityTargetType.RISK_INPUT_VERSION,
+        }:
+            if target_version_id is None:
+                return False
+            detail = self.analytical_input_detail(target_version_id)
+            expected_lane = (
+                AnalyticalLane.VALUE
+                if target_type is ApplicabilityTargetType.VALUE_INPUT_VERSION
+                else AnalyticalLane.RISK
+            )
+            return (
+                detail is not None
+                and detail.lane is expected_lane
+                and str(detail.input_id) == target_id
+            )
+        return (
+            self.authority_applicability_context(
+                target_type=target_type,
+                target_id=target_id,
+                target_version_id=target_version_id,
+                case_id=case_id,
+                configuration_version_id=configuration_version_id,
+            )
+            is not None
+        )
+
+    def authority_applicability_context(
+        self,
+        *,
+        target_type: ApplicabilityTargetType,
+        target_id: str,
+        target_version_id: RecordVersionId | None,
+        case_id: RecordId | None,
+        configuration_version_id: RecordVersionId | None,
+    ) -> AuthorityApplicabilityContext | None:
+        if target_type is ApplicabilityTargetType.AUTHORITY_RECORD_VERSION:
+            if target_version_id is None:
+                return None
+            row = (
+                self._connection.execute(
+                    select(authority_record_versions).where(
+                        authority_record_versions.c.version_id == str(target_version_id),
+                        authority_record_versions.c.authority_id == target_id,
+                    )
+                )
+                .mappings()
+                .one_or_none()
+            )
+        elif target_type is ApplicabilityTargetType.AUTHORITY_GAP:
+            query = select(authority_gap_versions)
+            if target_version_id is not None:
+                query = query.where(
+                    authority_gap_versions.c.version_id == str(target_version_id),
+                    or_(
+                        authority_gap_versions.c.gap_id == target_id,
+                        authority_gap_versions.c.question_id == target_id,
+                    ),
+                )
+            else:
+                query = query.where(authority_gap_versions.c.question_id == target_id)
+                if case_id is not None:
+                    query = query.where(authority_gap_versions.c.case_id == str(case_id))
+                if configuration_version_id is not None:
+                    query = query.where(
+                        authority_gap_versions.c.configuration_version_id
+                        == str(configuration_version_id)
+                    )
+            rows = self._connection.execute(query).mappings().all()
+            contexts = {
+                (
+                    cast("str", item["gap_id"]),
+                    cast("str", item["case_id"]),
+                    cast("str", item["configuration_id"]),
+                    cast("str", item["configuration_version_id"]),
+                    cast("str", item["authority_scope"]),
+                )
+                for item in rows
+            }
+            if len(contexts) != 1:
+                return None
+            row = rows[0]
+        else:
+            return None
+        if row is None:
+            return None
+        row_case = cast("str | None", row["case_id"])
+        row_configuration = cast("str | None", row["configuration_id"])
+        row_configuration_version = cast("str | None", row["configuration_version_id"])
+        return AuthorityApplicabilityContext(
+            case_id=RecordId.parse(row_case) if row_case else None,
+            configuration_id=(RecordId.parse(row_configuration) if row_configuration else None),
+            configuration_version_id=(
+                RecordVersionId.parse(row_configuration_version)
+                if row_configuration_version
+                else None
+            ),
+            authority_scope=cast("str", row["authority_scope"]),
         )
 
     def add_status_event(self, status: StatusEvent) -> None:
