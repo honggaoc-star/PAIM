@@ -48,6 +48,11 @@ The common record-history contract applies to authoritative PAIM records, includ
 - Management Decision;
 - Decision Authorization Basis;
 - Intervention;
+- Decision-to-Intervention Obligation Set and Obligation;
+- Intervention Completion Result;
+- Intervention Completion Acceptance;
+- Prerequisite Evaluation Basis;
+- Activation Authorization;
 - Learning Item;
 - Observation where represented as an authoritative record;
 - Reassessment Trigger;
@@ -286,6 +291,10 @@ Value Input and Risk Input acceptance/selection are separate authoritative relat
 
 Evidence Applicability is a first-class authoritative many-to-many relationship. For one exact Evidence Version, target identity/version, purpose/use, assessed scope, effective time, and optional knowledge cutoff, selection returns one eligible Applicability Version, `APPLICABILITY NOT ESTABLISHED`, or `EVIDENCE APPLICABILITY CONFLICT — UNRESOLVED`. Conflict is not a stored Applicability outcome. Recency, specificity, ownership, directory hierarchy, mutable current flag, row order, or permission cannot resolve it.
 
+For one exact Decision Version, target Configuration Version, effective time, and optional knowledge cutoff, Decision-to-Intervention Obligation Set selection returns one eligible current set, explicit absence/not established, or explicit conflict. Only an explicit eligible set containing zero `REQUIRED_BEFORE_OPERATION` obligations yields `NOT_REQUIRED`; missing data never does.
+
+For one exact Obligation, Completion Acceptance selection returns one eligible Acceptance, `ACCEPTANCE NOT ESTABLISHED`, or `COMPLETION ACCEPTANCE CONFLICT — UNRESOLVED`. Accountability resolves separately as one eligible Completion Acceptor assignment/mechanism, explicit vacancy, or explicit conflict for the exact Intervention/Decision/target-Configuration/owning-Case target set. No scope, time, ownership, role, directory, or permission fallback selects a winner.
+
 ### 3.12 Exact historical retrieval
 
 Every finalized record must retain exact version references for the authoritative records it relied upon. In particular, an authorized Decision and its related Integration, Reassessment, and Interim Operating Disposition chain must collectively retain references sufficient to retrieve:
@@ -302,6 +311,7 @@ Every finalized record must retain exact version references for the authoritativ
 - relevant Role Assignments/delegations;
 - accountable assignment/mechanism relationships and materiality or identity-continuity determinations relied upon;
 - required Intervention and Learning relationships;
+- exact Obligation Set/Obligation, Intervention, Completion Result, Completion Acceptance, replacement/reuse, Prerequisite Evaluation Basis, and Activation Authorization Versions relied upon for target activation;
 - predecessor/successor records.
 
 Later correction, withdrawal, status change, or supersession must not change the historical reconstruction.
@@ -484,10 +494,10 @@ No transition is allowed unless listed below.
 | `DECISION_PENDING` | `CLOSED` | Proposed decision is withdrawn and closure requirements are satisfied; no unrecorded authorization is implied. |
 | `DECISION_PENDING` | `SUPERSEDED` | Named successor and supersession basis/authority recorded. |
 | `DECIDED` | `INTERVENTION_IN_PROGRESS` | The Decision identifies one or more interventions that are prerequisites or material implementation actions. |
-| `DECIDED` | `OPERATING_OBSERVING` | Current operation already conforms to the authorized configuration/boundary and no prerequisite intervention remains incomplete. |
+| `DECIDED` | `OPERATING_OBSERVING` | Current target operation conforms to the exact authorized Decision/Configuration/Boundary; one exact Obligation Set yields `SATISFIED` or explicit `NOT_REQUIRED`; and valid Activation Authorization plus exact Prerequisite Evaluation Basis are retained. |
 | `DECIDED` | `CLOSED` | Authorized Decision discontinues/retires the use or otherwise authorizes closure with no continuing observation requirement. |
 | `DECIDED` | `SUPERSEDED` | The current or an authorized successor/amendment Decision establishes the named successor Case, effective transfer/end of operation under this Case, and preserved Decision/Case relationships. |
-| `INTERVENTION_IN_PROGRESS` | `OPERATING_OBSERVING` | All interventions designated as prerequisites are accepted complete; target configuration and boundary alignment are confirmed. |
+| `INTERVENTION_IN_PROGRESS` | `OPERATING_OBSERVING` | All required-before obligations are accepted complete or the explicit set is `NOT_REQUIRED`; target Configuration/Boundary alignment is confirmed; and valid Activation Authorization plus exact Prerequisite Evaluation Basis are retained. |
 | `INTERVENTION_IN_PROGRESS` | `REASSESSMENT_DUE` | A prerequisite is blocked, failed, materially incomplete, changes the configuration, or creates another material trigger. |
 | `INTERVENTION_IN_PROGRESS` | `CLOSED` | The current or an authorized successor/amendment Decision discontinues/retires the use and closure requirements are satisfied. An Interim Operating Disposition may suspend but cannot permanently discontinue or close. |
 | `INTERVENTION_IN_PROGRESS` | `SUPERSEDED` | The current or an authorized successor/amendment Decision establishes the named successor, treatment of incomplete interventions, effective transfer/end of operation, and supersession authority. |
@@ -500,7 +510,7 @@ No transition is allowed unless listed below.
 | `REOPENED` | `EVIDENCE_ANALYSIS` | Configuration remains sufficiently defined but one or both analytical/evidence legs require refresh. |
 | `REOPENED` | `READY_FOR_INTEGRATION` | Configuration and existing/current successor inputs satisfy all readiness guards without analytical refresh. This is the only allowed reopened-state analytical skip. |
 | `REOPENED` | `INTERVENTION_IN_PROGRESS` | Completed Reassessment creates a Decision Confirmation leaving the authorized Decision/Boundary unchanged, but a non-substantive intervention within that Decision remains required. |
-| `REOPENED` | `OPERATING_OBSERVING` | Completed Reassessment creates a Decision Confirmation leaving the authorized Decision, operating state, Boundary Snapshot, and substantive conditions unchanged; no prerequisite intervention remains incomplete; any Interim Operating Disposition is ended or operation is aligned with it. |
+| `REOPENED` | `OPERATING_OBSERVING` | Completed Reassessment creates a Decision Confirmation leaving the authorized Decision, operating state, Boundary Snapshot, and substantive conditions unchanged; the exact Obligation Set yields `SATISFIED` or explicit `NOT_REQUIRED`; valid Activation Authorization and Prerequisite Evaluation Basis are retained; and any Interim Operating Disposition is ended or operation is aligned with it. |
 | `REOPENED` | `CLOSED` | Completed reassessment produces an authorized successor/amendment Decision that discontinues/closes, or explicitly confirms closure is appropriate under an existing discontinuation Decision. |
 | `REOPENED` | `SUPERSEDED` | Completed reassessment produces an authorized successor/amendment Decision establishing the named successor Case, effective transfer/end of operation, and supersession authority. |
 | `CLOSED` | `REOPENED` | A new material trigger makes the same management object active again; reopening authority, current/new configuration, prior Decision relationship, and operation status are recorded. |
@@ -540,6 +550,8 @@ Before `DECIDED`, the system must confirm:
 - Expiry, revocation, conflict, or scope failure of Decision Authority before authorization blocks `DECIDED`.
 - The same authority change after authorization preserves historical validity and creates a reassessment trigger where it may affect current operation.
 - A blocked, failed, cancelled, or materially partial prerequisite Intervention prevents the target configuration from becoming authorized operation and creates management attention/reassessment as specified.
+- `COMPLETED` Intervention status, evidence presence, or Completion Acceptance alone never authorizes target operation.
+- An incomplete `REQUIRED_AFTER_OPERATION` item does not block initial activation only under exact Decision permission; an incomplete `OPTIONAL` item does not block. Neither changes the Decision silently.
 - Cancellation, failure, or inconclusive completion of a Learning Item does not silently resolve uncertainty or change a Decision.
 - Supersession of a Decision changes current selection prospectively but never changes the historical record used for its effective period.
 
@@ -553,6 +565,12 @@ While intervention toward a target configuration is in progress:
 - the target configuration must not operate until all prerequisite interventions are accepted complete and an authorized Decision/Boundary permits it;
 - a Decision or Interim Operating Disposition must explicitly authorize fallback, narrowed continuation, partial suspension, or full suspension;
 - the system must display both the currently operating configuration/Decision and the target configuration/intervention state.
+
+Target activation is one semantic transaction: guard evaluation, immutable Prerequisite Evaluation Basis, valid Activation Authorization, activation/operating event, and Lifecycle Transition Event must commit together or not at all. Failure leaves no partial authoritative activation state.
+
+Activation authority is either an applicable Decision Authority acting explicitly or a genuine governed organizational activation mechanism explicitly pre-authorized in the exact Decision Authorization Basis with exact rule/version/scope/authority retained. A software checklist, technical rule, ownership, permission, or technical principal is never that mechanism by itself.
+
+**Activation Authorization** is an authoritative record with stable identity and immutable Versions. It binds the exact Decision Version, target Configuration Version, operating-state value, Boundary Snapshot Version, Prerequisite Evaluation Basis Version, activation effective/recorded time, actor or genuine governed organizational mechanism, exact authority basis/rule Version, scope, limits, and predecessor/correction/supersession history. Its authority must be valid at activation effective time.
 
 ### 5.7 Coexisting operation and reassessment
 
@@ -590,6 +608,9 @@ Minimum content:
 - conditions, dissent, or exception where required;
 - Authority Gaps considered, including any bounded-proceed determination;
 - historical predecessor/successor where authorization is corrected or superseded.
+- any pre-authorized activation mechanism, which must identify a genuine governed organizational authority mechanism and retain its exact rule/version, scope, authority source, limits, and effective period.
+
+A software checklist, technical rule, workflow transition, Case Owner, Intervention Owner, administrator permission, or technical principal is not a governed organizational activation mechanism and cannot be recorded as one merely to automate release.
 
 ### 6.2 Authorization validity
 
@@ -783,6 +804,18 @@ The PAIM system must enforce or surface violation of the following invariants:
 32. Normative Applicability outcomes are `APPLICABLE`, `CONDITIONALLY_APPLICABLE`, `PARTIALLY_APPLICABLE`, `NOT_APPLICABLE`, and `INDETERMINATE`; `REFRESH REQUIRED` is status/attention and conflict is a derived selection result.
 33. A new target identity/version requires a new Applicability judgment; prior applicability is provenance only and no universal expiry or silent carry-forward applies.
 34. Later Input/Evidence/Applicability change never rewrites a historical Integration or Decision basis; it changes prospective eligibility or creates attention/reassessment where material.
+35. Every authorized Decision has one exact versioned Intervention Obligation Set; requirement type is Decision/target-Configuration specific and is exactly `REQUIRED_BEFORE_OPERATION`, `REQUIRED_AFTER_OPERATION`, or `OPTIONAL`.
+36. Intervention implementation status, Completion Result/evidence, Completion Acceptance, prerequisite satisfaction, and Activation Authorization are distinct; none silently creates another.
+37. Every required-before obligation is satisfied only by exact `COMPLETED` work, an eligible exact all-`MET` Completion Result, and one eligible `ACCEPTED` Completion Acceptance.
+38. Required-before aggregation is all-of and returns only `SATISFIED`, `NOT_REQUIRED`, `NOT_ESTABLISHED`, `INCOMPLETE`, `BLOCKED`, or `CONFLICT`, retaining all contributing diagnostics.
+39. `NOT_REQUIRED` requires an explicit eligible Obligation Set containing zero required-before obligations; absence never means not required.
+40. Completion Acceptor accountability resolves for exact Intervention/Decision/target-Configuration/owning-Case targets as one assignment/mechanism, vacancy, or conflict; ownership or software permission is not acceptance authority.
+41. Fallback, remediation, replacement, and reuse operate only through exact history-preserving relationships and never avoid a successor Decision when substantive Decision/Boundary/Configuration/state conditions change.
+42. Target activation retains an immutable exact Prerequisite Evaluation Basis and valid Activation Authorization; satisfied prerequisites alone never authorize operation.
+43. A pre-authorized activation mechanism is valid only as a genuine governed organizational authority mechanism recorded in the exact Decision Authorization Basis with rule/version/scope/authority provenance; software logic never self-authorizes.
+44. Activation guard evaluation, Prerequisite Evaluation Basis, Activation Authorization, operating event, and Lifecycle Transition Event commit atomically.
+45. Every successor/amendment Decision has its own Obligation Set; prior completion reuse requires exact accountable continued-validity determination and never carries silently.
+46. Later role, Evidence, Intervention, Acceptance, obligation, replacement, or Decision change never rewrites a historical activation basis; future eligibility remains prospective and fail-closed.
 
 ## 9. Integrity behavior and test candidates
 
@@ -819,6 +852,17 @@ The system should support tests demonstrating that:
 29. incompatible co-current Applicability judgments produce conflict, and an accountable successor resolves only prospectively while preserving predecessors;
 30. `INDETERMINATE` Evidence is eligible or blocked only through an explicit exact lane-level fitness determination, never a global default;
 31. unrelated-scope acceptance/Applicability accountability is rejected and broad/narrow competing assignments remain conflict absent explicit displacement.
+32. evidence with no Completion Acceptance leaves a required-before obligation unsatisfied;
+33. two required-before obligations with one incomplete block activation under all-of aggregation;
+34. incompatible Acceptances or replacements produce explicit conflict;
+35. owner self-acceptance is ineligible without a separately established Completion Acceptor relationship, while the same actor may qualify when both exact relationships exist;
+36. explicit zero-required-before set yields `NOT_REQUIRED`, while missing Obligation Set yields `NOT_ESTABLISHED`;
+37. required-after and optional incompletion do not block initial activation under their exact normative conditions;
+38. partial, failed, or cancelled required-before work does not satisfy;
+39. wrong-Decision or wrong-Configuration completion is ineligible and prior accepted completion does not silently carry to a successor Decision;
+40. Completion Acceptance alone does not authorize activation;
+41. a software checklist or incompletely governed pre-authorization mechanism cannot activate, while one genuine exact pre-authorized organizational mechanism plus all guards is eligible; and
+42. later acceptor-role expiry does not rewrite historical Acceptance, while withdrawn/superseded Acceptance cannot support future activation.
 
 ## 10. Human judgment and mechanical integrity boundary
 
@@ -836,7 +880,11 @@ The system may mechanically:
 - select each analytical lane and Evidence Applicability as one, absence, or conflict for exact scope/purpose/time;
 - validate exact Input Acceptance/Selection, Evidence Applicability, material-Evidence reference, and lane-level fitness record completeness;
 - validate typed Role Assignment targets and explicit supersession/delegation relationships;
-- verify that materiality and identity-continuity determinations retain required accountable provenance and history.
+- verify that materiality and identity-continuity determinations retain required accountable provenance and history;
+- select exact Obligation Sets, Completion Acceptances, and Completion Acceptor accountability as one, absence, or conflict;
+- derive per-obligation and aggregate prerequisite results using the normative staged all-of rule;
+- validate exact Prerequisite Evaluation Basis and Activation Authorization completeness; and
+- execute a genuinely governed, pre-authorized organizational activation mechanism only when its exact rule/version/scope/authority and every guard are established.
 
 The system must leave to accountable human or established organizational authority:
 
@@ -854,6 +902,9 @@ The system must leave to accountable human or established organizational authori
 - whether a trigger is immaterial under the current Decision;
 - whether an implementation-detail change is non-substantive under §7.6;
 - legitimacy and assignment of an accountable actor/mechanism;
+- substantive Completion Acceptance;
+- whether continued-validity/reuse criteria remain satisfied for a successor Decision; and
+- explicit target activation unless a genuine governed organizational mechanism was already authorized for that exact determination.
 
 Mechanical validity means the record is internally eligible for the next action. It does not mean the management judgment is substantively correct or authorized unless the required human/authority event also exists.
 
@@ -864,12 +915,11 @@ This specification does not attempt to resolve all P1 findings from the implemen
 The following remain for bounded later work unless another accepted specification already resolves them:
 
 - whether Observation is a separate authoritative record;
-- intervention prerequisite classification and completion-acceptance role details beyond the lifecycle guard;
 - full trigger/reassessment concurrency and merge rules;
 - Management Register aggregation and shared-dependency identity;
 - canonical stronger/broader relations among organization-specific operating states.
 
-These remain IRR-009, IRR-010, IRR-011, IRR-012, and IRR-014 respectively. The IRR-006/IRR-008 hardening does not define Observation persistence, Intervention completion acceptance, Trigger/Reassessment concurrency, Register aggregation/shared-dependency equivalence, or stronger/broader operating-state ranking.
+These remaining items are IRR-009, IRR-011, IRR-012, and IRR-014 respectively. IRR-010 Intervention semantics are normatively hardened by the Intervention, Case Lifecycle, Integration/Decision, Roles, and this cross-cutting specification, subject to independent gate re-review. The hardening does not define Observation persistence, Trigger/Reassessment concurrency, Register aggregation/shared-dependency equivalence, or stronger/broader operating-state ranking.
 
 Configuration ownership and v0.1 governing cardinality are resolved by the Managed Configuration and Case Lifecycle specifications: exactly one owning Case per Configuration identity and at most one governing Configuration per Case/effective time. Cross-Case sharing, dependency equivalence, and reuse beyond explicit relationships remain deferred with IRR-012.
 

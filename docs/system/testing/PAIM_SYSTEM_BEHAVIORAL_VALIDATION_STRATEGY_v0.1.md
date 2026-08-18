@@ -537,14 +537,30 @@ Expected:
 
 ## 23. Intervention Tests
 
-Test whether:
+The IRR-010 hard-oracle set must test exact Decision/target-Configuration binding, dual time, history, accountability, and activation atomicity. Expected results are normative:
 
-- required intervention exists after decision;
-- operation waits where necessary;
-- blocked intervention is surfaced;
-- failed intervention triggers escalation/reassessment;
-- partial completion is not represented as complete;
-- target configuration matches authorized decision.
+1. `REQUIRED_BEFORE_OPERATION` with Completion Result/evidence but no Acceptance returns per-obligation `NOT_ESTABLISHED`; activation is blocked.
+2. The same exact obligation with one eligible accountable `ACCEPTED` Acceptance returns `SATISFIED`.
+3. Two required-before obligations with one satisfied and one incomplete return aggregate `INCOMPLETE`; activation is blocked.
+4. Incompatible eligible Acceptances return `COMPLETION ACCEPTANCE CONFLICT — UNRESOLVED`, per-obligation/aggregate `CONFLICT`, and block activation.
+5. An acceptor assignment valid only for an unrelated Intervention, Decision, Configuration, or Case is ineligible; accountability/Acceptance remains not established.
+6. Intervention Owner self-acceptance without a separately applicable Completion Acceptor assignment/mechanism is ineligible. The same actor may be eligible only when both exact functions and relationships are independently established and retained.
+7. Incomplete `REQUIRED_AFTER_OPERATION` does not block initial activation only when the exact Decision permits post-operation completion and retains timing/conditions.
+8. Incomplete `OPTIONAL` does not block activation and never becomes mandatory through age, preference, or software configuration.
+9. `PARTIALLY_COMPLETED` returns `INCOMPLETE`; `FAILED` or `CANCELLED` without valid replacement returns `BLOCKED`; none is satisfied.
+10. An accepted fallback/replacement within the existing Decision/Boundary determines prospective satisfaction only through one exact replacement relationship and its own Completion Result/Acceptance; predecessor history remains. Substantive change requires a successor Decision.
+11. A successor Decision that changes a requirement has its own Obligation Set and receives no silent carry-forward; absent eligible continued-validity determination, its obligation is `NOT_ESTABLISHED`.
+12. Software permission or technical-principal identity alone cannot accept completion or authorize activation.
+13. One explicit eligible Obligation Set containing zero required-before obligations returns `NOT_REQUIRED`.
+14. Missing Obligation Set returns `NOT_ESTABLISHED`, never `NOT_REQUIRED`.
+15. Two incompatible current replacement relationships return `CONFLICT` with no newest/specificity winner.
+16. Later routine acceptor-role expiry does not rewrite a historically valid Acceptance; a withdrawn/superseded Acceptance is ineligible for future activation.
+17. Completion accepted for the wrong Decision Version or target Configuration Version is ineligible.
+18. Completion Acceptance alone does not authorize activation; missing Activation Authorization blocks with no partial operating/transition state.
+19. A purported pre-authorized mechanism without exact genuine organizational rule/version/scope/authority in the Decision Authorization Basis is invalid.
+20. A genuine governed organizational mechanism with exact retained rule/version/scope/authority, all target guards, and atomic Prerequisite Evaluation/Activation/Transition basis is eligible.
+
+Additional metamorphic checks must show that changing only an exact relied-upon Decision, target Configuration, Boundary, obligation, Completion Result, Acceptance, replacement, or activation-mechanism Version changes prospective eligibility without rewriting historical activation. Test results must retain all contributing diagnostics rather than only a Boolean or universal score.
 
 ## 24. Learning Tests
 

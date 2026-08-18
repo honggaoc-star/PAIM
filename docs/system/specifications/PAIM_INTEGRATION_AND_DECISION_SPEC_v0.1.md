@@ -497,6 +497,9 @@ Minimum fields:
 ### Consequence
 - conditions/limits
 - intervention required
+- exact Decision-to-Intervention Obligation Set ID/version, including an explicit zero-required-before set where applicable
+- `REQUIRED_AFTER_OPERATION` timing/conditions and optional commitments
+- any genuine governed organizational activation mechanism pre-authorized through the exact Decision Authorization Basis
 - learning items
 - reassessment triggers
 - successor/predecessor decision relationship
@@ -532,6 +535,10 @@ Authorization should preserve:
 The platform may later implement signatures, approvals, or workflow actions.
 
 This specification requires traceable authorization, not a particular signature technology.
+
+Decision authorization, Completion Acceptance, and Activation Authorization are distinct authoritative facts. Satisfied Intervention prerequisites do not themselves authorize operation.
+
+Where a Decision pre-authorizes an activation mechanism, the Decision Authorization Basis must identify a genuine governed organizational authority mechanism and retain its exact rule/version, scope, authority source, limits, and effective period. A software checklist, workflow transition, technical rule, Case Owner, Intervention Owner, administrator permission, or technical principal is not an organizational activation mechanism and cannot self-authorize operation.
 
 When another authority question remains unresolved, only an established Decision Authority whose own scope covers the exact narrower Decision and the bounded-proceed determination may authorize proceeding. The requirements in `PAIM_SYSTEM_RECORD_AND_DECISION_INTEGRITY_SPEC_v0.1.md`, §6.4 apply; the Authority Gap remains unresolved and visible.
 
@@ -584,11 +591,15 @@ D2 may supersede D1 for current operation.
 
 D1 remains the authoritative historical decision for its period/configuration.
 
+Every substantive successor/amendment Decision has its own exact Obligation Set. Prior Completion Results and Acceptances do not carry forward. Reuse requires an exact accountable continued-validity determination covering unchanged relevant Configuration content, Boundary/conditions, completion criteria, Evidence applicability, and acceptance scope. A changed target Configuration requires explicit coverage of the new Version; absent eligible reuse, the successor obligation is `NOT_ESTABLISHED`.
+
 ## 27. Decision and Intervention
 
 A decision may require intervention before the authorized configuration is operational.
 
 The Decision Record should link to one or more Intervention Records.
+
+The normative relationship is the versioned Decision-to-Intervention Obligation Set and its exact Obligation Versions defined by the Intervention and Learning specification. Requirement type belongs to the exact Decision/target-Configuration obligation package, not globally to the Intervention or Configuration. The v0.1 types are exactly `REQUIRED_BEFORE_OPERATION`, `REQUIRED_AFTER_OPERATION`, and `OPTIONAL`.
 
 Examples:
 
@@ -601,6 +612,8 @@ Examples:
 - establish fallback.
 
 The case lifecycle may remain `INTERVENTION_IN_PROGRESS` until required actions are complete.
+
+Target operation requires the exact all-of prerequisite result and Activation Authorization governed by the Intervention, Case Lifecycle, and Integrity specifications. `COMPLETED` status, evidence presence, Completion Acceptance, or a completed checklist alone does not authorize activation.
 
 ## 28. Decision and Learning
 
@@ -720,7 +733,10 @@ Before authorization, surface:
 - decision broader than supported boundary;
 - required control absent from proposed configuration;
 - unresolved authority treated as resolved;
-- intervention requirement omitted where configuration must change.
+- exact Obligation Set omitted, including omission of an explicit zero-required-before set;
+- intervention requirement omitted where configuration must change;
+- required-after timing/conditions or successor-obligation treatment omitted; or
+- purported pre-authorized activation mechanism lacks genuine governed organizational rule/version/scope/authority provenance.
 
 These checks do not replace human judgment.
 

@@ -326,7 +326,7 @@ Corrections or amendments must remain traceable.
 ### Exit possibilities
 
 - intervention required → `INTERVENTION_IN_PROGRESS`;
-- no material implementation action required and operation is already aligned → `OPERATING_OBSERVING`;
+- no material implementation action required, the exact Obligation Set explicitly yields `NOT_REQUIRED`, operation is aligned, and §11.1 activation guard passes → `OPERATING_OBSERVING`;
 - decision is discontinue/close with no continuing observation requirement → `CLOSED`;
 - decision supersedes another case → linked supersession.
 
@@ -347,14 +347,11 @@ The management judgment requires operational change that has not yet been fully 
 - implementation status;
 - completion criteria.
 
+The exact Decision-to-Intervention Obligation Set/Obligation Versions, requirement types, Completion Results, Completion Acceptances, and replacement/reuse relationships are governed by the Intervention and Learning specification. `COMPLETED` implementation status is not accepted completion.
+
 ### Possible statuses
 
-- planned;
-- in progress;
-- blocked;
-- completed;
-- failed;
-- cancelled/superseded.
+Use the exact Intervention implementation-status vocabulary in the Intervention and Learning specification: `PROPOSED`, `PLANNED`, `IN_PROGRESS`, `BLOCKED`, `PARTIALLY_COMPLETED`, `COMPLETED`, `FAILED`, `CANCELLED`, and `SUPERSEDED`. Acceptance outcome and prerequisite result are separate.
 
 ### System behavior
 
@@ -362,7 +359,7 @@ The system should surface material overdue, blocked, or failed interventions.
 
 ### Exit condition
 
-When the authorized operating configuration is implemented or another management decision supersedes the intervention.
+The target Configuration may exit to `OPERATING_OBSERVING` only through the exact activation guard in §11.1. Another authorized successor/amendment Decision may instead supersede or change the Intervention obligation package prospectively while preserving history.
 
 ## 11. State: OPERATING_OBSERVING
 
@@ -388,6 +385,24 @@ Maintain visibility into:
 ### Important rule
 
 Operation under a decision is not permanent approval.
+
+### 11.1 Exact target-operation activation guard
+
+An exact target Configuration may enter `OPERATING_OBSERVING` only when all of the following are established for the activation effective time and knowledge cutoff:
+
+1. exactly one eligible authorized Decision governs the target activation context;
+2. its exact target Configuration Version and finalized Boundary Snapshot match;
+3. one exact current Decision-to-Intervention Obligation Set is established without conflict;
+4. the aggregate `REQUIRED_BEFORE_OPERATION` result is `SATISFIED` or explicit `NOT_REQUIRED`;
+5. every satisfied obligation has the exact current Completion Result and one eligible Completion Acceptance;
+6. no blocking current obligation, Acceptance, replacement, Decision, Configuration, or Boundary conflict exists;
+7. the target Configuration aligns with the Decision, Boundary, required controls/prohibitions, and accepted completion basis;
+8. no effective successor/amendment Decision has changed or superseded the prerequisites;
+9. `REQUIRED_AFTER_OPERATION` and `OPTIONAL` obligations are treated exactly under the Intervention specification and are not silently promoted or waived;
+10. an explicit Activation Authorization binds the exact Decision, target Configuration, operating state, Boundary, effective time, and immutable Prerequisite Evaluation Basis; and
+11. the Lifecycle Transition Event retains exact guard results, source versions, actor/mechanism, authority provenance, rationale, effective time, recorded time, and knowledge context.
+
+Satisfied prerequisites alone never authorize operation. Activation authority is either the applicable Decision Authority acting explicitly or a genuine governed organizational activation mechanism explicitly pre-authorized in the exact Decision Authorization Basis, with exact rule/version/scope/authority retained. A software/technical rule, completed checklist, Case Owner, Intervention Owner, administrator permission, or technical principal alone cannot accept completion or authorize activation. A Case Owner or authorized workflow mechanism may record the transition only after every guard and Activation Authorization is established.
 
 ## 12. State: REASSESSMENT_DUE
 
@@ -706,10 +721,18 @@ Before important transitions, the system should be able to detect:
 
 ### Before OPERATING_OBSERVING
 
-- required intervention incomplete;
+- exact Obligation Set absent or conflicting;
+- required-before aggregate `NOT_ESTABLISHED`, `INCOMPLETE`, `BLOCKED`, or `CONFLICT`;
+- `COMPLETED` Intervention lacking an eligible exact Completion Acceptance;
+- Completion Acceptance accountability vacant, conflicting, delegated through an invalid chain, or unrelated in scope;
+- incompatible current replacement/reuse relationship;
 - configuration not aligned with decision;
 - required controls absent;
-- prohibited activity unresolved.
+- prohibited activity unresolved;
+- effective successor/amendment Decision changed the prerequisite package;
+- Prerequisite Evaluation Basis missing or incomplete;
+- Activation Authorization missing, out of scope, or inferred from a checklist, ownership, permission, or technical principal; or
+- pre-authorized mechanism lacking exact governed organizational rule/version/scope/authority provenance.
 
 ### Before CLOSED
 
