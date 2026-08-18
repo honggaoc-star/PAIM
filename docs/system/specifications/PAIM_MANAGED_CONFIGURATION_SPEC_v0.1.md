@@ -48,6 +48,8 @@ The system must be able to answer:
 
 Every Managed Configuration must have a durable identity independent of its descriptive title.
 
+Each Configuration identity has exactly one owning Case. The owning Case is part of the Configuration identity relationship and must remain historically traceable. A Configuration may be explicitly related to another Case, Configuration, provider, model, control, or dependency, but that relationship does not create joint ownership or transfer ownership. Cross-Case sharing, dependency equivalence, and reuse beyond explicit relationships remain deferred, including the IRR-012 dependency.
+
 Minimum identity elements:
 
 - Configuration ID
@@ -87,27 +89,23 @@ Configuration drafts, finalized versions, status changes, effective intervals, c
 
 ## 4. Configuration Status
 
-At minimum, a configuration may be:
+The system must preserve the following orthogonal dimensions rather than encode them in one interchangeable status field:
 
-- draft;
-- current;
-- proposed;
-- experimental;
-- superseded;
-- retired.
+- **record maturity/history status** — for example draft, finalized, superseded, or retired;
+- **governing currentness** — the one exact finalized Configuration version that governs the Case at an effective time, derived under §18 and the cross-cutting current-selection contract;
+- **configuration purpose** — for example proposed, experimental, alternative, or fallback; and
+- **authorization and AI operating state** — established only by the applicable Management Decision, not by Configuration status or purpose.
 
-Configuration status is distinct from:
-
-- case lifecycle state;
-- AI operating state;
-- decision status.
+For PAIM v0.1, one Case has at most one governing Configuration at an effective time. A purpose label does not make a Configuration governing, authorized, or operating. A proposed, experimental, alternative, or fallback Configuration may coexist with the governing Configuration only as a separately identifiable non-governing alternative until an accountable, history-preserving governing-currentness designation/event establishes it as the Case's one governing Configuration for the effective time. Authorization and AI operating state remain separate and are established only by the applicable Management Decision.
 
 For example:
 
 ```text
-Configuration status: current
-Case lifecycle: OPERATING_OBSERVING
-AI operating state: bounded continuation
+Configuration maturity: finalized
+Configuration purpose: experimental alternative
+Governing currentness: not governing
+Case lifecycle: EVIDENCE_ANALYSIS
+AI operating state: not established by this Configuration
 ```
 
 ## 5. Core Configuration Elements
@@ -322,6 +320,10 @@ It is:
 
 > **Would a reasonable Value, Risk, authority, or management conclusion potentially change because this element changed?**
 
+Every materiality determination must identify the exact Configuration version/change assessed, one accountable Role Assignment or one explicitly governed accountable mechanism, the determination and rationale, effective time, recorded time, and predecessor/successor or correction history where applicable. An organization may configure the Case Owner or a designated Configuration Owner as the default accountable assignment, but the platform must not infer accountability from edit access or hard-code one universal role.
+
+If no eligible accountable assignment/mechanism exists, the determination is `NOT ESTABLISHED` and any behavior requiring it is blocked. If more than one incompatible accountable assignment/mechanism claims the determination for the same scope/time, the result is explicit accountability conflict; the platform must not select by role breadth, specificity, recency, or software privilege.
+
 ## 8. Material Change Categories
 
 Changes that may be material include:
@@ -403,6 +405,10 @@ For each proposed or detected change, record:
 - reason;
 - materiality assessment;
 - rationale;
+- accountable Role Assignment or accountable mechanism;
+- effective time;
+- recorded time;
+- predecessor, supersession, or correction relationship where applicable;
 - affected evidence;
 - affected Value Input;
 - affected Risk Input;
@@ -450,6 +456,8 @@ Factors favoring a new identity include:
 - materially different adverse pathways;
 - evidence cannot reasonably transfer;
 - prior and new configurations should be independently interpretable.
+
+The same-identity/new-identity outcome is an accountable determination governed by §7. It must preserve the exact prior and proposed Configuration versions, outcome, rationale, accountable assignment/mechanism, effective time, recorded time, and determination history. Technical comparison may inform the judgment but must not make it implicitly.
 
 ## 13. Evidence Applicability
 
@@ -552,7 +560,11 @@ The system must be able to distinguish:
 - authorized configuration;
 - historical configuration.
 
-`current` is derived for an explicit scope and effective time under `PAIM_SYSTEM_RECORD_AND_DECISION_INTEGRITY_SPEC_v0.1.md`, §3.11. If incompatible versions appear current for the same scope/time, the result is `CURRENT RECORD CONFLICT — UNRESOLVED`; the platform must not choose one silently. Proposed, experimental, and fallback purpose must remain distinguishable from authoritative currentness and AI operating state.
+For PAIM v0.1, governing currentness is derived for the owning Case and effective time under `PAIM_SYSTEM_RECORD_AND_DECISION_INTEGRITY_SPEC_v0.1.md`, §3.11. The result is exactly one governing Configuration version, explicit absence/not established, or `CURRENT RECORD CONFLICT — UNRESOLVED` with every incompatible candidate and reason.
+
+Two Configurations must not simultaneously govern the same Case at the same effective time. A second same-Case, same-time governing designation is non-conformant and creates conflict; it is not a valid plural-current set. The platform must not choose by recency, purpose, authorization date, version label, role scope, or convenience.
+
+Proposed, experimental, alternative, and fallback are purpose values orthogonal to governing currentness and AI operating state. They do not satisfy a requirement for the governing Configuration and do not imply authorization or operation.
 
 A management case may compare multiple alternatives simultaneously.
 
@@ -566,6 +578,8 @@ Fallback: Configuration D
 ```
 
 Each alternative should be separately identifiable.
+
+If independent Configurations must govern concurrently, PAIM v0.1 represents them through separately linked Cases, each with exactly one owning Case relationship and its own one/absence/conflict governing-Configuration result. This rule does not resolve shared-dependency identity or Register aggregation under IRR-012.
 
 ## 19. Configuration and Operating State
 
@@ -651,10 +665,12 @@ Minimum fields:
 ### Identity
 - Configuration ID
 - Configuration Version ID
-- Case ID
+- owning Case ID
 - version
 - title
-- status
+- maturity/history status
+- purpose
+- governing-currentness relationship/status
 - effective date
 - recorded time
 - predecessor/successor
@@ -678,6 +694,9 @@ Minimum fields:
 - reason
 - change summary
 - materiality assessment
+- materiality accountable Role Assignment/mechanism
+- materiality rationale and effective/recorded time
+- same-identity/new-identity determination and accountable provenance where applicable
 - related prior configuration
 
 ### Relationships
@@ -701,7 +720,12 @@ The system should be able to surface:
 - decision applied to a superseded configuration;
 - operating state changed without reassessment where required;
 - evidence used outside its configuration applicability;
-- unresolved material change.
+- unresolved material change;
+- no governing Configuration for a Case/effective time where one is required;
+- two or more governing Configurations for one Case/effective time;
+- a proposed, experimental, alternative, or fallback Configuration being used to satisfy a governing-Configuration requirement;
+- missing or conflicting accountability for a materiality or identity-continuity determination;
+- Configuration ownership that is absent, plural, or inconsistent with its owning Case relationship.
 
 These are integrity checks, not automatic substantive decisions.
 
@@ -735,6 +759,8 @@ Human/accountable judgment remains necessary for:
 - deciding whether current operation may continue pending reassessment;
 - determining whether a stronger operating state requires new evidence.
 
+Each materiality and same-identity/new-identity judgment must resolve to the explicit accountable assignment or accountable mechanism required by §§7 and 12. Vacancy and incompatible plurality remain visible and block any lifecycle or currentness behavior that depends on the missing judgment.
+
 The platform should support these judgments rather than hide them.
 
 ## 28. Platform Implications
@@ -767,18 +793,21 @@ Future tests should include:
 8. Compare current, proposed, experimental, and fallback configurations.
 9. Attempt to bind a frozen Value Input to the wrong configuration version.
 10. Attempt to apply a historical decision to a superseded configuration.
+11. Attempt to designate two governing Configurations for one Case/effective time and require explicit conflict with no winner.
+12. Confirm that proposed, experimental, alternative, and fallback Configurations do not satisfy a governing-Configuration guard.
+13. Represent independent concurrent governing Configurations through separately linked Cases.
+14. Attempt a materiality or identity-continuity determination with no accountable assignment and with incompatible accountable assignments.
 
 ## 30. Open Questions
 
 Deferred to later specifications/platform design:
 
 - exact configuration ID convention;
-- formal materiality decision authority;
 - machine-detectable vs. human-declared changes;
 - evidence applicability status taxonomy;
 - organization-specific scheduling and review rules for future-effective configurations;
 - how external provider/model metadata are normalized;
-- cross-case shared configurations;
+- cross-case sharing, dependency equivalence, and reuse beyond explicit linked-Case/Configuration relationships, including IRR-012;
 - reusable control definitions.
 
 ## 31. Completion Impact

@@ -6,6 +6,8 @@ Implementation-independent cross-cutting system specification for authoritative-
 
 This specification resolves the blocking findings IRR-001 through IRR-005 and CON-001 in `PAIM_CODEX_IMPLEMENTATION_READINESS_REVIEW_v0.1.md`.
 
+It also supplies the cross-cutting integrity rules needed by the accepted PAIM v0.1 resolution of IRR-007 and IRR-013/CON-002. The Managed Configuration, Case Lifecycle, and Roles/Accountability specifications remain the substantive owners of those scope, cardinality, role, and accountability semantics.
+
 It governs the cross-cutting semantics defined here across the PAIM v0.1 system specification set. The affected specifications continue to govern the substantive content and human judgments of their record families. Where an earlier v0.1 specification is silent, optional, or inconsistent on a cross-cutting matter defined here, this specification controls. It does not replace the analytical or management semantics of those specifications.
 
 This specification does not prescribe a database, event store, programming language, workflow engine, identity provider, signature technology, API, or user interface.
@@ -33,6 +35,8 @@ The common record-history contract applies to authoritative PAIM records, includ
 
 - Case;
 - Managed Configuration;
+- governing Configuration designation/currentness relationship;
+- Configuration materiality and same-identity/new-identity determination;
 - Evidence;
 - Evidence Applicability relationship;
 - Authority;
@@ -50,6 +54,7 @@ The common record-history contract applies to authoritative PAIM records, includ
 - Reassessment;
 - Interim Operating Disposition;
 - Role Assignment and delegation;
+- accountable assignment/designation or explicitly governed accountable mechanism where represented separately;
 - any durable confirmation, correction, amendment, or supersession record affecting the above.
 
 The Management Register is a derived view and is not an independently mutable authoritative record. Its selection of current source records follows this specification.
@@ -271,6 +276,10 @@ If more than one incompatible version qualifies, the result is **CURRENT RECORD 
 
 Multiple current records are permitted only when the substantive specification explicitly allows them in distinguishable, non-competing scopes. The scope distinction must be recorded.
 
+For PAIM v0.1 governing-Configuration selection is Case-scoped. Each Configuration identity has exactly one owning Case, and one Case has at most one governing Configuration at an effective time. The result is one exact governing Configuration version, explicit absence/not established, or explicit conflict. Proposed, experimental, alternative, and fallback purpose does not make a Configuration eligible as governing. Two same-Case, same-time governing candidates are incompatible; the platform must not treat them as a permitted set or select by recency, purpose, authorization date, or convenience. Independent concurrent governing Configurations use separately linked Cases.
+
+Role-performer selection and accountability selection are distinct. Role resolution for one typed target/time may return multiple compatible performer assignments when the substantive role is additive. When a governed obligation requires accountability, selection returns exactly one eligible accountable Role Assignment or one explicitly governed accountable mechanism, explicit vacancy/not established, or explicit incompatible-accountability conflict. Broad and narrow assignments have no implicit precedence. Recency, breadth, specificity, directory hierarchy, and software permission must not select an accountability or authority winner; displacement requires explicit supersession, delegation, or a later accepted versioned policy.
+
 ### 3.12 Exact historical retrieval
 
 Every finalized record must retain exact version references for the authoritative records it relied upon. In particular, an authorized Decision and its related Integration, Reassessment, and Interim Operating Disposition chain must collectively retain references sufficient to retrieve:
@@ -283,10 +292,25 @@ Every finalized record must retain exact version references for the authoritativ
 - Integrated Operating Boundary Snapshot;
 - Decision Authorization Basis;
 - relevant Role Assignments/delegations;
+- accountable assignment/mechanism relationships and materiality or identity-continuity determinations relied upon;
 - required Intervention and Learning relationships;
 - predecessor/successor records.
 
 Later correction, withdrawal, status change, or supersession must not change the historical reconstruction.
+
+### 3.13 Accountable determination and relationship history
+
+Every Configuration materiality or same-identity/new-identity determination must preserve:
+
+- determination identity/version;
+- exact Configuration identity/version or proposed change assessed;
+- determination outcome and rationale;
+- exact accountable Role Assignment version or explicitly governed accountable mechanism;
+- effective time and recorded time;
+- predecessor, correction, supersession, or withdrawal relationship where applicable; and
+- affected Case, evidence, inputs, authority, controls, Decision, and routing references required by the substantive specification.
+
+Every accountable assignment/designation or mechanism relied upon by a governed record or judgment must remain exactly reconstructable for the effective and recorded time at which it applied. Technical principal identity, software permission, edit access, or participation must not be substituted for the accountable relationship. Absence and incompatible plurality remain explicit historical outcomes.
 
 ## 4. Integrated Operating Boundary contract
 
@@ -478,7 +502,7 @@ No transition is allowed unless listed below.
 
 Before `READY_FOR_INTEGRATION`, the system must confirm exact-version presence and compatibility of:
 
-- current/relevant Managed Configuration;
+- exactly one governing Managed Configuration for the Case/effective time, with proposed/experimental/alternative/fallback Configurations ineligible as substitutes;
 - one selected frozen Value Input;
 - one selected frozen Risk Input;
 - matching configuration bindings;
@@ -713,7 +737,7 @@ If any of those changes, the result is an authorized successor/amendment Decisio
 
 Changes to Intervention scheduling, ownership, or implementation method may be recorded without a successor Decision only when they remain within the existing Decision and Boundary and do not weaken a substantive condition. The rationale for treating the change as non-substantive must be recorded in the Reassessment.
 
-## 8. Explicit cross-cutting P0 invariants
+## 8. Explicit cross-cutting invariants
 
 The PAIM system must enforce or surface violation of the following invariants:
 
@@ -736,6 +760,13 @@ The PAIM system must enforce or surface violation of the following invariants:
 17. Current operation during intervention or reassessment remains traceable to the exact Decision, Boundary Snapshot, configuration, and any Interim Operating Disposition that govern it.
 18. The Management Register derives current facts under the same scope/time/current-selection rules and never overrides authoritative records.
 19. Value and Risk Inputs remain separately attributable, immutable when frozen, and independently refreshable throughout integration and reassessment.
+20. Every Configuration identity has exactly one owning Case, and every Case/effective time has at most one governing Configuration.
+21. Governing-Configuration selection returns one exact version, explicit absence, or explicit conflict; a purpose-labeled alternative never satisfies governing currentness.
+22. Independent concurrent governing Configurations use separately linked Cases in PAIM v0.1 rather than a plural governing set within one Case.
+23. Multiple compatible role performers may coexist, but every obligation requiring accountability resolves to one accountable assignment/mechanism, explicit vacancy, or explicit conflict.
+24. Broad and narrow Role Assignments have no implicit precedence; displacement requires an explicit history-preserving relationship or later accepted policy.
+25. Configuration materiality and identity-continuity determinations preserve exact accountable provenance, rationale, effective/recorded time, and history.
+26. Technical principal, PAIM actor, Role Assignment, accountability, software permission, and Decision Authority remain distinct; Decision Authority still requires the complete §6 Authorization Basis.
 
 ## 9. Integrity behavior and test candidates
 
@@ -757,7 +788,13 @@ The system should support tests demonstrating that:
 14. “confirm with conditions” changing a boundary clause requires a successor Decision;
 15. a completed Reassessment cannot have both no confirmation and no successor Decision;
 16. operation during intervention remains bound to the prior/current Decision until target prerequisites are accepted complete;
-17. historical reconstruction returns the exact configuration, inputs, boundary, authority, roles, and rationale originally used.
+17. historical reconstruction returns the exact configuration, inputs, boundary, authority, roles, and rationale originally used;
+18. two governing Configurations for one Case/effective time produce conflict rather than a plural current set or latest-record winner;
+19. proposed, experimental, alternative, and fallback Configurations do not satisfy a governing-Configuration guard;
+20. multiple compatible role performers coexist without creating implicit co-accountability;
+21. accountability vacancy and incompatible plurality return explicit absence/conflict, and broad/narrow overlap has no implicit winner;
+22. a materiality or identity-continuity determination without exact accountable provenance is ineligible for guarded use;
+23. a Decision Authority role label or software permission without the complete §6 Authorization Basis cannot authorize a Decision.
 
 ## 10. Human judgment and mechanical integrity boundary
 
@@ -770,11 +807,14 @@ The system may mechanically:
 - compare structured boundary clauses;
 - validate authority-chain scope/time/link completeness;
 - enforce immutability and successor relationships;
-- detect missing confirmation/successor outcomes.
+- detect missing confirmation/successor outcomes;
+- select governing Configuration and accountability outcomes as one, absence, or conflict under the accepted scope rules;
+- validate typed Role Assignment targets and explicit supersession/delegation relationships;
+- verify that materiality and identity-continuity determinations retain required accountable provenance and history.
 
 The system must leave to accountable human or established organizational authority:
 
-- substantive configuration materiality;
+- substantive configuration materiality and same-identity/new-identity outcomes;
 - evidence applicability where not mechanically established;
 - Value and Risk conclusions;
 - uncertainty classification;
@@ -784,7 +824,8 @@ The system must leave to accountable human or established organizational authori
 - legitimacy of organizational authority sources;
 - authorization of Decisions and Interim Operating Dispositions;
 - whether a trigger is immaterial under the current Decision;
-- whether an implementation-detail change is non-substantive under §7.6.
+- whether an implementation-detail change is non-substantive under §7.6;
+- legitimacy and assignment of an accountable actor/mechanism;
 
 Mechanical validity means the record is internally eligible for the next action. It does not mean the management judgment is substantively correct or authorized unless the required human/authority event also exists.
 
@@ -795,14 +836,16 @@ This specification does not attempt to resolve all P1 findings from the implemen
 The following remain for bounded later work unless another accepted specification already resolves them:
 
 - who accepts/freezes among multiple simultaneous Value or Risk analyses beyond the invariant that one exact version of each is selected for an Integration;
-- cross-case configuration ownership/cardinality beyond explicit scope and conflict handling;
 - full Evidence Applicability record design beyond the history/currentness requirements applied if it is authoritative;
 - whether Observation is a separate authoritative record;
 - intervention prerequisite classification and completion-acceptance role details beyond the lifecycle guard;
 - full trigger/reassessment concurrency and merge rules;
 - Management Register aggregation and shared-dependency identity;
-- general Role Assignment scope precedence beyond exact authorization-chain validation;
 - canonical stronger/broader relations among organization-specific operating states.
+
+Configuration ownership and v0.1 governing cardinality are resolved by the Managed Configuration and Case Lifecycle specifications: exactly one owning Case per Configuration identity and at most one governing Configuration per Case/effective time. Cross-Case sharing, dependency equivalence, and reuse beyond explicit relationships remain deferred with IRR-012.
+
+General v0.1 Role Assignment overlap is resolved by the Roles/Accountability specification's no-implicit-precedence rule. A later accepted versioned organizational policy may define explicit displacement or combination behavior, but its absence never authorizes a specific-over-general, broad-over-narrow, newest, or software-permission fallback.
 
 If any unresolved P1 question prevents a required P0 integrity determination in a concrete case, the system records the gap/conflict and does not invent a permissive answer.
 
@@ -830,6 +873,8 @@ Platform architecture may not change the observable semantics in this specificat
 | IRR-003 | §5 and §8: complete allowed transition table, guards, actors/mechanisms, subordinate effects, concurrent operation/intervention/reassessment, closure/reopening |
 | IRR-004 | §6 and §8: Decision Authorization Basis, scope/time validity, Decision Authority Gap as Authority Gap classification, bounded-proceed authority, historical preservation |
 | IRR-005 / CON-001 | §7 and §8: Interim Operating Disposition, permitted effects, authority/currentness/expiry, completed-Reassessment outcome invariant, successor rule for changed conditions |
+| IRR-007 | §§2.1, 3.11–3.13, 5.4, and 8–10: one owning Case, one/absence/conflict governing Configuration selection, orthogonal non-governing purpose, linked-Case concurrency, accountable materiality/identity history |
+| IRR-013 / CON-002 | §§2.1, 3.11–3.13, 6, and 8–10: typed/conditional scope conformance, compatible plural performers, one/absence/conflict accountability, no implicit scope precedence, and unchanged Decision Authorization Basis |
 
 ## 14. Repository placement
 

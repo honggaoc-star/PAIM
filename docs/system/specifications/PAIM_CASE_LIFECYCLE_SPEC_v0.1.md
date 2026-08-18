@@ -68,6 +68,8 @@ If the managed configuration changes materially, the system must determine wheth
 
 Prior evidence must not automatically transfer.
 
+The materiality and same-identity/new-identity determinations must identify one accountable Role Assignment or one explicitly governed accountable mechanism for the exact Configuration scope/version, together with rationale, effective time, recorded time, and preserved history. Edit access, workflow participation, or Case ownership alone must not be used to infer that accountability.
+
 ### 2.5 Evidence maturity controls readiness
 
 A case should not advance to Decision Integration merely because documents exist.
@@ -166,6 +168,8 @@ Advance when the management object is sufficiently bounded to create a Managed C
 
 The AI-enabled system of work being evaluated has been explicitly bounded.
 
+For PAIM v0.1, the state refers to the Case's one governing Configuration at the relevant effective time. Governing-Configuration selection must return exactly one eligible finalized Configuration, explicit absence/not established, or explicit conflict. A proposed, experimental, alternative, or fallback Configuration does not satisfy this state merely because it exists.
+
 ### Required elements
 
 As relevant:
@@ -187,6 +191,8 @@ As relevant:
 ### Exit condition
 
 Advance when the configuration is sufficiently stable for evidence and analytical findings to be meaningfully bound to it.
+
+If no governing Configuration is established, or if more than one Configuration claims to govern the Case at the same effective time, guarded progression is blocked until the absence or conflict is resolved through an accountable history-preserving action.
 
 ### Reversion condition
 
@@ -231,7 +237,7 @@ The case has the minimum contributing material required for PAIM Decision Integr
 
 ### Minimum readiness conditions
 
-- current Managed Configuration Record exists;
+- exactly one governing Managed Configuration Record exists for the Case and effective time;
 - Value Management Input exists;
 - Risk Management Input exists;
 - both inputs refer to the relevant configuration;
@@ -241,6 +247,8 @@ The case has the minimum contributing material required for PAIM Decision Integr
 - material established constraints are recorded;
 - material authority gaps are explicit;
 - decision authority is identified or its absence is explicit.
+
+A proposed, experimental, alternative, or fallback Configuration is not substituted for the governing Configuration. Governing-Configuration absence or conflict fails readiness; the platform must not select an alternative by recency, purpose, or convenience.
 
 ### Readiness does not mean
 
@@ -419,7 +427,7 @@ A prior decision is under active reconsideration.
 
 ### Reassessment questions
 
-- Is the current Managed Configuration still the same?
+- Is the one governing Managed Configuration for the Case/effective time still the same, absent, or conflicting?
 - Is a new configuration version required?
 - Which evidence remains applicable?
 - Which Value/Risk inputs require refresh?
@@ -580,7 +588,11 @@ Use a **new/successor case** when:
 - evidence cannot reasonably transfer;
 - the prior case should remain independently interpretable.
 
+PAIM v0.1 also uses separately linked Cases when independent Configurations must govern concurrently. Each Configuration identity has exactly one owning Case, and each linked Case independently resolves one governing Configuration, explicit absence, or explicit conflict for an effective time. A second governing Configuration must not be added to one Case as a concurrency shortcut.
+
 The Managed Configuration specification should define the material-change test in greater detail.
+
+The reopen/new-Case and same-identity/new-identity judgments require the explicit accountable assignment/mechanism and determination history defined by the Managed Configuration and Roles specifications. Vacancy or incompatible accountability conflict blocks routing that depends on the unresolved judgment.
 
 ## 19. Case Relationships
 
@@ -594,6 +606,8 @@ The lifecycle must support explicit relationships such as:
 - related experiment;
 - related authority review;
 - parent/portfolio grouping where later required.
+
+Linked Cases preserve independent governing-Configuration currentness. A Case relationship does not create joint Configuration ownership, silently transfer evidence, or resolve cross-Case dependency/equivalence semantics deferred under IRR-012.
 
 ## 20. Lifecycle Roles
 
@@ -629,6 +643,8 @@ May inspect traceability and process integrity.
 
 Detailed permissions are deferred to `PAIM_ROLES_AND_ACCOUNTABILITY_SPEC`.
 
+For every lifecycle record or judgment that requires accountability, resolution must return exactly one accountable Role Assignment or one explicitly governed accountable mechanism, explicit vacancy/not established, or explicit incompatible-accountability conflict. Multiple compatible role performers may contribute, but an unqualified peer set is not treated as co-accountable. Broad and narrow Role Assignments have no implicit precedence.
+
 ## 21. Minimum Lifecycle Events
 
 The system should preserve events for:
@@ -656,12 +672,16 @@ Before important transitions, the system should be able to detect:
 
 ### Before READY_FOR_INTEGRATION
 
+- missing governing Configuration;
+- conflicting governing Configurations for the same Case/effective time;
+- non-governing proposed, experimental, alternative, or fallback Configuration offered as the governing Configuration;
 - missing Value Input;
 - missing Risk Input;
 - mismatched configuration;
 - missing boundaries;
 - missing provenance;
-- unrepresented material authority gap.
+- unrepresented material authority gap;
+- missing or conflicting accountable assignment/mechanism for a required materiality, identity-continuity, or lifecycle judgment.
 
 ### Before DECIDED
 
@@ -701,6 +721,8 @@ Human/accountable judgment is especially required for:
 - deciding whether reassessment changes the boundary/state;
 - determining whether a case should close or be superseded.
 
+Every required judgment must preserve the accountable Role Assignment or accountable mechanism, scope, rationale, effective time, recorded time, and history where the governing specification requires it. Technical principal identity, software permission, role participation, and accountability remain distinct; none establishes Decision Authority without the complete Decision Authorization Basis.
+
 ## 24. Platform Implications
 
 A future platform will likely require:
@@ -730,6 +752,10 @@ Future system testing should include:
 6. Attempt to overwrite a historical decision → system should preserve prior record.
 7. Close a case with incomplete mandatory intervention → system should surface the inconsistency.
 8. Propose institutionalization from bounded continuation → case should reopen/reassess rather than silently change operating state.
+9. Present two governing Configurations for one Case/effective time → guarded progression should remain blocked with explicit conflict.
+10. Present only a proposed/experimental/fallback alternative → it should not satisfy the governing-Configuration guard.
+11. Require independent concurrent governing Configurations → use linked Cases and preserve one owning Case per Configuration identity.
+12. Require a materiality or identity-continuity judgment with vacant or conflicting accountability → block the dependent transition and preserve the unresolved outcome.
 
 Expected detailed behavior will be defined in the system behavioral validation strategy.
 
