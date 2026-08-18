@@ -13,6 +13,13 @@ from sqlalchemy.engine import RowMapping
 from sqlalchemy.exc import OperationalError
 
 from paim.audit.models import ActorResolution, AuditFact
+from paim.domain.models import (
+    ConfigurationVersionContext,
+    DelegationEffect,
+    GoverningDesignationDetail,
+    RoleAssignmentDetail,
+    RoleTargetType,
+)
 from paim.integrity.ids import (
     AuditId,
     CommandId,
@@ -43,10 +50,21 @@ from paim.persistence.ports import (
 )
 from paim.persistence.sqlite.schema import (
     audit_facts,
+    configuration_determinations,
+    governing_configuration_designations,
     idempotency_facts,
+    managed_configuration_versions,
+    managed_configurations,
     metadata,
+    paim_actor_versions,
+    paim_actors,
+    paim_case_links,
+    paim_case_versions,
+    paim_cases,
     record_versions,
     records,
+    role_assignment_versions,
+    role_assignments,
     status_events,
     version_relationships,
 )
@@ -234,6 +252,297 @@ class SQLiteIntegrityTransaction:
             )
         )
 
+    def case_exists(self, case_id: RecordId) -> bool:
+        return (
+            self._connection.scalar(
+                select(func.count())
+                .select_from(paim_cases)
+                .where(paim_cases.c.case_id == str(case_id))
+            )
+            == 1
+        )
+
+    def add_case(self, case_id: RecordId, version_id: RecordVersionId) -> None:
+        if not self.case_exists(case_id):
+            self._connection.execute(insert(paim_cases).values(case_id=str(case_id)))
+        self._connection.execute(
+            insert(paim_case_versions).values(
+                version_id=str(version_id),
+                case_id=str(case_id),
+                initial_lifecycle_state="open",
+            )
+        )
+
+    def add_case_link(
+        self,
+        *,
+        link_id: str,
+        source_case_id: RecordId,
+        target_case_id: RecordId,
+        relationship_type: str,
+        recorded_at_us: int,
+        effective_at_us: int,
+        actor_id: str,
+        reason: str,
+    ) -> None:
+        self._connection.execute(
+            insert(paim_case_links).values(
+                link_id=link_id,
+                source_case_id=str(source_case_id),
+                target_case_id=str(target_case_id),
+                relationship_type=relationship_type,
+                recorded_at_us=recorded_at_us,
+                effective_at_us=effective_at_us,
+                actor_id=actor_id,
+                reason=reason,
+            )
+        )
+
+    def configuration_owning_case(self, configuration_id: RecordId) -> RecordId | None:
+        value = self._connection.scalar(
+            select(managed_configurations.c.owning_case_id).where(
+                managed_configurations.c.configuration_id == str(configuration_id)
+            )
+        )
+        return RecordId.parse(cast("str", value)) if value is not None else None
+
+    def add_configuration(
+        self,
+        *,
+        configuration_id: RecordId,
+        version_id: RecordVersionId,
+        owning_case_id: RecordId,
+        maturity: str,
+        purpose: str,
+    ) -> None:
+        existing_owner = self.configuration_owning_case(configuration_id)
+        if existing_owner is None:
+            self._connection.execute(
+                insert(managed_configurations).values(
+                    configuration_id=str(configuration_id), owning_case_id=str(owning_case_id)
+                )
+            )
+        elif existing_owner != owning_case_id:
+            raise ValueError("Configuration identity cannot change its owning Case")
+        self._connection.execute(
+            insert(managed_configuration_versions).values(
+                version_id=str(version_id),
+                configuration_id=str(configuration_id),
+                maturity=maturity,
+                purpose=purpose,
+            )
+        )
+
+    def configuration_version_context(
+        self, version_id: RecordVersionId
+    ) -> ConfigurationVersionContext | None:
+        row = (
+            self._connection.execute(
+                select(
+                    managed_configuration_versions.c.configuration_id,
+                    managed_configurations.c.owning_case_id,
+                    managed_configuration_versions.c.maturity,
+                    managed_configuration_versions.c.purpose,
+                )
+                .join(
+                    managed_configurations,
+                    managed_configurations.c.configuration_id
+                    == managed_configuration_versions.c.configuration_id,
+                )
+                .where(managed_configuration_versions.c.version_id == str(version_id))
+            )
+            .mappings()
+            .one_or_none()
+        )
+        if row is None:
+            return None
+        return ConfigurationVersionContext(
+            configuration_id=RecordId.parse(cast("str", row["configuration_id"])),
+            owning_case_id=RecordId.parse(cast("str", row["owning_case_id"])),
+            maturity=cast("str", row["maturity"]),
+            purpose=cast("str", row["purpose"]),
+        )
+
+    def actor_exists(self, actor_id: RecordId) -> bool:
+        return (
+            self._connection.scalar(
+                select(func.count())
+                .select_from(paim_actors)
+                .where(paim_actors.c.actor_id == str(actor_id))
+            )
+            == 1
+        )
+
+    def add_actor(self, actor_id: RecordId, version_id: RecordVersionId) -> None:
+        if not self.actor_exists(actor_id):
+            self._connection.execute(insert(paim_actors).values(actor_id=str(actor_id)))
+        self._connection.execute(
+            insert(paim_actor_versions).values(version_id=str(version_id), actor_id=str(actor_id))
+        )
+
+    def add_role_assignment(
+        self,
+        *,
+        assignment_id: RecordId,
+        version_id: RecordVersionId,
+        actor_id: RecordId,
+        role: str,
+        target_type: str,
+        target_id: str,
+        case_context_id: RecordId | None,
+        accountable: bool,
+        compatibility_key: str,
+        delegation_effect: str,
+        delegated_from_version_id: RecordVersionId | None,
+    ) -> None:
+        exists = self._connection.scalar(
+            select(func.count())
+            .select_from(role_assignments)
+            .where(role_assignments.c.assignment_id == str(assignment_id))
+        )
+        if exists != 1:
+            self._connection.execute(
+                insert(role_assignments).values(assignment_id=str(assignment_id))
+            )
+        self._connection.execute(
+            insert(role_assignment_versions).values(
+                version_id=str(version_id),
+                assignment_id=str(assignment_id),
+                actor_id=str(actor_id),
+                role=role,
+                target_type=target_type,
+                target_id=target_id,
+                case_context_id=str(case_context_id) if case_context_id is not None else None,
+                accountable=accountable,
+                compatibility_key=compatibility_key,
+                delegation_effect=delegation_effect,
+                delegated_from_version_id=(
+                    str(delegated_from_version_id)
+                    if delegated_from_version_id is not None
+                    else None
+                ),
+            )
+        )
+
+    def role_assignment_records(
+        self, *, role: str, targets: tuple[tuple[str, str], ...]
+    ) -> tuple[RecordId, ...]:
+        if not targets:
+            return ()
+        predicates = tuple(
+            (role_assignment_versions.c.target_type == target_type)
+            & (role_assignment_versions.c.target_id == target_id)
+            for target_type, target_id in targets
+        )
+        values = self._connection.execute(
+            select(role_assignment_versions.c.assignment_id)
+            .where(role_assignment_versions.c.role == role, or_(*predicates))
+            .distinct()
+        ).scalars()
+        return tuple(RecordId.parse(cast("str", value)) for value in values)
+
+    def role_assignment_detail(self, version_id: RecordVersionId) -> RoleAssignmentDetail | None:
+        row = (
+            self._connection.execute(
+                select(role_assignment_versions).where(
+                    role_assignment_versions.c.version_id == str(version_id)
+                )
+            )
+            .mappings()
+            .one_or_none()
+        )
+        if row is None:
+            return None
+        case_context = cast("str | None", row["case_context_id"])
+        delegated_from = cast("str | None", row["delegated_from_version_id"])
+        return RoleAssignmentDetail(
+            version_id=RecordVersionId.parse(cast("str", row["version_id"])),
+            assignment_id=RecordId.parse(cast("str", row["assignment_id"])),
+            actor_id=RecordId.parse(cast("str", row["actor_id"])),
+            role=cast("str", row["role"]),
+            target_type=RoleTargetType(cast("str", row["target_type"])),
+            target_id=cast("str", row["target_id"]),
+            case_context_id=RecordId.parse(case_context) if case_context is not None else None,
+            accountable=cast("bool", row["accountable"]),
+            compatibility_key=cast("str", row["compatibility_key"]),
+            delegation_effect=DelegationEffect(cast("str", row["delegation_effect"])),
+            delegated_from_version_id=(
+                RecordVersionId.parse(delegated_from) if delegated_from is not None else None
+            ),
+        )
+
+    def add_governing_designation(
+        self,
+        *,
+        version_id: RecordVersionId,
+        case_id: RecordId,
+        configuration_version_id: RecordVersionId,
+        accountable_assignment_version_id: RecordVersionId | None,
+        accountable_mechanism: str | None,
+    ) -> None:
+        self._connection.execute(
+            insert(governing_configuration_designations).values(
+                version_id=str(version_id),
+                case_id=str(case_id),
+                configuration_version_id=str(configuration_version_id),
+                accountable_assignment_version_id=(
+                    str(accountable_assignment_version_id)
+                    if accountable_assignment_version_id is not None
+                    else None
+                ),
+                accountable_mechanism=accountable_mechanism,
+            )
+        )
+
+    def governing_designation_detail(
+        self, version_id: RecordVersionId
+    ) -> GoverningDesignationDetail | None:
+        row = (
+            self._connection.execute(
+                select(governing_configuration_designations).where(
+                    governing_configuration_designations.c.version_id == str(version_id)
+                )
+            )
+            .mappings()
+            .one_or_none()
+        )
+        if row is None:
+            return None
+        return GoverningDesignationDetail(
+            version_id=RecordVersionId.parse(cast("str", row["version_id"])),
+            case_id=RecordId.parse(cast("str", row["case_id"])),
+            configuration_version_id=RecordVersionId.parse(
+                cast("str", row["configuration_version_id"])
+            ),
+        )
+
+    def add_configuration_determination(
+        self,
+        *,
+        version_id: RecordVersionId,
+        configuration_version_id: RecordVersionId,
+        determination_kind: str,
+        outcome: str,
+        rationale: str,
+        accountable_assignment_version_id: RecordVersionId | None,
+        accountable_mechanism: str | None,
+    ) -> None:
+        self._connection.execute(
+            insert(configuration_determinations).values(
+                version_id=str(version_id),
+                configuration_version_id=str(configuration_version_id),
+                determination_kind=determination_kind,
+                outcome=outcome,
+                rationale=rationale,
+                accountable_assignment_version_id=(
+                    str(accountable_assignment_version_id)
+                    if accountable_assignment_version_id is not None
+                    else None
+                ),
+                accountable_mechanism=accountable_mechanism,
+            )
+        )
+
     def add_status_event(self, status: StatusEvent) -> None:
         self._connection.execute(
             insert(status_events).values(
@@ -392,6 +701,12 @@ class SQLiteIntegrityStore:
             connect_args={"timeout": timeout_seconds},
         )
         event.listen(self.engine, "connect", _enable_foreign_keys)
+
+    @contextmanager
+    def read_transaction(self) -> Iterator[SQLiteIntegrityTransaction]:
+        """Use one consistent read connection without acquiring the writer boundary."""
+        with self.engine.connect() as connection:
+            yield SQLiteIntegrityTransaction(connection)
 
     @contextmanager
     def semantic_transaction(self) -> Iterator[SQLiteIntegrityTransaction]:
