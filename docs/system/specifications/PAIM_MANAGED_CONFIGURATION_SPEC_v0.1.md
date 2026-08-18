@@ -461,18 +461,23 @@ The same-identity/new-identity outcome is an accountable determination governed 
 
 ## 13. Evidence Applicability
 
-Evidence must be bound to the configuration or configuration conditions under which it was generated.
+Evidence must be bound to the configuration or configuration conditions under which it was generated. Prospective analytical use against a Managed Configuration is governed by a first-class Evidence Applicability Record/Version; a Case, folder, attachment, Configuration name, or prior relationship is not an applicability judgment.
 
-When configuration changes, evidence may be:
+For an exact Managed Configuration Version target, the normative Applicability outcomes are:
 
-- directly applicable;
-- conditionally applicable;
-- partially applicable;
-- refresh required;
-- not applicable;
-- unknown.
+- `APPLICABLE`;
+- `CONDITIONALLY_APPLICABLE`;
+- `PARTIALLY_APPLICABLE`;
+- `NOT_APPLICABLE`; or
+- `INDETERMINATE`.
 
-The system must not assume that evidence remains applicable solely because the configuration retains the same name.
+`REFRESH REQUIRED` is prospective status/attention, not an applicability outcome. Conflict is a derived current-selection result from incompatible co-current Applicability judgments.
+
+When Configuration identity or content Version changes, a new target-specific Evidence Applicability judgment is required. Prior applicability is provenance only. The system must not assume that Evidence remains applicable because the Configuration retains the same name or identity.
+
+Conditional/partial applicability supports only its explicit assessed scope/conditions and cannot justify a broader Value or Risk Input Boundary. Applicability absence, unresolved conflict, `NOT_APPLICABLE`, unresolved material `REFRESH REQUIRED`, or ineligible target-context accountability must remain explicit and block a use whose material support depends on that Evidence.
+
+An accountable Applicability assignment/mechanism must apply to the exact target context under the no-implicit-precedence rule. An assignment for unrelated Configuration B cannot finalize Applicability for Configuration A; competing broad/narrow assignments remain conflict absent explicit supersession/delegation.
 
 ## 14. Value Input Applicability
 
@@ -720,6 +725,10 @@ The system should be able to surface:
 - decision applied to a superseded configuration;
 - operating state changed without reassessment where required;
 - evidence used outside its configuration applicability;
+- Evidence applicability inferred from attachment, Configuration name, or prior-Configuration judgment;
+- conditional/partial Evidence used outside its recorded scope/conditions;
+- Applicability absence/conflict hidden by recency, specificity, ownership, or mutable current flag;
+- unrelated-scope or conflicting accountability used for a Configuration-target Applicability judgment;
 - unresolved material change;
 - no governing Configuration for a Case/effective time where one is required;
 - two or more governing Configurations for one Case/effective time;
@@ -797,6 +806,9 @@ Future tests should include:
 12. Confirm that proposed, experimental, alternative, and fallback Configurations do not satisfy a governing-Configuration guard.
 13. Represent independent concurrent governing Configurations through separately linked Cases.
 14. Attempt a materiality or identity-continuity determination with no accountable assignment and with incompatible accountable assignments.
+15. Reuse Evidence from Configuration A for changed Configuration Version B and require a new Applicability judgment.
+16. Attempt to use conditional/partial Evidence beyond its recorded Configuration scope and block the dependent Input acceptance.
+17. Present incompatible co-current Configuration-target Applicability judgments and expose conflict without a latest/specific winner.
 
 ## 30. Open Questions
 
@@ -804,7 +816,6 @@ Deferred to later specifications/platform design:
 
 - exact configuration ID convention;
 - machine-detectable vs. human-declared changes;
-- evidence applicability status taxonomy;
 - organization-specific scheduling and review rules for future-effective configurations;
 - how external provider/model metadata are normalized;
 - cross-case sharing, dependency equivalence, and reuse beyond explicit linked-Case/Configuration relationships, including IRR-012;

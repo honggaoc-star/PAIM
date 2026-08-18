@@ -102,13 +102,11 @@ Every material Evidence Record should support:
 
 ### Applicability
 
-- configuration/version
-- Value finding(s)
-- Risk finding(s)
-- authority question(s)
-- decision(s)
-- learning item(s)
-- reassessment(s)
+- exact Evidence Applicability Record/Version relationships governed by §7;
+- current first-class target types: Managed Configuration Version, Value Input Version, Risk Input Version, Authority Record Version, and Authority Gap Version/question; and
+- later typed target extensions only when their owning specifications establish substantive identity and workflow semantics.
+
+Applicability is not mutable metadata on the Evidence Version. Evidence content and each target-specific applicability judgment have separate authoritative identities and histories.
 
 ## 4. Evidence Classification
 
@@ -197,16 +195,117 @@ Evidence must be bound to the configuration/version under which it was generated
 
 When the Managed Configuration changes, evidence applicability must be reviewed.
 
-Possible applicability states:
+Normative applicability outcomes are:
 
-- directly applicable;
-- conditionally applicable;
-- partially applicable;
-- refresh required;
-- not applicable;
-- unknown.
+- `APPLICABLE`;
+- `CONDITIONALLY_APPLICABLE`;
+- `PARTIALLY_APPLICABLE`;
+- `NOT_APPLICABLE`; and
+- `INDETERMINATE`.
 
 The system must preserve the original evidence even when later judged inapplicable.
+
+`REFRESH REQUIRED` is a prospective status/attention condition, not an applicability outcome. Conflict is a deterministic current-selection result from incompatible co-current judgments, not an assessor-entered outcome.
+
+### 7.1 Evidence Applicability identity and cardinality
+
+Evidence Applicability is a first-class authoritative, versioned many-to-many relationship.
+
+- One exact Evidence Version may have Applicability judgments for many targets.
+- One exact target may have Applicability judgments involving many Evidence Versions.
+- One Applicability Record identifies a continuing applicability subject for one exact Evidence/target/purpose/scope context.
+- Every substantive judgment or scope/rationale change creates an immutable Applicability Version.
+
+An Evidence Applicability record supports at minimum:
+
+- stable Applicability Record ID;
+- immutable Applicability Version ID;
+- exact Evidence ID and Evidence Version ID;
+- target type and target stable identity;
+- exact target Version ID whenever the target is versioned or applicability depends on target content;
+- purpose/use and assessed scope sufficient to distinguish competing judgments;
+- Case and Managed Configuration context where applicable, without substituting for the exact target;
+- one normative applicability outcome;
+- conditions and limitations;
+- rationale;
+- assessor PAIM actor;
+- exact accountable Role Assignment Version or explicitly governed accountable mechanism;
+- effective interval and recorded/known time;
+- finalization/status;
+- predecessor, correction, supersession, or withdrawal relationship and reason; and
+- affected Input, Integration, Decision, or other finalized-use references where later correction materially affects prior or current reliance.
+
+### 7.2 Increment 3 target types
+
+The first-class v0.1 Evidence Applicability target types implemented by Increment 3 are exactly:
+
+1. Managed Configuration Version;
+2. Value Input Version;
+3. Risk Input Version;
+4. Authority Record Version; and
+5. Authority Gap Version/question.
+
+Integration, Decision, Finding, Uncertainty, Control, Boundary Clause, Intervention, Learning, Reassessment, and Observation may be reserved as typed extension categories only. This specification does not define their substantive target identity or workflow semantics. Observation remains deferred under IRR-009.
+
+### 7.3 Outcome meaning
+
+- `APPLICABLE` means the Evidence Version is applicable within the complete recorded assessed scope.
+- `CONDITIONALLY_APPLICABLE` means applicability depends on explicit recorded conditions. Omitted or failed conditions make the judgment ineligible for that use.
+- `PARTIALLY_APPLICABLE` means only an explicit recorded subset of the proposed target scope is supported.
+- `NOT_APPLICABLE` means the Evidence Version must not support the declared target/use.
+- `INDETERMINATE` preserves an unresolved applicability judgment. It is neither permission nor prohibition and must not be automatically mapped to eligible or ineligible analytical use.
+
+Conditional and partial outcomes require explicit assessed scope, conditions, exclusions/limitations, and rationale. No outcome is a universal evidence-quality, sufficiency, or confidence score.
+
+### 7.4 Accountable judgment
+
+The assessor actor and the accountable assignment/mechanism are separate provenance facts. A finalized Applicability judgment must resolve accountability for the exact target context, purpose, scope, and effective time to:
+
+- exactly one applicable accountable Role Assignment or one explicitly governed accountable mechanism;
+- explicit vacancy/not established; or
+- explicit incompatible-accountability conflict.
+
+Evidence ownership, analytical authorship, Case ownership, technical-principal identity, software permission, directory hierarchy, integrator participation, or a generic role label does not establish applicability accountability. An Evidence Owner, Value Evaluator, Risk Evaluator, Authority Owner, or another governed function may be accountable only through the exact applicable assignment/mechanism. Broad and narrow assignments have no implicit precedence.
+
+### 7.5 Current selection and conflict
+
+For an explicit Evidence Version, target identity/version, purpose/use, assessed scope, effective time, and optional knowledge cutoff, current Applicability selection returns exactly one of:
+
+- one eligible current Applicability Version;
+- `APPLICABILITY NOT ESTABLISHED`; or
+- `EVIDENCE APPLICABILITY CONFLICT — UNRESOLVED` with every incompatible candidate and provenance.
+
+No recency, specificity, ownership, directory hierarchy, mutable current flag, software permission, row order, or convenience selects a winner. Distinguishable non-competing scopes may coexist only when their differences are explicit.
+
+An accountable successor or supersession may resolve prospective conflict only by recording exact scope, rationale, displaced Applicability Versions, effective/recorded time, and preserved predecessor history. Resolution never erases the conflicting judgments.
+
+### 7.6 Correction, supersession, staleness, and reuse
+
+- Evidence-content correction creates a corrected Evidence Version and does not mutate the prior Evidence Version or its Applicability Versions.
+- Applicability-judgment correction creates a corrected Applicability Version against the exact declared endpoints/context and identifies affected uses.
+- Evidence supersession/currentness and applicability to a particular target/use are separate. Supersession does not rewrite historical applicability or historical Inputs, Integrations, or Decisions.
+- Evidence may carry broad staleness/attention status, but fitness for one target/version/use remains target-specific. PAIM has no universal Evidence expiry period.
+- New target identity/version use requires a new Evidence Applicability judgment. Prior applicability is provenance only and never silently carries forward.
+- `REFRESH REQUIRED` creates prospective attention/review and does not modify historical Evidence or Applicability content.
+
+### 7.7 Material-Evidence fitness for Input acceptance
+
+Every Evidence item declared material to a new Value or Risk Input acceptance/use must have a current Applicability result for its exact target context.
+
+- Absence, unresolved Applicability conflict, `NOT_APPLICABLE`, or unresolved `REFRESH REQUIRED` blocks acceptance when that Evidence is required to support the Input's Finding, Boundary, or Implication.
+- `CONDITIONALLY_APPLICABLE` and `PARTIALLY_APPLICABLE` support only their recorded scope/conditions and cannot justify a broader Input Boundary.
+- `INDETERMINATE` remains unresolved. The separate accountable lane-level fitness determination defined by the Value/Risk Interface records whether the bounded Input remains supportable for that exact use and why. It blocks when decision-limiting to that analytical Input/use; general management-level uncertainty classification remains with Integration/Decision.
+- Evidence linked as limitation, dissent, or conflict need not become favorable support, but its role/provenance remains explicit.
+
+The platform may enforce references, time, scope, status, and conflict. It may not automatically decide substantive applicability or Input fitness.
+
+### 7.8 Normative examples
+
+1. Evidence applicable to Configuration A does not apply to Configuration B or a changed Version B without a new Applicability judgment.
+2. `PARTIALLY_APPLICABLE` Evidence scoped to one population cannot support a broader Value or Risk Input Boundary.
+3. Two incompatible co-current Applicability judgments return explicit conflict. An accountable successor may resolve prospective use while retaining both predecessors.
+4. An assignment accountable only for unrelated Configuration B cannot finalize Applicability for Configuration A. Applicable broad and narrow competing accountable assignments remain conflict absent explicit supersession/delegation.
+5. `INDETERMINATE` Evidence can support or block only through the separate exact lane-level fitness determination; it has no global default.
 
 ## 8. Evidence Versioning and Supersession
 
@@ -232,7 +331,7 @@ Materially disagrees with existing evidence and requires analytical treatment ra
 
 Historical evidence should remain available for reconstructing prior decisions.
 
-Every correction, supersession, withdrawal, and current-evidence determination follows `PAIM_SYSTEM_RECORD_AND_DECISION_INTEGRITY_SPEC_v0.1.md`, §3. Conflicting evidence remains explicit; the system must not choose a current winner merely because one record is newer.
+Every correction, supersession, withdrawal, and current-evidence determination follows `PAIM_SYSTEM_RECORD_AND_DECISION_INTEGRITY_SPEC_v0.1.md`, §3. Conflicting Evidence content remains explicit; Evidence currentness and Applicability currentness use separate selection contexts, and neither chooses a winner merely because one record is newer.
 
 ## 9. Evidence Provenance Chain
 
@@ -594,9 +693,13 @@ Minimum fields:
 - scope
 - limitations
 - status
-- applicability
+- exact Evidence Applicability Record/Version relationships
 - related finding/uncertainty/control/decision
 - predecessor/superseding evidence where applicable
+
+### 29.1 Minimum Evidence Applicability Record
+
+Minimum fields are those in §7.1, including exact endpoint Versions, target type, purpose/use, assessed scope, outcome, conditions/limitations, rationale, assessor, accountable assignment/mechanism, effective/recorded time, status, history relationships, and affected-use references.
 
 ## 30. Minimum Authority Record
 
@@ -639,6 +742,15 @@ The system should be able to surface:
 
 - Finding with no supporting evidence linkage;
 - evidence used outside configuration applicability;
+- Evidence Applicability stored only as mutable Evidence/target metadata;
+- missing exact Evidence or target Version for a content-dependent judgment;
+- Applicability outcome outside the normative §7.3 vocabulary;
+- conditional/partial judgment missing scope, conditions, or limitations;
+- `REFRESH REQUIRED` or conflict treated as a stored applicability outcome;
+- `INDETERMINATE` treated as permission or prohibition without a separate accountable fitness judgment;
+- Applicability absence/conflict hidden by newest, most-specific, current-flag, or permission fallback;
+- applicability finalized under vacant, conflicting, unrelated-scope, or permission-derived accountability;
+- Evidence reused for a new target/version without a new Applicability judgment;
 - stale/superseded evidence still treated as current;
 - unresolved conflicting evidence hidden from integration;
 - authority cited without source/provenance;
@@ -657,6 +769,8 @@ Human/accountable judgment remains necessary for:
 - interpreting evidence;
 - determining material limitations;
 - deciding applicability;
+- determining the exact assessed scope, conditions, limitations, and rationale;
+- determining target-context Applicability accountability and resolving incompatible judgments;
 - distinguishing supported inference from assumption;
 - resolving conflicting evidence;
 - interpreting authority;
@@ -687,7 +801,7 @@ Future system tests should include:
 
 1. Add new evidence that conflicts with a current finding.
 2. Supersede an evidence record and confirm historical decisions retain original provenance.
-3. Apply evidence to a materially different configuration and require applicability review.
+3. Apply evidence to a materially different Configuration/version and require a new Applicability judgment.
 4. Introduce an unresolved legal/authority question and ensure the system does not imply permission.
 5. Resolve an Authority Gap and trigger reassessment of the blocked decision.
 6. Mark evidence stale after a model/provider change.
@@ -695,6 +809,12 @@ Future system tests should include:
 8. Introduce an estimate and ensure it is not represented as observed evidence.
 9. Introduce a control with documented presence but no effectiveness evidence.
 10. Remove evidence supporting a Decision-Limiting Uncertainty resolution and require review.
+11. Create incompatible co-current Applicability judgments and return explicit conflict.
+12. Resolve Applicability conflict with an accountable successor while preserving both prior judgments.
+13. Reject conditional/partial Evidence as support outside its recorded scope.
+14. Reject unrelated-scope applicability accountability and expose broad/narrow accountability conflict.
+15. Exercise `INDETERMINATE` with separate supportable and blocked lane-level fitness judgments.
+16. Correct Evidence content and Applicability judgment independently, preserving every prior Version.
 
 ## 36. Open Questions
 
@@ -707,7 +827,7 @@ Deferred for later specifications/platform design:
 - formal authority hierarchy;
 - evidence retention policy;
 - confidentiality/access restrictions;
-- automated staleness rules;
+- automated staleness-attention suggestions, which must not replace target-specific judgment;
 - evidence deduplication;
 - external-system ingestion.
 

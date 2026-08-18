@@ -221,13 +221,16 @@ Value and Risk may independently be:
 - not started;
 - in progress;
 - ready;
-- frozen/current;
+- frozen;
+- accepted/selected for a bounded use;
 - refresh required;
 - superseded.
 
+`ready` is analytical readiness; `frozen` is immutable Input finalization; and `accepted/selected` is established only by an exact use-specific lane Acceptance/Selection Version. None implies either of the others.
+
 ### Exit condition
 
-Advance only when the required PAIM-facing Value and Risk Inputs are available for the current configuration and decision.
+Advance only when each analytical lane has exactly one eligible selected/frozen Input Version and exact lane-specific Acceptance/Selection Version for the same governing Configuration Version and bounded Integration path/use. Input-selection absence, conflict, or ineligibility blocks advancement.
 
 ## 7. State: READY_FOR_INTEGRATION
 
@@ -238,17 +241,22 @@ The case has the minimum contributing material required for PAIM Decision Integr
 ### Minimum readiness conditions
 
 - exactly one governing Managed Configuration Record exists for the Case and effective time;
-- Value Management Input exists;
-- Risk Management Input exists;
-- both inputs refer to the relevant configuration;
+- exactly one eligible selected/frozen Value Management Input Version and Value Acceptance/Selection Version exist for this bounded use;
+- exactly one eligible selected/frozen Risk Management Input Version and Risk Acceptance/Selection Version exist for this bounded use;
+- both Inputs and acceptances refer to the exact governing Configuration Version;
 - contributing boundaries are explicit;
 - uncertainty is represented;
 - provenance exists;
+- material Evidence has exact current-context Evidence Applicability and accountable lane-level fitness treatment;
 - material established constraints are recorded;
 - material authority gaps are explicit;
 - decision authority is identified or its absence is explicit.
 
 A proposed, experimental, alternative, or fallback Configuration is not substituted for the governing Configuration. Governing-Configuration absence or conflict fails readiness; the platform must not select an alternative by recency, purpose, or convenience.
+
+For either analytical lane, selection returns one eligible result, explicit `INPUT SELECTION NOT ESTABLISHED`, or explicit `INPUT SELECTION CONFLICT — UNRESOLVED`. Ready status, newest/latest date, owner, generic role, integrator participation, software permission, or row order cannot select or accept an Input.
+
+Evidence Applicability absence, unresolved conflict, `NOT_APPLICABLE`, or unresolved material `REFRESH REQUIRED` blocks when required to support an Input's Finding, Boundary, or Implication. Conditional/partial Evidence cannot support beyond its recorded scope. `INDETERMINATE` requires the separate exact accountable lane-level fitness determination; there is no global allow/block default.
 
 ### Readiness does not mean
 
@@ -507,7 +515,7 @@ Each transition must have an identifiable basis.
 
 ### 16.2 No evidence-free integration
 
-A case cannot be `READY_FOR_INTEGRATION` without current Value and Risk Inputs.
+A case cannot be `READY_FOR_INTEGRATION` without exactly one eligible selected/frozen Value Input and Acceptance/Selection Version and exactly one eligible selected/frozen Risk Input and Acceptance/Selection Version for the same governing Configuration Version and bounded use. Required material-Evidence Applicability/fitness guards must also pass.
 
 ### 16.3 No unauthorized decision
 
@@ -651,8 +659,9 @@ The system should preserve events for:
 
 - case opened;
 - configuration defined/versioned;
-- Value Input created/frozen/superseded;
-- Risk Input created/frozen/superseded;
+- Value Input created/ready/frozen/reused/rejected/withdrawn/superseded and Value Acceptance/Selection history;
+- Risk Input created/ready/frozen/reused/rejected/withdrawn/superseded and Risk Acceptance/Selection history;
+- Evidence Applicability finalized/corrected/superseded/withdrawn and lane-level fitness determination;
 - ready-for-integration declared;
 - integration completed;
 - decision authorized;
@@ -675,12 +684,16 @@ Before important transitions, the system should be able to detect:
 - missing governing Configuration;
 - conflicting governing Configurations for the same Case/effective time;
 - non-governing proposed, experimental, alternative, or fallback Configuration offered as the governing Configuration;
-- missing Value Input;
-- missing Risk Input;
+- missing, ineligible, or conflicting Value Input Acceptance/Selection;
+- missing, ineligible, or conflicting Risk Input Acceptance/Selection;
 - mismatched configuration;
 - missing boundaries;
 - missing provenance;
 - unrepresented material authority gap;
+- selected Input rejected/withdrawn before readiness or reused without a new acceptance;
+- material Evidence Applicability absent, conflicting, not applicable, refresh-required, or narrower than the claimed Input Boundary;
+- `INDETERMINATE` material Evidence without the separate bounded lane-level fitness determination;
+- acceptance or Applicability accountability vacant, conflicting, unrelated in scope, or inferred from permission/authorship;
 - missing or conflicting accountable assignment/mechanism for a required materiality, identity-continuity, or lifecycle judgment.
 
 ### Before DECIDED
