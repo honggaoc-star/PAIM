@@ -117,6 +117,8 @@ from paim.persistence.sqlite.schema import (
     completion_acceptance_delegations,
     completion_acceptance_records,
     completion_acceptance_versions,
+    completion_acceptor_mechanism_records,
+    completion_acceptor_mechanism_versions,
     completion_result_criteria,
     completion_result_evidence,
     completion_result_records,
@@ -2522,6 +2524,83 @@ class SQLiteIntegrityTransaction:
         ).scalars()
         return tuple(RecordVersionId.parse(cast("str", item)) for item in rows)
 
+    def add_completion_acceptor_mechanism(
+        self,
+        *,
+        mechanism_id: RecordId,
+        version_id: RecordVersionId,
+        case_id: RecordId,
+        intervention_id: RecordId,
+        intervention_version_id: RecordVersionId,
+        decision_version_id: RecordVersionId,
+        configuration_id: RecordId,
+        configuration_version_id: RecordVersionId,
+        accountable_actor_id: RecordId,
+        rule_version: str,
+        authority_scope: str,
+        authority_source: str,
+    ) -> None:
+        if not self._identity_exists(
+            completion_acceptor_mechanism_records,
+            completion_acceptor_mechanism_records.c.mechanism_id,
+            str(mechanism_id),
+        ):
+            self.connection.execute(
+                insert(completion_acceptor_mechanism_records).values(mechanism_id=str(mechanism_id))
+            )
+        self.connection.execute(
+            insert(completion_acceptor_mechanism_versions).values(
+                version_id=str(version_id),
+                mechanism_id=str(mechanism_id),
+                case_id=str(case_id),
+                intervention_id=str(intervention_id),
+                intervention_version_id=str(intervention_version_id),
+                decision_version_id=str(decision_version_id),
+                configuration_id=str(configuration_id),
+                configuration_version_id=str(configuration_version_id),
+                accountable_actor_id=str(accountable_actor_id),
+                rule_version=rule_version,
+                authority_scope=authority_scope,
+                authority_source=authority_source,
+            )
+        )
+
+    def completion_acceptor_mechanism_detail(
+        self, version_id: RecordVersionId
+    ) -> dict[str, object] | None:
+        row = (
+            self.connection.execute(
+                select(completion_acceptor_mechanism_versions).where(
+                    completion_acceptor_mechanism_versions.c.version_id == str(version_id)
+                )
+            )
+            .mappings()
+            .first()
+        )
+        return dict(row) if row is not None else None
+
+    def completion_acceptor_mechanism_versions(
+        self,
+        *,
+        case_id: RecordId,
+        intervention_id: RecordId,
+        decision_version_id: RecordVersionId,
+        configuration_id: RecordId,
+        configuration_version_id: RecordVersionId,
+    ) -> tuple[RecordVersionId, ...]:
+        rows = self.connection.execute(
+            select(completion_acceptor_mechanism_versions.c.version_id).where(
+                completion_acceptor_mechanism_versions.c.case_id == str(case_id),
+                completion_acceptor_mechanism_versions.c.intervention_id == str(intervention_id),
+                completion_acceptor_mechanism_versions.c.decision_version_id
+                == str(decision_version_id),
+                completion_acceptor_mechanism_versions.c.configuration_id == str(configuration_id),
+                completion_acceptor_mechanism_versions.c.configuration_version_id
+                == str(configuration_version_id),
+            )
+        ).scalars()
+        return tuple(RecordVersionId.parse(cast("str", item)) for item in rows)
+
     def add_completion_acceptance(
         self,
         *,
@@ -2536,7 +2615,7 @@ class SQLiteIntegrityTransaction:
         status: str,
         accountable_actor_id: RecordId,
         accountable_assignment_version_id: RecordVersionId | None,
-        accountable_mechanism: str | None,
+        accountable_mechanism_version_id: RecordVersionId | None,
         delegation_chain_version_ids: tuple[RecordVersionId, ...],
     ) -> None:
         if not self._identity_exists(
@@ -2564,7 +2643,11 @@ class SQLiteIntegrityTransaction:
                     if accountable_assignment_version_id
                     else None
                 ),
-                accountable_mechanism=accountable_mechanism,
+                accountable_mechanism_version_id=(
+                    str(accountable_mechanism_version_id)
+                    if accountable_mechanism_version_id
+                    else None
+                ),
             )
         )
         for ordinal, assignment_id in enumerate(delegation_chain_version_ids):
@@ -2605,7 +2688,11 @@ class SQLiteIntegrityTransaction:
                 if row["accountable_assignment_version_id"]
                 else None
             ),
-            cast("str | None", row["accountable_mechanism"]),
+            (
+                RecordVersionId.parse(cast("str", row["accountable_mechanism_version_id"]))
+                if row["accountable_mechanism_version_id"]
+                else None
+            ),
             CompletionAcceptanceStatus(cast("str", row["status"])),
         )
 

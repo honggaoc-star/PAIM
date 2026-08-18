@@ -22,6 +22,7 @@ from paim.domain.increment5 import (
     CompletionAcceptanceSelection,
     CompletionAcceptanceStatus,
     CompletionAcceptanceVersionInput,
+    CompletionAcceptorMechanismVersionInput,
     CompletionAccountabilityConflict,
     CompletionAccountabilityFound,
     CompletionAccountabilityNotEstablished,
@@ -69,7 +70,7 @@ from paim.persistence.ports import CommandOutcome, IdempotencyFact
 _COMPLETION_ACCEPTOR_ROLE = "Intervention Completion Acceptor"
 
 
-def _exactly_one(value: RecordVersionId | None, mechanism: str | None) -> bool:
+def _exactly_one(value: RecordVersionId | None, mechanism: str | RecordVersionId | None) -> bool:
     return (value is not None) != bool(mechanism)
 
 
@@ -483,6 +484,89 @@ class Increment5ApplicationService(Increment4ApplicationService):
             reason_outcome="COMPLETION_RESULT_RECORDED_WITHOUT_INFERRED_ACCEPTANCE",
         )
 
+    def commit_completion_acceptor_mechanism(
+        self, meta: CommandMeta, value: CompletionAcceptorMechanismVersionInput
+    ) -> CommandOutcome:
+        if (
+            not value.rule_version.strip()
+            or not value.authority_scope.strip()
+            or not value.authority_source.strip()
+        ):
+            raise DomainRuleViolation(
+                "Completion Acceptor mechanism requires retained rule, scope, and authority source"
+            )
+        content: dict[str, JsonValue] = {
+            "case_id": str(value.case_id),
+            "intervention_id": str(value.intervention_id),
+            "intervention_version_id": str(value.intervention_version_id),
+            "decision_version_id": str(value.decision_version_id),
+            "configuration_id": str(value.configuration_id),
+            "configuration_version_id": str(value.configuration_version_id),
+            "accountable_actor_id": str(value.accountable_actor_id),
+            "rule_version": value.rule_version,
+            "authority_scope": value.authority_scope,
+            "authority_source": value.authority_source,
+        }
+
+        def project(base: object) -> None:
+            transaction = cast("Increment5Transaction", base)
+            intervention = transaction.intervention_detail(value.intervention_version_id)
+            decision = transaction.decision_detail(value.decision_version_id)
+            context = transaction.configuration_version_context(value.configuration_version_id)
+            if (
+                intervention is None
+                or intervention.intervention_id != value.intervention_id
+                or intervention.case_id != value.case_id
+                or intervention.decision_version_id != value.decision_version_id
+                or intervention.configuration_id != value.configuration_id
+                or intervention.configuration_version_id != value.configuration_version_id
+                or decision is None
+                or decision.case_id != value.case_id
+                or decision.configuration_id != value.configuration_id
+                or decision.configuration_version_id != value.configuration_version_id
+                or context is None
+                or context.configuration_id != value.configuration_id
+                or context.owning_case_id != value.case_id
+                or not transaction.actor_exists(value.accountable_actor_id)
+            ):
+                raise DomainRuleViolation(
+                    "Completion Acceptor mechanism exact governed context is ineligible"
+                )
+            transaction.add_completion_acceptor_mechanism(
+                mechanism_id=value.mechanism_id,
+                version_id=value.version_id,
+                case_id=value.case_id,
+                intervention_id=value.intervention_id,
+                intervention_version_id=value.intervention_version_id,
+                decision_version_id=value.decision_version_id,
+                configuration_id=value.configuration_id,
+                configuration_version_id=value.configuration_version_id,
+                accountable_actor_id=value.accountable_actor_id,
+                rule_version=value.rule_version,
+                authority_scope=value.authority_scope,
+                authority_source=value.authority_source,
+            )
+
+        return self._commit_version(
+            meta=meta,
+            record_id=value.mechanism_id,
+            version_id=value.version_id,
+            family="completion-acceptor-mechanism",
+            scope=(
+                f"case:{value.case_id}:intervention:{value.intervention_id}:"
+                f"decision-version:{value.decision_version_id}:"
+                f"configuration-version:{value.configuration_version_id}:"
+                f"mechanism:{value.mechanism_id}"
+            ),
+            content=content,
+            effective=value.effective,
+            expected_version_id=value.expected_version_id,
+            relationship_reason=value.relationship_reason,
+            relationship_type=value.relationship_type,
+            project=project,
+            reason_outcome="GOVERNED_COMPLETION_ACCEPTOR_MECHANISM_RECORDED",
+        )
+
     def _completion_accountability_in_transaction(
         self,
         transaction: Increment5Transaction,
@@ -502,7 +586,7 @@ class Increment5ApplicationService(Increment4ApplicationService):
             ("configuration", str(context.configuration_id)),
             ("case", str(context.owning_case_id)),
         )
-        candidates: set[RecordVersionId] = set()
+        assignment_candidates: set[RecordVersionId] = set()
         for record_id in transaction.role_assignment_records(
             role=_COMPLETION_ACCEPTOR_ROLE, targets=targets
         ):
@@ -519,12 +603,38 @@ class Increment5ApplicationService(Increment4ApplicationService):
                         known_at=known_at,
                     )
                 ):
-                    candidates.add(candidate.version_id)
+                    assignment_candidates.add(candidate.version_id)
+        mechanism_candidates = {
+            version_id
+            for version_id in transaction.completion_acceptor_mechanism_versions(
+                case_id=context.owning_case_id,
+                intervention_id=obligation.intervention_id,
+                decision_version_id=obligation.decision_version_id,
+                configuration_id=context.configuration_id,
+                configuration_version_id=obligation.configuration_version_id,
+            )
+            if (
+                (mechanism_detail := transaction.completion_acceptor_mechanism_detail(version_id))
+                is not None
+                and mechanism_detail["intervention_version_id"]
+                == str(obligation.intervention_version_id)
+                and self._is_current(
+                    transaction,
+                    version_id,
+                    effective_at=effective_at,
+                    known_at=known_at,
+                )
+            )
+        }
+        candidates = assignment_candidates | mechanism_candidates
         if not candidates:
             return CompletionAccountabilityNotEstablished()
         if len(candidates) > 1:
             return CompletionAccountabilityConflict(frozenset(candidates))
-        return CompletionAccountabilityFound(next(iter(candidates)), None)
+        selected = next(iter(candidates))
+        if selected in assignment_candidates:
+            return CompletionAccountabilityFound(selected, None)
+        return CompletionAccountabilityFound(None, selected)
 
     def completion_acceptor_accountability(
         self,
@@ -553,20 +663,13 @@ class Increment5ApplicationService(Increment4ApplicationService):
         obligation: ObligationDetail,
         actor_id: RecordId,
         assignment_version_id: RecordVersionId | None,
-        mechanism: str | None,
+        mechanism_version_id: RecordVersionId | None,
         delegation_chain_version_ids: tuple[RecordVersionId, ...],
         effective_at: datetime,
         known_at: datetime,
     ) -> None:
-        if not _exactly_one(assignment_version_id, mechanism):
+        if not _exactly_one(assignment_version_id, mechanism_version_id):
             raise DomainRuleViolation("Completion Acceptance needs exactly one accountability path")
-        if mechanism:
-            if delegation_chain_version_ids:
-                raise DomainRuleViolation("governed mechanism cannot cite a Role delegation chain")
-            if not mechanism.startswith("governed:"):
-                raise DomainRuleViolation("Completion Acceptance mechanism is not governed")
-            return
-        assert assignment_version_id is not None
         resolution = self._completion_accountability_in_transaction(
             transaction,
             obligation=obligation,
@@ -575,8 +678,22 @@ class Increment5ApplicationService(Increment4ApplicationService):
         )
         if isinstance(resolution, CompletionAccountabilityConflict):
             raise DomainRuleViolation(resolution.reason)
+        if mechanism_version_id is not None:
+            if delegation_chain_version_ids:
+                raise DomainRuleViolation("governed mechanism cannot cite a Role delegation chain")
+            if not isinstance(resolution, CompletionAccountabilityFound) or (
+                resolution.mechanism_version_id != mechanism_version_id
+                or resolution.assignment_version_id is not None
+            ):
+                raise DomainRuleViolation("COMPLETION ACCEPTANCE ACCOUNTABILITY NOT ESTABLISHED")
+            mechanism = transaction.completion_acceptor_mechanism_detail(mechanism_version_id)
+            if mechanism is None or mechanism["accountable_actor_id"] != str(actor_id):
+                raise DomainRuleViolation("Completion Acceptor actor/mechanism mismatch")
+            return
+        assert assignment_version_id is not None
         if not isinstance(resolution, CompletionAccountabilityFound) or (
             resolution.assignment_version_id != assignment_version_id
+            or resolution.mechanism_version_id is not None
         ):
             raise DomainRuleViolation("COMPLETION ACCEPTANCE ACCOUNTABILITY NOT ESTABLISHED")
         assignment = transaction.role_assignment_detail(assignment_version_id)
@@ -631,7 +748,11 @@ class Increment5ApplicationService(Increment4ApplicationService):
                 if value.accountable_assignment_version_id
                 else None
             ),
-            "accountable_mechanism": value.accountable_mechanism,
+            "accountable_mechanism_version_id": (
+                str(value.accountable_mechanism_version_id)
+                if value.accountable_mechanism_version_id
+                else None
+            ),
             "delegation_chain_version_ids": [
                 str(item) for item in value.delegation_chain_version_ids
             ],
@@ -660,7 +781,7 @@ class Increment5ApplicationService(Increment4ApplicationService):
                 obligation=obligation,
                 actor_id=value.accountable_actor_id,
                 assignment_version_id=value.accountable_assignment_version_id,
-                mechanism=value.accountable_mechanism,
+                mechanism_version_id=value.accountable_mechanism_version_id,
                 delegation_chain_version_ids=value.delegation_chain_version_ids,
                 effective_at=value.effective.start,
                 known_at=self._clock.now(),
@@ -677,7 +798,7 @@ class Increment5ApplicationService(Increment4ApplicationService):
                 status=value.status.value,
                 accountable_actor_id=value.accountable_actor_id,
                 accountable_assignment_version_id=(value.accountable_assignment_version_id),
-                accountable_mechanism=value.accountable_mechanism,
+                accountable_mechanism_version_id=(value.accountable_mechanism_version_id),
                 delegation_chain_version_ids=value.delegation_chain_version_ids,
             )
 

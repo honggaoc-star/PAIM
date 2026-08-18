@@ -13,6 +13,7 @@ from paim.domain import (
     CompletionAcceptanceOutcome,
     CompletionAcceptanceStatus,
     CompletionAcceptanceVersionInput,
+    CompletionAcceptorMechanismVersionInput,
     CompletionCriterionResult,
     CompletionResultVersionInput,
     CriterionOutcome,
@@ -32,7 +33,7 @@ from paim.domain import (
     RoleAssignmentVersionInput,
     RoleTargetType,
 )
-from paim.integrity import FixedClock, RecordId, RecordVersionId
+from paim.integrity import EffectiveInterval, FixedClock, RecordId, RecordVersionId
 from paim.persistence.sqlite import SQLiteIntegrityStore
 from tests.helpers import utc
 from tests.integration.test_increment_3_foundation import meta
@@ -209,6 +210,7 @@ def _complete(
     *,
     accept: bool = True,
     acceptance_status: CompletionAcceptanceStatus = CompletionAcceptanceStatus.CURRENT,
+    mechanism_version_id: RecordVersionId | None = None,
 ) -> tuple[RecordVersionId, RecordVersionId]:
     assert value.obligation_version_id is not None
     result_id, result_version_id = RecordId.new(), RecordVersionId.new()
@@ -253,13 +255,42 @@ def _complete(
             (),
             value.foundation.context.assessor_id,
             value.acceptor_assignment_version_id,
-            None if value.acceptor_assignment_version_id else "governed:completion-board",
+            mechanism_version_id,
             (),
             EFFECTIVE,
             status=acceptance_status,
         ),
     )
     return result_version_id, acceptance_version_id
+
+
+def _mechanism(
+    value: Increment5Fixture,
+    key: str,
+    *,
+    effective: EffectiveInterval = EFFECTIVE,
+    accountable_actor_id: RecordId | None = None,
+) -> RecordVersionId:
+    mechanism_id, mechanism_version_id = RecordId.new(), RecordVersionId.new()
+    value.service.commit_completion_acceptor_mechanism(
+        meta(f"{key}-completion-acceptor-mechanism"),
+        CompletionAcceptorMechanismVersionInput(
+            mechanism_id,
+            mechanism_version_id,
+            value.foundation.context.case_id,
+            value.intervention_id,
+            value.intervention_version_id,
+            value.foundation.decision_version_id,
+            value.foundation.context.configuration_id,
+            value.foundation.context.configuration_version_id,
+            accountable_actor_id or value.foundation.context.assessor_id,
+            "completion-acceptance-policy-v1",
+            "exact intervention completion acceptance",
+            "organizational-authority-register:v1",
+            effective,
+        ),
+    )
+    return mechanism_version_id
 
 
 def _activation(
@@ -416,6 +447,72 @@ def test_withdrawn_acceptance_is_historical_but_not_future_eligible(
     )
     assert evaluation.result is AggregatePrerequisiteResult.NOT_ESTABLISHED
     assert sqlite_store.count_rows("completion_acceptance_versions") == 1
+
+
+def test_completion_acceptor_mechanism_must_be_established_exact_and_effective(
+    sqlite_store: SQLiteIntegrityStore,
+) -> None:
+    fabricated = _setup(sqlite_store, "mechanism-fabricated", acceptor_target=None)
+    with pytest.raises(DomainRuleViolation, match="ACCOUNTABILITY NOT ESTABLISHED"):
+        _complete(
+            fabricated,
+            "mechanism-fabricated",
+            mechanism_version_id=RecordVersionId.new(),
+        )
+
+    target = _setup(sqlite_store, "mechanism-target", acceptor_target=None)
+    unrelated = _setup(sqlite_store, "mechanism-unrelated", acceptor_target=None)
+    unrelated_version = _mechanism(unrelated, "mechanism-unrelated")
+    with pytest.raises(DomainRuleViolation, match="ACCOUNTABILITY NOT ESTABLISHED"):
+        _complete(target, "mechanism-target", mechanism_version_id=unrelated_version)
+
+    ineffective = _setup(sqlite_store, "mechanism-ineffective", acceptor_target=None)
+    ineffective_version = _mechanism(
+        ineffective,
+        "mechanism-ineffective",
+        effective=EffectiveInterval(utc(2026, 1, 15)),
+    )
+    with pytest.raises(DomainRuleViolation, match="ACCOUNTABILITY NOT ESTABLISHED"):
+        _complete(
+            ineffective,
+            "mechanism-ineffective",
+            mechanism_version_id=ineffective_version,
+        )
+
+
+def test_exact_governed_completion_acceptor_mechanism_succeeds_and_binds_actor(
+    sqlite_store: SQLiteIntegrityStore,
+) -> None:
+    overlap = _setup(sqlite_store, "mechanism-assignment-overlap")
+    _mechanism(overlap, "mechanism-assignment-overlap")
+    with pytest.raises(DomainRuleViolation, match="CONFLICT"):
+        _complete(overlap, "mechanism-assignment-overlap")
+
+    actor_source = _setup(sqlite_store, "mechanism-actor-source")
+    mismatched = _setup(sqlite_store, "mechanism-actor-mismatch", acceptor_target=None)
+    mismatched_version = _mechanism(
+        mismatched,
+        "mechanism-actor-mismatch",
+        accountable_actor_id=actor_source.foundation.context.assessor_id,
+    )
+    with pytest.raises(DomainRuleViolation, match="actor/mechanism mismatch"):
+        _complete(
+            mismatched,
+            "mechanism-actor-mismatch",
+            mechanism_version_id=mismatched_version,
+        )
+
+    valid = _setup(sqlite_store, "mechanism-valid", acceptor_target=None)
+    valid_version = _mechanism(valid, "mechanism-valid")
+    _complete(valid, "mechanism-valid", mechanism_version_id=valid_version)
+    assert (
+        valid.service.evaluate_prerequisites(
+            decision_version_id=valid.foundation.decision_version_id,
+            configuration_version_id=valid.foundation.context.configuration_version_id,
+            effective_at=EFFECTIVE.start,
+        ).result
+        is AggregatePrerequisiteResult.SATISFIED
+    )
 
 
 def test_activation_is_atomic_and_requires_genuine_authority(

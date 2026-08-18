@@ -167,6 +167,26 @@ class CompletionResultVersionInput:
 
 
 @dataclass(frozen=True, slots=True)
+class CompletionAcceptorMechanismVersionInput:
+    mechanism_id: RecordId
+    version_id: RecordVersionId
+    case_id: RecordId
+    intervention_id: RecordId
+    intervention_version_id: RecordVersionId
+    decision_version_id: RecordVersionId
+    configuration_id: RecordId
+    configuration_version_id: RecordVersionId
+    accountable_actor_id: RecordId
+    rule_version: str
+    authority_scope: str
+    authority_source: str
+    effective: EffectiveInterval
+    expected_version_id: RecordVersionId | None = None
+    relationship_type: RelationshipType = RelationshipType.SUPERSESSION
+    relationship_reason: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
 class CompletionAcceptanceVersionInput:
     acceptance_id: RecordId
     version_id: RecordVersionId
@@ -182,7 +202,7 @@ class CompletionAcceptanceVersionInput:
     limitations: tuple[str, ...]
     accountable_actor_id: RecordId
     accountable_assignment_version_id: RecordVersionId | None
-    accountable_mechanism: str | None
+    accountable_mechanism_version_id: RecordVersionId | None
     delegation_chain_version_ids: tuple[RecordVersionId, ...]
     effective: EffectiveInterval
     expected_version_id: RecordVersionId | None = None
@@ -298,14 +318,14 @@ class CompletionAcceptanceDetail:
     outcome: CompletionAcceptanceOutcome
     accountable_actor_id: RecordId
     accountable_assignment_version_id: RecordVersionId | None
-    accountable_mechanism: str | None
+    accountable_mechanism_version_id: RecordVersionId | None
     status: CompletionAcceptanceStatus
 
 
 @dataclass(frozen=True, slots=True)
 class CompletionAccountabilityFound:
     assignment_version_id: RecordVersionId | None
-    mechanism: str | None
+    mechanism_version_id: RecordVersionId | None
 
 
 @dataclass(frozen=True, slots=True)
@@ -315,7 +335,7 @@ class CompletionAccountabilityNotEstablished:
 
 @dataclass(frozen=True, slots=True)
 class CompletionAccountabilityConflict:
-    assignment_version_ids: frozenset[RecordVersionId]
+    candidate_version_ids: frozenset[RecordVersionId]
     reason: str = "COMPLETION ACCEPTANCE ACCOUNTABILITY CONFLICT — UNRESOLVED"
 
 

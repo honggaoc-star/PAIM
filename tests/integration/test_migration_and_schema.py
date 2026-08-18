@@ -367,6 +367,8 @@ def test_increment_5_normalized_schema_constraints_indexes_triggers_and_foreign_
         "completion_result_versions",
         "completion_result_criteria",
         "completion_result_evidence",
+        "completion_acceptor_mechanism_records",
+        "completion_acceptor_mechanism_versions",
         "completion_acceptance_records",
         "completion_acceptance_versions",
         "completion_acceptance_delegations",
@@ -417,6 +419,7 @@ def test_increment_5_normalized_schema_constraints_indexes_triggers_and_foreign_
         ("configuration_version_id",),
         ("accountable_actor_id",),
         ("accountable_assignment_version_id",),
+        ("accountable_mechanism_version_id",),
     } <= acceptance_foreign_keys
     with sqlite_store.engine.connect() as connection:
         triggers = set(
@@ -451,6 +454,7 @@ def test_upgrade_from_increment_4_revision_to_increment_5_head(tmp_path: Path) -
         command.upgrade(config, "head")
         assert {
             "intervention_versions",
+            "completion_acceptor_mechanism_versions",
             "completion_acceptance_versions",
             "prerequisite_evaluation_basis_versions",
             "activation_authorization_versions",
