@@ -826,6 +826,122 @@ def test_governing_and_determination_require_non_conflicting_accountability(
     assert sqlite_store.count_rows("configuration_determinations") == 2
 
 
+def test_authoritative_provenance_is_bound_to_the_relevant_configuration_scope(
+    sqlite_store: SQLiteIntegrityStore,
+) -> None:
+    relevant_case, _ = add_case(sqlite_store, "provenance-relevant")
+    relevant_configuration, relevant_version = add_configuration(
+        sqlite_store, "provenance-relevant", relevant_case
+    )
+    unrelated_case, _ = add_case(sqlite_store, "provenance-unrelated")
+    unrelated_configuration, _ = add_configuration(
+        sqlite_store, "provenance-unrelated", unrelated_case
+    )
+    unrelated_actor, _ = add_actor(sqlite_store, "provenance-unrelated")
+    _, unrelated_assignment = add_role(
+        sqlite_store,
+        "provenance-unrelated",
+        unrelated_actor,
+        target_type=RoleTargetType.CONFIGURATION,
+        target_id=str(unrelated_configuration),
+        case_context_id=unrelated_case,
+        accountable=True,
+    )
+    domain = service(sqlite_store)
+
+    with pytest.raises(DomainRuleViolation, match="vacant or conflicting"):
+        domain.commit_governing_designation(
+            meta("provenance-unrelated-governing"),
+            GoverningDesignationInput(
+                RecordId.new(),
+                RecordVersionId.new(),
+                relevant_case,
+                relevant_version,
+                EffectiveInterval(utc(2026, 1, 1)),
+                accountable_assignment_version_id=unrelated_assignment,
+            ),
+        )
+    with pytest.raises(DomainRuleViolation, match="vacant or conflicting"):
+        domain.commit_determination(
+            meta("provenance-unrelated-determination"),
+            ConfigurationDeterminationInput(
+                RecordId.new(),
+                RecordVersionId.new(),
+                relevant_version,
+                DeterminationKind.MATERIALITY,
+                DeterminationOutcome.MATERIAL,
+                "Unrelated accountability must not authorize this assessment",
+                EffectiveInterval(utc(2026, 1, 1)),
+                accountable_assignment_version_id=unrelated_assignment,
+            ),
+        )
+    assert sqlite_store.count_rows("governing_configuration_designations") == 0
+    assert sqlite_store.count_rows("configuration_determinations") == 0
+
+    relevant_actor, _ = add_actor(sqlite_store, "provenance-relevant")
+    _, owning_case_assignment = add_role(
+        sqlite_store,
+        "provenance-owning-case",
+        relevant_actor,
+        target_type=RoleTargetType.CASE,
+        target_id=str(relevant_case),
+        case_context_id=relevant_case,
+        accountable=True,
+    )
+    domain.commit_governing_designation(
+        meta("provenance-owning-case-governing"),
+        GoverningDesignationInput(
+            RecordId.new(),
+            RecordVersionId.new(),
+            relevant_case,
+            relevant_version,
+            EffectiveInterval(utc(2026, 1, 1)),
+            accountable_assignment_version_id=owning_case_assignment,
+        ),
+    )
+    domain.commit_determination(
+        meta("provenance-owning-case-determination"),
+        ConfigurationDeterminationInput(
+            RecordId.new(),
+            RecordVersionId.new(),
+            relevant_version,
+            DeterminationKind.IDENTITY_CONTINUITY,
+            DeterminationOutcome.SAME_IDENTITY,
+            "Owning-Case accountability is applicable to this Configuration",
+            EffectiveInterval(utc(2026, 1, 1)),
+            accountable_assignment_version_id=owning_case_assignment,
+        ),
+    )
+    assert sqlite_store.count_rows("governing_configuration_designations") == 1
+    assert sqlite_store.count_rows("configuration_determinations") == 1
+
+    narrower_actor, _ = add_actor(sqlite_store, "provenance-narrower")
+    add_role(
+        sqlite_store,
+        "provenance-narrower",
+        narrower_actor,
+        target_type=RoleTargetType.CONFIGURATION,
+        target_id=str(relevant_configuration),
+        case_context_id=relevant_case,
+        accountable=True,
+    )
+    with pytest.raises(DomainRuleViolation, match="vacant or conflicting"):
+        domain.commit_determination(
+            meta("provenance-broad-narrow-conflict"),
+            ConfigurationDeterminationInput(
+                RecordId.new(),
+                RecordVersionId.new(),
+                relevant_version,
+                DeterminationKind.MATERIALITY,
+                DeterminationOutcome.NON_MATERIAL,
+                "No implicit precedence may resolve broad and narrow accountability",
+                EffectiveInterval(utc(2026, 1, 1)),
+                accountable_assignment_version_id=owning_case_assignment,
+            ),
+        )
+    assert sqlite_store.count_rows("configuration_determinations") == 1
+
+
 def test_domain_idempotency_stale_precondition_contention_and_audit_attribution(
     sqlite_store: SQLiteIntegrityStore,
 ) -> None:

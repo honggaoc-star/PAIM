@@ -568,6 +568,7 @@ class Increment2ApplicationService:
         *,
         assignment_version_id: RecordVersionId | None,
         mechanism: str | None,
+        configuration_id: RecordId,
         effective_at: datetime,
         known_at: datetime,
     ) -> None:
@@ -584,8 +585,8 @@ class Increment2ApplicationService:
         result = self._resolve_accountability(
             transaction,
             role=detail.role,
-            target_type=detail.target_type,
-            target_id=detail.target_id,
+            target_type=RoleTargetType.CONFIGURATION,
+            target_id=str(configuration_id),
             effective_at=effective_at,
             known_at=known_at,
         )
@@ -621,6 +622,7 @@ class Increment2ApplicationService:
                 transaction,
                 assignment_version_id=value.accountable_assignment_version_id,
                 mechanism=value.accountable_mechanism,
+                configuration_id=context.configuration_id,
                 effective_at=value.effective.start,
                 known_at=recorded_at,
             )
@@ -741,12 +743,14 @@ class Increment2ApplicationService:
         recorded_at = self._clock.now()
 
         def project(transaction: Increment2Transaction) -> None:
-            if transaction.configuration_version_context(value.configuration_version_id) is None:
+            context = transaction.configuration_version_context(value.configuration_version_id)
+            if context is None:
                 raise DomainRuleViolation("determination requires an exact Configuration version")
             self._validate_accountable_provenance(
                 transaction,
                 assignment_version_id=value.accountable_assignment_version_id,
                 mechanism=value.accountable_mechanism,
+                configuration_id=context.configuration_id,
                 effective_at=value.effective.start,
                 known_at=recorded_at,
             )
