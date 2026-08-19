@@ -141,6 +141,9 @@ from paim.persistence.sqlite.schema import (
     decision_records,
     decision_uncertainty_links,
     decision_versions,
+    dependency_candidate_set_members,
+    dependency_candidate_set_records,
+    dependency_candidate_set_versions,
     evidence_applicability_records,
     evidence_applicability_versions,
     evidence_records,
@@ -193,8 +196,17 @@ from paim.persistence.sqlite.schema import (
     reassessment_versions,
     record_versions,
     records,
+    register_notification_intents,
+    register_output_manifests,
     role_assignment_versions,
     role_assignments,
+    shared_dependency_equivalence_delegations,
+    shared_dependency_equivalence_records,
+    shared_dependency_equivalence_versions,
+    shared_dependency_mechanism_records,
+    shared_dependency_mechanism_versions,
+    shared_dependency_records,
+    shared_dependency_versions,
     status_events,
     target_activation_events,
     trigger_determination_records,
@@ -3659,6 +3671,299 @@ class SQLiteIntegrityTransaction:
             key=lambda event: (event.effective_at, event.recorded_at, str(event.event_id)),
         )
         return events[-1].new_status if events else cast("str", detail["initial_status"])
+
+    def add_shared_dependency(self, **values: object) -> None:
+        dependency_id = cast("RecordId", values["dependency_id"])
+        if not self._identity_exists(
+            shared_dependency_records,
+            shared_dependency_records.c.dependency_id,
+            str(dependency_id),
+        ):
+            self.connection.execute(
+                insert(shared_dependency_records).values(dependency_id=str(dependency_id))
+            )
+        self.connection.execute(
+            insert(shared_dependency_versions).values(
+                version_id=str(values["version_id"]),
+                dependency_id=str(dependency_id),
+                dependency_kind=values["dependency_kind"],
+                purpose=values["purpose"],
+                declared_scope=values["declared_scope"],
+                organizational_context=values.get("organizational_context"),
+                provenance_json=values["provenance_json"],
+                withdrawn=values["withdrawn"],
+            )
+        )
+
+    def shared_dependency_detail(self, version_id: RecordVersionId) -> dict[str, object] | None:
+        row = (
+            self.connection.execute(
+                select(shared_dependency_versions).where(
+                    shared_dependency_versions.c.version_id == str(version_id)
+                )
+            )
+            .mappings()
+            .one_or_none()
+        )
+        return dict(row) if row is not None else None
+
+    def add_dependency_candidate_set(self, **values: object) -> None:
+        candidate_set_id = cast("RecordId", values["candidate_set_id"])
+        if not self._identity_exists(
+            dependency_candidate_set_records,
+            dependency_candidate_set_records.c.candidate_set_id,
+            str(candidate_set_id),
+        ):
+            self.connection.execute(
+                insert(dependency_candidate_set_records).values(
+                    candidate_set_id=str(candidate_set_id)
+                )
+            )
+        version_id = str(values["version_id"])
+        self.connection.execute(
+            insert(dependency_candidate_set_versions).values(
+                version_id=version_id,
+                candidate_set_id=str(candidate_set_id),
+                dependency_kind=values["dependency_kind"],
+                equivalence_scope=values["equivalence_scope"],
+                purpose=values["purpose"],
+                organizational_context=values.get("organizational_context"),
+                provenance_json=values["provenance_json"],
+                membership_checksum=values["membership_checksum"],
+                withdrawn=values["withdrawn"],
+            )
+        )
+        for ordinal, member in enumerate(cast("list[dict[str, str]]", values["members"])):
+            self.connection.execute(
+                insert(dependency_candidate_set_members).values(
+                    candidate_set_version_id=version_id,
+                    ordinal=ordinal,
+                    source_family=member["source_family"],
+                    source_record_id=member["source_record_id"],
+                    source_version_id=member["source_version_id"],
+                    dependency_kind=member["dependency_kind"],
+                )
+            )
+
+    def candidate_set_detail(self, version_id: RecordVersionId) -> dict[str, object] | None:
+        row = (
+            self.connection.execute(
+                select(dependency_candidate_set_versions).where(
+                    dependency_candidate_set_versions.c.version_id == str(version_id)
+                )
+            )
+            .mappings()
+            .one_or_none()
+        )
+        return dict(row) if row is not None else None
+
+    def candidate_set_members(self, version_id: RecordVersionId) -> tuple[dict[str, object], ...]:
+        rows = (
+            self.connection.execute(
+                select(dependency_candidate_set_members)
+                .where(
+                    dependency_candidate_set_members.c.candidate_set_version_id == str(version_id)
+                )
+                .order_by(dependency_candidate_set_members.c.ordinal)
+            )
+            .mappings()
+            .all()
+        )
+        return tuple(dict(row) for row in rows)
+
+    def add_shared_dependency_mechanism(self, **values: object) -> None:
+        mechanism_id = cast("RecordId", values["mechanism_id"])
+        if not self._identity_exists(
+            shared_dependency_mechanism_records,
+            shared_dependency_mechanism_records.c.mechanism_id,
+            str(mechanism_id),
+        ):
+            self.connection.execute(
+                insert(shared_dependency_mechanism_records).values(mechanism_id=str(mechanism_id))
+            )
+        self.connection.execute(
+            insert(shared_dependency_mechanism_versions).values(
+                version_id=str(values["version_id"]),
+                mechanism_id=str(mechanism_id),
+                target_type=values["target_type"],
+                target_id=values["target_id"],
+                accountable_actor_id=str(values["accountable_actor_id"]),
+                rule_id=values["rule_id"],
+                rule_version=values["rule_version"],
+                authority_source=values["authority_source"],
+                limits_json=values["limits_json"],
+            )
+        )
+
+    def shared_dependency_mechanism_detail(
+        self, version_id: RecordVersionId
+    ) -> dict[str, object] | None:
+        row = (
+            self.connection.execute(
+                select(shared_dependency_mechanism_versions).where(
+                    shared_dependency_mechanism_versions.c.version_id == str(version_id)
+                )
+            )
+            .mappings()
+            .one_or_none()
+        )
+        return dict(row) if row is not None else None
+
+    def shared_dependency_mechanism_versions(
+        self, *, target_type: str, target_id: str
+    ) -> tuple[RecordVersionId, ...]:
+        rows = self.connection.execute(
+            select(shared_dependency_mechanism_versions.c.version_id).where(
+                shared_dependency_mechanism_versions.c.target_type == target_type,
+                shared_dependency_mechanism_versions.c.target_id == target_id,
+            )
+        ).all()
+        return tuple(RecordVersionId.parse(cast("str", row[0])) for row in rows)
+
+    def add_equivalence_determination(self, **values: object) -> None:
+        determination_id = cast("RecordId", values["determination_id"])
+        if not self._identity_exists(
+            shared_dependency_equivalence_records,
+            shared_dependency_equivalence_records.c.determination_id,
+            str(determination_id),
+        ):
+            self.connection.execute(
+                insert(shared_dependency_equivalence_records).values(
+                    determination_id=str(determination_id)
+                )
+            )
+        version_id = str(values["version_id"])
+        self.connection.execute(
+            insert(shared_dependency_equivalence_versions).values(
+                version_id=version_id,
+                determination_id=str(determination_id),
+                candidate_set_version_id=str(values["candidate_set_version_id"]),
+                shared_dependency_version_id=(
+                    str(values["shared_dependency_version_id"])
+                    if values.get("shared_dependency_version_id") is not None
+                    else None
+                ),
+                dependency_kind=values["dependency_kind"],
+                equivalence_scope=values["equivalence_scope"],
+                outcome=values["outcome"],
+                actor_id=str(values["actor_id"]),
+                assignment_version_id=(
+                    str(values["assignment_version_id"])
+                    if values.get("assignment_version_id") is not None
+                    else None
+                ),
+                mechanism_version_id=(
+                    str(values["mechanism_version_id"])
+                    if values.get("mechanism_version_id") is not None
+                    else None
+                ),
+            )
+        )
+        for ordinal, assignment_id in enumerate(
+            cast("tuple[RecordVersionId, ...]", values["delegation_chain_version_ids"])
+        ):
+            self.connection.execute(
+                insert(shared_dependency_equivalence_delegations).values(
+                    determination_version_id=version_id,
+                    ordinal=ordinal,
+                    assignment_version_id=str(assignment_id),
+                )
+            )
+
+    def equivalence_determination_rows(
+        self,
+        *,
+        candidate_set_version_id: RecordVersionId,
+        dependency_kind: str,
+        equivalence_scope: str,
+    ) -> tuple[dict[str, object], ...]:
+        rows = (
+            self.connection.execute(
+                select(shared_dependency_equivalence_versions).where(
+                    shared_dependency_equivalence_versions.c.candidate_set_version_id
+                    == str(candidate_set_version_id),
+                    shared_dependency_equivalence_versions.c.dependency_kind == dependency_kind,
+                    shared_dependency_equivalence_versions.c.equivalence_scope == equivalence_scope,
+                )
+            )
+            .mappings()
+            .all()
+        )
+        return tuple(dict(row) for row in rows)
+
+    def add_register_manifest(self, **values: object) -> None:
+        self.connection.execute(insert(register_output_manifests).values(**values))
+
+    def register_manifest(self, manifest_id: str) -> dict[str, object] | None:
+        row = (
+            self.connection.execute(
+                select(register_output_manifests).where(
+                    register_output_manifests.c.manifest_id == manifest_id
+                )
+            )
+            .mappings()
+            .one_or_none()
+        )
+        return dict(row) if row is not None else None
+
+    def add_notification_intent(self, **values: object) -> None:
+        self.connection.execute(insert(register_notification_intents).values(**values))
+
+    def notification_intents(self, manifest_id: str) -> tuple[dict[str, object], ...]:
+        rows = (
+            self.connection.execute(
+                select(register_notification_intents)
+                .where(register_notification_intents.c.manifest_id == manifest_id)
+                .order_by(register_notification_intents.c.intent_id)
+            )
+            .mappings()
+            .all()
+        )
+        return tuple(dict(row) for row in rows)
+
+    def record_versions_for_register(
+        self, version_ids: tuple[RecordVersionId, ...]
+    ) -> tuple[dict[str, object], ...]:
+        if not version_ids:
+            return ()
+        rows = (
+            self.connection.execute(
+                select(
+                    record_versions.c.version_id,
+                    record_versions.c.record_id,
+                    records.c.family,
+                    records.c.scope,
+                    record_versions.c.content_json,
+                    record_versions.c.recorded_at_us,
+                    record_versions.c.effective_from_us,
+                    record_versions.c.effective_to_us,
+                )
+                .join(records, records.c.record_id == record_versions.c.record_id)
+                .where(record_versions.c.version_id.in_(tuple(str(value) for value in version_ids)))
+            )
+            .mappings()
+            .all()
+        )
+        return tuple(dict(row) for row in rows)
+
+    def register_record_identities(self, families: tuple[str, ...]) -> tuple[dict[str, str], ...]:
+        rows = (
+            self.connection.execute(
+                select(records.c.record_id, records.c.family, records.c.scope)
+                .where(records.c.family.in_(families))
+                .order_by(records.c.family, records.c.scope, records.c.record_id)
+            )
+            .mappings()
+            .all()
+        )
+        return tuple(
+            {
+                "record_id": cast("str", row["record_id"]),
+                "family": cast("str", row["family"]),
+                "scope": cast("str", row["scope"]),
+            }
+            for row in rows
+        )
 
     def add_status_event(self, status: StatusEvent) -> None:
         self._connection.execute(

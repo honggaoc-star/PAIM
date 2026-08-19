@@ -58,6 +58,15 @@ class FitnessOutcome(StrEnum):
     BLOCKED = "BLOCKED"
 
 
+class AuthorityGapOutcome(StrEnum):
+    UNRESOLVED = "UNRESOLVED"
+    REQUIREMENT_ESTABLISHED = "REQUIREMENT_ESTABLISHED"
+    PROHIBITION_ESTABLISHED = "PROHIBITION_ESTABLISHED"
+    PERMISSION_OR_AUTHORITY_ESTABLISHED = "PERMISSION_OR_AUTHORITY_ESTABLISHED"
+    NOT_APPLICABLE_TO_BOUNDED_DECISION = "NOT_APPLICABLE_TO_BOUNDED_DECISION"
+    AUTHORIZED_REFRAMING_NO_LONGER_MATERIAL = "AUTHORIZED_REFRAMING_NO_LONGER_MATERIAL"
+
+
 @dataclass(frozen=True, slots=True)
 class EvidenceVersionInput:
     evidence_id: RecordId
@@ -115,6 +124,8 @@ class AuthorityGapVersionInput:
     expected_version_id: RecordVersionId | None = None
     relationship_type: RelationshipType = RelationshipType.SUPERSESSION
     relationship_reason: str | None = None
+    outcome: AuthorityGapOutcome = AuthorityGapOutcome.UNRESOLVED
+    resolution_linkage: str | None = None
 
 
 @dataclass(frozen=True, slots=True)

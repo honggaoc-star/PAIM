@@ -19,6 +19,7 @@ from paim.domain.increment3 import (
     ApplicabilityNotEstablished,
     ApplicabilitySelection,
     ApplicabilityTargetType,
+    AuthorityGapOutcome,
     AuthorityGapVersionInput,
     AuthorityVersionInput,
     CandidateDispositionVersionInput,
@@ -439,6 +440,17 @@ class Increment3ApplicationService(Increment2ApplicationService):
             raise DomainRuleViolation("Authority Gap question, scope, and rationale are required")
         if not value.provenance:
             raise DomainRuleViolation("Authority Gap provenance is required")
+        resolved = value.outcome is not AuthorityGapOutcome.UNRESOLVED
+        has_resolution_linkage = bool(value.resolution_linkage and value.resolution_linkage.strip())
+        if resolved != has_resolution_linkage:
+            raise DomainRuleViolation(
+                "resolved Authority Gap requires exact resolution linkage; "
+                "unresolved Gap forbids it"
+            )
+        if resolved and value.expected_version_id is None:
+            raise DomainRuleViolation(
+                "Authority Gap resolution must supersede the exact prior unresolved Version"
+            )
 
         def project(base: object) -> None:
             transaction = cast("Increment3Transaction", base)
@@ -481,6 +493,8 @@ class Increment3ApplicationService(Increment2ApplicationService):
             "configuration_id": str(value.configuration_id),
             "configuration_version_id": str(value.configuration_version_id),
             "evidence_version_ids": [str(item) for item in value.evidence_version_ids],
+            "outcome": value.outcome.value,
+            "resolution_linkage": value.resolution_linkage,
         }
         return self._commit_version(
             meta=meta,

@@ -43,6 +43,8 @@ class RoleTargetType(StrEnum):
     DECISION = "decision"
     INTERVENTION = "intervention"
     AUTHORITY_DOMAIN = "authority_domain"
+    DEPENDENCY_CANDIDATE_SET = "dependency_candidate_set"
+    SHARED_DEPENDENCY = "shared_dependency"
 
 
 class DelegationEffect(StrEnum):

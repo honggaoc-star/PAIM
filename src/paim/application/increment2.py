@@ -347,6 +347,30 @@ class Increment2ApplicationService:
                     "Configuration assignment requires exact owning-Case context "
                     "without broadening scope"
                 )
+        elif value.target_type in {
+            RoleTargetType.DEPENDENCY_CANDIDATE_SET,
+            RoleTargetType.SHARED_DEPENDENCY,
+        }:
+            if value.case_context_id is not None:
+                raise DomainRuleViolation(
+                    "Shared Dependency typed target cannot invent a Case context"
+                )
+            try:
+                target_version_id = RecordVersionId.parse(value.target_id)
+            except ValueError as error:
+                raise DomainRuleViolation(
+                    "Shared Dependency assignment requires an exact target Version"
+                ) from error
+            target = transaction.get_version(target_version_id)
+            expected_family = (
+                "dependency-candidate-set"
+                if value.target_type is RoleTargetType.DEPENDENCY_CANDIDATE_SET
+                else "shared-dependency"
+            )
+            if target is None or target.family != expected_family:
+                raise DomainRuleViolation(
+                    "Shared Dependency assignment target Version is not established"
+                )
         if value.delegation_effect is DelegationEffect.NONE:
             if value.delegated_from_version_id is not None:
                 raise DomainRuleViolation(
