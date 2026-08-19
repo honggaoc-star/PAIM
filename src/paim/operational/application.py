@@ -523,6 +523,7 @@ class OperationalApplication:
         order_by: tuple[str, ...] = ("stable_identity",),
         processed_watermark: datetime | None = None,
     ) -> RegisterView:
+        self._validate_session(session, "register.derive")
         accessible_cases = self.operational_store.accessible_case_ids(session.principal_id)
         population_cases = requested_case_ids or self.operational_store.all_case_ids()
         visible_cases = population_cases & accessible_cases
@@ -870,6 +871,19 @@ class OperationalApplication:
         scope_type: ScopeType = ScopeType.GLOBAL,
         scope_id: RecordId | None = None,
     ) -> None:
+        self._validate_session(session, action, scope_id)
+        if not self.operational_store.permission_allowed(
+            session.principal_id, permission, action, scope_type, scope_id
+        ):
+            self._deny(session, action, f"{permission.value}_NOT_ESTABLISHED", scope_id)
+
+    def _validate_session(
+        self,
+        session: AuthenticatedSession,
+        action: str,
+        scope_id: RecordId | None = None,
+    ) -> None:
+        """Require the session's principal status and actor resolution to remain current."""
         current = self.operational_store.current_principal(session.principal_id)
         if current is None or current.status is not PrincipalStatus.ENABLED:
             self._deny(session, action, "AUTHENTICATION_STATE_UNAVAILABLE", scope_id)
@@ -878,10 +892,6 @@ class OperationalApplication:
         )
         if current.actor_id != session.actor_id and not bootstrap_actor_creation:
             self._deny(session, action, "PRINCIPAL_ACTOR_MAPPING_NOT_CURRENT", scope_id)
-        if not self.operational_store.permission_allowed(
-            session.principal_id, permission, action, scope_type, scope_id
-        ):
-            self._deny(session, action, f"{permission.value}_NOT_ESTABLISHED", scope_id)
 
     def _deny(
         self,

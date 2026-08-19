@@ -566,6 +566,127 @@ def test_register_query_filters_hidden_case_and_group_without_count_or_id_leak(
     assert str(hidden_configuration) not in represented
 
 
+@pytest.mark.parametrize("status", [PrincipalStatus.DISABLED, PrincipalStatus.REVOKED])
+def test_disabled_or_revoked_session_cannot_derive_register_and_history_is_preserved(
+    operational: OperationalContext,
+    status: PrincipalStatus,
+) -> None:
+    visible_case, visible_configuration, hidden_case, hidden_configuration = _register_sources(
+        operational
+    )
+    grant(operational, Permission.EXPORT, "register.output")
+    view = operational.app.derive_register(
+        operational.session,  # type: ignore[arg-type]
+        requested_case_ids=frozenset({visible_case, hidden_case}),
+        requested_configuration_ids=frozenset({visible_configuration, hidden_configuration}),
+        effective_at=NOW,
+        known_at=NOW,
+        rule_id="management-register-population",
+        rule_version="v0.1",
+    )
+    manifest = operational.app.persist_register_output(
+        operational.session,  # type: ignore[arg-type]
+        view,
+        output_kind="EXPORT",
+    )
+    audit_history = operational.app.operational_store.audit_rows()
+    operational.app.provision_principal(
+        operational.session,  # type: ignore[arg-type]
+        principal_id="principal:local-owner",
+        token=TOKEN,
+        actor_id=operational.actor_id,
+        status=status,
+    )
+
+    with pytest.raises(AccessDenied):
+        operational.app.derive_register(
+            operational.session,  # type: ignore[arg-type]
+            requested_case_ids=frozenset({visible_case, hidden_case}),
+            requested_configuration_ids=frozenset({visible_configuration, hidden_configuration}),
+            effective_at=NOW,
+            known_at=NOW,
+            rule_id="management-register-population",
+            rule_version="v0.1",
+        )
+    assert operational.app._service.get_register_manifest(manifest.manifest_id) == manifest
+    assert operational.app.operational_store.audit_rows()[: len(audit_history)] == audit_history
+
+
+def test_remapped_register_session_requires_reauthentication_and_retains_access_scope(
+    operational: OperationalContext,
+) -> None:
+    visible_case, visible_configuration, hidden_case, hidden_configuration = _register_sources(
+        operational
+    )
+    grant(operational, Permission.EXPORT, "register.output")
+    old_session = operational.session
+    original_view = operational.app.derive_register(
+        old_session,  # type: ignore[arg-type]
+        requested_case_ids=frozenset({visible_case, hidden_case}),
+        requested_configuration_ids=frozenset({visible_configuration, hidden_configuration}),
+        effective_at=NOW,
+        known_at=NOW,
+        rule_id="management-register-population",
+        rule_version="v0.1",
+    )
+    manifest = operational.app.persist_register_output(
+        old_session,  # type: ignore[arg-type]
+        original_view,
+        output_kind="EXPORT",
+    )
+    audit_history = operational.app.operational_store.audit_rows()
+
+    actor_b = RecordId.new()
+    operational.app.run_command(
+        old_session,  # type: ignore[arg-type]
+        action="actor.create",
+        idempotency_key="register-currentness-actor-b",
+        operation=lambda service, meta: service.commit_actor(
+            meta,
+            ActorVersionInput(
+                actor_b,
+                RecordVersionId.new(),
+                "Register Replacement Actor",
+                EFFECTIVE,
+            ),
+        ),
+    )
+    operational.app.provision_principal(
+        old_session,  # type: ignore[arg-type]
+        principal_id="principal:local-owner",
+        token=TOKEN,
+        actor_id=actor_b,
+        status=PrincipalStatus.ENABLED,
+    )
+
+    with pytest.raises(AccessDenied):
+        operational.app.derive_register(
+            old_session,  # type: ignore[arg-type]
+            requested_case_ids=frozenset({visible_case, hidden_case}),
+            requested_configuration_ids=frozenset({visible_configuration, hidden_configuration}),
+            effective_at=NOW,
+            known_at=NOW,
+            rule_id="management-register-population",
+            rule_version="v0.1",
+        )
+
+    current_session = operational.app.authenticate("principal:local-owner", TOKEN)
+    current_view = operational.app.derive_register(
+        current_session,
+        requested_case_ids=frozenset({visible_case, hidden_case}),
+        requested_configuration_ids=frozenset({visible_configuration, hidden_configuration}),
+        effective_at=NOW,
+        known_at=NOW,
+        rule_id="management-register-population",
+        rule_version="v0.1",
+    )
+    assert current_session.actor_id == actor_b
+    assert {entry.key.case_id for entry in current_view.entries} == {visible_case}
+    assert all(entry.key.case_id != hidden_case for entry in current_view.entries)
+    assert operational.app._service.get_register_manifest(manifest.manifest_id) == manifest
+    assert operational.app.operational_store.audit_rows()[: len(audit_history)] == audit_history
+
+
 @pytest.mark.parametrize(
     "adapter_type,table",
     [
