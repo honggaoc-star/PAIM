@@ -213,6 +213,8 @@ def determiner_assignment(
     target_version_id: RecordVersionId,
     *,
     delegated_from: RecordVersionId | None = None,
+    effective: EffectiveInterval = EFFECTIVE,
+    delegation_effect: DelegationEffect | None = None,
 ) -> RecordVersionId:
     version = RecordVersionId.new()
     svc.commit_role_assignment(
@@ -227,9 +229,10 @@ def determiner_assignment(
             None,
             True,
             f"compatibility:{key}",
-            DelegationEffect.RETAIN if delegated_from else DelegationEffect.NONE,
+            delegation_effect
+            or (DelegationEffect.RETAIN if delegated_from else DelegationEffect.NONE),
             delegated_from,
-            EFFECTIVE,
+            effective,
         ),
     )
     return version
@@ -246,6 +249,7 @@ def equivalence(
     outcome: EquivalenceOutcome = EquivalenceOutcome.EQUIVALENT,
     mechanism_version_id: RecordVersionId | None = None,
     chain: tuple[RecordVersionId, ...] = (),
+    effective: EffectiveInterval = EFFECTIVE,
 ) -> RecordVersionId:
     version = RecordVersionId.new()
     svc.commit_equivalence_determination(
@@ -263,7 +267,7 @@ def equivalence(
             assignment_version_id,
             mechanism_version_id,
             chain,
-            EFFECTIVE,
+            effective,
         ),
     )
     return version
@@ -1092,6 +1096,137 @@ def test_40_fabricated_mechanism_is_rejected_and_genuine_exact_mechanism_works(
         )
         and selected_version
     )
+
+
+def test_exact_time_valid_delegation_chain_is_eligible(
+    sqlite_store: SQLiteIntegrityStore,
+) -> None:
+    svc = service(sqlite_store)
+    _, dependency_version = shared_dependency(svc, "delegation-valid")
+    _, candidate_version, _ = candidate_set(sqlite_store, svc, "delegation-valid")
+    root_actor = actor(sqlite_store, svc, "delegation-valid-root")
+    leaf_actor = actor(sqlite_store, svc, "delegation-valid-leaf")
+    root = determiner_assignment(svc, "delegation-valid-root", root_actor, candidate_version)
+    leaf = determiner_assignment(
+        svc,
+        "delegation-valid-leaf",
+        leaf_actor,
+        candidate_version,
+        delegated_from=root,
+    )
+    determination = equivalence(
+        svc,
+        "delegation-valid",
+        candidate_version,
+        leaf_actor,
+        leaf,
+        dependency_version,
+        chain=(root,),
+    )
+    selected = svc.current_equivalence_determination(
+        candidate_set_version_id=candidate_version,
+        dependency_kind="provider",
+        equivalence_scope="portfolio",
+        effective_at=EFFECTIVE.start,
+        known_at=NOW,
+    )
+    assert isinstance(selected, EquivalenceDeterminationFound)
+    assert selected.version_id == determination
+
+
+def test_delegation_parent_on_different_candidate_set_is_rejected(
+    sqlite_store: SQLiteIntegrityStore,
+) -> None:
+    svc = service(sqlite_store)
+    _, dependency_version = shared_dependency(svc, "delegation-target-mismatch")
+    _, target_candidate, _ = candidate_set(sqlite_store, svc, "delegation-target")
+    _, unrelated_candidate, _ = candidate_set(sqlite_store, svc, "delegation-unrelated")
+    root_actor = actor(sqlite_store, svc, "delegation-target-root")
+    leaf_actor = actor(sqlite_store, svc, "delegation-target-leaf")
+    unrelated_root = determiner_assignment(
+        svc, "delegation-unrelated-root", root_actor, unrelated_candidate
+    )
+    leaf = determiner_assignment(
+        svc,
+        "delegation-target-leaf",
+        leaf_actor,
+        target_candidate,
+        delegated_from=unrelated_root,
+    )
+    with pytest.raises(DomainRuleViolation, match="exact target"):
+        equivalence(
+            svc,
+            "delegation-target-mismatch",
+            target_candidate,
+            leaf_actor,
+            leaf,
+            dependency_version,
+            chain=(unrelated_root,),
+        )
+
+
+def test_expired_delegation_parent_blocks_prospective_use_but_preserves_history(
+    sqlite_store: SQLiteIntegrityStore,
+) -> None:
+    svc = service(sqlite_store)
+    _, dependency_version = shared_dependency(svc, "delegation-expiry")
+    _, candidate_version, _ = candidate_set(sqlite_store, svc, "delegation-expiry")
+    root_actor = actor(sqlite_store, svc, "delegation-expiry-root")
+    leaf_actor = actor(sqlite_store, svc, "delegation-expiry-leaf")
+    root = determiner_assignment(
+        svc,
+        "delegation-expiry-root",
+        root_actor,
+        candidate_version,
+        effective=EffectiveInterval(utc(2026, 1, 1), utc(2026, 1, 15)),
+    )
+    leaf = determiner_assignment(
+        svc,
+        "delegation-expiry-leaf",
+        leaf_actor,
+        candidate_version,
+        delegated_from=root,
+    )
+    historical_version = equivalence(
+        svc,
+        "delegation-expiry-historical",
+        candidate_version,
+        leaf_actor,
+        leaf,
+        dependency_version,
+        chain=(root,),
+        effective=EffectiveInterval(utc(2026, 1, 10)),
+    )
+    historical = svc.current_equivalence_determination(
+        candidate_set_version_id=candidate_version,
+        dependency_kind="provider",
+        equivalence_scope="portfolio",
+        effective_at=utc(2026, 1, 10),
+        known_at=NOW,
+    )
+    assert isinstance(historical, EquivalenceDeterminationFound)
+    assert historical.version_id == historical_version
+
+    with pytest.raises(DomainRuleViolation, match="prospectively ineligible"):
+        equivalence(
+            svc,
+            "delegation-expiry-prospective",
+            candidate_version,
+            leaf_actor,
+            leaf,
+            dependency_version,
+            chain=(root,),
+            effective=EffectiveInterval(utc(2026, 1, 20)),
+        )
+
+    reconstructed = svc.current_equivalence_determination(
+        candidate_set_version_id=candidate_version,
+        dependency_kind="provider",
+        equivalence_scope="portfolio",
+        effective_at=utc(2026, 1, 10),
+        known_at=NOW,
+    )
+    assert reconstructed == historical
 
 
 def test_access_filtering_labels_visible_counts_without_leaking_global_count(

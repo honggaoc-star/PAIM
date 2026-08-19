@@ -39,7 +39,12 @@ from paim.domain.increment7 import (
     SourceDisposition,
 )
 from paim.domain.increment7_ports import Increment7Store, Increment7Transaction
-from paim.domain.models import CommandMeta, RoleTargetType
+from paim.domain.models import (
+    CommandMeta,
+    DelegationEffect,
+    RoleAssignmentDetail,
+    RoleTargetType,
+)
 from paim.integrity import (
     RecordId,
     RecordVersionId,
@@ -402,6 +407,7 @@ class Increment7ApplicationService(Increment6ApplicationService):
     ) -> SharedDependencyAccountability:
         candidates: list[SharedDependencyAccountabilityFound] = []
         candidate_ids: list[RecordVersionId] = []
+        assignment_candidates: dict[RecordVersionId, RoleAssignmentDetail] = {}
         for version_id in self._current_assignments(
             transaction,
             target_type=target_type,
@@ -411,14 +417,32 @@ class Increment7ApplicationService(Increment6ApplicationService):
         ):
             detail = transaction.role_assignment_detail(version_id)
             if detail is not None and detail.accountable and detail.role == _DETERMINER:
-                candidates.append(
-                    SharedDependencyAccountabilityFound(
-                        assignment_version_id=version_id,
-                        mechanism_version_id=None,
-                        actor_id=detail.actor_id,
-                    )
-                )
+                assignment_candidates[version_id] = detail
                 candidate_ids.append(version_id)
+        if assignment_candidates:
+            delegated_sources = {
+                detail.delegated_from_version_id
+                for detail in assignment_candidates.values()
+                if detail.delegated_from_version_id is not None
+            }
+            leaves = set(assignment_candidates) - delegated_sources
+            if len(leaves) == 1:
+                leaf_version_id = next(iter(leaves))
+                lineage: set[RecordVersionId] = set()
+                cursor: RecordVersionId | None = leaf_version_id
+                while cursor is not None and cursor not in lineage:
+                    lineage.add(cursor)
+                    detail = assignment_candidates.get(cursor)
+                    cursor = detail.delegated_from_version_id if detail is not None else None
+                if lineage == set(assignment_candidates) and cursor is None:
+                    leaf = assignment_candidates[leaf_version_id]
+                    candidates.append(
+                        SharedDependencyAccountabilityFound(
+                            assignment_version_id=leaf_version_id,
+                            mechanism_version_id=None,
+                            actor_id=leaf.actor_id,
+                        )
+                    )
         for version_id in transaction.shared_dependency_mechanism_versions(
             target_type=target_type, target_id=target_id
         ):
@@ -446,6 +470,8 @@ class Increment7ApplicationService(Increment6ApplicationService):
                     )
                 )
                 candidate_ids.append(version_id)
+        if not candidates and candidate_ids:
+            return SharedDependencyAccountabilityConflict(frozenset(candidate_ids))
         if not candidates:
             return SharedDependencyAccountabilityNotEstablished()
         if len(candidates) == 1:
@@ -483,22 +509,60 @@ class Increment7ApplicationService(Increment6ApplicationService):
         transaction: Increment7Transaction,
         assignment_version_id: RecordVersionId,
         chain: tuple[RecordVersionId, ...],
+        *,
+        target_version_id: RecordVersionId,
+        effective_at: datetime,
+        known_at: datetime,
     ) -> None:
-        detail = transaction.role_assignment_detail(assignment_version_id)
-        if detail is None:
-            raise DomainRuleViolation("accountable Role Assignment is not established")
+        def eligible_detail(version_id: RecordVersionId) -> RoleAssignmentDetail:
+            version = transaction.get_version(version_id)
+            detail = transaction.role_assignment_detail(version_id)
+            if version is None or version.family != "role-assignment" or detail is None:
+                raise DomainRuleViolation("delegation chain Role Assignment is not established")
+            selected = transaction.select_current(
+                SelectionQuery(
+                    family="role-assignment",
+                    scope=version.scope,
+                    effective_at=effective_at,
+                    known_at=known_at,
+                    record_id=version.record_id,
+                )
+            )
+            if (
+                not isinstance(selected, SelectionFound)
+                or selected.candidate.version_id != version_id
+            ):
+                raise DomainRuleViolation(
+                    "delegation chain contains a prospectively ineligible Role Assignment"
+                )
+            if (
+                not detail.accountable
+                or detail.role != _DETERMINER
+                or detail.target_type is not RoleTargetType.DEPENDENCY_CANDIDATE_SET
+                or detail.target_id != str(target_version_id)
+            ):
+                raise DomainRuleViolation(
+                    "delegation chain Role Assignment has an ineligible role or exact target"
+                )
+            return detail
+
+        detail = eligible_detail(assignment_version_id)
         expected = detail.delegated_from_version_id
         if expected is None and chain:
             raise DomainRuleViolation("non-delegated assignment cannot cite a delegation chain")
+        child = detail
         for version_id in chain:
             if expected != version_id:
                 raise DomainRuleViolation("delegation chain is incomplete or out of order")
-            parent = transaction.role_assignment_detail(version_id)
-            if parent is None or not parent.accountable or parent.role != _DETERMINER:
-                raise DomainRuleViolation("delegation chain contains an ineligible relationship")
+            if child.delegation_effect is DelegationEffect.NONE:
+                raise DomainRuleViolation("delegation chain contains an invalid delegation effect")
+            parent = eligible_detail(version_id)
             expected = parent.delegated_from_version_id
+            child = parent
         if expected is not None:
             raise DomainRuleViolation("delegation chain is incomplete")
+        if child.delegation_effect is not DelegationEffect.NONE:
+            raise DomainRuleViolation("delegation chain root has an invalid delegation effect")
 
     def commit_equivalence_determination(
         self, meta: CommandMeta, value: EquivalenceDeterminationVersionInput
@@ -544,6 +608,17 @@ class Increment7ApplicationService(Increment6ApplicationService):
                     raise DomainRuleViolation(
                         "exact eligible Shared Dependency Version is not established"
                     )
+            if value.accountable_assignment_version_id is not None:
+                self._validate_delegation_chain(
+                    transaction,
+                    value.accountable_assignment_version_id,
+                    value.delegation_chain_version_ids,
+                    target_version_id=value.candidate_set_version_id,
+                    effective_at=value.effective.start,
+                    known_at=recorded_at,
+                )
+            elif value.delegation_chain_version_ids:
+                raise DomainRuleViolation("governed mechanism cannot cite a Role delegation chain")
             accountability = self._dependency_accountability_in_transaction(
                 transaction,
                 target_type=RoleTargetType.DEPENDENCY_CANDIDATE_SET.value,
@@ -561,14 +636,6 @@ class Increment7ApplicationService(Increment6ApplicationService):
                 raise DomainRuleViolation(
                     "Equivalence accountability basis is not the one eligible basis"
                 )
-            if value.accountable_assignment_version_id is not None:
-                self._validate_delegation_chain(
-                    transaction,
-                    value.accountable_assignment_version_id,
-                    value.delegation_chain_version_ids,
-                )
-            elif value.delegation_chain_version_ids:
-                raise DomainRuleViolation("governed mechanism cannot cite a Role delegation chain")
             transaction.add_equivalence_determination(
                 determination_id=value.determination_id,
                 version_id=value.version_id,
