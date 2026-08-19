@@ -6,6 +6,13 @@ This artifact converts the accepted PAIM Platform Architecture v0.1 into a contr
 
 The baseline is PAIM `main` at merge commit `836b9d6c6143e4fe315df71cf0491c3a12c94252`.
 
+**Current-state reconciliation:** the sequencing statements below retain their historical baseline,
+but the bounded v0.1 product gate is now also governed by the human-accepted release-scope decision
+in `PAIM_V0_1_RELEASE_SCOPE_DECISION_IRR_009_IRR_014_v0.1.md` (merged through PR #66).
+That later decision did not design IRR-009 or IRR-014. It established a separate product-gate
+dimension for v0.1 and is controlling wherever this roadmap discusses Increment 9 entry or
+completion.
+
 Governing sources are:
 
 - `PAIM_PLATFORM_ARCHITECTURE_v0.1.md`, especially §§20 and 23;
@@ -38,6 +45,8 @@ No later increment opens automatically because an earlier increment merges.
 | `CLOSED — P1 GATE` | At least one named P1 must be resolved before the full increment may begin. |
 | `CLOSED — UPSTREAM GATE` | Required earlier implementation increments or their accepted specifications are incomplete. |
 | `CONDITIONAL SUBSCOPE ONLY` | A narrower scope may proceed if it excludes named unresolved behavior; the full increment remains closed. |
+| `OPEN — SEMANTICS UNDESIGNED` | The finding's substantive design remains open and the capability must not be implemented or implied. |
+| `CLOSED BY DESIGN — OUTSIDE V0.1 CLAIM` | Human design authority explicitly excluded the capability from the bounded v0.1 claim; this closes only its v0.1 product-gate applicability, subject to explicit fail-closed documentation and validation. |
 
 ## 2. Implementation increments from Platform Architecture v0.1
 
@@ -54,7 +63,7 @@ The roadmap preserves the ten increments in Platform Architecture §23.
 | 6 — Reassessment and Interim Operating Disposition | Trigger/Reassessment workflow, restrictive overlays, confirmation/successor, history | `CLOSED — P1 RE-REVIEW GATE` — IRR-011 design accepted and specs hardened, pending independent closure review; IRR-014 remains conditional for stronger-state automation; accepted Increments 1–5 |
 | 7 — projections, Management Register, reports, and hooks | Rebuildable projections, Register, queues, reports, notification intents | `CLOSED — P1 RE-REVIEW GATE` — IRR-012 design accepted and specs hardened; independent closure review plus accepted Increments 1–6 required |
 | 8 — external adapters, security hardening, and operational readiness | Selected adapters, segmentation, recovery, observability, degraded operation | `CLOSED — UPSTREAM GATE` with adapter-specific P1 conditions |
-| 9 — integrated behavioral and human validation | Complete scenario, regression, longitudinal, and practitioner validation | `CLOSED — P1 GATE` — all nine P1 findings and all implementation increments |
+| 9 — integrated behavioral and human validation | Complete scenario, regression, longitudinal, and practitioner validation | `CLOSED — SEPARATE AUTHORIZATION REQUIRED` — v0.1 scope is complete, but this reconciliation must merge and a separate issue must freeze the bounded claim, pathways, hard oracles, evidence, practitioner study, traceability, and release verdict |
 
 ## 3. P1 dependency map
 
@@ -95,12 +104,23 @@ The graph expresses semantic dependency, not implementation coupling. Dashed edg
 | IRR-006 | Increment 3 | Increment 1 and Increment 2 | Authoritative selection/freeze/acceptance among competing Value or Risk Inputs; automatic input reuse |
 | IRR-007 | Increment 2 | Increment 1 | Final Case–Configuration cardinality; multiple-current Configuration behavior; materiality/identity authority |
 | IRR-008 | Increment 3 | Increment 1 and Increment 2 | Authoritative Evidence Applicability, evidence reuse/current-use selection, automated applicability checks |
-| IRR-009 | Conditional in Increment 6/8; hard for complete Increment 9 | Increments 1–5 and any Reassessment scope excluding authoritative Observation | First-class Observation persistence, Observation-to-Evidence/Trigger conversion, automated monitoring record semantics |
+| IRR-009 | Historically conditional in Increment 6/8; post-v0.1 extension gate after the accepted scope decision | Bounded v0.1, whose explicit external/manual Trigger path excludes authoritative Observation | First-class Observation persistence, Observation-to-Evidence/Trigger/Register conversion, and automated monitoring record semantics remain fail-closed |
 | IRR-010 | Increment 5 | Increments 1–4 | `SPEC HARDENED — INDEPENDENT RE-REVIEW REQUIRED`: accepted design package and coordinated normative wording exist, but Increment 5 implementation remains blocked until gate re-review confirms closure |
 | IRR-011 | Increment 6 | Increments 1–5 | `SPEC HARDENED — INDEPENDENT RE-REVIEW REQUIRED`: accepted Case-scoped Trigger identity, immutable many-to-many membership/Trigger Sets, grouping/duplicate/coverage determinations, bounded concurrency, no-merge rule, accountability, and completion coordination exist; implementation remains blocked pending closure review |
 | IRR-012 | Increment 7 | Increments 1–6 | `SPEC HARDENED — INDEPENDENT RE-REVIEW REQUIRED`: accepted concern identity/population/currentness, immutable Candidate Set, accountable Shared Dependency equivalence, descriptive aggregation/concentration boundary, actions, history, and non-authoritative output semantics exist; implementation remains blocked pending closure review |
 | IRR-013 / CON-002 | Increment 2 | Increment 1 | General Role Assignment scope resolution/precedence and permission derivation from competing assignments |
-| IRR-014 | Conditional in Increment 6; hard for complete Increment 9 | Increments 1–5 and non-ordered state handling | Automated stronger/broader-state detection, state ranking, state-derived escalation oracle |
+| IRR-014 | Historically conditional in Increment 6; post-v0.1 extension gate after the accepted scope decision | Bounded v0.1 exact-state and exact-scope restrictive-intersection/suspension behavior | Automated stronger/broader-state detection, state ranking, and state-derived escalation remain fail-closed |
+
+The two deferred findings have independent current status dimensions:
+
+| Finding | Semantic/design status | Bounded v0.1 product-gate status | Controlling traceability |
+|---|---|---|---|
+| IRR-009 | `OPEN — SEMANTICS UNDESIGNED` | `CLOSED BY DESIGN — OUTSIDE V0.1 CLAIM` | Accepted release-scope decision; exact manual/external provenance and Trigger promotion remain supported without Observation. |
+| IRR-014 | `OPEN — SEMANTICS UNDESIGNED` | `CLOSED BY DESIGN — OUTSIDE V0.1 CLAIM` | Accepted release-scope decision; exact-state identity and exact-scope restrictive intersection/suspension remain supported without ranking. |
+
+Neither product-gate classification is substantive closure. Every other P1 capability inside the
+v0.1 claim must be substantively resolved and implemented before Increment 9 may produce a release
+verdict.
 
 ## 4. Per-increment prerequisite matrix
 
@@ -207,12 +227,13 @@ The graph expresses semantic dependency, not implementation coupling. Dashed edg
 
 | Gate element | Requirement |
 |---|---|
-| Hard P1 prerequisites | All nine P1 findings for a complete PAIM validation claim. A narrower validation campaign may run earlier only with named exclusions and cannot close the full gate. |
-| P1 findings deferred | None for completion of Increment 9. |
-| Blocked behavior | Complete operating-state escalation oracle, Observation longitudinal scenarios, portfolio aggregation/concentration, concurrency, intervention activation, evidence applicability, input acceptance, Configuration/Role scope, and any human workflow whose semantics remain open. |
-| Specification changes | All P1 owner artifacts must already be accepted; Behavioral Validation must contain any newly required oracle/scenario clarification before results are judged. |
-| Acceptance evidence | P1 closure matrix; full specification traceability; accepted scenario/test plan; hard, directional, constraint, and reasoning oracles; human-study judgment boundaries; no excluded P1-dependent behavior. |
-| Completion evidence | Versioned formal test evidence, regression results, failure classification, longitudinal reconstruction, practitioner validation, and explicit release/gate verdict. |
+| Hard P1 prerequisites | Every P1 capability inside the bounded v0.1 claim is substantively resolved and implemented. An accepted human-design-authority exclusion may product-gate-close a capability only when its unsupported boundary is explicit, fail-closed, documented, and directly validated. IRR-009 and IRR-014 are the only accepted v0.1 exclusions. |
+| P1 findings deferred | IRR-009 and IRR-014 remain `OPEN — SEMANTICS UNDESIGNED` while each is `CLOSED BY DESIGN — OUTSIDE V0.1 CLAIM` for this product gate only. No other v0.1 P1 capability is deferred. |
+| Blocked behavior | First-class Observation/telemetry automation and operating-state relation/ranking/escalation are unavailable and outside the campaign. Increment 9 must not validate or imply them. Any other in-claim behavior whose semantics or implementation is incomplete remains blocking. |
+| Entry criteria | This consistency package is independently reviewed and merged; then a separate bounded Increment 9 issue freezes the exact claim, the Case-to-authorized-operation, Trigger-to-Reassessment-completion, and multi-Case Register-to-contextual-owning-domain-action pathways, both excluded-boundary hard oracles, regression/security/access/recovery/degraded/history evidence, practitioner study, usability/semantic failure separation, final traceability, and release verdict. Increment 9 is not authorized by this update. |
+| Specification changes | All in-claim P1 owner artifacts must already be accepted; Behavioral Validation must contain the accepted v0.1 boundary oracles while retaining future extension scenarios as post-v0.1. |
+| Acceptance evidence | Two-dimensional P1 matrix; full specification traceability; accepted frozen scenario/test plan; hard, directional, constraint, and reasoning oracles; human-study judgment boundaries; direct fail-closed proof for both exclusions. |
+| Completion evidence | Versioned formal test evidence, regression/security/access/recovery/degraded/history results, failure classification, longitudinal reconstruction, practitioner validation, usability findings separated from semantic failures, final traceability, and an explicit release/gate verdict. |
 
 ## 5. P1-to-specification ownership map
 
@@ -260,13 +281,18 @@ After the first cluster, IRR-006 and IRR-008 may proceed in parallel if they sha
 - IRR-011's accepted design and hardened specifications depend on accepted Case/Configuration/Decision scope so concurrency is coordinated against the right management object; independent closure re-review remains required.
 - IRR-014 depends on IRR-007's separation of Configuration status/purpose from AI operating state.
 
-IRR-010 and IRR-011 were resolved through separate bounded design, hardening, and review-gate sequences after the first cluster; IRR-011 remains pending its independent closure review at this checkpoint. IRR-014 remains a separate bounded issue and need not block basic explicit state storage, but it must precede automated stronger-state triggers and final escalation tests.
+IRR-010 and IRR-011 were resolved through separate bounded design, hardening, and review-gate sequences after the first cluster; IRR-011 remained pending its independent closure review at this historical checkpoint. The later accepted release-scope decision leaves IRR-014 semantically undesigned but product-gate-closes it outside the bounded v0.1 claim. It does not block exact state storage or exact-scope restrictive intersection/suspension; it remains a post-v0.1 prerequisite for any operating-state relation, ranking, or escalation automation.
 
 ### 6.4 Observation after Evidence and Trigger semantics
 
-IRR-009 should be decided after IRR-008 and IRR-011. Otherwise PAIM could define Observation without a stable destination for Evidence Applicability or Trigger/Reassessment linkage.
+At this roadmap's original checkpoint, IRR-009 was to be decided after IRR-008 and IRR-011 so PAIM would not define Observation without a stable destination for Evidence Applicability or Trigger/Reassessment linkage.
 
-The human decision is binary at the architecture level—first-class authoritative Observation or no independent authoritative Observation—but either path must define provenance, Configuration/Boundary binding, correction/history, and conversion/linkage behavior.
+Human design authority later excluded first-class Observation and automated conversion from v0.1
+without choosing the post-v0.1 semantic design. IRR-009 therefore remains
+`OPEN — SEMANTICS UNDESIGNED`, while its bounded v0.1 product gate is
+`CLOSED BY DESIGN — OUTSIDE V0.1 CLAIM`. Exact existing-record and explicit manual/external-event
+Trigger provenance is the supported v0.1 path; any future Observation family must separately define
+provenance, Configuration/Boundary binding, correction/history, and conversion/linkage behavior.
 
 ### 6.5 Register last among semantic P1s
 
@@ -287,12 +313,12 @@ The following questions require PAIM design authority. Engineering may present o
 | IRR-006 | Who may select, accept, and freeze each analytical lane? May one frozen version support multiple Integrations? How are competing/non-selected inputs represented? | Workflow layout, storage relationship, approval interaction, indexing |
 | IRR-007 | What owns a Configuration? When may multiple active/current Configurations coexist? Who decides materiality and identity continuity? | Physical relationship mapping, edit flow, comparison UI |
 | IRR-008 | Who determines applicability, to which target types, and how do competing applicability judgments coexist/resolve? | Relationship storage, search/indexing, applicability workspace |
-| IRR-009 | Is Observation an authoritative PAIM record or not? What is the authoritative bridge from operation to Evidence/Trigger? | Telemetry adapter, ingestion mechanism, retention/indexing |
+| IRR-009 | **V0.1 PRODUCT SCOPE DECIDED; SEMANTICS OPEN:** first-class Observation/automated conversion is excluded from v0.1. Future design must still decide authoritative identity and the bridge to Evidence/Trigger. | Post-v0.1 only after separate authority: telemetry adapter, ingestion mechanism, retention/indexing |
 | IRR-010 | **DECIDED, HARDENED, PENDING RE-REVIEW:** exact obligation types, all-of aggregation, Completion Acceptance accountability, and Activation Authorization are defined by the accepted design package and coordinated governing specs. | After independent closure only: task integration, guard implementation, interaction design, indexing |
 | IRR-011 | **DECIDED, HARDENED, PENDING RE-REVIEW:** Case-scoped Trigger identity/replay, immutable many-to-many Trigger Sets, no-auto-grouping, bounded concurrency, explicit overlap/coverage conflict, no v0.1 merge, cancellation/supersession, status, accountability, completion coordination, and cross-Case provenance are defined by the accepted design package and coordinated governing specs. | After independent closure only: orchestration layout, physical relationship storage, indexing, locking/concurrency mechanism, and interaction design |
 | IRR-012 | **DECIDED, HARDENED, PENDING RE-REVIEW:** exact concern population, immutable Candidate Set, accountable Shared Dependency equivalence, descriptive aggregation/concentration, currentness, action, and history boundaries are defined by the accepted package and coordinated specs. | After independent closure only: projection store, indexes, filters, report/export format, watermark implementation, and non-authoritative candidate-suggestion UI |
 | IRR-013 / CON-002 | What scope types and precedence policy govern simultaneous assignments? How are delegation and explicit conflict handled? | Permission engine, directory mapping, scope indexes |
-| IRR-014 | What traits define an operating state, and how is stronger/broader/transitional/inactive relation configured without a universal linear rank? | State configuration interface, relation evaluation, visualization |
+| IRR-014 | **V0.1 PRODUCT SCOPE DECIDED; SEMANTICS OPEN:** relation/ranking/escalation is excluded from v0.1. Future design must still define traits and organization-configured relations without assuming a universal rank. | Post-v0.1 only after separate authority: state configuration interface, relation evaluation, visualization |
 
 For every decision, the accepted specification must state the observable result and conflict behavior. A statement that “the platform may decide” is insufficient when two choices produce materially different PAIM behavior.
 
@@ -419,11 +445,20 @@ IRR-011 design authority is accepted in `PAIM_INCREMENT_6_REASSESSMENT_DESIGN_DE
 
 The gate is not closed merely because wording is present. Before Increment 6 code, an independent focused re-review must confirm that the hardened Reassessment, Case Lifecycle, Roles/Accountability, Integrity, Integration/Decision, Intervention/Learning, Behavioral Validation, Platform Architecture, and roadmap artifacts are cross-consistent and make the accepted hard oracles deterministic. Until that review accepts closure, Increment 6 remains blocked.
 
-IRR-009 remains deferred. IRR-012 is hardened separately for Increment 7 and does not change Increment 6 Case-scoped behavior. Resolve IRR-014 before including stronger/broader-state automation; otherwise keep state values explicit and ordering indeterminate.
+At the Increment 6 checkpoint, IRR-009 remained deferred and IRR-014 remained conditional. The
+later accepted v0.1 decision preserves that substantive deferral while establishing that neither
+blocks the bounded product gate: exact existing/manual/external Trigger provenance and exact-state,
+exact-scope restrictive intersection/suspension are supported; Observation automation and
+state-relation/ranking/escalation remain unavailable.
 
 ### 10.5 Before Observation automation
 
-Resolve IRR-009 after IRR-008 and IRR-011. Until then, operation signals may enter only through explicitly supported Evidence or Trigger paths; no first-class authoritative Observation is persisted or inferred.
+IRR-009 is a post-v0.1 extension gate. Before first-class Observation or automatic conversion is
+enabled, a separate human-accepted design, coordinated specification hardening, implementation, and
+validation package must close its substantive semantics. Until then, operation signals may enter
+only through explicitly supported Evidence or exact manual/external Trigger paths; proposed intake
+is non-authoritative until an owning-domain command succeeds, and no Observation is persisted or
+inferred. A future extension must not reinterpret v0.1 historical records.
 
 ### 10.6 Before Increment 7
 
@@ -433,7 +468,20 @@ Before Increment 7 code, an independent focused re-review must confirm cross-spe
 
 ### 10.7 Before Increment 9 completion
 
-Close all nine P1 findings and update behavioral oracles for every accepted semantic change. Partial validation with exclusions may inform development but cannot produce the complete PAIM validation verdict.
+All P1 capabilities inside the bounded v0.1 claim must be substantively resolved and implemented.
+IRR-009 and IRR-014 are the only accepted exceptions: each remains
+`OPEN — SEMANTICS UNDESIGNED` and is `CLOSED BY DESIGN — OUTSIDE V0.1 CLAIM` for the bounded v0.1
+product gate only. Their unsupported behavior must remain explicit, fail-closed, documented, and
+directly validated; Increment 9 must not validate or imply either excluded semantic family.
+
+Increment 9 may begin only after this consistency package is independently reviewed and merged and
+a separate bounded issue freezes the exact v0.1 claim, the Case-to-authorized-operation,
+Trigger-to-Reassessment-completion, and multi-Case
+Register-to-contextual-owning-domain-action pathways, hard oracles including both exclusions,
+regression/security/access/recovery/degraded/history evidence,
+practitioner study and usability/semantic-failure separation, final traceability, and the release
+verdict. Scope completion does not authorize Increment 9 and does not mean validation or release is
+complete.
 
 ## 11. Final sequencing recommendation
 
@@ -450,7 +498,9 @@ accept roadmap
 → resolve IRR-007 + IRR-013/CON-002 foundation cluster
 → open Case/Configuration/lifecycle/Role implementation
 → resolve remaining P1s immediately before the increments that depend on them
-→ complete all P1s before full integrated/human validation
+→ accept bounded v0.1 exclusions for IRR-009/014 while preserving their semantic-open status
+→ merge this consistency reconciliation
+→ separately authorize and freeze Increment 9 integrated/human validation
 ```
 
 At every gate, unresolved behavior remains blocked or explicitly unresolved. No newest, broadest, most permissive, or implementation-convenient default may stand in for an accepted PAIM semantic decision.
