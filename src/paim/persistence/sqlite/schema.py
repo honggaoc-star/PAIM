@@ -3273,6 +3273,243 @@ register_notification_intents = Table(
     ),
 )
 
+# Increment 8 — local operational application support. These records govern
+# software access, adapter handling, and local operations only. They do not
+# establish PAIM substantive authority.
+operational_principals = Table(
+    "operational_principals",
+    metadata,
+    Column("principal_id", Text, primary_key=True),
+    Column("created_at_us", BigInteger, nullable=False),
+)
+operational_principal_versions = Table(
+    "operational_principal_versions",
+    metadata,
+    Column("version_id", String(36), primary_key=True),
+    Column(
+        "principal_id",
+        Text,
+        ForeignKey("operational_principals.principal_id"),
+        nullable=False,
+    ),
+    Column("sequence", BigInteger, nullable=False),
+    Column("actor_id", String(36), ForeignKey("paim_actors.actor_id"), nullable=True),
+    Column("status", Text, nullable=False),
+    Column("credential_salt", String(64), nullable=False),
+    Column("credential_verifier", String(64), nullable=False),
+    Column("credential_iterations", BigInteger, nullable=False),
+    Column("recorded_at_us", BigInteger, nullable=False),
+    Column("recorded_by", Text, nullable=False),
+    UniqueConstraint("principal_id", "sequence", name="uq_operational_principal_sequence"),
+    CheckConstraint(
+        "status IN ('ENABLED','DISABLED','REVOKED')",
+        name="ck_operational_principal_status",
+    ),
+    CheckConstraint("sequence > 0", name="ck_operational_principal_sequence"),
+    CheckConstraint(
+        "credential_iterations >= 100000",
+        name="ck_operational_credential_iterations",
+    ),
+)
+Index(
+    "ix_operational_principal_current",
+    operational_principal_versions.c.principal_id,
+    operational_principal_versions.c.sequence,
+)
+
+software_access_grants = Table(
+    "software_access_grants",
+    metadata,
+    Column("grant_id", String(36), primary_key=True),
+    Column(
+        "principal_id",
+        Text,
+        ForeignKey("operational_principals.principal_id"),
+        nullable=False,
+    ),
+    Column("sequence", BigInteger, nullable=False),
+    Column("permission", Text, nullable=False),
+    Column("action", Text, nullable=False),
+    Column("scope_type", Text, nullable=False),
+    Column("scope_id", String(36), nullable=True),
+    Column("effect", Text, nullable=False),
+    Column("recorded_at_us", BigInteger, nullable=False),
+    Column("recorded_by", Text, nullable=False),
+    UniqueConstraint(
+        "principal_id",
+        "permission",
+        "action",
+        "scope_type",
+        "scope_id",
+        "sequence",
+        name="uq_software_access_grant_sequence",
+    ),
+    CheckConstraint(
+        "permission IN ('LOGIN','CASE_READ','CONFIGURATION_READ','COMMAND','EXPORT',"
+        "'DELIVERY','OPERATIONAL_ADMIN')",
+        name="ck_software_access_permission",
+    ),
+    CheckConstraint(
+        "scope_type IN ('GLOBAL','CASE','CONFIGURATION')",
+        name="ck_software_access_scope_type",
+    ),
+    CheckConstraint(
+        "(scope_type = 'GLOBAL' AND scope_id IS NULL) OR "
+        "(scope_type IN ('CASE','CONFIGURATION') AND scope_id IS NOT NULL)",
+        name="ck_software_access_scope_identity",
+    ),
+    CheckConstraint("effect IN ('ALLOW','DENY')", name="ck_software_access_effect"),
+    CheckConstraint("sequence > 0", name="ck_software_access_sequence"),
+)
+Index(
+    "ix_software_access_resolution",
+    software_access_grants.c.principal_id,
+    software_access_grants.c.permission,
+    software_access_grants.c.action,
+    software_access_grants.c.scope_type,
+    software_access_grants.c.scope_id,
+    software_access_grants.c.sequence,
+)
+
+operational_audit_facts = Table(
+    "operational_audit_facts",
+    metadata,
+    Column("event_id", String(36), primary_key=True),
+    Column("category", Text, nullable=False),
+    Column("outcome", Text, nullable=False),
+    Column("principal_id", Text, nullable=True),
+    Column("actor_id", String(36), nullable=True),
+    Column("action", Text, nullable=False),
+    Column("case_id", String(36), nullable=True),
+    Column("configuration_id", String(36), nullable=True),
+    Column("correlation_id", Text, nullable=True),
+    Column("causation_id", Text, nullable=True),
+    Column("reason_category", Text, nullable=False),
+    Column("details_json", Text, nullable=False),
+    Column("recorded_at_us", BigInteger, nullable=False),
+    CheckConstraint(
+        "category IN ('AUTHENTICATION','ACTOR_RESOLUTION','ACCESS','COMMAND','ADMIN',"
+        "'EXPORT','ADAPTER','DELIVERY','BACKUP','RESTORE','INTEGRITY','PROJECTION',"
+        "'CONFIGURATION')",
+        name="ck_operational_audit_category",
+    ),
+    CheckConstraint(
+        "outcome IN ('SUCCESS','FAILURE','ALLOWED','DENIED','ACCEPTED','REPLAYED',"
+        "'QUARANTINED','REJECTED','PENDING','DELIVERED','DEGRADED')",
+        name="ck_operational_audit_outcome",
+    ),
+)
+Index(
+    "ix_operational_audit_time_category",
+    operational_audit_facts.c.recorded_at_us,
+    operational_audit_facts.c.category,
+)
+
+adapter_intakes = Table(
+    "adapter_intakes",
+    metadata,
+    Column("intake_id", String(36), primary_key=True),
+    Column("adapter_type", Text, nullable=False),
+    Column("source_system", Text, nullable=False),
+    Column("source_object_id", Text, nullable=False),
+    Column("source_version", Text, nullable=True),
+    Column("source_effective_at_us", BigInteger, nullable=False),
+    Column("ingested_at_us", BigInteger, nullable=False),
+    Column("payload_checksum", String(64), nullable=False),
+    Column("target_case_id", String(36), nullable=True),
+    Column("target_configuration_id", String(36), nullable=True),
+    Column("management_context", Text, nullable=True),
+    Column("replay_id", Text, nullable=False),
+    Column("mapper_rule_id", Text, nullable=False),
+    Column("mapper_rule_version", Text, nullable=False),
+    Column("payload_reference", Text, nullable=True),
+    Column("payload_json", Text, nullable=False),
+    Column("unmapped_material_json", Text, nullable=False),
+    Column("status", Text, nullable=False),
+    Column("quarantine_reason", Text, nullable=True),
+    Column("supersedes_intake_id", String(36), ForeignKey("adapter_intakes.intake_id")),
+    CheckConstraint(
+        "adapter_type IN ('VALUE','RISK','EVIDENCE','AUTHORITY','EXTERNAL_TRIGGER')",
+        name="ck_adapter_intake_type",
+    ),
+    CheckConstraint(
+        "status IN ('PROPOSED','QUARANTINED','REJECTED')",
+        name="ck_adapter_intake_status",
+    ),
+    CheckConstraint(
+        "(status = 'QUARANTINED' AND quarantine_reason IS NOT NULL) OR "
+        "(status IN ('PROPOSED','REJECTED'))",
+        name="ck_adapter_quarantine_reason",
+    ),
+)
+Index(
+    "ix_adapter_replay",
+    adapter_intakes.c.adapter_type,
+    adapter_intakes.c.source_system,
+    adapter_intakes.c.replay_id,
+)
+Index(
+    "ix_adapter_source_version",
+    adapter_intakes.c.adapter_type,
+    adapter_intakes.c.source_system,
+    adapter_intakes.c.source_object_id,
+    adapter_intakes.c.source_version,
+)
+
+notification_delivery_events = Table(
+    "notification_delivery_events",
+    metadata,
+    Column("event_id", String(36), primary_key=True),
+    Column(
+        "intent_id",
+        String(36),
+        ForeignKey("register_notification_intents.intent_id"),
+        nullable=False,
+    ),
+    Column("attempt_id", Text, nullable=False),
+    Column("sequence", BigInteger, nullable=False),
+    Column("status", Text, nullable=False),
+    Column("spool_reference", Text, nullable=True),
+    Column("reason", Text, nullable=True),
+    Column("recorded_at_us", BigInteger, nullable=False),
+    UniqueConstraint("attempt_id", "sequence", name="uq_delivery_attempt_sequence"),
+    CheckConstraint(
+        "status IN ('PENDING','DELIVERED','FAILED')",
+        name="ck_delivery_status",
+    ),
+    CheckConstraint("sequence > 0", name="ck_delivery_sequence"),
+)
+Index(
+    "ix_delivery_intent_status",
+    notification_delivery_events.c.intent_id,
+    notification_delivery_events.c.status,
+    notification_delivery_events.c.recorded_at_us,
+)
+Index(
+    "uq_delivery_one_success_per_intent",
+    notification_delivery_events.c.intent_id,
+    unique=True,
+    sqlite_where=notification_delivery_events.c.status == "DELIVERED",
+)
+
+operational_register_rebuild_bases = Table(
+    "operational_register_rebuild_bases",
+    metadata,
+    Column(
+        "manifest_id",
+        String(36),
+        ForeignKey("register_output_manifests.manifest_id"),
+        primary_key=True,
+    ),
+    Column("query_json", Text, nullable=False),
+    Column("query_checksum", String(64), nullable=False),
+    Column("recorded_at_us", BigInteger, nullable=False),
+)
+Index(
+    "ix_operational_rebuild_checksum",
+    operational_register_rebuild_bases.c.query_checksum,
+)
+
 IMMUTABILITY_TRIGGERS: tuple[str, ...] = (
     """
     CREATE TRIGGER prevent_finalized_version_update

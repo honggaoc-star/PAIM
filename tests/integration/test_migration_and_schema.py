@@ -25,7 +25,7 @@ def test_alembic_head_foreign_keys_and_immutability_triggers_exist(
     with sqlite_store.engine.connect() as connection:
         assert connection.exec_driver_sql("PRAGMA foreign_keys").scalar_one() == 1
         assert connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one() == (
-            "0007_increment_7"
+            "0008_increment_8"
         )
         trigger_names = set(
             connection.execute(
@@ -138,7 +138,7 @@ def test_upgrade_from_increment_2_revision_to_increment_3_head(tmp_path: Path) -
         with engine.connect() as connection:
             assert (
                 connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
-                == "0007_increment_7"
+                == "0008_increment_8"
             )
     finally:
         engine.dispose()
@@ -216,7 +216,7 @@ def test_increment_2_schema_tables_constraints_indexes_and_upgrade_from_incremen
         with engine.connect() as connection:
             assert connection.execute(
                 text("SELECT version_num FROM alembic_version")
-            ).scalar_one() == ("0007_increment_7")
+            ).scalar_one() == ("0008_increment_8")
     finally:
         engine.dispose()
 
@@ -345,7 +345,7 @@ def test_upgrade_from_increment_3_revision_to_increment_4_head(tmp_path: Path) -
         with engine.connect() as connection:
             assert (
                 connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
-                == "0007_increment_7"
+                == "0008_increment_8"
             )
     finally:
         engine.dispose()
@@ -482,7 +482,7 @@ def test_upgrade_from_increment_4_revision_to_increment_5_head(tmp_path: Path) -
         with engine.connect() as connection:
             assert (
                 connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
-                == "0007_increment_7"
+                == "0008_increment_8"
             )
     finally:
         engine.dispose()
@@ -605,7 +605,7 @@ def test_upgrade_from_increment_5_revision_to_increment_6_head(tmp_path: Path) -
         with engine.connect() as connection:
             assert connection.execute(
                 text("SELECT version_num FROM alembic_version")
-            ).scalar_one() == ("0007_increment_7")
+            ).scalar_one() == ("0008_increment_8")
     finally:
         engine.dispose()
 
@@ -676,7 +676,7 @@ def test_upgrade_from_increment_6_revision_to_increment_7_head(tmp_path: Path) -
         with engine.connect() as connection:
             assert (
                 connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
-                == "0007_increment_7"
+                == "0008_increment_8"
             )
     finally:
         engine.dispose()
@@ -718,5 +718,111 @@ def test_increment_7_upgrade_preserves_existing_role_assignments(tmp_path: Path)
                 {"version_id": str(assignment_version_id)},
             ).one()
             assert row == ("case", str(case_id))
+    finally:
+        engine.dispose()
+
+
+def test_increment_8_operational_schema_constraints_indexes_triggers_and_foreign_keys(
+    sqlite_store: SQLiteIntegrityStore,
+) -> None:
+    inspector = inspect(sqlite_store.engine)
+    tables = {
+        "operational_principals",
+        "operational_principal_versions",
+        "software_access_grants",
+        "operational_audit_facts",
+        "adapter_intakes",
+        "notification_delivery_events",
+        "operational_register_rebuild_bases",
+    }
+    assert tables <= set(inspector.get_table_names())
+    assert "observation_records" not in inspector.get_table_names()
+    principal_checks = {
+        item["name"] for item in inspector.get_check_constraints("operational_principal_versions")
+    }
+    assert {
+        "ck_operational_principal_status",
+        "ck_operational_principal_sequence",
+        "ck_operational_credential_iterations",
+    } <= principal_checks
+    grant_checks = {
+        item["name"] for item in inspector.get_check_constraints("software_access_grants")
+    }
+    assert {
+        "ck_software_access_permission",
+        "ck_software_access_scope_type",
+        "ck_software_access_scope_identity",
+        "ck_software_access_effect",
+    } <= grant_checks
+    assert {item["name"] for item in inspector.get_indexes("adapter_intakes")} >= {
+        "ix_adapter_replay",
+        "ix_adapter_source_version",
+    }
+    assert {item["name"] for item in inspector.get_indexes("notification_delivery_events")} >= {
+        "ix_delivery_intent_status",
+        "uq_delivery_one_success_per_intent",
+    }
+    assert {
+        item["name"] for item in inspector.get_indexes("operational_register_rebuild_bases")
+    } >= {"ix_operational_rebuild_checksum"}
+    assert {item["name"] for item in inspector.get_indexes("operational_audit_facts")} >= {
+        "ix_operational_audit_time_category"
+    }
+    principal_foreign_keys = {
+        (item["referred_table"], tuple(item["referred_columns"]))
+        for item in inspector.get_foreign_keys("operational_principal_versions")
+    }
+    assert ("paim_actors", ("actor_id",)) in principal_foreign_keys
+    delivery_foreign_keys = {
+        item["referred_table"]
+        for item in inspector.get_foreign_keys("notification_delivery_events")
+    }
+    assert "register_notification_intents" in delivery_foreign_keys
+    with sqlite_store.engine.connect() as connection:
+        triggers = set(
+            connection.execute(
+                text("SELECT name FROM sqlite_master WHERE type = 'trigger'")
+            ).scalars()
+        )
+    for table in tables:
+        assert f"prevent_{table}_update" in triggers
+        assert f"prevent_{table}_delete" in triggers
+
+
+def test_upgrade_from_increment_7_to_increment_8_preserves_history(tmp_path: Path) -> None:
+    database_path = (tmp_path / "upgrade-from-increment-7.sqlite3").as_posix()
+    database_url = f"sqlite+pysqlite:///{database_path}"
+    config = alembic_config(database_url)
+    command.upgrade(config, "0007_increment_7")
+    store = SQLiteIntegrityStore(database_url)
+    try:
+        outcome = IntegrityApplicationService(store, FixedClock(utc(2026, 8, 19))).commit_version(
+            version_command(idempotency_key="increment-8-upgrade-preserved")
+        )
+        preserved_version_id = outcome.version_ids[0]
+        assert store.get_version(preserved_version_id) is not None
+    finally:
+        store.dispose()
+    engine = create_engine(database_url)
+    try:
+        assert "operational_principals" not in inspect(engine).get_table_names()
+        command.upgrade(config, "head")
+        assert {
+            "operational_principals",
+            "adapter_intakes",
+            "operational_audit_facts",
+            "operational_register_rebuild_bases",
+        } <= set(inspect(engine).get_table_names())
+        with engine.connect() as connection:
+            assert connection.execute(
+                text("SELECT version_num FROM alembic_version")
+            ).scalar_one() == ("0008_increment_8")
+            assert (
+                connection.execute(
+                    text("SELECT COUNT(*) FROM record_versions WHERE version_id=:version_id"),
+                    {"version_id": str(preserved_version_id)},
+                ).scalar_one()
+                == 1
+            )
     finally:
         engine.dispose()

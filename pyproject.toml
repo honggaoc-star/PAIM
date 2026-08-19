@@ -13,6 +13,9 @@ dependencies = [
     "sqlalchemy>=2.0.48,<2.1",
 ]
 
+[project.scripts]
+paim-local = "paim.operational.cli:main"
+
 [dependency-groups]
 dev = [
     "mypy>=1.18,<2",
