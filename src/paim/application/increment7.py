@@ -713,53 +713,286 @@ class Increment7ApplicationService(Increment6ApplicationService):
         }[selection.disposition]
 
     @staticmethod
-    def _source_disposition(family: str, content: dict[str, object]) -> SourceDisposition:
-        if bool(content.get("withdrawn")):
+    def _exact_value(
+        family: str,
+        content: dict[str, object],
+        field: str,
+        mapping: dict[str, SourceDisposition],
+    ) -> SourceDisposition:
+        value = content.get(field)
+        if not isinstance(value, str) or value not in mapping:
+            raise DomainRuleViolation(
+                f"{family} selected source has no accepted {field} population meaning"
+            )
+        return mapping[value]
+
+    @classmethod
+    def _source_disposition(
+        cls,
+        family: str,
+        content: dict[str, object],
+        version_statuses: tuple[str, ...] = (),
+        *,
+        effective_at: datetime | None = None,
+    ) -> SourceDisposition:
+        """Apply the exact owning-family population contract.
+
+        This deliberately has no generic status/outcome fallback. A family is
+        admitted only through an explicit adapter and malformed or unknown
+        persisted meanings fail closed instead of becoming guessed attention.
+        """
+
+        statuses = {value.casefold() for value in version_statuses}
+        if "withdrawn" in statuses or bool(content.get("withdrawn")):
             return SourceDisposition.WITHDRAWN_OR_INELIGIBLE
-        status = str(
-            content.get("status")
-            or content.get("initial_status")
-            or content.get("outcome")
-            or content.get("attention")
-            or ""
-        ).upper()
+        if "superseded" in statuses:
+            return SourceDisposition.SUPERSEDED
+
+        if family == "governing-configuration-designation":
+            return SourceDisposition.INFORMATIONAL
+        if family == "configuration-determination":
+            return cls._exact_value(
+                family,
+                content,
+                "outcome",
+                {
+                    "material": SourceDisposition.INFORMATIONAL,
+                    "non_material": SourceDisposition.INFORMATIONAL,
+                    "same_identity": SourceDisposition.INFORMATIONAL,
+                    "new_identity": SourceDisposition.INFORMATIONAL,
+                },
+            )
         if family == "authority-gap":
-            return SourceDisposition.ATTENTION
+            return cls._exact_value(
+                family,
+                {**content, "outcome": content.get("outcome", "UNRESOLVED")},
+                "outcome",
+                {
+                    "UNRESOLVED": SourceDisposition.ATTENTION,
+                    "REQUIREMENT_ESTABLISHED": SourceDisposition.RESOLVED,
+                    "PROHIBITION_ESTABLISHED": SourceDisposition.RESOLVED,
+                    "PERMISSION_OR_AUTHORITY_ESTABLISHED": SourceDisposition.RESOLVED,
+                    "NOT_APPLICABLE_TO_BOUNDED_DECISION": SourceDisposition.RESOLVED,
+                    "AUTHORIZED_REFRAMING_NO_LONGER_MATERIAL": SourceDisposition.RESOLVED,
+                },
+            )
         if family == "evidence":
-            return (
-                SourceDisposition.ATTENTION
-                if status in {"REFRESH_REQUIRED", "STALE"}
-                else SourceDisposition.INFORMATIONAL
+            return cls._exact_value(
+                family,
+                content,
+                "attention",
+                {
+                    "current": SourceDisposition.INFORMATIONAL,
+                    "refresh_required": SourceDisposition.ATTENTION,
+                    "stale": SourceDisposition.ATTENTION,
+                },
             )
         if family == "evidence-applicability":
-            return (
-                SourceDisposition.INFORMATIONAL
-                if status == "APPLICABLE"
-                else SourceDisposition.ATTENTION
+            return cls._exact_value(
+                family,
+                content,
+                "outcome",
+                {
+                    "APPLICABLE": SourceDisposition.INFORMATIONAL,
+                    "CONDITIONALLY_APPLICABLE": SourceDisposition.INFORMATIONAL,
+                    "PARTIALLY_APPLICABLE": SourceDisposition.INFORMATIONAL,
+                    "NOT_APPLICABLE": SourceDisposition.ATTENTION,
+                    "INDETERMINATE": SourceDisposition.ATTENTION,
+                },
             )
-        if status in {
-            "COMPLETED",
-            "COMPLETED_CONFIRMED",
-            "COMPLETED_SUCCESSOR_DECISION",
-            "SATISFIED",
-            "RESOLVED",
-        }:
-            return SourceDisposition.RESOLVED
-        if status in {"SUPERSEDED"}:
-            return SourceDisposition.SUPERSEDED
-        if status in {"WITHDRAWN", "CANCELLED", "REJECTED", "INELIGIBLE"}:
-            return SourceDisposition.WITHDRAWN_OR_INELIGIBLE
-        if status in {
-            "AUTHORIZED",
-            "ACCEPTED",
-            "APPLICABLE",
-            "CURRENT",
-            "NOT_REQUIRED",
-            "INFORMATIONAL",
-            "MONITOR",
+        if family == "lane-evidence-fitness":
+            return cls._exact_value(
+                family,
+                content,
+                "outcome",
+                {
+                    "SUPPORTABLE": SourceDisposition.INFORMATIONAL,
+                    "BLOCKED": SourceDisposition.ATTENTION,
+                },
+            )
+        if family == "input-acceptance-selection":
+            if statuses & {"rejected_for_use", "withdrawn"}:
+                return SourceDisposition.WITHDRAWN_OR_INELIGIBLE
+            return cls._exact_value(
+                family, content, "outcome", {"SELECTED": SourceDisposition.INFORMATIONAL}
+            )
+        if family == "integration":
+            return cls._exact_value(
+                family,
+                content,
+                "status",
+                {
+                    "draft": SourceDisposition.ATTENTION,
+                    "ready": SourceDisposition.ATTENTION,
+                    "in_progress": SourceDisposition.ATTENTION,
+                    "completed": SourceDisposition.INFORMATIONAL,
+                    "decision_pending": SourceDisposition.ATTENTION,
+                    "superseded": SourceDisposition.SUPERSEDED,
+                    "withdrawn": SourceDisposition.WITHDRAWN_OR_INELIGIBLE,
+                },
+            )
+        if family == "uncertainty-classification":
+            return cls._exact_value(
+                family,
+                content,
+                "classification",
+                {
+                    "ACCEPTED_UNCERTAINTY": SourceDisposition.INFORMATIONAL,
+                    "DECISION_LIMITING_UNCERTAINTY": SourceDisposition.ATTENTION,
+                },
+            )
+        if family == "boundary-snapshot":
+            return cls._exact_value(
+                family,
+                content,
+                "status",
+                {
+                    "draft": SourceDisposition.ATTENTION,
+                    "finalized": SourceDisposition.INFORMATIONAL,
+                    "current": SourceDisposition.INFORMATIONAL,
+                    "superseded": SourceDisposition.SUPERSEDED,
+                    "withdrawn": SourceDisposition.WITHDRAWN_OR_INELIGIBLE,
+                },
+            )
+        if family == "boundary-determination":
+            return cls._exact_value(
+                family,
+                content,
+                "outcome",
+                {
+                    "PASS": SourceDisposition.INFORMATIONAL,
+                    "BREACH": SourceDisposition.ATTENTION,
+                    "INDETERMINATE": SourceDisposition.ATTENTION,
+                },
+            )
+        if family == "management-decision":
+            return cls._exact_value(
+                family,
+                content,
+                "status",
+                {
+                    "proposed": SourceDisposition.ATTENTION,
+                    "pending_authorization": SourceDisposition.ATTENTION,
+                    "authorized": SourceDisposition.INFORMATIONAL,
+                    "expired": SourceDisposition.ATTENTION,
+                    "superseded": SourceDisposition.SUPERSEDED,
+                    "withdrawn": SourceDisposition.WITHDRAWN_OR_INELIGIBLE,
+                },
+            )
+        if family in {
+            "decision-authorization-basis",
+            "bounded-proceed-determination",
+            "reassessment-trigger",
         }:
             return SourceDisposition.INFORMATIONAL
-        return SourceDisposition.ATTENTION
+        if family == "intervention-obligation-set":
+            raise DomainRuleViolation(
+                "Intervention Obligation Set requires its authoritative aggregate adapter"
+            )
+        if family == "intervention":
+            return cls._exact_value(
+                family,
+                content,
+                "status",
+                {
+                    "PROPOSED": SourceDisposition.ATTENTION,
+                    "PLANNED": SourceDisposition.ATTENTION,
+                    "IN_PROGRESS": SourceDisposition.ATTENTION,
+                    "BLOCKED": SourceDisposition.ATTENTION,
+                    "PARTIALLY_COMPLETED": SourceDisposition.ATTENTION,
+                    "COMPLETED": SourceDisposition.INFORMATIONAL,
+                    "FAILED": SourceDisposition.ATTENTION,
+                    "CANCELLED": SourceDisposition.WITHDRAWN_OR_INELIGIBLE,
+                    "SUPERSEDED": SourceDisposition.SUPERSEDED,
+                },
+            )
+        if family == "intervention-obligation":
+            return cls._exact_value(
+                family,
+                content,
+                "requirement_type",
+                {
+                    "REQUIRED_BEFORE_OPERATION": SourceDisposition.ATTENTION,
+                    "REQUIRED_AFTER_OPERATION": SourceDisposition.ATTENTION,
+                    "OPTIONAL": SourceDisposition.INFORMATIONAL,
+                },
+            )
+        if family == "intervention-completion-result":
+            # A Result never satisfies an obligation without eligible Acceptance.
+            return SourceDisposition.ATTENTION
+        if family == "intervention-completion-acceptance":
+            if content.get("status") == "WITHDRAWN":
+                return SourceDisposition.WITHDRAWN_OR_INELIGIBLE
+            if content.get("status") == "SUPERSEDED":
+                return SourceDisposition.SUPERSEDED
+            return cls._exact_value(
+                family,
+                content,
+                "outcome",
+                {
+                    "ACCEPTED": SourceDisposition.RESOLVED,
+                    "REJECTED": SourceDisposition.ATTENTION,
+                },
+            )
+        if family == "learning-item":
+            return cls._exact_value(
+                family,
+                content,
+                "status",
+                {
+                    "PROPOSED": SourceDisposition.ATTENTION,
+                    "ACTIVE": SourceDisposition.ATTENTION,
+                    "AWAITING_EVIDENCE": SourceDisposition.ATTENTION,
+                    "COMPLETED": SourceDisposition.RESOLVED,
+                    "INCONCLUSIVE": SourceDisposition.ATTENTION,
+                    "CANCELLED": SourceDisposition.WITHDRAWN_OR_INELIGIBLE,
+                    "SUPERSEDED": SourceDisposition.SUPERSEDED,
+                },
+            )
+        if family == "trigger-determination":
+            return cls._exact_value(
+                family,
+                content,
+                "outcome",
+                {
+                    "INFORMATIONAL": SourceDisposition.INFORMATIONAL,
+                    "MONITOR": SourceDisposition.INFORMATIONAL,
+                    "ANALYTICAL_REFRESH": SourceDisposition.ATTENTION,
+                    "REASSESSMENT_REQUIRED": SourceDisposition.ATTENTION,
+                    "IMMEDIATE_DISPOSITION_AND_REASSESSMENT": SourceDisposition.ATTENTION,
+                },
+            )
+        if family == "reassessment":
+            return cls._exact_value(
+                family,
+                content,
+                "status",
+                {
+                    "PROPOSED": SourceDisposition.ATTENTION,
+                    "OPEN": SourceDisposition.ATTENTION,
+                    "ANALYSIS_IN_PROGRESS": SourceDisposition.ATTENTION,
+                    "AWAITING_DECISION_AUTHORITY": SourceDisposition.ATTENTION,
+                    "BLOCKED_CONFLICT": SourceDisposition.ATTENTION,
+                    "COMPLETED_CONFIRMED": SourceDisposition.RESOLVED,
+                    "COMPLETED_SUCCESSOR_DECISION": SourceDisposition.RESOLVED,
+                    "CANCELLED": SourceDisposition.WITHDRAWN_OR_INELIGIBLE,
+                    "SUPERSEDED": SourceDisposition.SUPERSEDED,
+                },
+            )
+        if family == "interim-operating-disposition":
+            expiry = content.get("expiry_at")
+            if (
+                isinstance(expiry, str)
+                and effective_at is not None
+                and require_utc(datetime.fromisoformat(expiry)) <= effective_at
+            ):
+                return SourceDisposition.ATTENTION
+            return (
+                SourceDisposition.ATTENTION
+                if content.get("suspend_scope")
+                else SourceDisposition.INFORMATIONAL
+            )
+        raise DomainRuleViolation(f"{family} has no accepted Management Register adapter")
 
     @staticmethod
     def _source_context(
@@ -774,6 +1007,32 @@ class Increment7ApplicationService(Increment6ApplicationService):
         configuration_version_text = content.get("configuration_version_id")
         if family == "managed-configuration":
             configuration_text = str(record_id)
+        if not case_text or not configuration_version_text:
+            for link_field in (
+                "integration_version_id",
+                "snapshot_version_id",
+                "decision_version_id",
+                "intervention_version_id",
+                "obligation_version_id",
+                "reassessment_version_id",
+            ):
+                linked_text = content.get(link_field)
+                if not linked_text:
+                    continue
+                try:
+                    linked = transaction.get_version(RecordVersionId.parse(str(linked_text)))
+                except ValueError:
+                    linked = None
+                if linked is None:
+                    continue
+                linked_content = cast("dict[str, object]", json.loads(linked.content_json))
+                case_text = case_text or linked_content.get("case_id")
+                configuration_text = configuration_text or linked_content.get("configuration_id")
+                configuration_version_text = configuration_version_text or linked_content.get(
+                    "configuration_version_id"
+                )
+                if case_text and configuration_version_text:
+                    break
         if configuration_version_text and (not case_text or not configuration_text):
             try:
                 context = transaction.configuration_version_context(
@@ -858,7 +1117,85 @@ class Increment7ApplicationService(Increment6ApplicationService):
                     # incompatible contexts remain outside a fabricated entry.
                     continue
                 case_id, configuration_id = next(iter(contexts))
-                dispositions = {self._source_disposition(family, content) for content in contents}
+                if family == "intervention-obligation-set" and len(contents) == 1:
+                    aggregate = self._evaluate_prerequisites_in_transaction(
+                        transaction,
+                        decision_version_id=RecordVersionId.parse(
+                            str(contents[0]["decision_version_id"])
+                        ),
+                        configuration_version_id=RecordVersionId.parse(
+                            str(contents[0]["configuration_version_id"])
+                        ),
+                        effective_at=effective_at,
+                        known_at=known_at,
+                    )
+                    dispositions = {
+                        {
+                            "SATISFIED": SourceDisposition.RESOLVED,
+                            "NOT_REQUIRED": SourceDisposition.RESOLVED,
+                            "NOT_ESTABLISHED": SourceDisposition.ATTENTION,
+                            "INCOMPLETE": SourceDisposition.ATTENTION,
+                            "BLOCKED": SourceDisposition.ATTENTION,
+                            "CONFLICT": SourceDisposition.ATTENTION,
+                        }[aggregate.result.value]
+                    }
+                elif family == "trigger-determination" and len(contents) == 1:
+                    trigger_outcome = str(contents[0].get("outcome"))
+                    if trigger_outcome in {
+                        "REASSESSMENT_REQUIRED",
+                        "IMMEDIATE_DISPOSITION_AND_REASSESSMENT",
+                    }:
+                        coverage = self._trigger_coverage_in_transaction(
+                            transaction,
+                            trigger_version_id=RecordVersionId.parse(
+                                str(contents[0]["trigger_version_id"])
+                            ),
+                            effective_at=effective_at,
+                            known_at=known_at,
+                        )
+                        if coverage.state is None:
+                            dispositions = {SourceDisposition.WITHDRAWN_OR_INELIGIBLE}
+                        else:
+                            dispositions = {
+                                {
+                                    "REASSESSMENT_REQUIRED_UNASSIGNED": (
+                                        SourceDisposition.ATTENTION
+                                    ),
+                                    "LINKED_ACTIVE": SourceDisposition.INFORMATIONAL,
+                                    "BLOCKED_CONFLICT": SourceDisposition.ATTENTION,
+                                    "SATISFIED_BY_COMPLETED_REASSESSMENT": (
+                                        SourceDisposition.RESOLVED
+                                    ),
+                                    "DUPLICATE_DISPOSITIONED": SourceDisposition.RESOLVED,
+                                }[coverage.state.value]
+                            }
+                    else:
+                        dispositions = {
+                            self._source_disposition(
+                                family,
+                                contents[0],
+                                transaction.version_statuses(
+                                    version_id=candidates[0],
+                                    effective_at=effective_at,
+                                    known_at=known_at,
+                                ),
+                                effective_at=effective_at,
+                            )
+                        }
+                else:
+                    dispositions = {
+                        self._source_disposition(
+                            family,
+                            content,
+                            transaction.version_statuses(
+                                version_id=version_id,
+                                effective_at=effective_at,
+                                known_at=known_at,
+                            ),
+                            effective_at=effective_at,
+                        )
+                        for content, version_id in zip(contents, candidates, strict=True)
+                    }
                 disposition = (
                     next(iter(dispositions))
                     if len(dispositions) == 1

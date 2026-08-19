@@ -9,6 +9,8 @@ from paim.application.increment7 import Increment7ApplicationService
 from paim.audit import ActorResolution
 from paim.domain import (
     ActorVersionInput,
+    AuthorityGapOutcome,
+    AuthorityGapVersionInput,
     CommandMeta,
     DelegationEffect,
     DependencyCandidateMember,
@@ -43,6 +45,7 @@ from paim.integrity import (
 )
 from paim.persistence.sqlite import SQLiteIntegrityStore
 from tests.helpers import utc, version_command
+from tests.integration.test_increment_2_foundation import add_case, add_configuration
 
 NOW = utc(2026, 2, 1)
 EFFECTIVE = EffectiveInterval(utc(2026, 1, 1))
@@ -1157,3 +1160,159 @@ def test_authoritative_family_population_is_derived_without_register_rows(
     assert view.entries[0].key.source_record_id == record_id
     assert view.entries[0].selected_source_version_ids == (version_id,)
     assert view.entries[0].lifecycle is RegisterLifecycle.CURRENT_ATTENTION
+
+
+def test_authority_gap_resolution_is_prospective_and_prior_view_reconstructs(
+    sqlite_store: SQLiteIntegrityStore,
+) -> None:
+    svc = service(sqlite_store)
+    case_id, _ = add_case(sqlite_store, "register-gap-lifecycle")
+    configuration_id, configuration_version_id = add_configuration(
+        sqlite_store, "register-gap-lifecycle", case_id
+    )
+    gap_id, unresolved_version_id = RecordId.new(), RecordVersionId.new()
+    svc.commit_authority_gap(
+        meta("register-gap-unresolved"),
+        AuthorityGapVersionInput(
+            gap_id,
+            unresolved_version_id,
+            case_id,
+            configuration_id,
+            configuration_version_id,
+            "DECISION AUTHORITY UNRESOLVED",
+            "Who may authorize the exact proposed Decision?",
+            "bounded-decision-scope",
+            "Decision Authorization Basis is not established",
+            {"source": "authority-register"},
+            EffectiveInterval(utc(2026, 1, 1)),
+        ),
+    )
+    resolved_version_id = RecordVersionId.new()
+    svc.commit_authority_gap(
+        meta("register-gap-resolved"),
+        AuthorityGapVersionInput(
+            gap_id,
+            resolved_version_id,
+            case_id,
+            configuration_id,
+            configuration_version_id,
+            "DECISION AUTHORITY UNRESOLVED",
+            "Who may authorize the exact proposed Decision?",
+            "bounded-decision-scope",
+            "exact authority and authorization basis established",
+            {"source": "authority-register"},
+            EffectiveInterval(utc(2026, 1, 15)),
+            expected_version_id=unresolved_version_id,
+            relationship_reason="authority question resolved",
+            outcome=AuthorityGapOutcome.PERMISSION_OR_AUTHORITY_ESTABLISHED,
+            resolution_linkage="decision-authorization-basis-version:established",
+        ),
+    )
+
+    def at(day: int) -> RegisterQuery:
+        return RegisterQuery(
+            frozenset({case_id}),
+            frozenset(),
+            utc(2026, 1, day),
+            NOW,
+            "management-register-population",
+            "v0.1",
+            "test-access",
+            frozenset({case_id}),
+        )
+
+    historical = svc.derive_management_register(at(10))
+    current = svc.derive_management_register(at(20))
+    assert historical.entries[0].selected_source_version_ids == (unresolved_version_id,)
+    assert historical.entries[0].lifecycle is RegisterLifecycle.CURRENT_ATTENTION
+    assert current.entries[0].selected_source_version_ids == (resolved_version_id,)
+    assert current.entries[0].lifecycle is RegisterLifecycle.RESOLVED_HISTORICAL
+
+
+@pytest.mark.parametrize(
+    ("family", "content", "expected"),
+    [
+        (
+            "lane-evidence-fitness",
+            {"lane": "VALUE", "outcome": "SUPPORTABLE"},
+            SourceDisposition.INFORMATIONAL,
+        ),
+        (
+            "lane-evidence-fitness",
+            {"lane": "RISK", "outcome": "BLOCKED"},
+            SourceDisposition.ATTENTION,
+        ),
+        ("evidence-applicability", {"outcome": "INDETERMINATE"}, SourceDisposition.ATTENTION),
+        (
+            "uncertainty-classification",
+            {"classification": "ACCEPTED_UNCERTAINTY"},
+            SourceDisposition.INFORMATIONAL,
+        ),
+        (
+            "uncertainty-classification",
+            {"classification": "DECISION_LIMITING_UNCERTAINTY"},
+            SourceDisposition.ATTENTION,
+        ),
+        (
+            "management-decision",
+            {"status": "pending_authorization", "conditions": ["C-1"]},
+            SourceDisposition.ATTENTION,
+        ),
+        (
+            "intervention-obligation",
+            {"requirement_type": "REQUIRED_BEFORE_OPERATION"},
+            SourceDisposition.ATTENTION,
+        ),
+        (
+            "intervention-completion-result",
+            {"criteria": [{"outcome": "MET"}]},
+            SourceDisposition.ATTENTION,
+        ),
+        (
+            "intervention-completion-acceptance",
+            {"status": "CURRENT", "outcome": "ACCEPTED"},
+            SourceDisposition.RESOLVED,
+        ),
+        ("learning-item", {"status": "INCONCLUSIVE"}, SourceDisposition.ATTENTION),
+        (
+            "trigger-determination",
+            {"outcome": "REASSESSMENT_REQUIRED"},
+            SourceDisposition.ATTENTION,
+        ),
+        ("trigger-determination", {"outcome": "MONITOR"}, SourceDisposition.INFORMATIONAL),
+        ("reassessment", {"status": "BLOCKED_CONFLICT"}, SourceDisposition.ATTENTION),
+        ("reassessment", {"status": "COMPLETED_CONFIRMED"}, SourceDisposition.RESOLVED),
+        (
+            "interim-operating-disposition",
+            {"suspend_scope": "production", "expiry_at": None},
+            SourceDisposition.ATTENTION,
+        ),
+    ],
+)
+def test_owning_family_adapters_preserve_exact_persisted_meanings(
+    family: str, content: dict[str, object], expected: SourceDisposition
+) -> None:
+    assert (
+        Increment7ApplicationService._source_disposition(
+            family, content, effective_at=EFFECTIVE.start
+        )
+        is expected
+    )
+
+
+def test_same_completed_status_has_family_specific_not_generic_meaning() -> None:
+    intervention = Increment7ApplicationService._source_disposition(
+        "intervention", {"status": "COMPLETED"}
+    )
+    learning = Increment7ApplicationService._source_disposition(
+        "learning-item", {"status": "COMPLETED"}
+    )
+    assert intervention is SourceDisposition.INFORMATIONAL
+    assert learning is SourceDisposition.RESOLVED
+
+
+def test_unknown_cross_family_status_is_not_guessed_as_attention() -> None:
+    with pytest.raises(DomainRuleViolation, match="no accepted status population meaning"):
+        Increment7ApplicationService._source_disposition(
+            "management-decision", {"status": "COMPLETED"}
+        )
