@@ -294,7 +294,7 @@ class InterimOperatingDispositionVersionInput:
 
 
 @dataclass(frozen=True, slots=True)
-class EffectiveOperatingDisposition:
+class EffectiveOperatingDispositionPartition:
     suspended: bool
     affected_scope: frozenset[str]
     operating_state_values: frozenset[str]
@@ -303,6 +303,12 @@ class EffectiveOperatingDisposition:
     prohibitions: frozenset[str]
     conditions: frozenset[str]
     disposition_version_ids: frozenset[RecordVersionId]
+    reason: str
+
+
+@dataclass(frozen=True, slots=True)
+class EffectiveOperatingDisposition:
+    partitions: tuple[EffectiveOperatingDispositionPartition, ...]
     reason: str
 
 

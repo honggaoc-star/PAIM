@@ -379,6 +379,7 @@ def disposition(
     prohibited: frozenset[str] = frozenset({"deploy"}),
     suspend: bool = False,
     expiry_at: datetime | None = None,
+    scope: frozenset[str] | None = None,
 ) -> InterimOperatingDispositionVersionInput:
     value = InterimOperatingDispositionVersionInput(
         RecordId.new(),
@@ -388,7 +389,7 @@ def disposition(
         ctx.foundation.decision_version_id,
         ctx.foundation.context.configuration_version_id,
         ctx.foundation.snapshot_version_id,
-        reassessment.affected_scope,
+        reassessment.affected_scope if scope is None else scope,
         operating_state,
         allowed,
         required,
@@ -889,7 +890,7 @@ def test_17_authorized_successor_blocks_stale_predecessor_completion(
         )
 
 
-def test_18_dispositions_intersect_restrictively_and_suspend_when_indeterminate(
+def test_18_disjoint_dispositions_remain_independently_effective(
     sqlite_store: SQLiteIntegrityStore,
 ) -> None:
     ctx = context(sqlite_store, "oracle-18")
@@ -922,9 +923,153 @@ def test_18_dispositions_intersect_restrictively_and_suspend_when_indeterminate(
         configuration_version_id=ctx.foundation.context.configuration_version_id,
         effective_at=NOW,
     )
-    assert effective.suspended
-    assert effective.allowed_actions == frozenset({"review"})
-    assert effective.reason == "INDETERMINATE INTERSECTION — AFFECTED SCOPE SUSPENDED"
+    partitions = {partition.affected_scope: partition for partition in effective.partitions}
+    assert set(partitions) == {frozenset({"service:a"}), frozenset({"service:b"})}
+    assert not partitions[frozenset({"service:a"})].suspended
+    assert partitions[frozenset({"service:a"})].allowed_actions == frozenset({"read", "review"})
+    assert not partitions[frozenset({"service:b"})].suspended
+    assert partitions[frozenset({"service:b"})].allowed_actions == frozenset({"review"})
+
+
+def test_overlapping_compatible_dispositions_intersect_only_on_overlap(
+    sqlite_store: SQLiteIntegrityStore,
+) -> None:
+    ctx = context(sqlite_store, "overlap-compatible")
+    trigger = commit_trigger(
+        ctx, "overlap-compatible", scope=frozenset({"service:a", "service:b", "service:c"})
+    )
+    reassessment = commit_reassessment(
+        ctx,
+        "overlap-compatible",
+        (trigger.version_id,),
+        scope=frozenset({"service:a", "service:b", "service:c"}),
+    )
+    disposition(
+        ctx,
+        "overlap-compatible-a",
+        reassessment,
+        allowed=frozenset({"read", "review"}),
+        required=frozenset({"control:a"}),
+        scope=frozenset({"service:a", "service:b"}),
+    )
+    disposition(
+        ctx,
+        "overlap-compatible-b",
+        reassessment,
+        allowed=frozenset({"review"}),
+        required=frozenset({"control:b"}),
+        scope=frozenset({"service:b", "service:c"}),
+    )
+    effective = ctx.service.effective_operating_disposition(
+        case_id=ctx.foundation.context.case_id,
+        decision_version_id=ctx.foundation.decision_version_id,
+        configuration_version_id=ctx.foundation.context.configuration_version_id,
+        effective_at=NOW,
+    )
+    partitions = {partition.affected_scope: partition for partition in effective.partitions}
+    overlap = partitions[frozenset({"service:b"})]
+    assert overlap.allowed_actions == frozenset({"review"})
+    assert overlap.required_controls == frozenset({"control:a", "control:b"})
+    assert not overlap.suspended
+    assert partitions[frozenset({"service:a"})].allowed_actions == frozenset({"read", "review"})
+    assert partitions[frozenset({"service:c"})].required_controls == frozenset({"control:b"})
+
+
+def test_overlapping_indeterminate_dispositions_suspend_only_the_overlap(
+    sqlite_store: SQLiteIntegrityStore,
+) -> None:
+    ctx = context(sqlite_store, "overlap-indeterminate")
+    trigger = commit_trigger(
+        ctx, "overlap-indeterminate", scope=frozenset({"service:a", "service:b", "service:c"})
+    )
+    reassessment = commit_reassessment(
+        ctx,
+        "overlap-indeterminate",
+        (trigger.version_id,),
+        scope=frozenset({"service:a", "service:b", "service:c"}),
+    )
+    disposition(
+        ctx,
+        "overlap-indeterminate-a",
+        reassessment,
+        operating_state="state-a",
+        scope=frozenset({"service:a", "service:b"}),
+    )
+    disposition(
+        ctx,
+        "overlap-indeterminate-b",
+        reassessment,
+        operating_state="state-b",
+        scope=frozenset({"service:b", "service:c"}),
+    )
+    effective = ctx.service.effective_operating_disposition(
+        case_id=ctx.foundation.context.case_id,
+        decision_version_id=ctx.foundation.decision_version_id,
+        configuration_version_id=ctx.foundation.context.configuration_version_id,
+        effective_at=NOW,
+    )
+    partitions = {partition.affected_scope: partition for partition in effective.partitions}
+    assert not partitions[frozenset({"service:a"})].suspended
+    assert partitions[frozenset({"service:b"})].suspended
+    assert partitions[frozenset({"service:b"})].operating_state_values == frozenset(
+        {"state-a", "state-b"}
+    )
+    assert not partitions[frozenset({"service:c"})].suspended
+
+
+def test_unrelated_scope_is_unchanged_by_an_indeterminate_overlap(
+    sqlite_store: SQLiteIntegrityStore,
+) -> None:
+    ctx = context(sqlite_store, "overlap-unrelated")
+    trigger = commit_trigger(
+        ctx,
+        "overlap-unrelated",
+        scope=frozenset({"service:a", "service:b", "service:unrelated"}),
+    )
+    reassessment = commit_reassessment(
+        ctx,
+        "overlap-unrelated",
+        (trigger.version_id,),
+        scope=frozenset({"service:a", "service:b", "service:unrelated"}),
+    )
+    disposition(
+        ctx,
+        "overlap-unrelated-a",
+        reassessment,
+        operating_state="state-a",
+        scope=frozenset({"service:a", "service:b"}),
+    )
+    disposition(
+        ctx,
+        "overlap-unrelated-b",
+        reassessment,
+        operating_state="state-b",
+        scope=frozenset({"service:b"}),
+    )
+    disposition(
+        ctx,
+        "overlap-unrelated-c",
+        reassessment,
+        operating_state="unrelated-state",
+        allowed=frozenset({"observe"}),
+        required=frozenset({"unrelated-control"}),
+        prohibited=frozenset({"unrelated-prohibition"}),
+        scope=frozenset({"service:unrelated"}),
+    )
+    effective = ctx.service.effective_operating_disposition(
+        case_id=ctx.foundation.context.case_id,
+        decision_version_id=ctx.foundation.decision_version_id,
+        configuration_version_id=ctx.foundation.context.configuration_version_id,
+        effective_at=NOW,
+    )
+    partitions = {partition.affected_scope: partition for partition in effective.partitions}
+    assert partitions[frozenset({"service:b"})].suspended
+    unrelated = partitions[frozenset({"service:unrelated"})]
+    assert not unrelated.suspended
+    assert unrelated.operating_state_values == frozenset({"unrelated-state"})
+    assert unrelated.allowed_actions == frozenset({"observe"})
+    assert unrelated.required_controls == frozenset({"unrelated-control"})
+    assert unrelated.prohibitions == frozenset({"unrelated-prohibition"})
 
 
 def test_19_operating_state_values_are_not_ranked(
@@ -941,8 +1086,10 @@ def test_19_operating_state_values_are_not_ranked(
         configuration_version_id=ctx.foundation.context.configuration_version_id,
         effective_at=NOW,
     )
-    assert effective.suspended
-    assert effective.operating_state_values == frozenset({"state-a", "state-z"})
+    assert len(effective.partitions) == 1
+    partition = effective.partitions[0]
+    assert partition.suspended
+    assert partition.operating_state_values == frozenset({"state-a", "state-z"})
 
 
 def test_20_exact_paim_record_or_external_provenance_needs_no_observation(

@@ -15,6 +15,7 @@ from paim.domain.increment6 import (
     AccountabilityFunction,
     DecisionConfirmationVersionInput,
     EffectiveOperatingDisposition,
+    EffectiveOperatingDispositionPartition,
     InterimOperatingDispositionVersionInput,
     ReassessmentCompletionResult,
     ReassessmentDeterminationConflict,
@@ -1849,59 +1850,102 @@ class Increment6ApplicationService(Increment5ApplicationService):
                     selected.append((version_id, row))
             if not selected:
                 return EffectiveOperatingDisposition(
-                    False,
-                    frozenset(),
-                    frozenset(),
-                    frozenset(),
-                    frozenset(),
-                    frozenset(),
-                    frozenset(),
-                    frozenset(),
+                    (),
                     "NO CURRENT INTERIM OPERATING DISPOSITION",
                 )
-            scopes = [
-                frozenset(self._json_tuple(row, "affected_scope_json")) for _, row in selected
-            ]
-            allowed_sets = [
-                frozenset(self._json_tuple(row, "allowed_actions_json")) for _, row in selected
-            ]
-            allowed = allowed_sets[0]
-            for item in allowed_sets[1:]:
-                allowed &= item
-            states = frozenset(
-                cast("str", row["operating_state"])
+
+            exact_scope_memberships: dict[frozenset[RecordVersionId], set[str]] = {}
+            rows_by_version_id = dict(selected)
+            empty_scope_version_ids: set[RecordVersionId] = set()
+            all_exact_scope_values = {
+                scope_value
                 for _, row in selected
-                if row["operating_state"] is not None
-            )
-            required = frozenset().union(
-                *(frozenset(self._json_tuple(row, "required_controls_json")) for _, row in selected)
-            )
-            prohibited = frozenset().union(
-                *(frozenset(self._json_tuple(row, "prohibitions_json")) for _, row in selected)
-            )
-            conditions = frozenset().union(
-                *(frozenset(self._json_tuple(row, "conditions_json")) for _, row in selected)
-            )
-            indeterminate = (
-                any(not scope for scope in scopes)
-                or len(states) > 1
-                or bool(allowed & prohibited)
-                or any(cast("bool", row["suspend_scope"]) for _, row in selected)
+                for scope_value in self._json_tuple(row, "affected_scope_json")
+            }
+            for scope_value in all_exact_scope_values:
+                applicable_version_ids = frozenset(
+                    version_id
+                    for version_id, row in selected
+                    if scope_value in self._json_tuple(row, "affected_scope_json")
+                )
+                exact_scope_memberships.setdefault(applicable_version_ids, set()).add(scope_value)
+            for version_id, row in selected:
+                if not self._json_tuple(row, "affected_scope_json"):
+                    empty_scope_version_ids.add(version_id)
+
+            def aggregate_partition(
+                affected_scope: frozenset[str],
+                version_ids: frozenset[RecordVersionId],
+            ) -> EffectiveOperatingDispositionPartition:
+                applicable = [
+                    (version_id, rows_by_version_id[version_id]) for version_id in version_ids
+                ]
+                allowed_sets = [
+                    frozenset(self._json_tuple(row, "allowed_actions_json"))
+                    for _, row in applicable
+                ]
+                allowed = allowed_sets[0]
+                for item in allowed_sets[1:]:
+                    allowed &= item
+                states = frozenset(
+                    cast("str", row["operating_state"])
+                    for _, row in applicable
+                    if row["operating_state"] is not None
+                )
+                required = frozenset().union(
+                    *(
+                        frozenset(self._json_tuple(row, "required_controls_json"))
+                        for _, row in applicable
+                    )
+                )
+                prohibited = frozenset().union(
+                    *(
+                        frozenset(self._json_tuple(row, "prohibitions_json"))
+                        for _, row in applicable
+                    )
+                )
+                conditions = frozenset().union(
+                    *(frozenset(self._json_tuple(row, "conditions_json")) for _, row in applicable)
+                )
+                indeterminate = (
+                    not affected_scope
+                    or len(states) > 1
+                    or bool(allowed & prohibited)
+                    or any(cast("bool", row["suspend_scope"]) for _, row in applicable)
+                )
+                return EffectiveOperatingDispositionPartition(
+                    indeterminate,
+                    affected_scope,
+                    states,
+                    allowed,
+                    required,
+                    prohibited,
+                    conditions,
+                    version_ids,
+                    (
+                        "INDETERMINATE INTERSECTION — AFFECTED SCOPE SUSPENDED"
+                        if indeterminate
+                        else "EXACT RESTRICTIVE INTERSECTION"
+                    ),
+                )
+
+            partitions = [
+                aggregate_partition(frozenset(scope_values), version_ids)
+                for version_ids, scope_values in exact_scope_memberships.items()
+            ]
+            if empty_scope_version_ids:
+                partitions.append(
+                    aggregate_partition(frozenset(), frozenset(empty_scope_version_ids))
+                )
+            partitions.sort(
+                key=lambda partition: (
+                    tuple(sorted(partition.affected_scope)),
+                    tuple(sorted(str(item) for item in partition.disposition_version_ids)),
+                )
             )
             return EffectiveOperatingDisposition(
-                indeterminate,
-                frozenset().union(*scopes),
-                states,
-                allowed,
-                required,
-                prohibited,
-                conditions,
-                frozenset(item[0] for item in selected),
-                (
-                    "INDETERMINATE INTERSECTION — AFFECTED SCOPE SUSPENDED"
-                    if indeterminate
-                    else "EXACT RESTRICTIVE INTERSECTION"
-                ),
+                tuple(partitions),
+                "EXACT AFFECTED-SCOPE PARTITIONS",
             )
 
     def _validate_completion_basis(
