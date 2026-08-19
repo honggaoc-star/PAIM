@@ -2478,6 +2478,537 @@ learning_item_evidence = Table(
     ),
 )
 
+# Increment 6 — Trigger, Reassessment, and restrictive Interim Disposition.
+# Currentness and Trigger Coverage are intentionally derived from immutable facts.
+reassessment_mechanism_records = Table(
+    "reassessment_mechanism_records",
+    metadata,
+    Column("mechanism_id", String(36), ForeignKey("records.record_id"), primary_key=True),
+)
+reassessment_mechanism_versions = Table(
+    "reassessment_mechanism_versions",
+    metadata,
+    Column("version_id", String(36), ForeignKey("record_versions.version_id"), primary_key=True),
+    Column(
+        "mechanism_id",
+        String(36),
+        ForeignKey("reassessment_mechanism_records.mechanism_id"),
+        nullable=False,
+    ),
+    Column("function", Text, nullable=False),
+    Column("case_id", String(36), ForeignKey("paim_cases.case_id"), nullable=False),
+    Column(
+        "decision_version_id",
+        String(36),
+        ForeignKey("decision_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "configuration_version_id",
+        String(36),
+        ForeignKey("managed_configuration_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "intervention_version_id",
+        String(36),
+        ForeignKey("intervention_versions.version_id"),
+        nullable=True,
+    ),
+    Column("accountable_actor_id", String(36), ForeignKey("paim_actors.actor_id"), nullable=False),
+    Column("rule_version", Text, nullable=False),
+    Column("authority_scope", Text, nullable=False),
+    Column("authority_source", Text, nullable=False),
+    Column("limits_json", Text, nullable=False),
+    CheckConstraint(
+        "function IN ('Trigger Determiner','Reassessment Owner',"
+        "'Reassessment Coordination Authority')",
+        name="ck_reassessment_mechanism_function",
+    ),
+)
+Index(
+    "ix_reassessment_mechanism_context",
+    reassessment_mechanism_versions.c.function,
+    reassessment_mechanism_versions.c.case_id,
+    reassessment_mechanism_versions.c.decision_version_id,
+    reassessment_mechanism_versions.c.configuration_version_id,
+)
+
+trigger_records = Table(
+    "trigger_records",
+    metadata,
+    Column("trigger_id", String(36), ForeignKey("records.record_id"), primary_key=True),
+)
+trigger_versions = Table(
+    "trigger_versions",
+    metadata,
+    Column("version_id", String(36), ForeignKey("record_versions.version_id"), primary_key=True),
+    Column("trigger_id", String(36), ForeignKey("trigger_records.trigger_id"), nullable=False),
+    Column("case_id", String(36), ForeignKey("paim_cases.case_id"), nullable=False),
+    Column(
+        "decision_version_id",
+        String(36),
+        ForeignKey("decision_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "configuration_version_id",
+        String(36),
+        ForeignKey("managed_configuration_versions.version_id"),
+        nullable=False,
+    ),
+    Column("trigger_type", Text, nullable=False),
+    Column("management_question", Text, nullable=False),
+    Column("affected_scope_json", Text, nullable=False),
+    Column("source_kind", Text, nullable=False),
+    Column("source_family", Text, nullable=False),
+    Column("source_record_id", Text, nullable=False),
+    Column("source_version_id", Text, nullable=False),
+    Column("source_system", Text, nullable=True),
+    Column("source_actor", Text, nullable=True),
+    Column("source_event_id", Text, nullable=False),
+    Column("source_knowledge_at_us", BigInteger, nullable=False),
+    Column("withdrawn", Boolean, nullable=False, default=False),
+    CheckConstraint(
+        "source_kind IN ('PAIM_RECORD','HUMAN_EXTERNAL')", name="ck_trigger_source_kind"
+    ),
+)
+Index(
+    "ix_trigger_case_source_question",
+    trigger_versions.c.case_id,
+    trigger_versions.c.source_event_id,
+    trigger_versions.c.management_question,
+)
+
+trigger_determination_records = Table(
+    "trigger_determination_records",
+    metadata,
+    Column("determination_id", String(36), ForeignKey("records.record_id"), primary_key=True),
+)
+trigger_determination_versions = Table(
+    "trigger_determination_versions",
+    metadata,
+    Column("version_id", String(36), ForeignKey("record_versions.version_id"), primary_key=True),
+    Column(
+        "determination_id",
+        String(36),
+        ForeignKey("trigger_determination_records.determination_id"),
+        nullable=False,
+    ),
+    Column(
+        "trigger_version_id", String(36), ForeignKey("trigger_versions.version_id"), nullable=False
+    ),
+    Column("case_id", String(36), ForeignKey("paim_cases.case_id"), nullable=False),
+    Column(
+        "decision_version_id",
+        String(36),
+        ForeignKey("decision_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "configuration_version_id",
+        String(36),
+        ForeignKey("managed_configuration_versions.version_id"),
+        nullable=False,
+    ),
+    Column("outcome", Text, nullable=False),
+    Column("actor_id", String(36), ForeignKey("paim_actors.actor_id"), nullable=False),
+    Column(
+        "assignment_version_id",
+        String(36),
+        ForeignKey("role_assignment_versions.version_id"),
+        nullable=True,
+    ),
+    Column(
+        "mechanism_version_id",
+        String(36),
+        ForeignKey("reassessment_mechanism_versions.version_id"),
+        nullable=True,
+    ),
+    CheckConstraint(
+        "outcome IN ('INFORMATIONAL','MONITOR','ANALYTICAL_REFRESH','REASSESSMENT_REQUIRED',"
+        "'IMMEDIATE_DISPOSITION_AND_REASSESSMENT')",
+        name="ck_trigger_determination_outcome",
+    ),
+    CheckConstraint(
+        "(assignment_version_id IS NOT NULL AND mechanism_version_id IS NULL) OR "
+        "(assignment_version_id IS NULL AND mechanism_version_id IS NOT NULL)",
+        name="ck_trigger_determination_accountability",
+    ),
+)
+Index("ix_trigger_determination_trigger", trigger_determination_versions.c.trigger_version_id)
+
+reassessment_records = Table(
+    "reassessment_records",
+    metadata,
+    Column("reassessment_id", String(36), ForeignKey("records.record_id"), primary_key=True),
+)
+reassessment_versions = Table(
+    "reassessment_versions",
+    metadata,
+    Column("version_id", String(36), ForeignKey("record_versions.version_id"), primary_key=True),
+    Column(
+        "reassessment_id",
+        String(36),
+        ForeignKey("reassessment_records.reassessment_id"),
+        nullable=False,
+    ),
+    Column("case_id", String(36), ForeignKey("paim_cases.case_id"), nullable=False),
+    Column(
+        "decision_version_id",
+        String(36),
+        ForeignKey("decision_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "configuration_version_id",
+        String(36),
+        ForeignKey("managed_configuration_versions.version_id"),
+        nullable=False,
+    ),
+    Column("purpose", Text, nullable=False),
+    Column("affected_scope_json", Text, nullable=False),
+    Column("owner_actor_id", String(36), ForeignKey("paim_actors.actor_id"), nullable=False),
+    Column(
+        "owner_assignment_version_id",
+        String(36),
+        ForeignKey("role_assignment_versions.version_id"),
+        nullable=True,
+    ),
+    Column(
+        "owner_mechanism_version_id",
+        String(36),
+        ForeignKey("reassessment_mechanism_versions.version_id"),
+        nullable=True,
+    ),
+    Column("initial_status", Text, nullable=False),
+    CheckConstraint(
+        "initial_status IN ('PROPOSED','OPEN','ANALYSIS_IN_PROGRESS','AWAITING_DECISION_AUTHORITY',"
+        "'BLOCKED_CONFLICT','COMPLETED_CONFIRMED','COMPLETED_SUCCESSOR_DECISION','CANCELLED','SUPERSEDED')",
+        name="ck_reassessment_status",
+    ),
+    CheckConstraint(
+        "(initial_status = 'PROPOSED' AND owner_assignment_version_id IS NULL "
+        "AND owner_mechanism_version_id IS NULL) OR "
+        "(owner_assignment_version_id IS NOT NULL AND owner_mechanism_version_id IS NULL) OR "
+        "(owner_assignment_version_id IS NULL AND owner_mechanism_version_id IS NOT NULL)",
+        name="ck_reassessment_owner_accountability",
+    ),
+)
+Index(
+    "ix_reassessment_case_context",
+    reassessment_versions.c.case_id,
+    reassessment_versions.c.decision_version_id,
+    reassessment_versions.c.configuration_version_id,
+)
+
+trigger_membership_records = Table(
+    "trigger_membership_records",
+    metadata,
+    Column("membership_id", String(36), ForeignKey("records.record_id"), primary_key=True),
+)
+trigger_membership_versions = Table(
+    "trigger_membership_versions",
+    metadata,
+    Column("version_id", String(36), ForeignKey("record_versions.version_id"), primary_key=True),
+    Column(
+        "membership_id",
+        String(36),
+        ForeignKey("trigger_membership_records.membership_id"),
+        nullable=False,
+    ),
+    Column(
+        "trigger_version_id", String(36), ForeignKey("trigger_versions.version_id"), nullable=False
+    ),
+    Column(
+        "reassessment_version_id",
+        String(36),
+        ForeignKey("reassessment_versions.version_id"),
+        nullable=False,
+    ),
+    Column("membership_scope", Text, nullable=False),
+    Column("active", Boolean, nullable=False),
+    UniqueConstraint(
+        "trigger_version_id",
+        "reassessment_version_id",
+        name="uq_trigger_reassessment_membership",
+    ),
+)
+trigger_set_members = Table(
+    "trigger_set_members",
+    metadata,
+    Column(
+        "reassessment_version_id",
+        String(36),
+        ForeignKey("reassessment_versions.version_id"),
+        primary_key=True,
+    ),
+    Column("ordinal", BigInteger, primary_key=True),
+    Column(
+        "trigger_version_id", String(36), ForeignKey("trigger_versions.version_id"), nullable=False
+    ),
+    Column(
+        "membership_version_id",
+        String(36),
+        ForeignKey("trigger_membership_versions.version_id"),
+        nullable=False,
+    ),
+    UniqueConstraint(
+        "reassessment_version_id",
+        "trigger_version_id",
+        name="uq_trigger_set_trigger",
+    ),
+)
+
+reassessment_determination_records = Table(
+    "reassessment_determination_records",
+    metadata,
+    Column("determination_id", String(36), ForeignKey("records.record_id"), primary_key=True),
+)
+reassessment_determination_versions = Table(
+    "reassessment_determination_versions",
+    metadata,
+    Column("version_id", String(36), ForeignKey("record_versions.version_id"), primary_key=True),
+    Column(
+        "determination_id",
+        String(36),
+        ForeignKey("reassessment_determination_records.determination_id"),
+        nullable=False,
+    ),
+    Column("kind", Text, nullable=False),
+    Column("outcome", Text, nullable=False),
+    Column(
+        "target_reassessment_version_id",
+        String(36),
+        ForeignKey("reassessment_versions.version_id"),
+        nullable=True,
+    ),
+    Column(
+        "canonical_trigger_version_id",
+        String(36),
+        ForeignKey("trigger_versions.version_id"),
+        nullable=True,
+    ),
+    Column("case_id", String(36), ForeignKey("paim_cases.case_id"), nullable=False),
+    Column(
+        "decision_version_id",
+        String(36),
+        ForeignKey("decision_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "configuration_version_id",
+        String(36),
+        ForeignKey("managed_configuration_versions.version_id"),
+        nullable=False,
+    ),
+    Column("affected_scope_json", Text, nullable=False),
+    Column("actor_id", String(36), ForeignKey("paim_actors.actor_id"), nullable=False),
+    Column(
+        "assignment_version_id",
+        String(36),
+        ForeignKey("role_assignment_versions.version_id"),
+        nullable=True,
+    ),
+    Column(
+        "mechanism_version_id",
+        String(36),
+        ForeignKey("reassessment_mechanism_versions.version_id"),
+        nullable=True,
+    ),
+    CheckConstraint(
+        "kind IN ('GROUPING','DUPLICATE','COEXISTENCE','CANCELLATION','SUPERSESSION')",
+        name="ck_reassessment_determination_kind",
+    ),
+    CheckConstraint(
+        "outcome IN ('COMPATIBLE','INCOMPATIBLE','DUPLICATE','COEXISTENCE_AUTHORIZED',"
+        "'CANCELLATION_AUTHORIZED','SUPERSESSION_AUTHORIZED')",
+        name="ck_reassessment_determination_outcome",
+    ),
+    CheckConstraint(
+        "(assignment_version_id IS NOT NULL AND mechanism_version_id IS NULL) OR "
+        "(assignment_version_id IS NULL AND mechanism_version_id IS NOT NULL)",
+        name="ck_reassessment_determination_accountability",
+    ),
+)
+reassessment_determination_triggers = Table(
+    "reassessment_determination_triggers",
+    metadata,
+    Column(
+        "determination_version_id",
+        String(36),
+        ForeignKey("reassessment_determination_versions.version_id"),
+        primary_key=True,
+    ),
+    Column(
+        "trigger_version_id",
+        String(36),
+        ForeignKey("trigger_versions.version_id"),
+        primary_key=True,
+    ),
+)
+reassessment_determination_reassessments = Table(
+    "reassessment_determination_reassessments",
+    metadata,
+    Column(
+        "determination_version_id",
+        String(36),
+        ForeignKey("reassessment_determination_versions.version_id"),
+        primary_key=True,
+    ),
+    Column(
+        "reassessment_version_id",
+        String(36),
+        ForeignKey("reassessment_versions.version_id"),
+        primary_key=True,
+    ),
+)
+
+interim_disposition_records = Table(
+    "interim_disposition_records",
+    metadata,
+    Column("disposition_id", String(36), ForeignKey("records.record_id"), primary_key=True),
+)
+interim_disposition_versions = Table(
+    "interim_disposition_versions",
+    metadata,
+    Column("version_id", String(36), ForeignKey("record_versions.version_id"), primary_key=True),
+    Column(
+        "disposition_id",
+        String(36),
+        ForeignKey("interim_disposition_records.disposition_id"),
+        nullable=False,
+    ),
+    Column(
+        "reassessment_version_id",
+        String(36),
+        ForeignKey("reassessment_versions.version_id"),
+        nullable=False,
+    ),
+    Column("case_id", String(36), ForeignKey("paim_cases.case_id"), nullable=False),
+    Column(
+        "decision_version_id",
+        String(36),
+        ForeignKey("decision_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "configuration_version_id",
+        String(36),
+        ForeignKey("managed_configuration_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "boundary_snapshot_version_id",
+        String(36),
+        ForeignKey("boundary_snapshot_versions.version_id"),
+        nullable=False,
+    ),
+    Column("affected_scope_json", Text, nullable=False),
+    Column("operating_state", Text, nullable=True),
+    Column("allowed_actions_json", Text, nullable=False),
+    Column("required_controls_json", Text, nullable=False),
+    Column("prohibitions_json", Text, nullable=False),
+    Column("conditions_json", Text, nullable=False),
+    Column("suspend_scope", Boolean, nullable=False),
+    Column(
+        "authority_basis_version_id",
+        String(36),
+        ForeignKey("decision_authorization_basis_versions.version_id"),
+        nullable=False,
+    ),
+    Column("authority_actor_id", String(36), ForeignKey("paim_actors.actor_id"), nullable=False),
+    Column("expiry_at_us", BigInteger, nullable=True),
+)
+Index(
+    "ix_interim_disposition_context_time",
+    interim_disposition_versions.c.case_id,
+    interim_disposition_versions.c.decision_version_id,
+    interim_disposition_versions.c.configuration_version_id,
+    interim_disposition_versions.c.expiry_at_us,
+)
+
+decision_confirmation_records = Table(
+    "decision_confirmation_records",
+    metadata,
+    Column("confirmation_id", String(36), ForeignKey("records.record_id"), primary_key=True),
+)
+decision_confirmation_versions = Table(
+    "decision_confirmation_versions",
+    metadata,
+    Column("version_id", String(36), ForeignKey("record_versions.version_id"), primary_key=True),
+    Column(
+        "confirmation_id",
+        String(36),
+        ForeignKey("decision_confirmation_records.confirmation_id"),
+        nullable=False,
+    ),
+    Column(
+        "reassessment_version_id",
+        String(36),
+        ForeignKey("reassessment_versions.version_id"),
+        nullable=False,
+        unique=True,
+    ),
+    Column(
+        "decision_version_id",
+        String(36),
+        ForeignKey("decision_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "configuration_version_id",
+        String(36),
+        ForeignKey("managed_configuration_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "boundary_snapshot_version_id",
+        String(36),
+        ForeignKey("boundary_snapshot_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "authority_basis_version_id",
+        String(36),
+        ForeignKey("decision_authorization_basis_versions.version_id"),
+        nullable=False,
+    ),
+    Column("confirmer_actor_id", String(36), ForeignKey("paim_actors.actor_id"), nullable=False),
+)
+
+reassessment_completion_outcomes = Table(
+    "reassessment_completion_outcomes",
+    metadata,
+    Column(
+        "reassessment_version_id",
+        String(36),
+        ForeignKey("reassessment_versions.version_id"),
+        primary_key=True,
+    ),
+    Column("path", Text, nullable=False),
+    Column(
+        "confirmation_version_id",
+        String(36),
+        ForeignKey("decision_confirmation_versions.version_id"),
+        nullable=True,
+    ),
+    Column(
+        "successor_decision_version_id",
+        String(36),
+        ForeignKey("decision_versions.version_id"),
+        nullable=True,
+    ),
+    Column("completed_at_us", BigInteger, nullable=False),
+    CheckConstraint(
+        "(path = 'CONFIRMED' AND confirmation_version_id IS NOT NULL "
+        "AND successor_decision_version_id IS NULL) OR "
+        "(path = 'SUCCESSOR_DECISION' AND confirmation_version_id IS NULL "
+        "AND successor_decision_version_id IS NOT NULL)",
+        name="ck_reassessment_exactly_one_completion",
+    ),
+)
+
 IMMUTABILITY_TRIGGERS: tuple[str, ...] = (
     """
     CREATE TRIGGER prevent_finalized_version_update
