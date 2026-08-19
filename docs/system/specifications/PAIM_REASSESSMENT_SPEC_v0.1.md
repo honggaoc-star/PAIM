@@ -828,7 +828,7 @@ Later correction, withdrawal, role expiry, supersession, cancellation, or succes
 ### 38.11 Deferred boundaries
 
 - **IRR-009:** no Observation identity/version/cardinality, persistence, retention, or automated Observation-to-Trigger conversion is defined. Allowed sources are exact existing PAIM records and explicit human/external events with retained provenance.
-- **IRR-012:** no Management Register population, shared-dependency equivalence, concentration aggregation, cross-Case prioritization, or Register-driven workflow is required.
+- **IRR-012:** accepted Management Register projection may surface exact Trigger, Reassessment, and Interim Operating Disposition facts and Shared Dependency groups, but it never substitutes for Case-scoped selection, coverage, coordination, completion, authority, or outcome and never creates Register-driven workflow.
 - **IRR-014:** exact operating-state values may be retained and compared only for identity and exact authorized applicability. No stronger, broader, more-restrictive, escalation-rank, automatic-target-state, priority, materiality, or grouping inference is permitted.
 
 ## 39. Open Questions
@@ -844,6 +844,12 @@ Deferred to later specifications/platform design:
 - organization-specific scheduling and presentation of future-effective successor decisions;
 - portfolio-level reassessment;
 - closure/retention policy.
+
+### 39.1 IRR-012 Register conformance
+
+The Register projects `REASSESSMENT_REQUIRED_UNASSIGNED`, `BLOCKED_CONFLICT`, Trigger Determination/Coverage conflict, eligible active or overdue Reassessment, owner vacancy/conflict, overlap conflict, and outcome-blocked work as exact current attention. Completed, cancelled, and superseded Reassessments are historical unless another current concern cites them.
+
+Every current Interim Operating Disposition exact-scope partition remains independently visible. Suspension or indeterminate intersection affects only its exact scope; the Register never globally intersects disjoint scope or ranks operating-state values. Dashboard/queue order, severity, timestamps, provider identity, Shared Dependency groups, and notification state cannot group Triggers, select coverage, coordinate Reassessments, close work, or transfer outcomes across Cases. Register actions opening a Trigger/Reassessment invoke the exact Increment 6 commands and all accountability/current-governance guards.
 
 ## 40. Completion Impact
 

@@ -333,6 +333,8 @@ This module builds non-authoritative, reproducible projections for:
 
 Every projected fact retains its selected source Record Version ID, query scope, effective time, knowledge cutoff, and projection watermark. Absence and conflict are projected rather than repaired. The Register never accepts substantive edits (`PAIM_MANAGEMENT_REGISTER_SPEC_v0.1.md`, §§3–26 and 33–37).
 
+IRR-012 hardening fixes the base concern key as owning Case + applicable Configuration or permitted explicit absence context + concern kind + source family + stable source Record ID. Configuration summaries and Shared Dependency groups are derived groupings only. The authoritative core additionally owns stable/versioned Shared Dependency, immutable Dependency Candidate Set, Equivalence Determination, and optional Concentration Determination families; those records establish dependency meaning but do not make Register rows authoritative or create cross-Case authority.
+
 ### 5.13 Identity, Roles, and Accountability module
 
 This module owns mappings among:
@@ -794,6 +796,10 @@ The Register is a portfolio projection, not an editable record. Its unit is conf
 
 Register actions that imply substantive management change issue commands to the appropriate authoritative module. Editing a Register row directly is prohibited.
 
+The accepted v0.1 unit is the stable concern key in §5.12. Population follows the family-specific governing matrix and exact derived lifecycle categories in the Management Register specification. Shared Dependency grouping requires the same exact dependency Record ID or one eligible Equivalence Determination against one immutable Candidate Set Version. Cross-Case groups retain every constituent and transfer no authority, applicability, satisfaction, coverage, outcome, ownership, or closure.
+
+`DEPENDENCY_CANDIDATE_SET` is never a scope string or projection/query collection. A finalized Version has canonical immutable typed membership and checksum/integrity basis; membership change creates a successor Version. Shared Dependency accountability and historical reconstruction always cite that exact Version.
+
 ### 13.5 Dashboards, queues, reports, and exports
 
 Dashboards and queues are filtered projections of explicit facts and attention conditions. Reports and exports include:
@@ -806,6 +812,8 @@ Dashboards and queues are filtered projections of explicit facts and attention c
 
 High-level indicators may support prioritization but must link to underlying reasons. They never replace the authoritative Value, Risk, Boundary, authority, uncertainty, or Decision record.
 
+Exact descriptive counts/sets and source-fact sorting are permitted. Counts do not become risk, severity, materiality, or priority. Substantive concentration requires a separate eligible Concentration Determination; substantive cross-family prioritization remains outside Increment 7 unless separately governed.
+
 ### 13.6 Projection lag and inconsistency
 
 Projection lag is visible. A projection that cannot prove currency must state its watermark and must not present itself as authoritative “now.” If a projection disagrees with direct authoritative evaluation, the platform:
@@ -814,6 +822,8 @@ Projection lag is visible. A projection that cannot prove currency must state it
 2. uses authoritative evaluation for guarded commands;
 3. prevents the projection from inventing a current value; and
 4. rebuilds/reconciles the projection without altering authoritative records.
+
+For a requested scope, a materialized Register view is current only when it exposes the active rule Version and its processed watermark proves processing through the relevant authoritative recorded-time high-water mark. Otherwise it is visibly stale/inconsistent or rebuilt before claiming current. Guarded commands always re-evaluate authoritative source facts.
 
 ## 14. Security and access-control architecture
 
@@ -1111,7 +1121,7 @@ The architecture records the status and required behavior of the following depen
 | IRR-009 — Observation Record | Observation is definitely an authoritative record or merely transient telemetry. | Until IRR-009 is accepted, Increment 6 persists no Observation and performs no automated Observation-to-Trigger conversion. Exact existing PAIM records and explicit human/external events with retained provenance may source a Trigger. Any later Observation intake/conversion contract remains a replaceable deferred extension. | Persisting Observation or automating Observation-to-Evidence/Trigger conversion. |
 | IRR-010 — Intervention prerequisite aggregation and completion acceptance | `completed` means accepted; all Interventions are prerequisites; one status automatically permits target operation. | Explicit prerequisite classification, completion evidence, acceptance determination/role, aggregate guard, and unresolved acceptance state. | Implementing transition to target `OPERATING_OBSERVING`. |
 | IRR-011 — Trigger/Reassessment cardinality and concurrency — normatively hardened, pending independent closure review | One Trigger maps to one Reassessment; similarity deduplicates; membership mutates; concurrent Reassessments or dispositions choose by recency/severity/rank; merge absorbs history. | Apply Case-scoped versioned Trigger identity, identity-only replay, accountable determinations, many-to-many immutable Membership/Trigger Sets, no-auto-grouping, bounded non-overlapping concurrency, explicit overlap/coverage conflict, no v0.1 merge, accountable cancellation/supersession, prospective completion revalidation, separate accountability functions, restrictive-overlay intersection/suspension, and IRR-009/012/014 boundaries from the hardened Reassessment/Case/Roles/Integrity contracts. | Independent focused IRR-011 gate-closure review before Increment 6 implementation. |
-| IRR-012 — Register derivation/aggregation and shared dependency identity | Register has one row per Case; provider/control names imply shared identity; aggregation may pick a winner. | Projection rule/version, configurable unit, multi-valued/conflict display, stable shared-dependency/equivalence extension, exact source links. | Implementing portfolio aggregation and concentration analytics. |
+| IRR-012 — Register derivation/aggregation and Shared Dependency identity — normatively hardened, pending independent closure review | Register has one row per Case; provider/control names imply shared identity; aggregation may pick a winner; Candidate Set may be a free-form/query target. | Exact concern key and population matrix; derived lifecycle; dual-time rule/high-water/watermark; immutable versioned Candidate Set; accountable Shared Dependency Equivalence/optional Concentration Determinations; descriptive cross-Case aggregation; exact manifest; no authority transfer; IRR-009/014 exclusions. | Independent focused IRR-012 gate-closure review before Increment 7 implementation. |
 | IRR-013 / CON-002 — Role Assignment typed scope and precedence | Every assignment requires one Case; organization-wide assignment overrides narrower assignment; newest/broadest wins. | Typed scope target, optional Case relationship, precedence-policy extension, exact Authorization Basis chain validation, and unresolved assignment conflict. | Implementing general role assignment/permission derivation beyond exact Decision authorization. |
 | IRR-014 — operating-state semantic traits and stronger/broader relation | State labels have a universal ordering; string/name comparison determines strength; `suspended` is simply another progression step. | Configured state identity/traits and relation extension, explicit proposed change, indeterminate relation, and invariant that every state change requires successor Decision. | Implementing stronger-state automation and complete escalation oracles. |
 
@@ -1213,10 +1223,10 @@ Implementation should begin only after this architecture is independently review
 
 ### Increment 7 — projections, Management Register, reports, and hooks
 
-- resolve required IRR-012 Register-unit/shared-dependency questions;
+- require independent closure review of the normatively hardened IRR-012 contract before implementation;
 - implement rebuildable current/conflict projections, Register, queues, dashboards/report contracts, and notification intents;
 - expose watermarks and projection inconsistency; and
-- prove exact-source, conflict-display, rebuild-equivalence, and historical-portfolio tests.
+- prove exact-source, immutable-Candidate-Set, equivalence-accountability, no-cross-Case-transfer, conflict-display, rebuild-equivalence, watermark/staleness, and historical-portfolio tests.
 
 ### Increment 8 — external adapters, security hardening, and operational readiness
 

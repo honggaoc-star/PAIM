@@ -770,6 +770,12 @@ Deferred to later system/platform work:
 - how an external signed candidate assertion maps into PAIM provenance and accountable acceptance without writing finalized state directly;
 - external transport/signature protocol for submitting candidate Inputs.
 
+### 35.1 IRR-012 Register conformance
+
+Register population preserves Value and Risk as independent concern dimensions. For each lane and exact use, selection/fitness absence, conflict, rejected/withdrawn current eligibility, or explicit refresh-required attention is projected from its authoritative source result. Non-selected and dissenting history remains discoverable; the Register does not choose a “worst” Input, combine lanes, let one lane satisfy the other, or create a universal Value/Risk score.
+
+Cross-Case dependency grouping never transfers Input Acceptance/Selection, freeze, fitness, Evidence basis, implication, Boundary, or refresh outcome. Any source materiality/priority label is displayed only as its exact identity and does not become cross-family priority.
+
 ## 36. Completion Impact
 
 This specification substantially advances the Value/Risk Interface capability in the system gap map.

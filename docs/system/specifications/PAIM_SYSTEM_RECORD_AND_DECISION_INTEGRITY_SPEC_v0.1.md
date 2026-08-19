@@ -840,6 +840,61 @@ The PAIM system must enforce or surface violation of the following invariants:
 55. Reassessment completion prospectively revalidates current governance and commits exactly one outcome atomically; another completion or successor Decision never silently closes or rebases open work.
 56. Trigger Determiner, Reassessment Owner, Reassessment Coordination Authority, and Decision Authority are distinct substantive functions; software permission, technical principal, ownership, or queue assignment never substitutes.
 57. Later Trigger correction/withdrawal, role expiry/revocation, cancellation, supersession, or successor Decision does not rewrite historical knowledge-time or completed basis; prospective eligibility remains fail-closed.
+58. Every Register Concern Entry is derived from the exact key of owning Case, applicable Configuration or permitted explicit absence context, concern kind, authoritative source family, and stable source Record ID; selected source Versions are basis, not entry identity.
+59. Register categories, groups, aggregates, ordering, acknowledgements, dismissals, queues, reports, exports, and notifications never become authoritative source facts or transfer authority, applicability, satisfaction, outcome, ownership, or closure.
+60. A stable Shared Dependency is established only by exact citation of the same dependency Record ID or one eligible Shared Dependency Equivalence Determination against one exact immutable Dependency Candidate Set Version.
+61. A finalized Dependency Candidate Set Version has immutable exact typed membership. Membership change creates a successor Version and never rewrites a prior accountability target or determination basis.
+62. Shared Dependency Equivalence selection returns one eligible determination, `SHARED DEPENDENCY EQUIVALENCE NOT ESTABLISHED`, or `SHARED DEPENDENCY EQUIVALENCE CONFLICT — UNRESOLVED`; names, similarity, majority, ownership, recency, and software permission never select a winner.
+63. Cross-Case Shared Dependency grouping is descriptive only. Every constituent retains its independent Case/Configuration/source/authority/applicability/satisfaction/coverage/outcome/closure facts.
+64. Exact exposure counts and sets are descriptive. Material concentration, when used, requires a separate eligible authoritative Concentration Determination or accepted governed mechanism; no universal score or threshold exists.
+65. A Register output claimed as current proves its active rule Version and processed watermark through the relevant authoritative recorded-time high-water mark, or remains visibly stale/inconsistent and ineligible as command authority.
+66. Historical Register reconstruction retains the exact source, Candidate Set, determination, rule, dual-time, high-water, watermark, constituent, filter, grouping, and ordering basis used at the time.
+
+### 8.1 Shared Dependency authoritative record contract
+
+The following authoritative families support IRR-012 without making the Management Register authoritative:
+
+#### Shared Dependency
+
+A **Shared Dependency** has a stable Record ID across its immutable Versions. Each Version retains dependency kind/type, declared scope/purpose, organizational context where applicable, effective/recorded time, provenance, and predecessor/correction/supersession/withdrawal history. It is a portfolio dependency identity only; it creates no cross-Case authority, ownership, applicability, satisfaction, coverage, outcome, or closure.
+
+#### Dependency Candidate Set
+
+`DEPENDENCY_CANDIDATE_SET` is a first-class authoritative typed target, not a string or computed query. Each finalized Version retains:
+
+- stable Candidate Set ID and immutable Candidate Set Version ID;
+- exact typed candidate source Record IDs and, where equivalence depends on exact state/content, exact Version IDs;
+- dependency kind/type for every candidate;
+- declared equivalence scope and purpose;
+- owning organizational context required for accountability resolution without creating Case authority transfer;
+- effective time and recorded time;
+- provenance and rationale for establishment;
+- predecessor, correction, supersession, and withdrawal history; and
+- deterministic canonical membership checksum or equivalent integrity basis.
+
+Finalized membership is immutable. Adding, removing, or rebinding any candidate creates a successor Candidate Set Version. A Role Assignment, delegation, mechanism, or determination cites the exact Candidate Set Version. Historical resolution never recomputes membership from current source facts, a projection, search, UI selection, or query result.
+
+#### Shared Dependency Equivalence Determination
+
+An Equivalence Determination has stable Record ID and immutable Version ID and retains exact Candidate Set Version, exact stable Shared Dependency ID where the outcome is `EQUIVALENT`, dependency kind, exact outcome (`EQUIVALENT`, `NOT_EQUIVALENT`, or `INDETERMINATE`) and scope, rationale, exact accountable actor and Shared Dependency Determiner assignment or governed-mechanism/delegation basis, effective/recorded time, and complete correction/supersession/withdrawal history. Only `EQUIVALENT` establishes grouping for its exact scope. `NOT_EQUIVALENT` preserves distinct candidates, and `INDETERMINATE` establishes no group.
+
+For exact Candidate Set Version, dependency kind, scope, effective time, and optional knowledge cutoff, current selection returns exactly:
+
+- one eligible Equivalence Determination;
+- `SHARED DEPENDENCY EQUIVALENCE NOT ESTABLISHED`; or
+- `SHARED DEPENDENCY EQUIVALENCE CONFLICT — UNRESOLVED` with every incompatible candidate and reason.
+
+An outcome may be scope-limited. Incompatible co-current outcomes block authoritative combined grouping but leave all source identities and constituent concern entries independently visible. No newest, majority, name, normalization, similarity, owner, hierarchy, or software-permission winner exists.
+
+#### Concentration Determination
+
+If PAIM records a substantive `MATERIAL CONCENTRATION` or equivalent classification, it uses a separate stable/versioned authoritative Concentration Determination. Each Version retains exact Shared Dependency ID/Version, exact constituent/source input manifest, classification/outcome, rationale, Shared Dependency Determiner actor and assignment/mechanism/delegation basis, effective/recorded time, and history. Current selection returns one eligible determination, `CONCENTRATION DETERMINATION NOT ESTABLISHED`, or `CONCENTRATION DETERMINATION CONFLICT — UNRESOLVED` with every candidate/reason. Absence of this determination leaves exact descriptive exposure counts/sets available but creates no materiality, risk, severity, priority, or authority meaning.
+
+#### Projection and reconstruction integrity
+
+Register population and aggregation are deterministic for declared scope, `effective_at`, optional `known_at`, and exact projection/population/aggregation rule Version. A materialized projection additionally retains calculation time, relevant source recorded-time high-water mark, processed watermark, and consistency state. It is current only when the watermark proves processing through that high-water mark under the active rule Version.
+
+A historical Register view/export manifest retains requested scope/access context; effective/knowledge time; all rule IDs/Versions; every selected source Record/Version and absent/conflict candidates; Shared Dependency and exact Candidate Set/Equivalence/Concentration Versions; constituent concern keys and group membership; calculation time; high-water mark; watermark/inconsistency; and filter/group/order basis. Later correction, rule change, equivalence change, supersession, or rebuild never rewrites a prior manifest.
 
 ## 9. Integrity behavior and test candidates
 
@@ -908,7 +963,11 @@ The system may mechanically:
 - select exact Obligation Sets, Completion Acceptances, and Completion Acceptor accountability as one, absence, or conflict;
 - derive per-obligation and aggregate prerequisite results using the normative staged all-of rule;
 - validate exact Prerequisite Evaluation Basis and Activation Authorization completeness; and
-- execute a genuinely governed, pre-authorized organizational activation mechanism only when its exact rule/version/scope/authority and every guard are established.
+- execute a genuinely governed, pre-authorized organizational activation mechanism only when its exact rule/version/scope/authority and every guard are established;
+- validate immutable Dependency Candidate Set membership/checksum and exact typed candidate references;
+- select Shared Dependency Equivalence and Concentration Determinations as one, absence, or conflict for exact target/scope/time;
+- derive exact descriptive Register counts/sets from a retained constituent manifest; and
+- validate projection watermark against the relevant authoritative recorded-time high-water mark and active rule Version.
 
 The system must leave to accountable human or established organizational authority:
 
@@ -929,7 +988,9 @@ The system must leave to accountable human or established organizational authori
 - legitimacy and assignment of an accountable actor/mechanism;
 - substantive Completion Acceptance;
 - whether continued-validity/reuse criteria remain satisfied for a successor Decision; and
-- explicit target activation unless a genuine governed organizational mechanism was already authorized for that exact determination.
+- explicit target activation unless a genuine governed organizational mechanism was already authorized for that exact determination;
+- establishment of Shared Dependency equivalence beyond exact identity; and
+- substantive concentration classification or cross-Case prioritization.
 
 Mechanical validity means the record is internally eligible for the next action. It does not mean the management judgment is substantively correct or authorized unless the required human/authority event also exists.
 
@@ -940,12 +1001,11 @@ This specification does not attempt to resolve all P1 findings from the implemen
 The following remain for bounded later work unless another accepted specification already resolves them:
 
 - whether Observation is a separate authoritative record;
-- Management Register aggregation and shared-dependency identity;
 - canonical stronger/broader relations among organization-specific operating states.
 
-These remaining items are IRR-009, IRR-012, and IRR-014 respectively. IRR-011 Trigger/Reassessment semantics are normatively hardened by the Reassessment, Case Lifecycle, Roles/Accountability, Integration/Decision, Intervention/Learning, Behavioral Validation, and this cross-cutting specification, subject to independent Increment 6 gate-closure re-review. Reassessment merge/absorption is explicitly unavailable in v0.1 rather than deferred as an implementation choice. IRR-010 Intervention semantics are likewise normatively hardened by their owning/conforming specifications and have completed their independent gate review. This hardening does not define Observation persistence, Register aggregation/shared-dependency equivalence, or stronger/broader operating-state ranking.
+These remaining items are IRR-009 and IRR-014 respectively. IRR-012 Management Register semantics are normatively hardened by §§8.1 and the Management Register, Roles/Accountability, Managed Configuration, analytical, Decision, Intervention/Learning, Reassessment, Behavioral Validation, Platform Architecture, and sequencing contracts, subject to independent Increment 7 gate-closure re-review. This hardening does not define Observation persistence or stronger/broader operating-state ranking.
 
-Configuration ownership and v0.1 governing cardinality are resolved by the Managed Configuration and Case Lifecycle specifications: exactly one owning Case per Configuration identity and at most one governing Configuration per Case/effective time. Cross-Case sharing, dependency equivalence, and reuse beyond explicit relationships remain deferred with IRR-012.
+Configuration ownership and v0.1 governing cardinality remain unchanged: exactly one owning Case per Configuration identity and at most one governing Configuration per Case/effective time. Accepted Shared Dependency identity permits descriptive cross-Case grouping only under §§8.1 and never creates joint Configuration ownership or cross-Case authority/reuse.
 
 General v0.1 Role Assignment overlap is resolved by the Roles/Accountability specification's no-implicit-precedence rule. A later accepted versioned organizational policy may define explicit displacement or combination behavior, but its absence never authorizes a specific-over-general, broad-over-narrow, newest, or software-permission fallback.
 
