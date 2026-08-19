@@ -160,9 +160,9 @@ exact-scope restrictive intersection or affected-scope suspension.
 The current estimate is **approximately 92% complete against the bounded
 complete-functional-v0.1 denominator after Increment 8 and the accepted
 release-scope decision**. This is a functional-completion estimate, not a
-release declaration. Remaining work is principally this consistency
-reconciliation, separately authorized Increment 9 integrated/practitioner
-validation, and final traceability and release evidence.
+release declaration. With this reconciliation merged, remaining work is
+principally separately authorized Increment 9 integrated/practitioner
+validation plus final traceability and release evidence.
 
 The current product is a local governed application. Enterprise/cloud
 deployment, live provider integrations, distributed infrastructure, and
@@ -171,8 +171,7 @@ generic workflow scope are not part of the v0.1 claim.
 ## Development Direction
 
 Increment 9 remains a separate gate and has not begun. It may be
-authorized only after the accepted scope-consistency package is
-independently reviewed and merged and a bounded issue freezes the exact
+authorized only through a separate bounded issue that freezes the exact
 claim, three practitioner pathways, hard boundary oracles, regression and
 operational evidence, practitioner study, final traceability, and release
 verdict. Passing that campaign—not scope completion alone—is required
