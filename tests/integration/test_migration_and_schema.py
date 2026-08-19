@@ -25,7 +25,7 @@ def test_alembic_head_foreign_keys_and_immutability_triggers_exist(
     with sqlite_store.engine.connect() as connection:
         assert connection.exec_driver_sql("PRAGMA foreign_keys").scalar_one() == 1
         assert connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one() == (
-            "0006_increment_6"
+            "0007_increment_7"
         )
         trigger_names = set(
             connection.execute(
@@ -138,7 +138,7 @@ def test_upgrade_from_increment_2_revision_to_increment_3_head(tmp_path: Path) -
         with engine.connect() as connection:
             assert (
                 connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
-                == "0006_increment_6"
+                == "0007_increment_7"
             )
     finally:
         engine.dispose()
@@ -216,7 +216,7 @@ def test_increment_2_schema_tables_constraints_indexes_and_upgrade_from_incremen
         with engine.connect() as connection:
             assert connection.execute(
                 text("SELECT version_num FROM alembic_version")
-            ).scalar_one() == ("0006_increment_6")
+            ).scalar_one() == ("0007_increment_7")
     finally:
         engine.dispose()
 
@@ -345,7 +345,7 @@ def test_upgrade_from_increment_3_revision_to_increment_4_head(tmp_path: Path) -
         with engine.connect() as connection:
             assert (
                 connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
-                == "0006_increment_6"
+                == "0007_increment_7"
             )
     finally:
         engine.dispose()
@@ -482,7 +482,7 @@ def test_upgrade_from_increment_4_revision_to_increment_5_head(tmp_path: Path) -
         with engine.connect() as connection:
             assert (
                 connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
-                == "0006_increment_6"
+                == "0007_increment_7"
             )
     finally:
         engine.dispose()
@@ -605,6 +605,118 @@ def test_upgrade_from_increment_5_revision_to_increment_6_head(tmp_path: Path) -
         with engine.connect() as connection:
             assert connection.execute(
                 text("SELECT version_num FROM alembic_version")
-            ).scalar_one() == ("0006_increment_6")
+            ).scalar_one() == ("0007_increment_7")
+    finally:
+        engine.dispose()
+
+
+def test_increment_7_schema_constraints_indexes_triggers_and_no_concern_row_table(
+    sqlite_store: SQLiteIntegrityStore,
+) -> None:
+    inspector = inspect(sqlite_store.engine)
+    increment_7_tables = {
+        "shared_dependency_records",
+        "shared_dependency_versions",
+        "dependency_candidate_set_records",
+        "dependency_candidate_set_versions",
+        "dependency_candidate_set_members",
+        "shared_dependency_mechanism_records",
+        "shared_dependency_mechanism_versions",
+        "shared_dependency_equivalence_records",
+        "shared_dependency_equivalence_versions",
+        "shared_dependency_equivalence_delegations",
+        "register_output_manifests",
+        "register_notification_intents",
+    }
+    table_names = set(inspector.get_table_names())
+    assert increment_7_tables <= table_names
+    assert "management_register_concern_rows" not in table_names
+    assert "observation_records" not in table_names
+    assert "portfolio_scores" not in table_names
+    role_checks = {
+        item["name"]: item["sqltext"]
+        for item in inspector.get_check_constraints("role_assignment_versions")
+    }
+    assert "dependency_candidate_set" in role_checks["ck_role_target_type"]
+    assert "shared_dependency" in role_checks["ck_role_target_type"]
+    assert {item["name"] for item in inspector.get_indexes("dependency_candidate_set_members")} >= {
+        "ix_candidate_member_source"
+    }
+    assert {
+        item["name"] for item in inspector.get_indexes("shared_dependency_equivalence_versions")
+    } >= {"ix_equivalence_selection"}
+    with sqlite_store.engine.connect() as connection:
+        triggers = set(
+            connection.execute(
+                text("SELECT name FROM sqlite_master WHERE type = 'trigger'")
+            ).scalars()
+        )
+    for table in increment_7_tables:
+        assert f"prevent_{table}_update" in triggers
+        assert f"prevent_{table}_delete" in triggers
+
+
+def test_upgrade_from_increment_6_revision_to_increment_7_head(tmp_path: Path) -> None:
+    database_path = (tmp_path / "upgrade-from-increment-6.sqlite3").as_posix()
+    database_url = f"sqlite+pysqlite:///{database_path}"
+    config = alembic_config(database_url)
+    command.upgrade(config, "0006_increment_6")
+    engine = create_engine(database_url)
+    try:
+        assert "shared_dependency_versions" not in inspect(engine).get_table_names()
+        command.upgrade(config, "head")
+        inspector = inspect(engine)
+        assert {
+            "shared_dependency_versions",
+            "dependency_candidate_set_members",
+            "shared_dependency_equivalence_versions",
+            "register_output_manifests",
+            "register_notification_intents",
+        } <= set(inspector.get_table_names())
+        with engine.connect() as connection:
+            assert (
+                connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
+                == "0007_increment_7"
+            )
+    finally:
+        engine.dispose()
+
+
+def test_increment_7_upgrade_preserves_existing_role_assignments(tmp_path: Path) -> None:
+    from paim.domain import RoleTargetType
+    from tests.integration.test_increment_2_foundation import add_actor, add_case, add_role
+
+    database_path = (tmp_path / "upgrade-role-data-from-increment-6.sqlite3").as_posix()
+    database_url = f"sqlite+pysqlite:///{database_path}"
+    config = alembic_config(database_url)
+    command.upgrade(config, "0006_increment_6")
+    store = SQLiteIntegrityStore(database_url)
+    try:
+        case_id, _ = add_case(store, "increment-7-upgrade")
+        actor_id, _ = add_actor(store, "increment-7-upgrade")
+        _, assignment_version_id = add_role(
+            store,
+            "increment-7-upgrade",
+            actor_id,
+            role="Case Owner",
+            target_type=RoleTargetType.CASE,
+            target_id=str(case_id),
+            case_context_id=case_id,
+            accountable=True,
+        )
+    finally:
+        store.dispose()
+    command.upgrade(config, "head")
+    engine = create_engine(database_url)
+    try:
+        with engine.connect() as connection:
+            row = connection.execute(
+                text(
+                    "SELECT target_type, target_id FROM role_assignment_versions "
+                    "WHERE version_id=:version_id"
+                ),
+                {"version_id": str(assignment_version_id)},
+            ).one()
+            assert row == ("case", str(case_id))
     finally:
         engine.dispose()

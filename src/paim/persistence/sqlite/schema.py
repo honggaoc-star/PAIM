@@ -252,14 +252,16 @@ role_assignment_versions = Table(
     ),
     CheckConstraint(
         "target_type IN ('organization', 'business_unit', 'case', 'configuration', "
-        "'decision', 'intervention', 'authority_domain')",
+        "'decision', 'intervention', 'authority_domain', "
+        "'dependency_candidate_set', 'shared_dependency')",
         name="ck_role_target_type",
     ),
     CheckConstraint(
         "(target_type IN ('organization', 'business_unit') AND case_context_id IS NULL) OR "
         "(target_type = 'case' AND case_context_id = target_id) OR "
         "(target_type = 'configuration' AND case_context_id IS NOT NULL) OR "
-        "(target_type IN ('decision', 'intervention', 'authority_domain'))",
+        "(target_type IN ('decision', 'intervention', 'authority_domain', "
+        "'dependency_candidate_set', 'shared_dependency'))",
         name="ck_role_case_context",
     ),
     CheckConstraint(
@@ -3006,6 +3008,268 @@ reassessment_completion_outcomes = Table(
         "(path = 'SUCCESSOR_DECISION' AND confirmation_version_id IS NULL "
         "AND successor_decision_version_id IS NOT NULL)",
         name="ck_reassessment_exactly_one_completion",
+    ),
+)
+
+# Increment 7 — authoritative Shared Dependency support records and immutable
+# non-authoritative output manifests. Management Register concern entries are
+# deliberately not persisted as authoritative editable rows.
+shared_dependency_records = Table(
+    "shared_dependency_records",
+    metadata,
+    Column("dependency_id", String(36), ForeignKey("records.record_id"), primary_key=True),
+)
+shared_dependency_versions = Table(
+    "shared_dependency_versions",
+    metadata,
+    Column("version_id", String(36), ForeignKey("record_versions.version_id"), primary_key=True),
+    Column(
+        "dependency_id",
+        String(36),
+        ForeignKey("shared_dependency_records.dependency_id"),
+        nullable=False,
+    ),
+    Column("dependency_kind", Text, nullable=False),
+    Column("purpose", Text, nullable=False),
+    Column("declared_scope", Text, nullable=False),
+    Column("organizational_context", Text, nullable=True),
+    Column("provenance_json", Text, nullable=False),
+    Column("withdrawn", Boolean, nullable=False, default=False),
+    CheckConstraint("length(trim(dependency_kind)) > 0", name="ck_shared_dependency_kind"),
+    CheckConstraint("length(trim(declared_scope)) > 0", name="ck_shared_dependency_scope"),
+)
+Index(
+    "ix_shared_dependency_kind_scope",
+    shared_dependency_versions.c.dependency_kind,
+    shared_dependency_versions.c.declared_scope,
+)
+
+dependency_candidate_set_records = Table(
+    "dependency_candidate_set_records",
+    metadata,
+    Column("candidate_set_id", String(36), ForeignKey("records.record_id"), primary_key=True),
+)
+dependency_candidate_set_versions = Table(
+    "dependency_candidate_set_versions",
+    metadata,
+    Column("version_id", String(36), ForeignKey("record_versions.version_id"), primary_key=True),
+    Column(
+        "candidate_set_id",
+        String(36),
+        ForeignKey("dependency_candidate_set_records.candidate_set_id"),
+        nullable=False,
+    ),
+    Column("dependency_kind", Text, nullable=False),
+    Column("equivalence_scope", Text, nullable=False),
+    Column("purpose", Text, nullable=False),
+    Column("organizational_context", Text, nullable=True),
+    Column("provenance_json", Text, nullable=False),
+    Column("membership_checksum", String(64), nullable=False),
+    Column("withdrawn", Boolean, nullable=False, default=False),
+    UniqueConstraint("version_id", "membership_checksum", name="uq_candidate_set_checksum"),
+    CheckConstraint("length(trim(equivalence_scope)) > 0", name="ck_candidate_set_scope"),
+)
+Index(
+    "ix_candidate_set_kind_scope",
+    dependency_candidate_set_versions.c.dependency_kind,
+    dependency_candidate_set_versions.c.equivalence_scope,
+)
+dependency_candidate_set_members = Table(
+    "dependency_candidate_set_members",
+    metadata,
+    Column(
+        "candidate_set_version_id",
+        String(36),
+        ForeignKey("dependency_candidate_set_versions.version_id"),
+        primary_key=True,
+    ),
+    Column("ordinal", BigInteger, primary_key=True),
+    Column("source_family", Text, nullable=False),
+    Column("source_record_id", String(36), ForeignKey("records.record_id"), nullable=False),
+    Column(
+        "source_version_id",
+        String(36),
+        ForeignKey("record_versions.version_id"),
+        nullable=False,
+    ),
+    Column("dependency_kind", Text, nullable=False),
+    UniqueConstraint(
+        "candidate_set_version_id",
+        "source_family",
+        "source_record_id",
+        "source_version_id",
+        name="uq_candidate_set_exact_member",
+    ),
+)
+Index(
+    "ix_candidate_member_source",
+    dependency_candidate_set_members.c.source_record_id,
+    dependency_candidate_set_members.c.source_version_id,
+)
+
+shared_dependency_mechanism_records = Table(
+    "shared_dependency_mechanism_records",
+    metadata,
+    Column("mechanism_id", String(36), ForeignKey("records.record_id"), primary_key=True),
+)
+shared_dependency_mechanism_versions = Table(
+    "shared_dependency_mechanism_versions",
+    metadata,
+    Column("version_id", String(36), ForeignKey("record_versions.version_id"), primary_key=True),
+    Column(
+        "mechanism_id",
+        String(36),
+        ForeignKey("shared_dependency_mechanism_records.mechanism_id"),
+        nullable=False,
+    ),
+    Column("target_type", Text, nullable=False),
+    Column("target_id", String(36), nullable=False),
+    Column("accountable_actor_id", String(36), ForeignKey("paim_actors.actor_id"), nullable=False),
+    Column("rule_id", Text, nullable=False),
+    Column("rule_version", Text, nullable=False),
+    Column("authority_source", Text, nullable=False),
+    Column("limits_json", Text, nullable=False),
+    CheckConstraint(
+        "target_type IN ('dependency_candidate_set','shared_dependency')",
+        name="ck_dependency_mechanism_target_type",
+    ),
+)
+Index(
+    "ix_dependency_mechanism_target",
+    shared_dependency_mechanism_versions.c.target_type,
+    shared_dependency_mechanism_versions.c.target_id,
+)
+
+shared_dependency_equivalence_records = Table(
+    "shared_dependency_equivalence_records",
+    metadata,
+    Column("determination_id", String(36), ForeignKey("records.record_id"), primary_key=True),
+)
+shared_dependency_equivalence_versions = Table(
+    "shared_dependency_equivalence_versions",
+    metadata,
+    Column("version_id", String(36), ForeignKey("record_versions.version_id"), primary_key=True),
+    Column(
+        "determination_id",
+        String(36),
+        ForeignKey("shared_dependency_equivalence_records.determination_id"),
+        nullable=False,
+    ),
+    Column(
+        "candidate_set_version_id",
+        String(36),
+        ForeignKey("dependency_candidate_set_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "shared_dependency_version_id",
+        String(36),
+        ForeignKey("shared_dependency_versions.version_id"),
+        nullable=True,
+    ),
+    Column("dependency_kind", Text, nullable=False),
+    Column("equivalence_scope", Text, nullable=False),
+    Column("outcome", Text, nullable=False),
+    Column("actor_id", String(36), ForeignKey("paim_actors.actor_id"), nullable=False),
+    Column(
+        "assignment_version_id",
+        String(36),
+        ForeignKey("role_assignment_versions.version_id"),
+        nullable=True,
+    ),
+    Column(
+        "mechanism_version_id",
+        String(36),
+        ForeignKey("shared_dependency_mechanism_versions.version_id"),
+        nullable=True,
+    ),
+    CheckConstraint(
+        "outcome IN ('EQUIVALENT','NOT_EQUIVALENT','INDETERMINATE')",
+        name="ck_dependency_equivalence_outcome",
+    ),
+    CheckConstraint(
+        "(outcome = 'EQUIVALENT' AND shared_dependency_version_id IS NOT NULL) OR "
+        "(outcome IN ('NOT_EQUIVALENT','INDETERMINATE') AND "
+        "shared_dependency_version_id IS NULL)",
+        name="ck_equivalence_dependency_required",
+    ),
+    CheckConstraint(
+        "(assignment_version_id IS NOT NULL AND mechanism_version_id IS NULL) OR "
+        "(assignment_version_id IS NULL AND mechanism_version_id IS NOT NULL)",
+        name="ck_equivalence_accountability_exactly_one",
+    ),
+)
+Index(
+    "ix_equivalence_selection",
+    shared_dependency_equivalence_versions.c.candidate_set_version_id,
+    shared_dependency_equivalence_versions.c.dependency_kind,
+    shared_dependency_equivalence_versions.c.equivalence_scope,
+)
+shared_dependency_equivalence_delegations = Table(
+    "shared_dependency_equivalence_delegations",
+    metadata,
+    Column(
+        "determination_version_id",
+        String(36),
+        ForeignKey("shared_dependency_equivalence_versions.version_id"),
+        primary_key=True,
+    ),
+    Column("ordinal", BigInteger, primary_key=True),
+    Column(
+        "assignment_version_id",
+        String(36),
+        ForeignKey("role_assignment_versions.version_id"),
+        nullable=False,
+    ),
+)
+
+register_output_manifests = Table(
+    "register_output_manifests",
+    metadata,
+    Column("manifest_id", String(36), primary_key=True),
+    Column("output_kind", Text, nullable=False),
+    Column("content_json", Text, nullable=False),
+    Column("checksum", String(64), nullable=False, unique=True),
+    Column("generated_at_us", BigInteger, nullable=False),
+    Column("effective_at_us", BigInteger, nullable=False),
+    Column("known_at_us", BigInteger, nullable=False),
+    Column("rule_id", Text, nullable=False),
+    Column("rule_version", Text, nullable=False),
+    Column("source_high_water_us", BigInteger, nullable=True),
+    Column("processed_watermark_us", BigInteger, nullable=True),
+    Column("consistency", Text, nullable=False),
+    Column("access_context", Text, nullable=False),
+    CheckConstraint("output_kind IN ('VIEW','REPORT','EXPORT')", name="ck_register_output_kind"),
+    CheckConstraint(
+        "consistency IN ('CURRENT','STALE','INCONSISTENT')",
+        name="ck_register_output_consistency",
+    ),
+)
+Index(
+    "ix_register_manifest_context",
+    register_output_manifests.c.effective_at_us,
+    register_output_manifests.c.known_at_us,
+    register_output_manifests.c.rule_version,
+)
+register_notification_intents = Table(
+    "register_notification_intents",
+    metadata,
+    Column("intent_id", String(36), primary_key=True),
+    Column(
+        "manifest_id",
+        String(36),
+        ForeignKey("register_output_manifests.manifest_id"),
+        nullable=False,
+    ),
+    Column("concern_key", Text, nullable=False),
+    Column("concern_lifecycle", Text, nullable=False),
+    Column("channel", Text, nullable=False),
+    Column("recipient_scope", Text, nullable=False),
+    Column("created_at_us", BigInteger, nullable=False),
+    UniqueConstraint("manifest_id", "concern_key", "channel", name="uq_notification_intent"),
+    CheckConstraint(
+        "concern_lifecycle IN ('CURRENT_ATTENTION','CURRENT_CONFLICT')",
+        name="ck_notification_attention_only",
     ),
 )
 
