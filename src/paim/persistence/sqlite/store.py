@@ -135,6 +135,8 @@ from paim.persistence.sqlite.schema import (
     decision_authorization_basis_versions,
     decision_authorization_delegations,
     decision_authorization_gaps,
+    decision_confirmation_records,
+    decision_confirmation_versions,
     decision_preauthorized_activation_mechanisms,
     decision_records,
     decision_uncertainty_links,
@@ -153,6 +155,8 @@ from paim.persistence.sqlite.schema import (
     integration_material_applicability,
     integration_records,
     integration_versions,
+    interim_disposition_records,
+    interim_disposition_versions,
     intervention_records,
     intervention_replacement_records,
     intervention_replacement_versions,
@@ -178,12 +182,28 @@ from paim.persistence.sqlite.schema import (
     prerequisite_evaluation_basis_items,
     prerequisite_evaluation_basis_records,
     prerequisite_evaluation_basis_versions,
+    reassessment_completion_outcomes,
+    reassessment_determination_reassessments,
+    reassessment_determination_records,
+    reassessment_determination_triggers,
+    reassessment_determination_versions,
+    reassessment_mechanism_records,
+    reassessment_mechanism_versions,
+    reassessment_records,
+    reassessment_versions,
     record_versions,
     records,
     role_assignment_versions,
     role_assignments,
     status_events,
     target_activation_events,
+    trigger_determination_records,
+    trigger_determination_versions,
+    trigger_membership_records,
+    trigger_membership_versions,
+    trigger_records,
+    trigger_set_members,
+    trigger_versions,
     uncertainty_classification_records,
     uncertainty_classification_versions,
     version_relationships,
@@ -3141,6 +3161,504 @@ class SQLiteIntegrityTransaction:
                     evidence_version_id=str(evidence_id),
                 )
             )
+
+    # Increment 6 projections. The common record/version/status tables remain
+    # authoritative; these normalized tables enforce exact foreign-key binding.
+    def add_reassessment_mechanism(self, **values: object) -> None:
+        mechanism_id = cast("RecordId", values["mechanism_id"])
+        if not self._identity_exists(
+            reassessment_mechanism_records,
+            reassessment_mechanism_records.c.mechanism_id,
+            str(mechanism_id),
+        ):
+            self.connection.execute(
+                insert(reassessment_mechanism_records).values(mechanism_id=str(mechanism_id))
+            )
+        self.connection.execute(
+            insert(reassessment_mechanism_versions).values(
+                version_id=str(values["version_id"]),
+                mechanism_id=str(mechanism_id),
+                function=values["function"],
+                case_id=str(values["case_id"]),
+                decision_version_id=str(values["decision_version_id"]),
+                configuration_version_id=str(values["configuration_version_id"]),
+                intervention_version_id=(
+                    str(values["intervention_version_id"])
+                    if values.get("intervention_version_id") is not None
+                    else None
+                ),
+                accountable_actor_id=str(values["accountable_actor_id"]),
+                rule_version=values["rule_version"],
+                authority_scope=values["authority_scope"],
+                authority_source=values["authority_source"],
+                limits_json=json.dumps(values["limits"]),
+            )
+        )
+
+    def reassessment_mechanism_detail(
+        self, version_id: RecordVersionId
+    ) -> dict[str, object] | None:
+        row = (
+            self.connection.execute(
+                select(reassessment_mechanism_versions).where(
+                    reassessment_mechanism_versions.c.version_id == str(version_id)
+                )
+            )
+            .mappings()
+            .one_or_none()
+        )
+        return dict(row) if row is not None else None
+
+    def add_trigger(self, **values: object) -> None:
+        trigger_id = cast("RecordId", values["trigger_id"])
+        if not self._identity_exists(
+            trigger_records, trigger_records.c.trigger_id, str(trigger_id)
+        ):
+            self.connection.execute(insert(trigger_records).values(trigger_id=str(trigger_id)))
+        self.connection.execute(
+            insert(trigger_versions).values(
+                version_id=str(values["version_id"]),
+                trigger_id=str(trigger_id),
+                case_id=str(values["case_id"]),
+                decision_version_id=str(values["decision_version_id"]),
+                configuration_version_id=str(values["configuration_version_id"]),
+                trigger_type=values["trigger_type"],
+                management_question=values["management_question"],
+                affected_scope_json=json.dumps(values["affected_scope"]),
+                source_kind=values["source_kind"],
+                source_family=values["source_family"],
+                source_record_id=values["source_record_id"],
+                source_version_id=values["source_version_id"],
+                source_system=values.get("source_system"),
+                source_actor=values.get("source_actor"),
+                source_event_id=values["source_event_id"],
+                source_knowledge_at_us=to_epoch_microseconds(
+                    cast("datetime", values["source_knowledge_at"])
+                ),
+                withdrawn=values["withdrawn"],
+            )
+        )
+
+    def trigger_detail(self, version_id: RecordVersionId) -> dict[str, object] | None:
+        row = (
+            self.connection.execute(
+                select(trigger_versions).where(trigger_versions.c.version_id == str(version_id))
+            )
+            .mappings()
+            .one_or_none()
+        )
+        return dict(row) if row is not None else None
+
+    def trigger_versions_for_identity(self, trigger_id: RecordId) -> tuple[RecordVersionId, ...]:
+        rows = self.connection.execute(
+            select(trigger_versions.c.version_id).where(
+                trigger_versions.c.trigger_id == str(trigger_id)
+            )
+        ).scalars()
+        return tuple(RecordVersionId.parse(cast("str", value)) for value in rows)
+
+    def add_trigger_determination(self, **values: object) -> None:
+        determination_id = cast("RecordId", values["determination_id"])
+        if not self._identity_exists(
+            trigger_determination_records,
+            trigger_determination_records.c.determination_id,
+            str(determination_id),
+        ):
+            self.connection.execute(
+                insert(trigger_determination_records).values(determination_id=str(determination_id))
+            )
+        self.connection.execute(
+            insert(trigger_determination_versions).values(
+                version_id=str(values["version_id"]),
+                determination_id=str(determination_id),
+                trigger_version_id=str(values["trigger_version_id"]),
+                case_id=str(values["case_id"]),
+                decision_version_id=str(values["decision_version_id"]),
+                configuration_version_id=str(values["configuration_version_id"]),
+                outcome=values["outcome"],
+                actor_id=str(values["actor_id"]),
+                assignment_version_id=(
+                    str(values["assignment_version_id"])
+                    if values.get("assignment_version_id") is not None
+                    else None
+                ),
+                mechanism_version_id=(
+                    str(values["mechanism_version_id"])
+                    if values.get("mechanism_version_id") is not None
+                    else None
+                ),
+            )
+        )
+
+    def trigger_determination_rows(
+        self, trigger_version_id: RecordVersionId
+    ) -> tuple[dict[str, object], ...]:
+        rows = self.connection.execute(
+            select(trigger_determination_versions).where(
+                trigger_determination_versions.c.trigger_version_id == str(trigger_version_id)
+            )
+        ).mappings()
+        return tuple(dict(row) for row in rows)
+
+    def add_reassessment(self, **values: object) -> None:
+        reassessment_id = cast("RecordId", values["reassessment_id"])
+        if not self._identity_exists(
+            reassessment_records, reassessment_records.c.reassessment_id, str(reassessment_id)
+        ):
+            self.connection.execute(
+                insert(reassessment_records).values(reassessment_id=str(reassessment_id))
+            )
+        self.connection.execute(
+            insert(reassessment_versions).values(
+                version_id=str(values["version_id"]),
+                reassessment_id=str(reassessment_id),
+                case_id=str(values["case_id"]),
+                decision_version_id=str(values["decision_version_id"]),
+                configuration_version_id=str(values["configuration_version_id"]),
+                purpose=values["purpose"],
+                affected_scope_json=json.dumps(values["affected_scope"]),
+                owner_actor_id=str(values["owner_actor_id"]),
+                owner_assignment_version_id=(
+                    str(values["owner_assignment_version_id"])
+                    if values.get("owner_assignment_version_id") is not None
+                    else None
+                ),
+                owner_mechanism_version_id=(
+                    str(values["owner_mechanism_version_id"])
+                    if values.get("owner_mechanism_version_id") is not None
+                    else None
+                ),
+                initial_status=values["status"],
+            )
+        )
+        memberships = cast("tuple[dict[str, object], ...]", values["memberships"])
+        for ordinal, membership in enumerate(memberships):
+            membership_id = cast("RecordId", membership["membership_id"])
+            if not self._identity_exists(
+                trigger_membership_records,
+                trigger_membership_records.c.membership_id,
+                str(membership_id),
+            ):
+                self.connection.execute(
+                    insert(trigger_membership_records).values(membership_id=str(membership_id))
+                )
+            self.connection.execute(
+                insert(trigger_membership_versions).values(
+                    version_id=str(membership["version_id"]),
+                    membership_id=str(membership_id),
+                    trigger_version_id=str(membership["trigger_version_id"]),
+                    reassessment_version_id=str(values["version_id"]),
+                    membership_scope=membership["membership_scope"],
+                    active=membership["active"],
+                )
+            )
+            self.connection.execute(
+                insert(trigger_set_members).values(
+                    reassessment_version_id=str(values["version_id"]),
+                    ordinal=ordinal,
+                    trigger_version_id=str(membership["trigger_version_id"]),
+                    membership_version_id=str(membership["version_id"]),
+                )
+            )
+
+    def reassessment_detail(self, version_id: RecordVersionId) -> dict[str, object] | None:
+        row = (
+            self.connection.execute(
+                select(reassessment_versions).where(
+                    reassessment_versions.c.version_id == str(version_id)
+                )
+            )
+            .mappings()
+            .one_or_none()
+        )
+        return dict(row) if row is not None else None
+
+    def reassessment_versions_for_case(self, case_id: RecordId) -> tuple[RecordVersionId, ...]:
+        rows = self.connection.execute(
+            select(reassessment_versions.c.version_id).where(
+                reassessment_versions.c.case_id == str(case_id)
+            )
+        ).scalars()
+        return tuple(RecordVersionId.parse(cast("str", value)) for value in rows)
+
+    def trigger_set(
+        self, reassessment_version_id: RecordVersionId
+    ) -> tuple[tuple[RecordVersionId, RecordVersionId], ...]:
+        rows = self.connection.execute(
+            select(
+                trigger_set_members.c.trigger_version_id,
+                trigger_set_members.c.membership_version_id,
+            )
+            .where(trigger_set_members.c.reassessment_version_id == str(reassessment_version_id))
+            .order_by(trigger_set_members.c.ordinal)
+        ).all()
+        return tuple(
+            (RecordVersionId.parse(cast("str", row[0])), RecordVersionId.parse(cast("str", row[1])))
+            for row in rows
+        )
+
+    def membership_rows_for_trigger(
+        self, trigger_version_id: RecordVersionId
+    ) -> tuple[dict[str, object], ...]:
+        rows = self.connection.execute(
+            select(trigger_membership_versions).where(
+                trigger_membership_versions.c.trigger_version_id == str(trigger_version_id),
+                trigger_membership_versions.c.active.is_(True),
+            )
+        ).mappings()
+        return tuple(dict(row) for row in rows)
+
+    def add_reassessment_determination(self, **values: object) -> None:
+        determination_id = cast("RecordId", values["determination_id"])
+        if not self._identity_exists(
+            reassessment_determination_records,
+            reassessment_determination_records.c.determination_id,
+            str(determination_id),
+        ):
+            self.connection.execute(
+                insert(reassessment_determination_records).values(
+                    determination_id=str(determination_id)
+                )
+            )
+        self.connection.execute(
+            insert(reassessment_determination_versions).values(
+                version_id=str(values["version_id"]),
+                determination_id=str(determination_id),
+                kind=values["kind"],
+                outcome=values["outcome"],
+                target_reassessment_version_id=(
+                    str(values["target_reassessment_version_id"])
+                    if values.get("target_reassessment_version_id") is not None
+                    else None
+                ),
+                canonical_trigger_version_id=(
+                    str(values["canonical_trigger_version_id"])
+                    if values.get("canonical_trigger_version_id") is not None
+                    else None
+                ),
+                case_id=str(values["case_id"]),
+                decision_version_id=str(values["decision_version_id"]),
+                configuration_version_id=str(values["configuration_version_id"]),
+                affected_scope_json=json.dumps(values["affected_scope"]),
+                actor_id=str(values["actor_id"]),
+                assignment_version_id=(
+                    str(values["assignment_version_id"])
+                    if values.get("assignment_version_id") is not None
+                    else None
+                ),
+                mechanism_version_id=(
+                    str(values["mechanism_version_id"])
+                    if values.get("mechanism_version_id") is not None
+                    else None
+                ),
+            )
+        )
+        for trigger_version_id in cast(
+            "tuple[RecordVersionId, ...]", values["trigger_version_ids"]
+        ):
+            self.connection.execute(
+                insert(reassessment_determination_triggers).values(
+                    determination_version_id=str(values["version_id"]),
+                    trigger_version_id=str(trigger_version_id),
+                )
+            )
+        for reassessment_version_id in cast(
+            "tuple[RecordVersionId, ...]", values["reassessment_version_ids"]
+        ):
+            self.connection.execute(
+                insert(reassessment_determination_reassessments).values(
+                    determination_version_id=str(values["version_id"]),
+                    reassessment_version_id=str(reassessment_version_id),
+                )
+            )
+
+    def reassessment_determination_detail(
+        self, version_id: RecordVersionId
+    ) -> dict[str, object] | None:
+        row = (
+            self.connection.execute(
+                select(reassessment_determination_versions).where(
+                    reassessment_determination_versions.c.version_id == str(version_id)
+                )
+            )
+            .mappings()
+            .one_or_none()
+        )
+        return dict(row) if row is not None else None
+
+    def reassessment_determination_rows(
+        self,
+        *,
+        kind: str,
+        trigger_version_id: RecordVersionId | None = None,
+        reassessment_version_ids: tuple[RecordVersionId, ...] = (),
+    ) -> tuple[dict[str, object], ...]:
+        query = select(reassessment_determination_versions).where(
+            reassessment_determination_versions.c.kind == kind
+        )
+        if trigger_version_id is not None:
+            query = query.join(
+                reassessment_determination_triggers,
+                reassessment_determination_triggers.c.determination_version_id
+                == reassessment_determination_versions.c.version_id,
+            ).where(
+                reassessment_determination_triggers.c.trigger_version_id == str(trigger_version_id)
+            )
+        if reassessment_version_ids:
+            query = query.join(
+                reassessment_determination_reassessments,
+                reassessment_determination_reassessments.c.determination_version_id
+                == reassessment_determination_versions.c.version_id,
+            ).where(
+                reassessment_determination_reassessments.c.reassessment_version_id.in_(
+                    tuple(str(value) for value in reassessment_version_ids)
+                )
+            )
+        rows = self.connection.execute(query.distinct()).mappings()
+        return tuple(dict(row) for row in rows)
+
+    def add_interim_disposition(self, **values: object) -> None:
+        disposition_id = cast("RecordId", values["disposition_id"])
+        if not self._identity_exists(
+            interim_disposition_records,
+            interim_disposition_records.c.disposition_id,
+            str(disposition_id),
+        ):
+            self.connection.execute(
+                insert(interim_disposition_records).values(disposition_id=str(disposition_id))
+            )
+        expiry_at = cast("datetime | None", values.get("expiry_at"))
+        self.connection.execute(
+            insert(interim_disposition_versions).values(
+                version_id=str(values["version_id"]),
+                disposition_id=str(disposition_id),
+                reassessment_version_id=str(values["reassessment_version_id"]),
+                case_id=str(values["case_id"]),
+                decision_version_id=str(values["decision_version_id"]),
+                configuration_version_id=str(values["configuration_version_id"]),
+                boundary_snapshot_version_id=str(values["boundary_snapshot_version_id"]),
+                affected_scope_json=json.dumps(values["affected_scope"]),
+                operating_state=values.get("operating_state"),
+                allowed_actions_json=json.dumps(values["allowed_actions"]),
+                required_controls_json=json.dumps(values["required_controls"]),
+                prohibitions_json=json.dumps(values["prohibitions"]),
+                conditions_json=json.dumps(values["conditions"]),
+                suspend_scope=values["suspend_scope"],
+                authority_basis_version_id=str(values["authority_basis_version_id"]),
+                authority_actor_id=str(values["authority_actor_id"]),
+                expiry_at_us=to_epoch_microseconds(expiry_at) if expiry_at is not None else None,
+            )
+        )
+
+    def interim_disposition_rows(
+        self,
+        *,
+        case_id: RecordId,
+        decision_version_id: RecordVersionId,
+        configuration_version_id: RecordVersionId,
+    ) -> tuple[dict[str, object], ...]:
+        rows = self.connection.execute(
+            select(interim_disposition_versions).where(
+                interim_disposition_versions.c.case_id == str(case_id),
+                interim_disposition_versions.c.decision_version_id == str(decision_version_id),
+                interim_disposition_versions.c.configuration_version_id
+                == str(configuration_version_id),
+            )
+        ).mappings()
+        return tuple(dict(row) for row in rows)
+
+    def add_decision_confirmation(self, **values: object) -> None:
+        confirmation_id = cast("RecordId", values["confirmation_id"])
+        if not self._identity_exists(
+            decision_confirmation_records,
+            decision_confirmation_records.c.confirmation_id,
+            str(confirmation_id),
+        ):
+            self.connection.execute(
+                insert(decision_confirmation_records).values(confirmation_id=str(confirmation_id))
+            )
+        self.connection.execute(
+            insert(decision_confirmation_versions).values(
+                version_id=str(values["version_id"]),
+                confirmation_id=str(confirmation_id),
+                reassessment_version_id=str(values["reassessment_version_id"]),
+                decision_version_id=str(values["decision_version_id"]),
+                configuration_version_id=str(values["configuration_version_id"]),
+                boundary_snapshot_version_id=str(values["boundary_snapshot_version_id"]),
+                authority_basis_version_id=str(values["authority_basis_version_id"]),
+                confirmer_actor_id=str(values["confirmer_actor_id"]),
+            )
+        )
+
+    def add_reassessment_completion(self, **values: object) -> None:
+        self.connection.execute(
+            insert(reassessment_completion_outcomes).values(
+                reassessment_version_id=str(values["reassessment_version_id"]),
+                path=values["path"],
+                confirmation_version_id=(
+                    str(values["confirmation_version_id"])
+                    if values.get("confirmation_version_id") is not None
+                    else None
+                ),
+                successor_decision_version_id=(
+                    str(values["successor_decision_version_id"])
+                    if values.get("successor_decision_version_id") is not None
+                    else None
+                ),
+                completed_at_us=to_epoch_microseconds(cast("datetime", values["completed_at"])),
+            )
+        )
+
+    def reassessment_completion(
+        self, reassessment_version_id: RecordVersionId
+    ) -> dict[str, object] | None:
+        row = (
+            self.connection.execute(
+                select(reassessment_completion_outcomes).where(
+                    reassessment_completion_outcomes.c.reassessment_version_id
+                    == str(reassessment_version_id)
+                )
+            )
+            .mappings()
+            .one_or_none()
+        )
+        return dict(row) if row is not None else None
+
+    def current_reassessment_status(
+        self,
+        *,
+        reassessment_version_id: RecordVersionId,
+        effective_at: datetime,
+        known_at: datetime,
+    ) -> str:
+        detail = self.reassessment_detail(reassessment_version_id)
+        if detail is None:
+            raise ValueError("Reassessment Version does not exist")
+        record_id = RecordId.parse(cast("str", detail["reassessment_id"]))
+        history = self.get_history(record_id)
+        events = sorted(
+            (
+                event
+                for event in history.status_events
+                if event.target_version_id == reassessment_version_id
+                and event.effective_at <= effective_at
+                and event.recorded_at <= known_at
+                and event.new_status
+                in {
+                    "PROPOSED",
+                    "OPEN",
+                    "ANALYSIS_IN_PROGRESS",
+                    "AWAITING_DECISION_AUTHORITY",
+                    "BLOCKED_CONFLICT",
+                    "COMPLETED_CONFIRMED",
+                    "COMPLETED_SUCCESSOR_DECISION",
+                    "CANCELLED",
+                    "SUPERSEDED",
+                }
+            ),
+            key=lambda event: (event.effective_at, event.recorded_at, str(event.event_id)),
+        )
+        return events[-1].new_status if events else cast("str", detail["initial_status"])
 
     def add_status_event(self, status: StatusEvent) -> None:
         self._connection.execute(

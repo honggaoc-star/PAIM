@@ -8,6 +8,7 @@ from paim.application.increment2 import (
 from paim.application.increment3 import Increment3ApplicationService
 from paim.application.increment4 import Increment4ApplicationService
 from paim.application.increment5 import Increment5ApplicationService
+from paim.application.increment6 import Increment6ApplicationService
 from paim.application.service import (
     CommitStatusCommand,
     CommitVersionCommand,
@@ -26,6 +27,7 @@ __all__ = [
     "Increment3ApplicationService",
     "Increment4ApplicationService",
     "Increment5ApplicationService",
+    "Increment6ApplicationService",
     "IntegrityApplicationService",
     "StalePrecondition",
 ]

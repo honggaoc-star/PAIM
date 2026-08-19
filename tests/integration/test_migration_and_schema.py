@@ -25,7 +25,7 @@ def test_alembic_head_foreign_keys_and_immutability_triggers_exist(
     with sqlite_store.engine.connect() as connection:
         assert connection.exec_driver_sql("PRAGMA foreign_keys").scalar_one() == 1
         assert connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one() == (
-            "0005_increment_5"
+            "0006_increment_6"
         )
         trigger_names = set(
             connection.execute(
@@ -138,7 +138,7 @@ def test_upgrade_from_increment_2_revision_to_increment_3_head(tmp_path: Path) -
         with engine.connect() as connection:
             assert (
                 connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
-                == "0005_increment_5"
+                == "0006_increment_6"
             )
     finally:
         engine.dispose()
@@ -216,7 +216,7 @@ def test_increment_2_schema_tables_constraints_indexes_and_upgrade_from_incremen
         with engine.connect() as connection:
             assert connection.execute(
                 text("SELECT version_num FROM alembic_version")
-            ).scalar_one() == ("0005_increment_5")
+            ).scalar_one() == ("0006_increment_6")
     finally:
         engine.dispose()
 
@@ -345,7 +345,7 @@ def test_upgrade_from_increment_3_revision_to_increment_4_head(tmp_path: Path) -
         with engine.connect() as connection:
             assert (
                 connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
-                == "0005_increment_5"
+                == "0006_increment_6"
             )
     finally:
         engine.dispose()
@@ -482,7 +482,129 @@ def test_upgrade_from_increment_4_revision_to_increment_5_head(tmp_path: Path) -
         with engine.connect() as connection:
             assert (
                 connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
-                == "0005_increment_5"
+                == "0006_increment_6"
             )
+    finally:
+        engine.dispose()
+
+
+def test_increment_6_normalized_schema_constraints_indexes_triggers_and_foreign_keys(
+    sqlite_store: SQLiteIntegrityStore,
+) -> None:
+    inspector = inspect(sqlite_store.engine)
+    increment_6_tables = {
+        "reassessment_mechanism_records",
+        "reassessment_mechanism_versions",
+        "trigger_records",
+        "trigger_versions",
+        "trigger_determination_records",
+        "trigger_determination_versions",
+        "reassessment_records",
+        "reassessment_versions",
+        "trigger_membership_records",
+        "trigger_membership_versions",
+        "trigger_set_members",
+        "reassessment_determination_records",
+        "reassessment_determination_versions",
+        "reassessment_determination_triggers",
+        "reassessment_determination_reassessments",
+        "interim_disposition_records",
+        "interim_disposition_versions",
+        "decision_confirmation_records",
+        "decision_confirmation_versions",
+        "reassessment_completion_outcomes",
+    }
+    assert increment_6_tables <= set(inspector.get_table_names())
+    assert {
+        item["name"] for item in inspector.get_check_constraints("trigger_determination_versions")
+    } >= {
+        "ck_trigger_determination_outcome",
+        "ck_trigger_determination_accountability",
+    }
+    assert {item["name"] for item in inspector.get_check_constraints("reassessment_versions")} >= {
+        "ck_reassessment_status",
+        "ck_reassessment_owner_accountability",
+    }
+    assert {
+        item["name"] for item in inspector.get_check_constraints("reassessment_completion_outcomes")
+    } >= {"ck_reassessment_exactly_one_completion"}
+    assert {item["name"] for item in inspector.get_indexes("trigger_versions")} >= {
+        "ix_trigger_case_source_question"
+    }
+    assert {item["name"] for item in inspector.get_indexes("reassessment_versions")} >= {
+        "ix_reassessment_case_context"
+    }
+    assert {item["name"] for item in inspector.get_indexes("interim_disposition_versions")} >= {
+        "ix_interim_disposition_context_time"
+    }
+    membership_foreign_keys = {
+        tuple(item["constrained_columns"])
+        for item in inspector.get_foreign_keys("trigger_membership_versions")
+    }
+    assert {
+        ("version_id",),
+        ("membership_id",),
+        ("trigger_version_id",),
+        ("reassessment_version_id",),
+    } <= membership_foreign_keys
+    disposition_foreign_keys = {
+        tuple(item["constrained_columns"])
+        for item in inspector.get_foreign_keys("interim_disposition_versions")
+    }
+    assert {
+        ("version_id",),
+        ("reassessment_version_id",),
+        ("decision_version_id",),
+        ("configuration_version_id",),
+        ("boundary_snapshot_version_id",),
+        ("authority_basis_version_id",),
+        ("authority_actor_id",),
+    } <= disposition_foreign_keys
+    with sqlite_store.engine.connect() as connection:
+        triggers = set(
+            connection.execute(
+                text("SELECT name FROM sqlite_master WHERE type = 'trigger'")
+            ).scalars()
+        )
+    for table in increment_6_tables:
+        assert f"prevent_{table}_update" in triggers
+        assert f"prevent_{table}_delete" in triggers
+    with (
+        sqlite_store.engine.begin() as connection,
+        pytest.raises(DBAPIError, match="FOREIGN KEY"),
+    ):
+        connection.execute(
+            text(
+                """INSERT INTO trigger_set_members
+                (reassessment_version_id, ordinal, trigger_version_id, membership_version_id)
+                VALUES ('missing-reassessment', 0, 'missing-trigger', 'missing-membership')"""
+            )
+        )
+
+
+def test_upgrade_from_increment_5_revision_to_increment_6_head(tmp_path: Path) -> None:
+    database_path = (tmp_path / "upgrade-from-increment-5.sqlite3").as_posix()
+    database_url = f"sqlite+pysqlite:///{database_path}"
+    config = alembic_config(database_url)
+    command.upgrade(config, "0005_increment_5")
+    engine = create_engine(database_url)
+    try:
+        before = inspect(engine)
+        assert "trigger_versions" not in before.get_table_names()
+        assert "reassessment_versions" not in before.get_table_names()
+        command.upgrade(config, "head")
+        assert {
+            "trigger_versions",
+            "trigger_determination_versions",
+            "reassessment_versions",
+            "trigger_membership_versions",
+            "interim_disposition_versions",
+            "decision_confirmation_versions",
+            "reassessment_completion_outcomes",
+        } <= set(inspect(engine).get_table_names())
+        with engine.connect() as connection:
+            assert connection.execute(
+                text("SELECT version_num FROM alembic_version")
+            ).scalar_one() == ("0006_increment_6")
     finally:
         engine.dispose()
