@@ -883,7 +883,13 @@ Deferred to later specifications/platform design:
 - incident-management integration;
 - external-provider task integration.
 
-IRR-011 Trigger/Reassessment semantics are normatively hardened in the Reassessment, Case Lifecycle, Roles/Accountability, and Integrity specifications but remain pending independent Increment 6 gate-closure review. IRR-009 Observation persistence, IRR-012 Management Register aggregation, and IRR-014 operating-state ranking remain explicitly deferred. This specification does not define a universal Intervention score, universal segregation-of-duties rule, or generic workflow/condition/dependency engine.
+IRR-012 Management Register semantics are normatively hardened in the Management Register, Integrity, Roles/Accountability, and conforming specifications, subject to independent Increment 7 gate-closure re-review. IRR-009 Observation persistence and IRR-014 operating-state ranking remain explicitly deferred. This specification does not define a universal Intervention score, universal segregation-of-duties rule, or generic workflow/condition/dependency engine.
+
+### 41.1 IRR-012 Register conformance
+
+The Register reports the exact Obligation/aggregate and Learning results already governed here. `INCOMPLETE`, `BLOCKED`, `CONFLICT`, and `NOT_ESTABLISHED` create attention according to exact requirement type; Completion without eligible Completion Acceptance remains attention. `SATISFIED` and `NOT_REQUIRED` retain their exact upstream meanings. Required-after and optional treatment never rewrites target activation history.
+
+Active, blocked, failed, inconclusive, overdue, or required incomplete Learning creates attention only where its authoritative record gives it that meaning. Learning completion never changes a Decision automatically. Cross-Case Shared Dependency grouping never transfers Intervention completion, Completion Acceptance, prerequisite satisfaction, activation, replacement/reuse, Learning outcome, ownership, or authority.
 
 ## 42. Completion Impact
 

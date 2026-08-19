@@ -48,7 +48,7 @@ The system must be able to answer:
 
 Every Managed Configuration must have a durable identity independent of its descriptive title.
 
-Each Configuration identity has exactly one owning Case. The owning Case is part of the Configuration identity relationship and must remain historically traceable. A Configuration may be explicitly related to another Case, Configuration, provider, model, control, or dependency, but that relationship does not create joint ownership or transfer ownership. Cross-Case sharing, dependency equivalence, and reuse beyond explicit relationships remain deferred, including the IRR-012 dependency.
+Each Configuration identity has exactly one owning Case. The owning Case is part of the Configuration identity relationship and must remain historically traceable. A Configuration may be explicitly related to another Case, Configuration, provider, model, control, or dependency, but that relationship does not create joint ownership or transfer ownership. Cross-Case Shared Dependency identity and descriptive grouping follow the accepted IRR-012 Management Register and Integrity contracts and never create joint Configuration ownership, evidence reuse, or authority transfer.
 
 Minimum identity elements:
 
@@ -584,7 +584,7 @@ Fallback: Configuration D
 
 Each alternative should be separately identifiable.
 
-If independent Configurations must govern concurrently, PAIM v0.1 represents them through separately linked Cases, each with exactly one owning Case relationship and its own one/absence/conflict governing-Configuration result. This rule does not resolve shared-dependency identity or Register aggregation under IRR-012.
+If independent Configurations must govern concurrently, PAIM v0.1 represents them through separately linked Cases, each with exactly one owning Case relationship and its own one/absence/conflict governing-Configuration result. Accepted Shared Dependency identity may group those Case-local concerns descriptively but does not change this cardinality or transfer currentness, authorization, applicability, satisfaction, or closure.
 
 ## 19. Configuration and Operating State
 
@@ -818,8 +818,14 @@ Deferred to later specifications/platform design:
 - machine-detectable vs. human-declared changes;
 - organization-specific scheduling and review rules for future-effective configurations;
 - how external provider/model metadata are normalized;
-- cross-case sharing, dependency equivalence, and reuse beyond explicit linked-Case/Configuration relationships, including IRR-012;
+- substantive cross-case reuse beyond the accepted Shared Dependency descriptive-grouping contract;
 - reusable control definitions.
+
+### 30.1 IRR-012 Register conformance
+
+The Register concern key uses the owning Case ID and exact applicable Configuration ID. Where the accepted population rule permits a finalized non-governing proposed/experimental Configuration with eligible linked work or authoritative attention, the concern must state that it is non-governing and not authorized. Drafts, purpose labels, and inventory mentions do not create entries.
+
+A required governing Configuration absence or conflict is projected exactly and never repaired by selecting a proposed/alternative Version. A Shared Dependency reference uses an exact stable dependency identity or eligible Equivalence Determination; provider/model/control names and relationship labels alone do not establish equivalence. Cross-Case grouping never changes Configuration identity, ownership, governing designation, materiality, Decision, or operating state.
 
 ## 31. Completion Impact
 

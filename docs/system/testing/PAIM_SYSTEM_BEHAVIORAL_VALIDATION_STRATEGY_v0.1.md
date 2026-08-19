@@ -632,6 +632,43 @@ Across multiple cases, test whether the Management Register surfaces:
 - closed vs. active cases;
 - multiple active configurations under one case.
 
+### 26.1 IRR-012 hard-oracle scenarios
+
+The following are normative hard oracles for the accepted Management Register contract:
+
+1. **Unresolved Authority Gap:** one `CURRENT_ATTENTION` concern cites the exact Gap Version and context.
+2. **Authority Gap resolution:** current unresolved attention ends prospectively; the unresolved historical view remains exactly reconstructable.
+3. **Same Evidence source, different Case Applicability:** Case/target concerns remain independent; Evidence-source equality does not establish Shared Dependency.
+4. **Same exact Shared Dependency identity:** descriptive cross-Case grouping and exact counts are permitted without authority/applicability/closure transfer.
+5. **Similar provider names only:** no dependency identity or authoritative group is inferred.
+6. **Blocked Intervention obligation:** current attention cites exact Obligation, Intervention, aggregate result, requirement type, and consequence.
+7. **Required-before satisfied, required-after incomplete:** activation history remains unchanged; the required-after commitment retains its separate deterministic attention treatment.
+8. **`REASSESSMENT_REQUIRED_UNASSIGNED`:** exact Trigger Version and coverage result remain visible current work.
+9. **Trigger Coverage conflict:** every candidate/reason remains visible; no winner or disappearing Trigger.
+10. **Active and completed Reassessments with shared provenance:** active work is current as applicable; completed work is historical; provenance does not merge identity/outcome.
+11. **Provider name shared across Cases only:** no grouping identity is inferred.
+12. **Shared Dependency with different owning authorities:** descriptive group preserves each independent authority/accountability result.
+13. **Prospective source supersession:** successor truth becomes current; predecessor becomes `SUPERSEDED_HISTORICAL`; earlier views remain exact.
+14. **Upstream current-selection conflict:** concern is `CURRENT_CONFLICT` with all candidates; newest never wins.
+15. **Projection behind source high-water mark:** output is visibly stale/inconsistent or rebuilt before claiming current; commands re-evaluate authoritative facts.
+16. **User dismisses unresolved row:** only optional personal presentation state changes; organizational concern and source remain unresolved.
+17. **Sort by age:** presentation order changes with no substantive priority/state/authority effect.
+18. **Sort by explicit authoritative due date:** presentation remains faithful to exact dates and retains sort basis; no new priority meaning.
+19. **Similar semantic text without exact dependency:** no automatic grouping; semantic similarity is ineligible.
+20. **Accountable equivalence:** group retains stable Shared Dependency ID, exact Candidate Set Version, Equivalence Determination Version, rationale, actor/accountability, and dual time.
+21. **Incompatible equivalence determinations:** `SHARED DEPENDENCY EQUIVALENCE CONFLICT — UNRESOLVED`; no combined winner; constituents remain independently visible.
+22. **Affected-Case count:** exact constituent set and descriptive count are retained; count is not risk, severity, materiality, or priority.
+23. **One constituent Case resolves:** that concern resolves historically; another unresolved constituent keeps the group partially unresolved; no cross-Case satisfaction.
+24. **All constituents resolve:** group leaves current attention prospectively and exact historical membership/basis remains reconstructable.
+25. **Register launches Reassessment:** the exact Trigger/Reassessment commands and all accountability/current-governance guards apply.
+26. **Register attempts blocked-Intervention resolution without Acceptance:** rejected/no authoritative effect; attention remains until the owning Completion contract is satisfied.
+27. **Different operating-state values:** values display/group only by exact identity; no strength, severity, priority, or winner is inferred.
+28. **Unaccepted external Observation-like data:** no authoritative concern entry is created; UI context is clearly non-authoritative.
+29. **Notification intent from unresolved work:** intent retains exact concern basis; generation/delivery/retry never changes source or concern state.
+30. **Historical as-of Register view:** exact source Versions, conflicts, Candidate Set and determinations, active rule Versions, effective/knowledge time, high-water/watermark, constituent membership, filters, grouping, and ordering are reproduced.
+
+Additional negative oracles must reject mutable/free-form/transient `DEPENDENCY_CANDIDATE_SET` targets; Candidate Set membership mutation after finalization; accountability resolved from recomputed query membership; similarity/name/owner/software equivalence; broad/narrow/recency accountability winner; generic Register resolution; cross-Case transfer; universal scoring; and use of a stale projection as guarded-command authority.
+
 ## 27. Role/Accountability Tests
 
 Test:

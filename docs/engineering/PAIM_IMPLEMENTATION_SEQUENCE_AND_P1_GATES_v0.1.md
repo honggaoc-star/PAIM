@@ -52,7 +52,7 @@ The roadmap preserves the ten increments in Platform Architecture §23.
 | 4 — Integration, Boundary, Decision, and Authorization Basis | Integration, hybrid Boundary, immutable Decision, exact authorization chain | `CLOSED — UPSTREAM GATE` — accepted Increments 1–3 and their P1 resolutions |
 | 5 — Intervention and Learning | Intervention requirements/completion, target operation guard, decision-specific Learning | `CLOSED — P1 RE-REVIEW GATE` — IRR-010 design accepted and specs hardened; independent closure review plus accepted Increments 1–4 still required |
 | 6 — Reassessment and Interim Operating Disposition | Trigger/Reassessment workflow, restrictive overlays, confirmation/successor, history | `CLOSED — P1 RE-REVIEW GATE` — IRR-011 design accepted and specs hardened, pending independent closure review; IRR-014 remains conditional for stronger-state automation; accepted Increments 1–5 |
-| 7 — projections, Management Register, reports, and hooks | Rebuildable projections, Register, queues, reports, notification intents | `CLOSED — P1 GATE` — IRR-012 plus cumulative upstream semantics |
+| 7 — projections, Management Register, reports, and hooks | Rebuildable projections, Register, queues, reports, notification intents | `CLOSED — P1 RE-REVIEW GATE` — IRR-012 design accepted and specs hardened; independent closure review plus accepted Increments 1–6 required |
 | 8 — external adapters, security hardening, and operational readiness | Selected adapters, segmentation, recovery, observability, degraded operation | `CLOSED — UPSTREAM GATE` with adapter-specific P1 conditions |
 | 9 — integrated behavioral and human validation | Complete scenario, regression, longitudinal, and practitioner validation | `CLOSED — P1 GATE` — all nine P1 findings and all implementation increments |
 
@@ -98,7 +98,7 @@ The graph expresses semantic dependency, not implementation coupling. Dashed edg
 | IRR-009 | Conditional in Increment 6/8; hard for complete Increment 9 | Increments 1–5 and any Reassessment scope excluding authoritative Observation | First-class Observation persistence, Observation-to-Evidence/Trigger conversion, automated monitoring record semantics |
 | IRR-010 | Increment 5 | Increments 1–4 | `SPEC HARDENED — INDEPENDENT RE-REVIEW REQUIRED`: accepted design package and coordinated normative wording exist, but Increment 5 implementation remains blocked until gate re-review confirms closure |
 | IRR-011 | Increment 6 | Increments 1–5 | `SPEC HARDENED — INDEPENDENT RE-REVIEW REQUIRED`: accepted Case-scoped Trigger identity, immutable many-to-many membership/Trigger Sets, grouping/duplicate/coverage determinations, bounded concurrency, no-merge rule, accountability, and completion coordination exist; implementation remains blocked pending closure review |
-| IRR-012 | Increment 7 | Increments 1–6 | Authoritative Register population/aggregation rule, shared dependency equivalence, concentration analytics |
+| IRR-012 | Increment 7 | Increments 1–6 | `SPEC HARDENED — INDEPENDENT RE-REVIEW REQUIRED`: accepted concern identity/population/currentness, immutable Candidate Set, accountable Shared Dependency equivalence, descriptive aggregation/concentration boundary, actions, history, and non-authoritative output semantics exist; implementation remains blocked pending closure review |
 | IRR-013 / CON-002 | Increment 2 | Increment 1 | General Role Assignment scope resolution/precedence and permission derivation from competing assignments |
 | IRR-014 | Conditional in Increment 6; hard for complete Increment 9 | Increments 1–5 and non-ordered state handling | Automated stronger/broader-state detection, state ranking, state-derived escalation oracle |
 
@@ -185,11 +185,11 @@ The graph expresses semantic dependency, not implementation coupling. Dashed edg
 
 | Gate element | Requirement |
 |---|---|
-| Hard P1 prerequisites | IRR-012 plus accepted source semantics from IRR-006, IRR-007, IRR-008, IRR-010, IRR-011, and IRR-013/CON-002. |
+| Hard P1 prerequisites | IRR-012 is design-accepted and normatively hardened but remains open pending independent coordinated-spec re-review; accepted source semantics from IRR-006, IRR-007, IRR-008, IRR-010, IRR-011, and IRR-013/CON-002. |
 | P1 findings deferred | IRR-009 only if Observation is not a Register source; IRR-014 only if Register displays exact state without ranking or state-derived prioritization. |
-| Blocked behavior until clarification | Register population for proposed/decisionless/multi-Configuration cases; summarizing multi-valued Interventions/Learning/Gaps/Reassessments; “worst” status selection; stable shared provider/model/control/capacity identity; concentration analytics; state ranking. |
-| Specification changes | Management Register and Roles/Accountability; coordinated references to Managed Configuration, Evidence/Authority, Intervention/Learning, Reassessment, and operating-state specifications as required by accepted aggregation rules. |
-| Acceptance evidence | Register-unit/population decision; multi-valued fact handling; no-silent-winner rules; point-in-time projection rules; exact source/version/time requirements; shared-dependency identity or curated equivalence; proposed/closed examples; rebuild and conflict-display tests. |
+| Blocked behavior until re-review | Increment 7 code and any Register population, Shared Dependency grouping, Candidate Set targeting, equivalence/concentration determination, cross-Case aggregation, projection-currentness claim, or Register-context workflow not confirmed by independent review. Observation persistence and state ranking remain separately blocked. |
+| Specification changes | Coordinated IRR-012 hardening in Management Register, Integrity, Roles/Accountability, Managed Configuration, Evidence/Authority, Value/Risk, Integration/Decision, Intervention/Learning, Reassessment, Behavioral Validation, Platform Architecture, and this roadmap; accepted design package `PAIM_INCREMENT_7_MANAGEMENT_REGISTER_DESIGN_DECISION_v0.1.md`. |
+| Acceptance evidence | Independent review confirms exact concern key/population/categories; dual-time high-water/watermark; immutable versioned `DEPENDENCY_CANDIDATE_SET`; Shared Dependency/Equivalence/optional Concentration identity, accountability, one/absence/conflict; descriptive no-transfer aggregation; ordering/conflict/actions/history/output boundaries; all 30 hard oracles; and preserved IRR-009/014 exclusions. |
 | Completion evidence | Rebuildable source-traceable Register, watermarks, explicit absence/conflict, queues/reports without hidden authority, projection inconsistency handling, and historical portfolio queries. |
 
 ### 4.9 Increment 8 — external adapters, security hardening, and operational readiness
@@ -197,7 +197,7 @@ The graph expresses semantic dependency, not implementation coupling. Dashed edg
 | Gate element | Requirement |
 |---|---|
 | Hard P1 prerequisites | Cumulative accepted semantics for each enabled adapter: IRR-006 for Value/Risk; IRR-008 for evidence applicability/reuse; IRR-013/CON-002 for directory-to-role mapping; IRR-009 for a first-class Observation/monitoring adapter; IRR-014 for an adapter that infers state strength. |
-| P1 findings deferred | Any P1 whose related adapter/automation is explicitly excluded. IRR-012 may remain deferred only if portfolio export/aggregation is excluded. |
+| P1 findings deferred | Any still-open P1 whose related adapter/automation is explicitly excluded. Accepted IRR-012 applies to every portfolio export/aggregation adapter; excluding portfolio output excludes that adapter scope rather than reopening the semantic decision. |
 | Blocked behavior | Adapter finalization/selection, authority inference from directories, applicability inference from documents, Observation persistence, state ranking, and portfolio aggregation not covered by accepted specifications. |
 | Specification changes | No adapter-specific semantic change is made here; any missing semantic returns to the owning specification issue in §5. Technical integration contracts remain implementation artifacts created later. |
 | Acceptance evidence | Adapter-by-adapter P1 applicability checklist; source provenance/idempotency/quarantine contract; no-direct-finalized-write proof; access/Decision-authority separation; recovery and degraded-operation plan; excluded capabilities stated. |
@@ -226,7 +226,7 @@ This section identifies where later clarification must occur. It does not prescr
 | IRR-009 | System Architecture plus either a new bounded Observation specification or explicit amendments to Intervention/Learning and Reassessment | Behavioral Validation; Evidence/Authority; Integrity | Human decision whether Observation is authoritative; if yes, minimum contract; if no, authoritative substitutes and conversion/linkage |
 | IRR-010 | `../system/specifications/PAIM_INTERVENTION_AND_LEARNING_SPEC_v0.1.md`; `../system/specifications/PAIM_CASE_LIFECYCLE_SPEC_v0.1.md` | Integration/Decision; Roles/Accountability; Integrity; Behavioral Validation; accepted `PAIM_INCREMENT_5_INTERVENTION_DESIGN_DECISION_v0.1.md` | Hardened exact Obligation package, three types, all-of guard, Completion Result/Acceptance, Completion Acceptor, replacement/reuse, Prerequisite Evaluation Basis, genuine governed Activation Authorization, prior-operation behavior; independent closure re-review still required |
 | IRR-011 | `../system/specifications/PAIM_REASSESSMENT_SPEC_v0.1.md`; `../system/specifications/PAIM_CASE_LIFECYCLE_SPEC_v0.1.md`; accepted `PAIM_INCREMENT_6_REASSESSMENT_DESIGN_DECISION_v0.1.md` | Roles/Accountability; Integrity; Integration/Decision; Intervention/Learning; Behavioral Validation; Architecture | Hardened Trigger identity/replay/determination, immutable many-to-many membership/Trigger Sets, grouping/duplicate/coverage, bounded concurrency/overlap, no merge, cancellation/supersession, status, accountability, overlays, completion coordination, cross-Case provenance, deferred IRR boundaries; independent closure re-review still required |
-| IRR-012 | `../system/specifications/PAIM_MANAGEMENT_REGISTER_SPEC_v0.1.md` | Roles/Accountability; all projected source specifications; Integrity | Entry population/unit, multi-valued aggregation, exact source/time, shared-dependency identity/equivalence, conflict display |
+| IRR-012 | `../system/specifications/PAIM_MANAGEMENT_REGISTER_SPEC_v0.1.md`; accepted `PAIM_INCREMENT_7_MANAGEMENT_REGISTER_DESIGN_DECISION_v0.1.md` | Integrity; Roles/Accountability; all projected source specifications; Behavioral Validation; Architecture | Hardened exact concern identity/population/lifecycle, dual-time watermark, immutable Candidate Set, Shared Dependency Equivalence/optional Concentration determination and accountability, descriptive aggregation/no transfer, sorting/conflict/actions/history/output boundaries; independent closure re-review still required |
 | IRR-013 / CON-002 | `../system/specifications/PAIM_ROLES_AND_ACCOUNTABILITY_SPEC_v0.1.md` | Managed Configuration; Case Lifecycle; Evidence/Authority; Integrity | Typed assignment target, optional Case relation, multi-scope precedence, delegation/effective-time behavior, explicit conflict |
 | IRR-014 | `../system/specifications/PAIM_INTEGRATION_AND_DECISION_SPEC_v0.1.md` | Intervention/Learning; Reassessment; Management Register; Behavioral Validation | Minimum state traits, active/inactive/terminal effect, organization-configured stronger/broader relation, indeterminate comparison |
 
@@ -290,7 +290,7 @@ The following questions require PAIM design authority. Engineering may present o
 | IRR-009 | Is Observation an authoritative PAIM record or not? What is the authoritative bridge from operation to Evidence/Trigger? | Telemetry adapter, ingestion mechanism, retention/indexing |
 | IRR-010 | **DECIDED, HARDENED, PENDING RE-REVIEW:** exact obligation types, all-of aggregation, Completion Acceptance accountability, and Activation Authorization are defined by the accepted design package and coordinated governing specs. | After independent closure only: task integration, guard implementation, interaction design, indexing |
 | IRR-011 | **DECIDED, HARDENED, PENDING RE-REVIEW:** Case-scoped Trigger identity/replay, immutable many-to-many Trigger Sets, no-auto-grouping, bounded concurrency, explicit overlap/coverage conflict, no v0.1 merge, cancellation/supersession, status, accountability, completion coordination, and cross-Case provenance are defined by the accepted design package and coordinated governing specs. | After independent closure only: orchestration layout, physical relationship storage, indexing, locking/concurrency mechanism, and interaction design |
-| IRR-012 | Which entities populate the Register, how are multi-valued facts shown/summarized, and how is shared dependency sameness established? | Projection store, filters, report format, matching tooling |
+| IRR-012 | **DECIDED, HARDENED, PENDING RE-REVIEW:** exact concern population, immutable Candidate Set, accountable Shared Dependency equivalence, descriptive aggregation/concentration, currentness, action, and history boundaries are defined by the accepted package and coordinated specs. | After independent closure only: projection store, indexes, filters, report/export format, watermark implementation, and non-authoritative candidate-suggestion UI |
 | IRR-013 / CON-002 | What scope types and precedence policy govern simultaneous assignments? How are delegation and explicit conflict handled? | Permission engine, directory mapping, scope indexes |
 | IRR-014 | What traits define an operating state, and how is stronger/broader/transitional/inactive relation configured without a universal linear rank? | State configuration interface, relation evaluation, visualization |
 
@@ -419,7 +419,7 @@ IRR-011 design authority is accepted in `PAIM_INCREMENT_6_REASSESSMENT_DESIGN_DE
 
 The gate is not closed merely because wording is present. Before Increment 6 code, an independent focused re-review must confirm that the hardened Reassessment, Case Lifecycle, Roles/Accountability, Integrity, Integration/Decision, Intervention/Learning, Behavioral Validation, Platform Architecture, and roadmap artifacts are cross-consistent and make the accepted hard oracles deterministic. Until that review accepts closure, Increment 6 remains blocked.
 
-IRR-009 and IRR-012 remain deferred. Resolve IRR-014 before including stronger/broader-state automation; otherwise keep state values explicit and ordering indeterminate.
+IRR-009 remains deferred. IRR-012 is hardened separately for Increment 7 and does not change Increment 6 Case-scoped behavior. Resolve IRR-014 before including stronger/broader-state automation; otherwise keep state values explicit and ordering indeterminate.
 
 ### 10.5 Before Observation automation
 
@@ -427,7 +427,9 @@ Resolve IRR-009 after IRR-008 and IRR-011. Until then, operation signals may ent
 
 ### 10.6 Before Increment 7
 
-Resolve IRR-012 after its authoritative source semantics. Incorporate IRR-009 and IRR-014 only if the accepted Register scope depends on Observation or operating-state relations.
+IRR-012 design authority is accepted in `PAIM_INCREMENT_7_MANAGEMENT_REGISTER_DESIGN_DECISION_v0.1.md`. Coordinated governing hardening defines exact concern identity/population/categories, dual-time currentness and staleness, immutable Dependency Candidate Sets, accountable Shared Dependency Equivalence and optional Concentration Determinations, descriptive cross-Case aggregation without transfer, conflict/ordering/action boundaries, exact historical manifests, and non-authoritative reports/queues/notifications.
+
+Before Increment 7 code, an independent focused re-review must confirm cross-spec consistency and deterministic hard oracles. IRR-009 Observation behavior and IRR-014 operating-state ranking remain excluded; their absence does not permit telemetry population or state-derived priority.
 
 ### 10.7 Before Increment 9 completion
 

@@ -610,6 +610,8 @@ A Role Assignment has exactly one typed target. PAIM v0.1 supports the following
 | `DECISION` | Decision ID/version and associated Case/Configuration | Associated Case ID is required as context; the Decision is the target. |
 | `INTERVENTION` | Intervention ID and associated Case/Configuration | Associated Case ID is required as context; the Intervention is the target. |
 | `AUTHORITY_DOMAIN` | Authority-domain ID and organizational context | Case ID is absent unless the authority domain is explicitly Case-scoped. |
+| `DEPENDENCY_CANDIDATE_SET` | Exact immutable Dependency Candidate Set Version ID | Organizational context is retained for accountability; constituent Case IDs do not become assignment targets and no Case authority transfers. |
+| `SHARED_DEPENDENCY` | Exact stable Shared Dependency ID and, where the action depends on exact content/state, exact Version ID | Organizational context is retained; Case ID is absent unless the dependency itself is explicitly Case-scoped. |
 
 An organization-wide or business-unit assignment must not use a fictitious Case ID. A Configuration-, Decision-, or Intervention-scoped assignment must not be treated as Case-wide merely because the owning Case is recorded as context.
 
@@ -665,6 +667,8 @@ This supports the Management Register's cross-case dependency view.
 
 Where a provider/model is shared across configurations, an organization may assign a common dependency owner.
 
+For authoritative Shared Dependency treatment, “shared” requires the same exact stable dependency Record ID or one eligible Shared Dependency Equivalence Determination. Provider/model names, normalization, ownership, similarity, or software grouping do not establish this relationship.
+
 That owner may coordinate:
 
 - provider changes;
@@ -674,6 +678,31 @@ That owner may coordinate:
 - cross-case reassessment.
 
 This role does not replace individual Case Owners or Decision Authorities.
+
+### 30.1 Shared Dependency Determiner
+
+**Shared Dependency Determiner** is the substantive accountable function for:
+
+- establishing whether one exact immutable Dependency Candidate Set Version is equivalent for one declared dependency kind, scope, and purpose;
+- binding an eligible equivalence outcome to one exact stable Shared Dependency identity;
+- correcting, superseding, or withdrawing that determination without rewriting prior history; and
+- issuing an optional substantive Concentration Determination where the organization chooses to classify exact descriptive exposure as material.
+
+The applicable typed target for an Equivalence Determination is exactly one `DEPENDENCY_CANDIDATE_SET` Version. The applicable typed target for correction/supersession of Shared Dependency identity and an optional Concentration Determination is the exact `SHARED_DEPENDENCY` identity/Version required by the action. Assignments retain their own target type; no Candidate Set assignment converts into Shared Dependency, Case, Configuration, Decision, or organization scope, and no other assignment converts into Candidate Set scope.
+
+`DEPENDENCY_CANDIDATE_SET` is a first-class stable/versioned authoritative target governed by the Integrity specification. Its finalized membership is immutable and reconstructable. A free-form scope string, mutable list, UI selection, search result, query result, similarity cluster, or software-chosen collection is not an eligible accountability target. Historical resolution uses the exact cited Candidate Set Version rather than current membership recomputation.
+
+For the exact target, function, equivalence/concentration purpose, effective time, and optional knowledge cutoff, accountability returns exactly:
+
+- one eligible accountable assignment or genuine governed organizational mechanism;
+- `SHARED DEPENDENCY ACCOUNTABILITY NOT ESTABLISHED`; or
+- `SHARED DEPENDENCY ACCOUNTABILITY CONFLICT — UNRESOLVED` with every incompatible candidate and reason.
+
+Broad/narrow scope, recency, hierarchy, Case ownership, source ownership, dashboard ownership, report authorship, administration, queue ownership, and software permission never select a winner. Same actor may hold Case, source, Decision, and Shared Dependency functions only when each relationship is separately established and retained.
+
+Delegation is exact, versioned, target-scoped, time-valid, complete, and fail closed. A governed mechanism must be a real authoritative mechanism record/reference retaining exact identity, rule/version, typed scope/target, authority source, actor or authorized function where applicable, limits, effective period, and history. A free-form mechanism string is invalid.
+
+A Shared Dependency Owner, if later established, may coordinate provider/control/capacity work. That coordination never replaces the Shared Dependency Determiner, Case Owner, source owner, Reassessment function, Completion Acceptor, or Decision Authority and never transfers authority, applicability, satisfaction, outcome, or closure across Cases.
 
 ## 31. Accountability for Learning
 
@@ -763,6 +792,10 @@ Management users may use it for prioritization and portfolio action.
 The register itself should not create hidden substantive authority.
 
 Portfolio-level decisions should be represented through appropriate decision/authority records.
+
+Register concern entries, dependency groups, counts, acknowledgements, dismissals, sorts, filters, queues, reports, exports, attention indicators, schedules, notification intents, projection watermarks, and delivery events are derived/non-authoritative and create no role, accountability, or authority. Dashboard ownership, report authorship, queue administration, and software access do not establish Shared Dependency Determiner or any owning-domain function.
+
+A substantive action launched from Register context invokes the exact owning-domain command and resolves its applicable typed-target accountability and authority anew. Generic Register `mark resolved` does not exist. Linking a shared dependency invokes the authoritative Candidate Set and Equivalence Determination contract in §30.1; it never edits a Register group directly.
 
 ## 38. Human Validation Implications
 

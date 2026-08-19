@@ -831,6 +831,12 @@ Deferred for later specifications/platform design:
 - evidence deduplication;
 - external-system ingestion.
 
+### 36.1 IRR-012 Register conformance
+
+The Management Register projects Evidence Applicability and Authority attention only from exact authoritative current-selection results. Missing required Applicability, incompatible current judgments, `NOT_APPLICABLE`, material unresolved `INDETERMINATE`, and explicit `REFRESH REQUIRED` remain exact-target/use concerns with every candidate Version and limitation retained. An open or conflicted Authority Gap or Decision Authority Gap creates attention; authoritative resolution removes it prospectively from unresolved attention without rewriting history.
+
+Citation of the same Evidence Record or external/provider provenance by multiple Cases does not establish a Shared Dependency and never transfers Evidence Applicability. Shared identity requires the exact dependency Record ID or one eligible Equivalence Determination under the Integrity contract. Evidence source names, URLs, normalization, similarity, and co-occurrence are ineligible equivalence rules.
+
 ## 37. Completion Impact
 
 This specification substantially advances the Evidence and Authority Management capability in the system gap map.

@@ -820,6 +820,12 @@ Deferred to later specifications/platform design:
 - exception/waiver handling;
 - organization-specific decision taxonomy.
 
+### 38.1 IRR-012 Register conformance
+
+The Register projects the exact current Integration, Decision, Boundary, and Authorization Basis position and preserves required absence, conflict, Authority Gaps, accepted uncertainty, Decision-Limiting uncertainty, conditions, due/breached/blocking facts, and source Versions. It never supplies a missing current Decision, resolves uncertainty/conflict, changes a Boundary, authorizes operation, accepts residual concern generically, or treats a proposed Configuration as authorized.
+
+Accepted uncertainty and operating-state values may be displayed by exact identity only. Shared Dependency grouping and descriptive counts do not transfer Decision effect or Decision Authority across Cases and do not infer stronger, broader, or restrictive state relations under IRR-014.
+
 ## 39. Completion Impact
 
 This specification completes the first five foundational specification areas identified as the initial platform-design gate:
