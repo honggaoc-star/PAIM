@@ -297,6 +297,159 @@ def test_unmapped_disabled_and_bad_credentials_fail_closed(
     assert "wrong-explicit-token-value" not in log
 
 
+def test_remapped_principal_rejects_old_session_and_preserves_actor_history(
+    operational: OperationalContext,
+) -> None:
+    old_session = operational.session
+    actor_a = operational.actor_id
+    grant(operational, Permission.COMMAND, "case.create")
+    case_a = RecordId.new()
+    operational.app.run_command(
+        old_session,  # type: ignore[arg-type]
+        action="case.create",
+        idempotency_key="actor-a-case",
+        operation=lambda service, meta: service.commit_case(
+            meta,
+            CaseVersionInput(
+                case_a,
+                RecordVersionId.new(),
+                "Actor A Case",
+                EFFECTIVE,
+            ),
+        ),
+    )
+
+    actor_b = RecordId.new()
+    operational.app.run_command(
+        old_session,  # type: ignore[arg-type]
+        action="actor.create",
+        idempotency_key="actor-b-create",
+        operation=lambda service, meta: service.commit_actor(
+            meta,
+            ActorVersionInput(
+                actor_b,
+                RecordVersionId.new(),
+                "Replacement PAIM Actor",
+                EFFECTIVE,
+            ),
+        ),
+    )
+    operational.app.provision_principal(
+        old_session,  # type: ignore[arg-type]
+        principal_id="principal:local-owner",
+        token=TOKEN,
+        actor_id=actor_b,
+        status=PrincipalStatus.ENABLED,
+    )
+
+    called = False
+
+    def stale_operation(_: Increment7ApplicationService, __: object) -> None:
+        nonlocal called
+        called = True
+
+    with pytest.raises(AccessDenied):
+        operational.app.run_command(
+            old_session,  # type: ignore[arg-type]
+            action="decision.authorize",
+            idempotency_key="stale-actor-a-decision",
+            claimed_actor_id=actor_a,
+            operation=stale_operation,  # type: ignore[arg-type]
+        )
+    assert not called
+
+    new_session = operational.app.authenticate("principal:local-owner", TOKEN)
+    assert new_session.actor_id == actor_b
+    case_b = RecordId.new()
+    operational.app.run_command(
+        new_session,
+        action="case.create",
+        idempotency_key="actor-b-case",
+        operation=lambda service, meta: service.commit_case(
+            meta,
+            CaseVersionInput(
+                case_b,
+                RecordVersionId.new(),
+                "Actor B Case",
+                EFFECTIVE,
+            ),
+        ),
+    )
+    with pytest.raises(AccessDenied):
+        operational.app.run_command(
+            new_session,
+            action="decision.authorize",
+            idempotency_key="new-session-cannot-claim-actor-a",
+            claimed_actor_id=actor_a,
+            operation=stale_operation,  # type: ignore[arg-type]
+        )
+
+    case_command_audits = [
+        row
+        for row in operational.app.operational_store.audit_rows()
+        if row["category"] == "COMMAND"
+        and row["outcome"] == "SUCCESS"
+        and row["action"] == "case.create"
+    ]
+    assert [row["actor_id"] for row in case_command_audits[-2:]] == [
+        str(actor_a),
+        str(actor_b),
+    ]
+    stale_denials = [
+        row
+        for row in operational.app.operational_store.audit_rows()
+        if row["reason_category"] == "PRINCIPAL_ACTOR_MAPPING_NOT_CURRENT"
+    ]
+    assert stale_denials[-1]["actor_id"] == str(actor_a)
+
+
+def test_removed_actor_mapping_rejects_old_and_new_substantive_sessions(
+    operational: OperationalContext,
+) -> None:
+    old_session = operational.session
+    grant(operational, Permission.COMMAND, "case.create")
+    operational.app.provision_principal(
+        old_session,  # type: ignore[arg-type]
+        principal_id="principal:local-owner",
+        token=TOKEN,
+        actor_id=None,
+        status=PrincipalStatus.ENABLED,
+    )
+
+    with pytest.raises(AccessDenied):
+        operational.app.run_command(
+            old_session,  # type: ignore[arg-type]
+            action="case.create",
+            idempotency_key="removed-mapping-old-session",
+            operation=lambda service, meta: service.commit_case(
+                meta,
+                CaseVersionInput(
+                    RecordId.new(),
+                    RecordVersionId.new(),
+                    "Must Not Commit",
+                    EFFECTIVE,
+                ),
+            ),
+        )
+    unresolved = operational.app.authenticate("principal:local-owner", TOKEN)
+    assert unresolved.actor_id is None
+    with pytest.raises(AccessDenied):
+        operational.app.run_command(
+            unresolved,
+            action="case.create",
+            idempotency_key="removed-mapping-new-session",
+            operation=lambda service, meta: service.commit_case(
+                meta,
+                CaseVersionInput(
+                    RecordId.new(),
+                    RecordVersionId.new(),
+                    "Must Also Not Commit",
+                    EFFECTIVE,
+                ),
+            ),
+        )
+
+
 def test_operational_admin_and_software_permission_do_not_create_decision_authority(
     operational: OperationalContext,
 ) -> None:

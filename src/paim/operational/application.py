@@ -11,7 +11,7 @@ from collections.abc import Callable, Mapping
 from dataclasses import replace
 from datetime import datetime
 from pathlib import Path
-from typing import TypeVar, cast
+from typing import NoReturn, TypeVar, cast
 
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -873,6 +873,11 @@ class OperationalApplication:
         current = self.operational_store.current_principal(session.principal_id)
         if current is None or current.status is not PrincipalStatus.ENABLED:
             self._deny(session, action, "AUTHENTICATION_STATE_UNAVAILABLE", scope_id)
+        bootstrap_actor_creation = (
+            action == "actor.create" and session.actor_id is None and current.actor_id is None
+        )
+        if current.actor_id != session.actor_id and not bootstrap_actor_creation:
+            self._deny(session, action, "PRINCIPAL_ACTOR_MAPPING_NOT_CURRENT", scope_id)
         if not self.operational_store.permission_allowed(
             session.principal_id, permission, action, scope_type, scope_id
         ):
@@ -884,7 +889,7 @@ class OperationalApplication:
         action: str,
         reason: str,
         case_id: RecordId | None,
-    ) -> None:
+    ) -> NoReturn:
         self._audit_session(
             session,
             category="ACCESS",
