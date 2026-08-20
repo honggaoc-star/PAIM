@@ -3,10 +3,11 @@
 This guide covers the bounded Increment 8 local application. It is an implementation-facing
 operator guide, not a change to PAIM system semantics or the v0.1 release claim.
 
-The accepted v0.1 product scope is complete, but Increment 9 validation and the release verdict are
-still outstanding. The Observation and operating-state limitations in §10 are intentional bounded
-v0.1 product boundaries, not silent placeholders or evidence that their substantive semantics have
-been designed.
+The accepted v0.1 product scope and the Increment 9 automated and human pathways are complete in
+draft PR #70. Practitioner-findings remediation, its bounded human confirmation, independent
+review, and the release verdict remain outstanding. The Observation and operating-state
+limitations in §10 are intentional bounded v0.1 product boundaries, not silent placeholders or
+evidence that their substantive semantics have been designed.
 
 ## 1. Boundary
 
@@ -160,6 +161,12 @@ authority, currentness, Boundary, accountability, and other guards then remain c
 The application intentionally has no generic `approve`, `resolve`, `override`, `admin authorize`,
 or Register “mark resolved” command.
 
+For the production-only sequence, prerequisites, exact-identity discipline, and next owning action
+for each of the three v0.1 lifecycle pathways, use
+`PAIM_V0_1_PRACTITIONER_PATHWAYS_v0.1.md`. That guide standardizes self-contained stages and
+persisted reconstruction; historical Increment 9 walkthrough transcripts are evidence, not reusable
+operator instructions.
+
 ## 6. Manual intake envelope
 
 `intake` accepts a bounded JSON object plus explicit envelope fields:
@@ -304,5 +311,5 @@ Use `unsupported --principal <principal> <CAPABILITY>` to exercise the negative 
 and IRR-014 each remain `OPEN — SEMANTICS UNDESIGNED` while each bounded-v0.1 product gate is
 `CLOSED BY DESIGN — OUTSIDE V0.1 CLAIM`. Separate post-v0.1 human design authority,
 specification, implementation, and validation are required before either extension may be enabled,
-and no extension may reinterpret v0.1 historical records. Final Increment 9 practitioner and
-release validation is also outside Increment 8 and is not authorized by this guide.
+and no extension may reinterpret v0.1 historical records. Increment 9 practitioner evidence is
+retained in draft PR #70; this guide does not issue or authorize the final release verdict.
