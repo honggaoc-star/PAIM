@@ -1,4 +1,5 @@
 from dataclasses import FrozenInstanceError
+from uuid import RFC_4122
 
 import pytest
 
@@ -20,6 +21,25 @@ def test_record_and_version_ids_are_distinct_nominal_types_and_values() -> None:
     assert type(record_id) is RecordId
     assert type(version_id) is RecordVersionId
     assert record_id.value != version_id.value
+
+
+def test_generated_ids_are_unique_rfc_9562_uuidv7_values() -> None:
+    generated = tuple(RecordId.new() for _ in range(10_000))
+
+    assert len({value.value for value in generated}) == len(generated)
+    assert all(value.value.version == 7 for value in generated)
+    assert all(value.value.variant == RFC_4122 for value in generated)
+
+
+def test_uuidv7_text_parse_round_trip_preserves_existing_persisted_value() -> None:
+    persisted = "01890f47-1f00-7abc-8def-0123456789ab"
+
+    parsed = RecordId.parse(persisted)
+
+    assert str(parsed) == persisted
+    assert RecordId.parse(str(parsed)) == parsed
+    assert parsed.value.version == 7
+    assert parsed.value.variant == RFC_4122
 
 
 def test_draft_mutates_only_before_finalization() -> None:

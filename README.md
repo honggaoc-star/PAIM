@@ -168,6 +168,18 @@ The current product is a local governed application. Enterprise/cloud
 deployment, live provider integrations, distributed infrastructure, and
 generic workflow scope are not part of the v0.1 claim.
 
+## Engineering Runtime
+
+PAIM v0.1 supports CPython `>=3.12,<3.13`. CPython `3.12.13` is the exact
+reproducible reference interpreter, dependencies are committed in `uv.lock`,
+and the accepted `uv` version is pinned in `pyproject.toml`. Use `uv sync
+--locked` and `uv run --locked` for repository work.
+
+The interpreter and its native components must be permitted by the local
+Application Control or security policy. A matching Python version is not by
+itself an approved or supported runtime. The runtime decision and migration
+evidence are recorded under `docs/engineering/`.
+
 ## Development Direction
 
 Increment 9 remains a separate gate and has not begun. It may be

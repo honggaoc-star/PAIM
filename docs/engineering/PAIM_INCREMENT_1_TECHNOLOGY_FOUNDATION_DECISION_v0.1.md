@@ -8,6 +8,12 @@
 
 The governing clean-main baseline is commit `df700df8529326846f12798d2bd195541b543cd2`.
 
+**Runtime amendment:** The accepted runtime-baseline decision in
+`PAIM_V0_1_PYTHON_RUNTIME_BASELINE_DECISION_v0.1.md` supersedes only this artifact's former CPython
+3.14 selection. PAIM v0.1 now supports CPython `>=3.12,<3.13`, with CPython 3.12.13 as the exact
+reproducible reference interpreter. All PAIM semantic, identity, persistence, and test-foundation
+decisions below remain unchanged.
+
 The decision applies only to Increment 1. It does not select technology for later user interfaces, external integrations, distributed processing, production deployment, search, attachments, reporting, or analytical services.
 
 ## 2. Governing constraints
@@ -56,7 +62,7 @@ Performance and horizontal scaling are secondary to correctness in Increment 1. 
 
 | Alternative | Advantages | Reasons not selected for Increment 1 |
 |---|---|---|
-| CPython 3.14 | Concise domain-neutral kernel, mature SQL/testing ecosystem, timezone-aware standard types, and standard-library UUIDv7 | Selected; static discipline must be added through typing and tests. |
+| CPython 3.12 | Concise domain-neutral kernel, mature SQL/testing ecosystem, timezone-aware standard types, PEP 695 type aliases, and an organization-permitted mature runtime | Selected by the accepted v0.1 runtime amendment; static discipline and a locked RFC 9562 UUIDv7 provider are required. |
 | TypeScript on Node.js | Strong developer tooling and useful type system | Transpilation/module/runtime choices and an asynchronous database layer add moving parts without benefiting a local integrity kernel. |
 | C# on current .NET LTS | Strong static types, transaction support, and mature tooling | A larger SDK/project surface is not justified for the first local library and contract-test slice. |
 | Java or Kotlin on a current LTS JVM | Strong typing, portability, and database tooling | Build/runtime weight and framework choice are disproportionate to Increment 1A. |
@@ -87,11 +93,16 @@ Performance and horizontal scaling are secondary to correctness in Increment 1. 
 
 | Choice | Alternatives | Decision reason |
 |---|---|---|
-| UUIDv7 | UUIDv4, ULID, database integers | Standard RFC 9562 identity, application-side generation without coordination, sortable locality, and no third-party ID dependency under CPython 3.14. Semantic ordering never uses UUID order. |
+| UUIDv7 | UUIDv4, ULID, database integers | Standard RFC 9562 identity, application-side generation without coordination, and sortable locality. The pure-Python MIT-licensed `uuid6` provider is narrowly constrained and locked for CPython 3.12. Semantic ordering never uses UUID order. |
 | UTC integer microseconds | Database text timestamps, floating Unix time, local time, database-specific temporal types | Exact cross-platform representation at Python's native microsecond resolution; no locale, offset, or floating-point ambiguity. |
 | `pytest` | `unittest`, behavior-specification frameworks | Concise assertions, fixtures, parametrization, temporary databases, and reusable adapter contract suites with little framework ceremony. |
 
-Python 3.14 added standard-library UUID versions 6, 7, and 8; `uuid.uuid7()` follows RFC 9562. Python's aware `datetime` values and UTC singleton support an explicit UTC-only application convention. See the official [Python UUID documentation](https://docs.python.org/3.14/library/uuid.html) and [Python datetime documentation](https://docs.python.org/3.14/library/datetime.html).
+The locked `uuid6` provider returns standard-library `uuid.UUID` values with RFC 9562 version 7 and
+the RFC variant while requiring no runtime service or transitive dependency. Existing canonical UUID
+text, parsing, persistence, and opaque-identity behavior remain unchanged. Python's aware `datetime`
+values and UTC singleton support an explicit UTC-only application convention. See the official
+[Python 3.12 datetime documentation](https://docs.python.org/3.12/library/datetime.html) and the
+controlling runtime decision for provider evidence.
 
 ### 4.5 Migration and engineering controls
 
@@ -107,7 +118,10 @@ Handwritten SQL remains permitted inside reviewed Alembic revisions when it is c
 
 The Increment 1 foundation is:
 
-- **Language/runtime:** CPython `3.14.x`. Increment 1 supports the Python 3.14 minor line only. At its clean-main checkpoint, the later Increment 1A bootstrap must pin the latest accepted released 3.14 patch available at that checkpoint and record the exact runtime pin with the locked environment. Subsequent patch upgrades require a bounded dependency change with the full test suite; minor-version upgrades require a new decision or amendment.
+- **Language/runtime:** CPython `>=3.12,<3.13`. PAIM v0.1 supports the Python 3.12 minor line only,
+  with CPython `3.12.13` as its exact reproducible reference interpreter. Subsequent reference-patch
+  upgrades require a bounded dependency change with the full test suite; minor-version upgrades
+  require a new decision or amendment.
 - **Project/environment manager:** `uv`, using one root `pyproject.toml`, a committed `uv.lock`, a repository-local `.venv`, and locked execution in CI/review. The later bootstrap issue pins the exact `uv` release used to create the lock.
 - **Application shape:** a typed, synchronous Python package and modular monolith/library. No server or long-running process is selected.
 - **Data access:** SQLAlchemy 2.x **Core**, not ORM, behind domain-neutral persistence ports. The bootstrap issue selects compatible exact versions through the lock.
@@ -121,7 +135,7 @@ Only the listed major/minor compatibility lines are architectural choices. Every
 
 ### 5.1 Local execution and development boundary
 
-Increment 1A must run on a developer workstation or CI runner supporting the pinned CPython and `uv` versions on Windows, Linux, or macOS. Environment setup is a locked `uv sync`; project commands execute through `uv run --locked`. Tests use a fresh temporary SQLite database per test or isolated test scope. A developer database, if the later issue permits one, is repository-local, ignored by Git, disposable, and never an authoritative shared environment.
+Increment 1A must run on a developer workstation or CI runner supporting the pinned CPython and `uv` versions on Windows, Linux, or macOS. The interpreter and every native component must be permitted by the local Application Control/security policy; matching a version is not sufficient approval. Environment setup is a locked `uv sync`; project commands execute through `uv run --locked`. Tests use a fresh temporary SQLite database per test or isolated test scope. A developer database, if the later issue permits one, is repository-local, ignored by Git, disposable, and never an authoritative shared environment.
 
 No container engine, database server, network listener, cloud account, message broker, identity provider, or external service is required. Configuration is limited to explicit local database location and safe test/runtime settings; secrets are not part of Increment 1A. The package exposes application services as an in-process library for tests and later adapters. It does not expose an HTTP API, CLI product surface, worker, scheduler, or UI.
 
@@ -176,7 +190,7 @@ SQLite is adequate for the single-process/local Increment 1A proof. Its single-w
 ### 7.1 Identity
 
 - Record ID and Record Version ID are separate nominal types and separate stored fields.
-- Both use application-generated RFC 9562 UUIDv7 values from `uuid.uuid7()` and serialize as canonical lowercase hyphenated strings at boundaries.
+- Both use application-generated RFC 9562 UUIDv7 values from the locked `uuid6` provider and serialize as canonical lowercase hyphenated strings at boundaries.
 - An ID is opaque after creation. UUID timestamp bits must never decide effective order, recorded order, currentness, succession, conflict, or authorization.
 - Event, command, audit, and relationship identities also use UUIDv7 unless a later bounded decision establishes a stronger external interoperability requirement.
 - Database-generated integer keys may exist only as private adapter optimizations; they cannot escape as authoritative PAIM identity.
@@ -321,7 +335,7 @@ No domain schema, migration revision, or database file is defined by this decisi
 
 This decision is acceptable only if independent review confirms all of the following:
 
-1. It selects CPython 3.14.x, `uv`, SQLAlchemy 2.x Core, SQLite, Alembic, pytest, Ruff, and mypy for Increment 1 only, with the exact released Python patch pinned at the Increment 1A clean-main checkpoint.
+1. It selects CPython 3.12.x, `uv`, SQLAlchemy 2.x Core, SQLite, Alembic, pytest, Ruff, and mypy for Increment 1 only, with CPython 3.12.13 as the exact reproducible reference patch under the accepted runtime amendment.
 2. It selects one locked, cross-platform local environment and requires exact dependency/tool pins at the later bootstrap step.
 3. It defines a domain-neutral package, adapter, migration, and four-layer test layout without creating any files from that layout.
 4. It explains how immutable versions, append-preserving status/history, dual time, explicit conflict, and point-in-time reads are supported without defining a physical domain schema.
@@ -338,7 +352,7 @@ This decision is acceptable only if independent review confirms all of the follo
 
 ## 13. Final decision summary
 
-PAIM Increment 1 will use a typed synchronous CPython 3.14.x modular kernel, with the exact accepted released patch pinned at the Increment 1A clean-main checkpoint and the environment reproducibly locked with `uv`. SQLAlchemy 2.x Core will isolate explicit persistence ports; SQLite will provide the first local ACID adapter; Alembic will govern later reviewed migrations; and pytest will prove pure, adapter, transactional, and longitudinal hard oracles. Ruff and mypy provide development-time consistency and static checks.
+PAIM Increment 1 uses a typed synchronous CPython 3.12.x modular kernel, with CPython 3.12.13 as the exact reproducible reference interpreter and the environment locked with `uv`. SQLAlchemy 2.x Core isolates explicit persistence ports; SQLite provides the first local ACID adapter; Alembic governs reviewed migrations; and pytest proves pure, adapter, transactional, and longitudinal hard oracles. Ruff and mypy provide development-time consistency and static checks.
 
 Record and version identities use distinct opaque UUIDv7 values. Time is explicit UTC with separate recorded/effective dimensions and integer-microsecond persistence. Each accepted command uses one transaction to preserve version, status, relationship, idempotency, and audit facts all-or-nothing. The architecture remains a local modular monolith until a later need proves that another topology can preserve the same observable semantics.
 
