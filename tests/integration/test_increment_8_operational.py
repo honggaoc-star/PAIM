@@ -154,9 +154,14 @@ def grant(
     )
 
 
-def case_and_configuration(ctx: OperationalContext, key: str) -> tuple[RecordId, RecordId]:
+def case_and_configuration(
+    ctx: OperationalContext,
+    key: str,
+    *,
+    principal_id: str = "principal:local-owner",
+) -> tuple[RecordId, RecordId]:
     case_id, configuration_id = RecordId.new(), RecordId.new()
-    grant(ctx, Permission.COMMAND, "case.create")
+    grant(ctx, Permission.COMMAND, "case.create", principal_id=principal_id)
     ctx.app.run_command(
         ctx.session,  # type: ignore[arg-type]
         action="case.create",
@@ -171,8 +176,22 @@ def case_and_configuration(ctx: OperationalContext, key: str) -> tuple[RecordId,
             ),
         ),
     )
-    grant(ctx, Permission.CASE_READ, "read", ScopeType.CASE, case_id)
-    grant(ctx, Permission.COMMAND, "configuration.create", ScopeType.CASE, case_id)
+    grant(
+        ctx,
+        Permission.CASE_READ,
+        "read",
+        ScopeType.CASE,
+        case_id,
+        principal_id=principal_id,
+    )
+    grant(
+        ctx,
+        Permission.COMMAND,
+        "configuration.create",
+        ScopeType.CASE,
+        case_id,
+        principal_id=principal_id,
+    )
     ctx.app.run_command(
         ctx.session,  # type: ignore[arg-type]
         action="configuration.create",
@@ -197,6 +216,7 @@ def case_and_configuration(ctx: OperationalContext, key: str) -> tuple[RecordId,
         "read",
         ScopeType.CONFIGURATION,
         configuration_id,
+        principal_id=principal_id,
     )
     return case_id, configuration_id
 
