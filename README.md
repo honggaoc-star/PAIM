@@ -137,23 +137,45 @@ prematurely.
 
 ## Current Development Status
 
-Current foundations include:
+**PAIM v0.1 scope is complete; validation and release are not complete.**
 
--   a provisional PAIM conceptual architecture;
--   AIVM as the value-management leg;
--   existing AI risk-management and model-evaluation foundations;
--   a provisional decision-integration architecture;
--   a continuing PAIM management cycle;
--   an architectural stress test using PAIM Value Case 001; and
--   a Minimum PAIM Management Case v0.1 specification.
+PAIM v0.1 is a complete functional local governed PAIM application for
+the implemented management lifecycle. It supports authenticated local
+operation, provenance-preserving manual/external intake, access
+segmentation, recovery, and explicit degraded behavior. The lifecycle
+includes Case and Configuration governance; Evidence and Authority;
+independent Value and Risk inputs; Integration, Boundary, Decision, and
+Authorization; Intervention, Activation, and Learning; explicit-event
+Reassessment and restrictive interim operation; and source-traceable
+Management Register outputs.
+
+PAIM v0.1 does not provide first-class Observation persistence or
+continuous telemetry automation, and it does not infer operating-state
+strength, breadth, severity, ranking, priority, or escalation. Those
+capabilities remain semantically undesigned post-v0.1 extensions. Their
+unsupported boundaries are explicit and fail closed. The supported v0.1
+paths use exact manual/external Trigger provenance and exact-state,
+exact-scope restrictive intersection or affected-scope suspension.
+
+The current estimate is **approximately 92% complete against the bounded
+complete-functional-v0.1 denominator after Increment 8 and the accepted
+release-scope decision**. This is a functional-completion estimate, not a
+release declaration. With this reconciliation merged, remaining work is
+principally separately authorized Increment 9 integrated/practitioner
+validation plus final traceability and release evidence.
+
+The current product is a local governed application. Enterprise/cloud
+deployment, live provider integrations, distributed infrastructure, and
+generic workflow scope are not part of the v0.1 claim.
 
 ## Development Direction
 
-Near-term work should focus on practitioner-method validation:
-instantiate the minimum management case, test additional and conflicting
-value-risk cases, refine interfaces among AIVM, risk management, and
-PAIM, and only then define the operating model and Workbench
-requirements.
+Increment 9 remains a separate gate and has not begun. It may be
+authorized only through a separate bounded issue that freezes the exact
+claim, three practitioner pathways, hard boundary oracles, regression and
+operational evidence, practitioner study, final traceability, and release
+verdict. Passing that campaign—not scope completion alone—is required
+before PAIM v0.1 may be declared released.
 
 ## Project Objective
 

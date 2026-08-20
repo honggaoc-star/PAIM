@@ -3,6 +3,11 @@
 This guide covers the bounded Increment 8 local application. It is an implementation-facing
 operator guide, not a change to PAIM system semantics or the v0.1 release claim.
 
+The accepted v0.1 product scope is complete, but Increment 9 validation and the release verdict are
+still outstanding. The Observation and operating-state limitations in §10 are intentional bounded
+v0.1 product boundaries, not silent placeholders or evidence that their substantive semantics have
+been designed.
+
 ## 1. Boundary
 
 The application is a synchronous local CLI and typed Python gateway over the existing Increment
@@ -252,17 +257,31 @@ Operating Dispositions.
 
 ## 10. Explicitly unsupported in v0.1
 
-The application explicitly rejects:
+The application explicitly rejects and fails closed for:
 
-- first-class Observation records and Observation/telemetry conversion;
-- telemetry-to-Evidence, Trigger, or Register automation;
-- operating-state strength, breadth, restrictiveness, rank, score, color, or escalation inference;
+- first-class Observation persistence, continuous monitoring, and Observation/telemetry
+  automation;
+- automatic telemetry/log/metric/alert/intake conversion to Evidence, Trigger, or Register
+  attention;
+- operating-state strength, breadth, restrictiveness, severity, rank, score, priority, or escalation
+  inference, including inference from labels, enum/numeric order, color, recency, queue order, or
+  notification frequency;
 - semantic/AI dependency matching as authority;
 - live Value/Risk/directory/document/authority/messaging/BI/task/incident integrations;
 - a generic workflow engine or scheduler;
 - cross-Case authority transfer or generic Register resolution; and
 - distributed production topology.
 
+Manual/external intake is provenance-preserving and remains `PROPOSED` or `QUARANTINED`; it is
+non-authoritative until an explicit owning-domain command succeeds. An exact accepted external
+source occurrence can support the existing Trigger path without creating Observation identity, and
+no provider/text similarity performs semantic deduplication. The application preserves exact
+operating-state identity and supports exact-scope restrictive Interim Operating Disposition
+intersection; an indeterminate combined effect suspends only the affected scope.
+
 Use `unsupported --principal <principal> <CAPABILITY>` to exercise the negative boundary. IRR-009
-and IRR-014 remain open; this application does not resolve them. Final Increment 9 practitioner and
-release validation is also outside this increment.
+and IRR-014 each remain `OPEN — SEMANTICS UNDESIGNED` while each bounded-v0.1 product gate is
+`CLOSED BY DESIGN — OUTSIDE V0.1 CLAIM`. Separate post-v0.1 human design authority,
+specification, implementation, and validation are required before either extension may be enabled,
+and no extension may reinterpret v0.1 historical records. Final Increment 9 practitioner and
+release validation is also outside Increment 8 and is not authorized by this guide.

@@ -705,7 +705,11 @@ A completed or favorable Learning Item never changes a Decision automatically.
 
 ### 12.1 Trigger intake and materiality
 
-Trigger sources include incidents, evidence, Value/Risk changes, controls, Configuration, authority, capacity/conditions, Learning, stronger-state requests, and schedules. Trigger intake records provenance and exact affected context.
+Trigger sources include incidents, evidence, Value/Risk changes, controls, Configuration, authority,
+capacity/conditions, Learning, source-described state-change requests, and schedules. For bounded
+v0.1, a state-change request names an exact proposed state; PAIM does not infer that it is stronger,
+broader, more restrictive, more severe, or higher priority. Trigger intake records provenance and
+exact affected context.
 
 An accountable materiality determination routes the trigger to informational handling, monitoring, analytical refresh, formal Reassessment, or immediate disposition plus Reassessment. The architecture does not infer substantive materiality from source type alone.
 
@@ -1055,7 +1059,9 @@ Fixtures include missing required control, narrative clause with no determinatio
 
 ### 18.8 Reassessment-overlay seams
 
-Fixtures include overlapping restrictive dispositions, indeterminate intersection, expiry before Reassessment completion, attempted broadening/stronger state, confirmation with substantive changed condition, and completion with neither/both allowed outcomes.
+Fixtures include overlapping restrictive dispositions, indeterminate intersection, expiry before
+Reassessment completion, attempted explicit broadening or state change that would expand operation,
+confirmation with substantive changed condition, and completion with neither/both allowed outcomes.
 
 ### 18.9 Reasoning and human-oracle seams
 
@@ -1118,14 +1124,36 @@ The architecture records the status and required behavior of the following depen
 | IRR-006 — Value/Risk input selection, acceptance, and freeze ownership — resolved for specification purposes | Newest, first, or any `ready` input is automatically selected/frozen; one generic role owns both lanes. | Apply lane-specific use Acceptance/Selection, atomic first freeze, explicit reuse, exact accountable assignment/mechanism, material-Evidence fitness, and one/absence/conflict from the hardened Value/Risk and Integrity contracts. | Conformance review before Increment 3 implementation. |
 | IRR-007 — Configuration ownership/cardinality, status dimensions, and materiality authority | One Case always has one Configuration; `current`, `proposed`, `experimental`, and operating state are interchangeable; any technical actor decides materiality. | Typed Case–Configuration relationship, orthogonal purpose/currentness/state dimensions, explicit materiality determination and unresolved conflict. | Finalizing Configuration workflow and Register unit/cardinality. |
 | IRR-008 — Evidence Applicability relationship — resolved for specification purposes | Evidence belongs to exactly one target or applicability can be inferred from attachment/location. | Apply the first-class versioned many-to-many Applicability contract, exact Increment 3 target Versions, normative outcomes, target-context accountability, correction/reuse history, and one/absence/conflict from the hardened Evidence/Authority and Integrity contracts. | Conformance review before Increment 3 implementation. |
-| IRR-009 — Observation Record | Observation is definitely an authoritative record or merely transient telemetry. | Until IRR-009 is accepted, Increment 6 persists no Observation and performs no automated Observation-to-Trigger conversion. Exact existing PAIM records and explicit human/external events with retained provenance may source a Trigger. Any later Observation intake/conversion contract remains a replaceable deferred extension. | Persisting Observation or automating Observation-to-Evidence/Trigger conversion. |
+| IRR-009 — Observation Record; semantic/design `OPEN — SEMANTICS UNDESIGNED`; v0.1 product gate `CLOSED BY DESIGN — OUTSIDE V0.1 CLAIM` | Observation is definitely an authoritative record or merely transient telemetry; telemetry arrival becomes Evidence, Trigger, or Register attention. | Bounded v0.1 persists no Observation and performs no automated conversion. Exact existing PAIM records and explicit human/external events with retained provenance may source a Trigger only through an owning-domain command. Any later Observation contract is a post-v0.1 extension and cannot reinterpret v0.1 history. | Separate accepted design, specification hardening, implementation, and validation before persisting Observation or automating Observation-to-Evidence/Trigger/Register conversion. |
 | IRR-010 — Intervention prerequisite aggregation and completion acceptance | `completed` means accepted; all Interventions are prerequisites; one status automatically permits target operation. | Explicit prerequisite classification, completion evidence, acceptance determination/role, aggregate guard, and unresolved acceptance state. | Implementing transition to target `OPERATING_OBSERVING`. |
 | IRR-011 — Trigger/Reassessment cardinality and concurrency — normatively hardened, pending independent closure review | One Trigger maps to one Reassessment; similarity deduplicates; membership mutates; concurrent Reassessments or dispositions choose by recency/severity/rank; merge absorbs history. | Apply Case-scoped versioned Trigger identity, identity-only replay, accountable determinations, many-to-many immutable Membership/Trigger Sets, no-auto-grouping, bounded non-overlapping concurrency, explicit overlap/coverage conflict, no v0.1 merge, accountable cancellation/supersession, prospective completion revalidation, separate accountability functions, restrictive-overlay intersection/suspension, and IRR-009/012/014 boundaries from the hardened Reassessment/Case/Roles/Integrity contracts. | Independent focused IRR-011 gate-closure review before Increment 6 implementation. |
 | IRR-012 — Register derivation/aggregation and Shared Dependency identity — normatively hardened, pending independent closure review | Register has one row per Case; provider/control names imply shared identity; aggregation may pick a winner; Candidate Set may be a free-form/query target. | Exact concern key and population matrix; derived lifecycle; dual-time rule/high-water/watermark; immutable versioned Candidate Set; accountable Shared Dependency Equivalence/optional Concentration Determinations; descriptive cross-Case aggregation; exact manifest; no authority transfer; IRR-009/014 exclusions. | Independent focused IRR-012 gate-closure review before Increment 7 implementation. |
 | IRR-013 / CON-002 — Role Assignment typed scope and precedence | Every assignment requires one Case; organization-wide assignment overrides narrower assignment; newest/broadest wins. | Typed scope target, optional Case relationship, precedence-policy extension, exact Authorization Basis chain validation, and unresolved assignment conflict. | Implementing general role assignment/permission derivation beyond exact Decision authorization. |
-| IRR-014 — operating-state semantic traits and stronger/broader relation | State labels have a universal ordering; string/name comparison determines strength; `suspended` is simply another progression step. | Configured state identity/traits and relation extension, explicit proposed change, indeterminate relation, and invariant that every state change requires successor Decision. | Implementing stronger-state automation and complete escalation oracles. |
+| IRR-014 — operating-state traits/relations; semantic/design `OPEN — SEMANTICS UNDESIGNED`; v0.1 product gate `CLOSED BY DESIGN — OUTSIDE V0.1 CLAIM` | State labels have a universal ordering; string/name/enum/color/recency comparison determines strength, breadth, severity, priority, or escalation; `suspended` is simply another progression step. | Bounded v0.1 preserves exact state identity, explicit proposed change, exact-scope restrictive disposition intersection, and affected-scope suspension when combined effect is indeterminate. No relation or rank is inferred, and every state change requires a successor Decision. | Separate accepted organization-configured semantic design, specification hardening, implementation, and validation before any relation/ranking/escalation behavior. |
 
 If a P1 dependency is reached before clarification, the owning module returns a named unresolved dependency/conflict and blocks only the behavior that would require inventing the missing semantic. The platform does not create a permissive fallback.
+
+### 20.1 Accepted bounded-v0.1 extension gates
+
+The human-accepted release-scope decision
+`PAIM_V0_1_RELEASE_SCOPE_DECISION_IRR_009_IRR_014_v0.1.md` controls the v0.1 product-gate
+dimension without substantively resolving either finding:
+
+- IRR-009 is `OPEN — SEMANTICS UNDESIGNED` and `CLOSED BY DESIGN — OUTSIDE V0.1 CLAIM` for
+  bounded v0.1. First-class Observation persistence and automatic
+  Observation/telemetry-to-Evidence/Trigger/Register conversion remain explicit fail-closed
+  post-v0.1 extension gates. Exact existing-record and explicit manual/external-event provenance may
+  reach Trigger only through the accepted v0.1 owning-domain path.
+- IRR-014 is `OPEN — SEMANTICS UNDESIGNED` and `CLOSED BY DESIGN — OUTSIDE V0.1 CLAIM` for
+  bounded v0.1. Organization-configured operating-state traits, relations, ranking, and escalation
+  remain explicit fail-closed post-v0.1 extension gates. Exact state identities and exact-scope
+  restrictive intersection or affected-scope suspension remain the v0.1 contract.
+
+Either extension requires separate human design authority, coordinated governing specifications,
+implementation, migration/adapter/interface work only as then required, and direct behavioral and
+historical validation. A future extension must use explicit successor/version/linkage semantics and
+must never silently reclassify, convert, rank, deduplicate, or otherwise reinterpret v0.1 historical
+records.
 
 ## 21. Contract traceability matrix
 
@@ -1236,10 +1264,23 @@ Implementation should begin only after this architecture is independently review
 
 ### Increment 9 — integrated behavioral and human validation
 
+- enter only after the accepted v0.1 consistency reconciliation is independently reviewed and
+  merged and a separate bounded Increment 9 issue freezes the exact claim under test;
+- freeze the three practitioner pathways—Case-to-authorized-operation,
+  Trigger-to-Reassessment-completion, and multi-Case
+  Register-to-contextual-owning-domain-action—plus hard oracles including both excluded fail-closed
+  boundaries; regression, security, access, recovery, degraded-operation, and history evidence;
+  practitioner-study/usability evidence with usability findings separated from semantic failures;
+  and final traceability/release-verdict criteria;
 - run complete scenario families, negative, metamorphic, invariance, longitudinal, and regression tests;
 - build the minimum practitioner-facing workflow needed for human validation;
 - record test evidence and failure classification; and
+- validate exact manual/external Trigger provenance and exact-state restrictive
+  intersection/suspension without validating or implying Observation automation or state
+  relation/ranking/escalation; and
 - do not treat usability success as proof of PAIM behavioral validity or vice versa.
+
+This reconciliation does not authorize Increment 9 and does not declare v0.1 released.
 
 ## 24. Architecture acceptance checks
 

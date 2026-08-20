@@ -25,6 +25,16 @@ It does not prescribe a specific software test framework or implementation techn
 
 **Normative cross-cutting test contract:** `../specifications/PAIM_SYSTEM_RECORD_AND_DECISION_INTEGRITY_SPEC_v0.1.md` defines the hard integrity behavior for authoritative record history/currentness, Integrated Operating Boundary Snapshots, case transitions, Decision Authorization Basis, and Interim Operating Disposition. Behavioral tests must use those rules as oracles without replacing the human judgments reserved there.
 
+**Bounded v0.1 validation scope:** the human-accepted
+`../../engineering/PAIM_V0_1_RELEASE_SCOPE_DECISION_IRR_009_IRR_014_v0.1.md` establishes that
+IRR-009 and IRR-014 each remain `OPEN — SEMANTICS UNDESIGNED` while each has bounded-v0.1
+product-gate status `CLOSED BY DESIGN — OUTSIDE V0.1 CLAIM`. Consequently, v0.1 validation must
+directly prove the fail-closed absence of first-class Observation/automatic telemetry conversion
+and operating-state relation/ranking/escalation. Exact manual/external Trigger provenance and
+exact-state, exact-scope restrictive intersection/suspension remain in scope. Sections retaining
+Observation-family or state-relation test ideas mark them as post-v0.1 extension scenarios; they are
+not Increment 9 expectations.
+
 ## 1. Purpose
 
 The central validation question is:
@@ -117,7 +127,8 @@ Question:
 Examples:
 
 - control changes trigger evidence applicability review;
-- Decision-Limiting Uncertainty blocks stronger states;
+- Decision-Limiting Uncertainty may block an exact proposed operating state; v0.1 does not infer a
+  stronger-state relation;
 - new evidence produces successor inputs rather than rewriting prior ones.
 
 ### 4.3 Practitioner-interface testing
@@ -175,7 +186,7 @@ Base case
   +-- Variant B: Value decreases
   +-- Variant C: required control removed
   +-- Variant D: authority gap resolved
-  +-- Variant E: stronger operating state proposed
+  +-- Variant E: exact different operating state proposed (no rank inferred)
 ```
 
 This makes the input/output relationship easier to study.
@@ -254,11 +265,14 @@ The test harness should eventually support deliberate variation of:
 
 ### Operating state
 
-- experiment;
-- continuation;
-- scale;
-- institutionalization;
-- broader deployment.
+- exact state identity A;
+- exact state identity B;
+- exact proposed state change;
+- exact structured scope restriction; and
+- indeterminate combined restrictive effect.
+
+Labels such as experiment, continuation, scale, institutionalization, or broader deployment may be
+fixture data, but their names and ordering carry no v0.1 semantic relation.
 
 ## 9. Expected Behavioral Invariants
 
@@ -322,7 +336,8 @@ Test questions include:
 - Does the boundary broaden only when evidence/authority support it?
 - Does removal of a required control make the prior boundary unsupported?
 - Does scope expansion trigger new evidence requirements?
-- Does a stronger operating state require a stronger/broader boundary?
+- Does an exact proposed operating-state change require a different Boundary based on explicit
+  evidence and accountable judgment, without inferring rank from either state label?
 - Are explicit exclusions preserved?
 
 A system that preserves the same boundary regardless of material input changes is suspect.
@@ -397,7 +412,8 @@ Expected:
 
 - gap closed;
 - current decision may remain;
-- stronger state not automatically approved.
+- an exact proposed different state is not automatically approved; no strength relation is
+  inferred.
 
 ### New prohibition
 
@@ -418,27 +434,36 @@ Expected:
 Tests should examine whether:
 
 - Accepted Uncertainty permits bounded operation;
-- the same uncertainty becomes Decision-Limiting for a stronger state;
+- the same uncertainty may be classified Decision-Limiting for an exact proposed state through
+  accountable judgment, without a mechanical stronger-state comparison;
 - resolved uncertainty can support reassessment;
 - unresolved uncertainty is not silently removed;
 - a completed Learning Item does not automatically change the decision without reassessment.
 
-## 16. Operating-State Escalation Tests
+## 16. Operating-State Exactness and Post-v0.1 Escalation Tests
 
-Use the same configuration/evidence and vary the proposed operating state.
+### 16.1 Bounded v0.1 exact-state oracles
 
-Example:
+Use the same Configuration and evidence while varying only exact operating-state identity and exact
+structured scope. For bounded v0.1, prove that:
 
-```text
-Experiment
-→ Bounded continuation
-→ Targeted scale
-→ Institutionalization
-```
+- identities are stored, displayed, filtered, grouped, reported, and exported exactly, with no rank;
+- every change still requires an eligible authorized successor/amendment Decision;
+- independently valid Interim Operating Dispositions combine through exact-scope restrictive
+  intersection;
+- determinable intersection applies every explicit restriction;
+- indeterminate combined effect suspends only the affected scope; and
+- enum order, labels, colors, numeric codes, queue order, recency, severity, and notification
+  frequency never imply strength, breadth, restrictiveness, priority, or escalation.
 
-Test whether evidence considered sufficient for a weaker state becomes insufficient for a stronger state.
+### 16.2 Post-v0.1 state-relation extension scenarios
 
-This directly targets the operating-state semantic issue exposed in IET 004.
+The earlier progression idea—experiment → bounded continuation → targeted scale →
+institutionalization—is retained only as a future scenario family. It is not an ordering oracle.
+After separate human acceptance of organization-configured state traits/relations, future tests may
+ask whether evidence sufficient for one exact state is insufficient for a separately established
+related state, including incomparable and indeterminate pairs. Those scenarios remain outside v0.1
+and may not be used to infer the missing relation from labels or fixture order.
 
 ## 17. Configuration-Change Tests
 
@@ -519,7 +544,8 @@ Expected behavior may include:
 - input cannot be frozen;
 - integration readiness blocked;
 - uncertainty becomes Decision-Limiting;
-- stronger state blocked;
+- the exact proposed state may be blocked through accountable evidence/authority judgment, with no
+  strength relation inferred;
 - learning generated.
 
 The system should prefer explicit insufficiency over fabricated certainty.
@@ -615,9 +641,46 @@ Additional negative and metamorphic hard oracles are:
 32. A genuine governed mechanism is eligible only with exact identity, rule/version, scope, authority source, actor/function where applicable, limits, effective period, and history.
 33. A stale expected Reassessment/Trigger Set/current-selection precondition rejects rather than silently rebasing concurrent membership or completion.
 34. A future-effective successor Decision changes eligibility only at its effective time; queries at different knowledge cutoffs reconstruct what PAIM knew without rewriting history.
-35. A completed Reassessment sourced by incident, control failure, provider/model change, authority resolution, capacity change, completed Learning, explicit stronger-state request, or scheduled review preserves exact Trigger provenance and uses the same cardinality/concurrency rules.
+35. A completed Reassessment sourced by incident, control failure, provider/model change, authority resolution, capacity change, completed Learning, a source-described state-change request naming an exact proposed state, or scheduled review preserves exact Trigger provenance and uses the same cardinality/concurrency rules; PAIM infers no stronger-state relation.
 
 Metamorphic checks must show that changing only the exact Case, Decision Version, Configuration Version, Trigger Version, source Version, structured scope, membership, Trigger Determination, accountable assignment/mechanism, delegation link, effective time, knowledge cutoff, or successor-Decision effective time changes prospective eligibility as specified without rewriting historical results.
+
+### 25.1 Bounded v0.1 Observation and operating-state exclusion oracles
+
+Increment 9 must include direct hard oracles proving all of the following:
+
+1. A request for a first-class Observation record or Observation/telemetry automation fails
+   explicitly and creates no authoritative record.
+2. Arrival of telemetry, logs, metrics, alerts, incidents, or proposed intake does not automatically
+   become Evidence, Trigger, or Register attention.
+3. An exact manual/external source occurrence can enter proposed provenance-preserving intake and,
+   only after an explicit practitioner owning-domain command succeeds, source a Trigger without
+   creating Observation identity.
+4. Provider identity, text similarity, timestamps, category, or other semantic resemblance never
+   deduplicates source occurrences or Triggers; exact replay identity is the only idempotency basis.
+5. Exact operating-state identities are preserved and exposed without rank, severity, priority, or
+   escalation inference.
+6. Exact-scope Interim Operating Disposition intersection applies all explicit restrictions; an
+   indeterminate combined effect suspends only the affected scope.
+7. Enum order, labels, colors, numeric codes, queue order, recency, severity, and notification
+   frequency have no substantive state relation or priority effect.
+8. No UI, report, export, notification, test verdict, or release statement claims first-class
+   Observation/automatic conversion or operating-state relation/ranking/escalation.
+
+The first-class longitudinal Observation, conversion, retention/correction, and
+organization-configured state-relation scenarios remain preserved as post-v0.1 extension suites.
+They must stay disabled until separate accepted design/specification/implementation gates define
+their records, authority, history, and exact oracles; no future suite may reinterpret v0.1 history.
+
+### 25.2 Preserved post-v0.1 Observation extension scenarios
+
+After IRR-009 receives separate substantive design authority, a future suite should test stable
+Observation and Version identity, exact source/Configuration/Boundary provenance, effective and
+knowledge time, correction/supersession/currentness, retention, conflict, accountable linkage or
+conversion to Evidence/Trigger, Register eligibility, replay/quarantine, and historical
+reconstruction. It must distinguish telemetry arrival, proposed intake, authoritative Observation,
+Evidence, and Trigger without automatic promotion. These scenarios are deliberately retained for
+future design traceability and are outside the v0.1 Increment 9 campaign.
 
 ## 26. Portfolio Tests
 
@@ -726,6 +789,10 @@ Expected relation:
 Expected relation:
 
 > A previously blocked stronger state may become eligible for consideration, but should not become automatically authorized.
+
+This relation is a post-v0.1 extension scenario only. For v0.1, substitute an exact proposed state
+and verify only that accountable evidence/authority evaluation may change eligibility and that no
+automatic authorization or inferred state relation occurs.
 
 ### Increase AI authority
 
@@ -1007,12 +1074,24 @@ A polished visual design is desirable but not the only readiness criterion.
 
 Formal human validation should be authorized only after:
 
-1. core behavioral invariants pass;
-2. known critical implementation defects are resolved;
-3. test scenarios are frozen;
-4. human instructions are independent of development artifacts;
-5. UI is stable enough that method behavior can be distinguished from unfinished implementation;
-6. expected observations are defined in advance where practical.
+1. this v0.1 consistency reconciliation is independently reviewed and merged;
+2. a separate bounded Increment 9 issue freezes the exact v0.1 claim under test;
+3. that issue freezes the three practitioner pathways—Case-to-authorized-operation,
+   Trigger-to-Reassessment-completion, and multi-Case Register-to-contextual-owning-domain-action—
+   and hard oracles including both excluded boundaries;
+4. regression, security, access, recovery, degraded-operation, and historical-reconstruction
+   evidence requirements are frozen;
+5. core behavioral invariants pass and known critical implementation defects are resolved;
+6. test scenarios and expected outcomes are frozen, and human instructions are independent of
+   development artifacts;
+7. the interface is stable enough that method behavior can be distinguished from unfinished
+   implementation;
+8. practitioner-study and usability evidence are defined, with usability findings explicitly
+   separated from semantic failures; and
+9. final traceability and release-verdict evidence are defined.
+
+This consistency update does not authorize Increment 9. Scope completion is not validation or
+release completion.
 
 ## 45. Codex / Engineering Validation Role
 
@@ -1054,7 +1133,7 @@ Deferred until platform architecture/test implementation:
 - test-data generator;
 - simulation engine;
 - human-study instrumentation;
-- telemetry;
+- post-v0.1 Observation/telemetry extension design and instrumentation (outside the v0.1 claim);
 - quantitative usability metrics;
 - regression cadence;
 - release-gate thresholds.
@@ -1079,24 +1158,12 @@ This substantially completes the system-specification layer required before plat
 
 ## 49. Recommended Next Step
 
-Do **not** begin coding immediately.
-
-The next artifact should be:
-
-`PAIM_PLATFORM_ARCHITECTURE_v0.1.md`
-
-under:
-
-```text
-platform/
-└── architecture/
-```
-
-Before freezing that architecture, perform a **Codex implementation-readiness review** of the PAIM system architecture and specification set.
-
-The review should ask:
-
-> **Can these requirements be implemented consistently without inventing missing system behavior?**
+After this consistency package is independently reviewed and merged, the next work may be only a
+separately authorized bounded Increment 9 issue. That issue must freeze the exact v0.1 claim, three
+practitioner pathways, both excluded-boundary hard-oracle sets, regression/security/access/recovery/
+degraded/history evidence, practitioner-study evidence with usability/semantic-failure separation,
+final traceability, and the release verdict. Do not start Increment 9 or declare v0.1 released merely
+because scope is complete.
 
 ## 50. Repository Placement
 

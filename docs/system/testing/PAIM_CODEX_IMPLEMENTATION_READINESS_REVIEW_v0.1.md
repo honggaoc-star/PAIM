@@ -4,6 +4,13 @@
 
 This review applies `PAIM_CODEX_IMPLEMENTATION_READINESS_REVIEW_PROTOCOL_v0.1.md` to the frozen PAIM v0.1 architecture, system specifications, and behavioral validation strategy identified in GitHub Issue #1. It assesses system behavior and engineering survivability only. It does not select a technology stack, redesign PAIM, or modify the source specifications.
 
+**Historical-checkpoint note:** the finding text and verdict below record the original Issue #1
+review and are not rewritten as though later decisions already existed. Current P1/release
+traceability is additive. For IRR-009 and IRR-014, the controlling later disposition is the
+human-accepted `../../engineering/PAIM_V0_1_RELEASE_SCOPE_DECISION_IRR_009_IRR_014_v0.1.md`:
+both findings remain semantically undesigned, while their capabilities are explicitly outside the
+bounded v0.1 product claim.
+
 ## 1. Executive conclusion
 
 **NOT READY — MATERIAL SPECIFICATION GAPS**
@@ -124,6 +131,12 @@ Without those clarifications, different reasonable implementations would produce
 - **Implementation risk:** Platforms may collapse observations into Evidence, monitoring events, Learning Items, or free-text notes with incompatible retention and trigger behavior.
 - **Recommended clarification:** Either define a minimum Observation Record and its conversion/linkage to Evidence and Reassessment Trigger records, or explicitly state that Observation is not an independent authoritative record and identify the authoritative substitute and required fields.
 - **Semantic effect:** Clarifies the existing architecture; no redesign is required.
+- **Later accepted release disposition:** semantic/design status
+  `OPEN — SEMANTICS UNDESIGNED`; bounded v0.1 product-gate status
+  `CLOSED BY DESIGN — OUTSIDE V0.1 CLAIM`. This is not substantive resolution. Bounded v0.1 uses
+  exact existing-record and explicit manual/external-event provenance through an owning-domain
+  Trigger command; first-class Observation and automatic conversion remain fail-closed post-v0.1
+  extensions.
 
 ### IRR-010 — Required-intervention aggregation and completion acceptance are unclear
 
@@ -174,6 +187,11 @@ Without those clarifications, different reasonable implementations would produce
 - **Implementation risk:** The same move may trigger reassessment in one implementation and appear as a label change in another.
 - **Recommended clarification:** Define minimum semantic traits for operating states—operational activity, scope breadth, duration/transition character, evidence expectation, observation obligation, and active/inactive/terminal effect—and an explicit organization-configured relation for stronger/broader transitions. Preserve organization-specific labels without assuming one universal linear ranking.
 - **Semantic effect:** Clarifies PAIM behavior while retaining organizational flexibility.
+- **Later accepted release disposition:** semantic/design status
+  `OPEN — SEMANTICS UNDESIGNED`; bounded v0.1 product-gate status
+  `CLOSED BY DESIGN — OUTSIDE V0.1 CLAIM`. This is not substantive resolution. Bounded v0.1
+  preserves exact state identities and exact-scope restrictive intersection/suspension; relation,
+  ranking, severity, priority, and escalation inference remain fail-closed post-v0.1 extensions.
 
 ## 4. Internal contradictions
 
@@ -309,6 +327,23 @@ These corrections should be made in the affected system specifications or in one
 8. Correct Role Assignment scope and define precedence/conflict behavior (IRR-013 and CON-002).
 9. Define minimum operating-state semantic traits and stronger/broader relations (IRR-014).
 
+### 10.1 Later bounded-v0.1 P1 disposition and traceability
+
+The original list above states the substantive questions found at the Issue #1 checkpoint. Later
+design, hardening, focused re-review, and implementation closed every P1 capability that is inside
+the bounded v0.1 product claim. The two remaining semantic findings have deliberately separate
+status dimensions:
+
+| Finding | Original finding preserved | Semantic/design status | Bounded v0.1 product-gate status | Current supported boundary | Traceability |
+|---|---|---|---|---|---|
+| IRR-009 | Yes; no Observation record contract was defined. | `OPEN — SEMANTICS UNDESIGNED` | `CLOSED BY DESIGN — OUTSIDE V0.1 CLAIM` | No first-class Observation or automatic telemetry conversion. Exact existing PAIM records and explicit manual/external events may reach Trigger through provenance-preserving intake and an explicit owning-domain command. | Accepted v0.1 release-scope decision; roadmap §3.2/§4.10/§10.7; Platform Architecture §20.1; Behavioral Validation v0.1 boundary oracles. |
+| IRR-014 | Yes; no operating-state trait/relation contract was defined. | `OPEN — SEMANTICS UNDESIGNED` | `CLOSED BY DESIGN — OUTSIDE V0.1 CLAIM` | Exact state identity plus exact-scope restrictive disposition intersection; indeterminate combined effect suspends the affected scope. No rank, severity, priority, or escalation inference. | Accepted v0.1 release-scope decision; roadmap §3.2/§4.10/§10.7; Platform Architecture §20.1; Behavioral Validation v0.1 boundary oracles. |
+
+`CLOSED BY DESIGN — OUTSIDE V0.1 CLAIM` closes only applicability to the accepted bounded product
+gate. Neither finding may be labeled substantively `RESOLVED` or enabled without separate
+post-v0.1 human design authority, specification hardening, implementation, and validation. Future
+extensions must not reinterpret v0.1 historical records.
+
 ### P2 — can clarify during platform design
 
 - refine exact status labels after the semantic dimensions above are fixed;
@@ -337,7 +372,7 @@ These corrections should be made in the affected system specifications or in one
 | Register | Partial | Population/aggregation rules and global dependency identity | No | Derived source-of-truth principle is clear; IRR-012 |
 | Roles | Partial | Typed assignment scope, precedence, authorization-chain linkage | Authorization linkage blocks | IRR-004, IRR-013 |
 | History/versioning | No | Cross-record identity, effective time, correction, supersession, currentness | Yes | IRR-001 |
-| Behavioral testing | Partial | Stable oracles for transitions, boundary, authorization, reassessment, and operating-state escalation | Blocked by corresponding P0s | Test strategy itself is strong |
+| Behavioral testing | Partial at the original checkpoint | Stable oracles for transitions, boundary, authorization, and reassessment; IRR-009/014 later require either design or explicit scope disposition | Blocked by corresponding P0s at this checkpoint | Later v0.1 disposition excludes Observation automation and state ranking/escalation, requires direct fail-closed boundary oracles, and preserves future extension scenarios. |
 
 ## 12. Final recommendation
 
@@ -346,3 +381,8 @@ Do **not** proceed yet to `PAIM_PLATFORM_ARCHITECTURE_v0.1.md`.
 Resolve and accept the five P0 clarifications first. Then re-run a focused implementation-readiness check against the corrected specification set. The nine P1 clarifications should be resolved before implementation; they may be completed alongside the focused re-review if they do not reopen a P0 semantic question.
 
 Final verdict: **NOT READY — MATERIAL SPECIFICATION GAPS**
+
+This verdict remains the historical Issue #1 result. It is not the current v0.1 release verdict.
+After the accepted hardening and Increments 1–8, bounded v0.1 scope is complete but final
+validation/release is not: this reconciliation must merge, then a separately authorized Increment 9
+must pass the frozen integrated, practitioner, boundary, and release-evidence campaign.
