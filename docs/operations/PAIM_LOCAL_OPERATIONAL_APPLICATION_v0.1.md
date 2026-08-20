@@ -3,8 +3,9 @@
 This guide covers the bounded Increment 8 local application. It is an implementation-facing
 operator guide, not a change to PAIM system semantics or the v0.1 release claim.
 
-The accepted v0.1 product scope is complete, but Increment 9 validation and the release verdict are
-still outstanding. The Observation and operating-state limitations in §10 are intentional bounded
+PAIM v0.1 is released for the bounded local governed-application claim after the Increment 9
+integrated practitioner, regression, security/access, recovery/degraded-operation, and release-gate
+campaign passed. The Observation and operating-state limitations in §10 are intentional bounded
 v0.1 product boundaries, not silent placeholders or evidence that their substantive semantics have
 been designed.
 
@@ -283,5 +284,8 @@ Use `unsupported --principal <principal> <CAPABILITY>` to exercise the negative 
 and IRR-014 each remain `OPEN — SEMANTICS UNDESIGNED` while each bounded-v0.1 product gate is
 `CLOSED BY DESIGN — OUTSIDE V0.1 CLAIM`. Separate post-v0.1 human design authority,
 specification, implementation, and validation are required before either extension may be enabled,
-and no extension may reinterpret v0.1 historical records. Final Increment 9 practitioner and
-release validation is also outside Increment 8 and is not authorized by this guide.
+and no extension may reinterpret v0.1 historical records. Increment 9 validation evidence and the
+bounded release verdict are retained in
+`../system/testing/PAIM_INCREMENT_9_V0_1_VALIDATION_RESULTS_v0.1.md` and
+`../engineering/PAIM_V0_1_RELEASE_GATE_DECISION_v0.1.md`; they do not expand this operator guide's
+authority or the released claim.

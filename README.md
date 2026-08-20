@@ -137,7 +137,7 @@ prematurely.
 
 ## Current Development Status
 
-**PAIM v0.1 scope is complete; validation and release are not complete.**
+**PAIM v0.1 is released for the bounded local governed-application claim.**
 
 PAIM v0.1 is a complete functional local governed PAIM application for
 the implemented management lifecycle. It supports authenticated local
@@ -157,12 +157,12 @@ unsupported boundaries are explicit and fail closed. The supported v0.1
 paths use exact manual/external Trigger provenance and exact-state,
 exact-scope restrictive intersection or affected-scope suspension.
 
-The current estimate is **approximately 92% complete against the bounded
-complete-functional-v0.1 denominator after Increment 8 and the accepted
-release-scope decision**. This is a functional-completion estimate, not a
-release declaration. With this reconciliation merged, remaining work is
-principally separately authorized Increment 9 integrated/practitioner
-validation plus final traceability and release evidence.
+PAIM v0.1 is **100% complete against the bounded complete-functional-v0.1
+denominator**. Increment 9 integrated/practitioner validation passed all
+three gateway pathways, both excluded-boundary oracles, the full 245-test
+suite, security/access, recovery/degraded-operation, schema/migration, and
+static gates. See the [validation results](docs/system/testing/PAIM_INCREMENT_9_V0_1_VALIDATION_RESULTS_v0.1.md)
+and [release-gate decision](docs/engineering/PAIM_V0_1_RELEASE_GATE_DECISION_v0.1.md).
 
 The current product is a local governed application. Enterprise/cloud
 deployment, live provider integrations, distributed infrastructure, and
@@ -170,12 +170,11 @@ generic workflow scope are not part of the v0.1 claim.
 
 ## Development Direction
 
-Increment 9 remains a separate gate and has not begun. It may be
-authorized only through a separate bounded issue that freezes the exact
-claim, three practitioner pathways, hard boundary oracles, regression and
-operational evidence, practitioner study, final traceability, and release
-verdict. Passing that campaign—not scope completion alone—is required
-before PAIM v0.1 may be declared released.
+PAIM v0.1 is the frozen released baseline for its bounded claim. Future
+work requires separately authorized post-v0.1 scope and a new completion
+denominator. It must preserve v0.1 history and must not imply that
+IRR-009 Observation semantics or IRR-014 operating-state relations were
+designed by this release.
 
 ## Project Objective
 

@@ -13,6 +13,13 @@ That later decision did not design IRR-009 or IRR-014. It established a separate
 dimension for v0.1 and is controlling wherever this roadmap discusses Increment 9 entry or
 completion.
 
+**Release reconciliation:** Issue #69 froze and executed the Increment 9 campaign. The three
+integrated practitioner pathways, both excluded-boundary oracles, full regression, security/access,
+recovery/degraded-operation, schema/migration, and static gates passed. The accepted result and
+bounded verdict are recorded in `../system/testing/PAIM_INCREMENT_9_V0_1_VALIDATION_RESULTS_v0.1.md`
+and `PAIM_V0_1_RELEASE_GATE_DECISION_v0.1.md`. Historical gate language below remains evidence of
+sequencing at its checkpoint; it is not the current release status.
+
 Governing sources are:
 
 - `PAIM_PLATFORM_ARCHITECTURE_v0.1.md`, especially §§20 and 23;
@@ -63,7 +70,7 @@ The roadmap preserves the ten increments in Platform Architecture §23.
 | 6 — Reassessment and Interim Operating Disposition | Trigger/Reassessment workflow, restrictive overlays, confirmation/successor, history | `CLOSED — P1 RE-REVIEW GATE` — IRR-011 design accepted and specs hardened, pending independent closure review; IRR-014 remains conditional for stronger-state automation; accepted Increments 1–5 |
 | 7 — projections, Management Register, reports, and hooks | Rebuildable projections, Register, queues, reports, notification intents | `CLOSED — P1 RE-REVIEW GATE` — IRR-012 design accepted and specs hardened; independent closure review plus accepted Increments 1–6 required |
 | 8 — external adapters, security hardening, and operational readiness | Selected adapters, segmentation, recovery, observability, degraded operation | `CLOSED — UPSTREAM GATE` with adapter-specific P1 conditions |
-| 9 — integrated behavioral and human validation | Complete scenario, regression, longitudinal, and practitioner validation | `CLOSED — SEPARATE AUTHORIZATION REQUIRED` — v0.1 scope is complete, but this reconciliation must merge and a separate issue must freeze the bounded claim, pathways, hard oracles, evidence, practitioner study, traceability, and release verdict |
+| 9 — integrated behavioral and human validation | Complete scenario, regression, longitudinal, and practitioner validation | `COMPLETED — RELEASE GATE PASSED` — Issue #69 froze the campaign; all required evidence passed and the bounded v0.1 verdict is recorded |
 
 ## 3. P1 dependency map
 
@@ -234,6 +241,10 @@ verdict.
 | Specification changes | All in-claim P1 owner artifacts must already be accepted; Behavioral Validation must contain the accepted v0.1 boundary oracles while retaining future extension scenarios as post-v0.1. |
 | Acceptance evidence | Two-dimensional P1 matrix; full specification traceability; accepted frozen scenario/test plan; hard, directional, constraint, and reasoning oracles; human-study judgment boundaries; direct fail-closed proof for both exclusions. |
 | Completion evidence | Versioned formal test evidence, regression/security/access/recovery/degraded/history results, failure classification, longitudinal reconstruction, practitioner validation, usability findings separated from semantic failures, final traceability, and an explicit release/gate verdict. |
+
+**Current result:** completed. The frozen plan, validation results, exact validated source commit,
+closed validation-driven finding, two-dimensional IRR-009/014 status, and bounded release verdict
+are retained in the Increment 9 evidence and release-decision artifacts cited above.
 
 ## 5. P1-to-specification ownership map
 
@@ -482,6 +493,11 @@ regression/security/access/recovery/degraded/history evidence,
 practitioner study and usability/semantic-failure separation, final traceability, and the release
 verdict. Scope completion does not authorize Increment 9 and does not mean validation or release is
 complete.
+
+**Current reconciliation:** those entry and completion conditions were subsequently authorized and
+satisfied by Issue #69. PAIM v0.1 is 100% complete against the fixed bounded
+complete-functional-v0.1 denominator. IRR-009 and IRR-014 remain semantically open post-v0.1; their
+excluded capabilities remain fail-closed and were not validated as positive semantics.
 
 ## 11. Final sequencing recommendation
 
