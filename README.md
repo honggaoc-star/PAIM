@@ -157,13 +157,12 @@ unsupported boundaries are explicit and fail closed. The supported v0.1
 paths use exact manual/external Trigger provenance and exact-state,
 exact-scope restrictive intersection or affected-scope suspension.
 
-Increment 9 automated evidence has been reconciled onto the accepted CPython
-3.12 baseline: the full 250-test suite, focused Increment 1–9 gates, both
-excluded-boundary oracles, security/access, recovery/degraded-operation,
-schema/migration, and static gates pass. Human walkthroughs I9-P1, I9-P2,
-and I9-P3 have not yet been executed, so completion remains below 100% and
-no release verdict has been issued. See the [validation results](docs/system/testing/PAIM_INCREMENT_9_V0_1_VALIDATION_RESULTS_v0.1.md)
-and [pending release gate](docs/engineering/PAIM_V0_1_RELEASE_GATE_DECISION_v0.1.md).
+Increment 9 automated validation and all three human practitioner pathways
+are complete in draft PR #70. The bounded Issue #76 practitioner confirmation
+is also complete; final reconciliation and independent release review remain.
+This is not a release declaration. See the [validation results](docs/system/testing/PAIM_INCREMENT_9_V0_1_VALIDATION_RESULTS_v0.1.md),
+[practitioner findings review](docs/engineering/PAIM_INCREMENT_9_PRACTITIONER_FINDINGS_CROSS_PATHWAY_REVIEW_v0.1.md),
+and [release gate](docs/engineering/PAIM_V0_1_RELEASE_GATE_DECISION_v0.1.md).
 
 The current product is a local governed application. Enterprise/cloud
 deployment, live provider integrations, distributed infrastructure, and
@@ -181,13 +180,17 @@ Application Control or security policy. A matching Python version is not by
 itself an approved or supported runtime. The runtime decision and migration
 evidence are recorded under `docs/engineering/`.
 
-## Development Direction
+## Practitioner and Operator Guidance
 
-The next release-gate work is the separately observed human I9-P1, I9-P2,
-and I9-P3 walkthrough sequence under the frozen Increment 9 protocol. No
-automated test result substitutes for those observations. Post-v0.1 work
-remains unauthorized, and no release statement may imply that IRR-009
-Observation semantics or IRR-014 operating-state relations were designed.
+Use `docs/operations/PAIM_LOCAL_OPERATIONAL_APPLICATION_v0.1.md` for local
+setup, administration, intake, export, delivery, recovery, and health. Use
+`docs/operations/PAIM_V0_1_PRACTITIONER_PATHWAYS_v0.1.md` for the production-
+only Case-to-operation, Trigger-to-Reassessment, and Register-to-owning-domain
+pathways. Independent acceptance of the completed confirmation and final
+release review—not scope or pathway completion alone—is required before PAIM
+v0.1 may be declared released. Post-v0.1 work remains unauthorized, and no
+release statement may imply that IRR-009 Observation semantics or IRR-014
+operating-state relations were designed.
 
 ## Project Objective
 

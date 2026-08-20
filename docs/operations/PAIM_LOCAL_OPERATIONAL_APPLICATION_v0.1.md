@@ -3,11 +3,11 @@
 This guide covers the bounded Increment 8 local application. It is an implementation-facing
 operator guide, not a change to PAIM system semantics or the v0.1 release claim.
 
-PAIM v0.1 automated Increment 9 evidence is reconciled on the accepted CPython 3.12 baseline, but
-human practitioner walkthroughs I9-P1, I9-P2, and I9-P3 have not yet been executed. Validation and
-release therefore remain pending. The Observation and operating-state limitations in §10 are
-intentional bounded v0.1 product boundaries, not silent placeholders or evidence that their
-substantive semantics have been designed.
+The accepted v0.1 product scope and the Increment 9 automated and human pathways are complete in
+draft PR #70. Practitioner-findings remediation and its bounded human confirmation are also
+complete; independent final review and the release verdict remain outstanding. The Observation and
+operating-state limitations in §10 are intentional bounded v0.1 product boundaries, not silent
+placeholders or evidence that their substantive semantics have been designed.
 
 ## 1. Boundary
 
@@ -161,6 +161,12 @@ authority, currentness, Boundary, accountability, and other guards then remain c
 The application intentionally has no generic `approve`, `resolve`, `override`, `admin authorize`,
 or Register “mark resolved” command.
 
+For the production-only sequence, prerequisites, exact-identity discipline, and next owning action
+for each of the three v0.1 lifecycle pathways, use
+`PAIM_V0_1_PRACTITIONER_PATHWAYS_v0.1.md`. That guide standardizes self-contained stages and
+persisted reconstruction; historical Increment 9 walkthrough transcripts are evidence, not reusable
+operator instructions.
+
 ## 6. Manual intake envelope
 
 `intake` accepts a bounded JSON object plus explicit envelope fields:
@@ -305,8 +311,7 @@ Use `unsupported --principal <principal> <CAPABILITY>` to exercise the negative 
 and IRR-014 each remain `OPEN — SEMANTICS UNDESIGNED` while each bounded-v0.1 product gate is
 `CLOSED BY DESIGN — OUTSIDE V0.1 CLAIM`. Separate post-v0.1 human design authority,
 specification, implementation, and validation are required before either extension may be enabled,
-and no extension may reinterpret v0.1 historical records. Reconciled automated Increment 9
-evidence and the pending release-gate record are retained in
-`../system/testing/PAIM_INCREMENT_9_V0_1_VALIDATION_RESULTS_v0.1.md` and
-`../engineering/PAIM_V0_1_RELEASE_GATE_DECISION_v0.1.md`; they do not expand this operator guide's
-authority or substitute for the required human walkthroughs.
+and no extension may reinterpret v0.1 historical records. Increment 9 practitioner evidence is
+retained in draft PR #70, and the findings review is retained in
+`../engineering/PAIM_INCREMENT_9_PRACTITIONER_FINDINGS_CROSS_PATHWAY_REVIEW_v0.1.md`; neither this
+guide nor that review issues or authorizes the final release verdict.
