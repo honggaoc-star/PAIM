@@ -4,7 +4,7 @@
 
 **Automated integrated evidence:** PASSED
 
-**Human practitioner walkthroughs:** NOT YET EXECUTED
+**Human practitioner walkthroughs:** I9-P1 COMPLETED; I9-P2 AND I9-P3 NOT YET EXECUTED
 
 **Reconciliation date:** 2026-08-20
 
@@ -111,10 +111,102 @@ human operator's actions, comprehension, confusion, friction, or usability judgm
 
 ### I9-P1 — Case to authorized operation
 
-**Status:** `HUMAN PRACTITIONER WALKTHROUGH — NOT YET EXECUTED`
+**Status:** `HUMAN PRACTITIONER WALKTHROUGH — COMPLETED WITH NON-BLOCKING FINDINGS`
 
-No human actions or observations are recorded. The walkthrough must restart from its prescribed
-starting fixture under the accepted CPython 3.12 environment.
+**Practitioner:** one human practitioner, completing only the I9-P1 pathway before independent
+assessment and before I9-P2.
+
+**Task objective:** Take one PAIM Case from creation through authorized bounded operation and
+Learning linkage while preserving the governing Configuration, independent Value/Risk histories,
+substantive authority basis, prerequisite and completion evidence, activation history, and exact
+knowledge-time reconstruction.
+
+**Starting state/fixture:** A new isolated local study workspace and empty SQLite database were
+created from source commit `cd361fe63a0208187b535842c0059c8bb5ebd554` on the campaign branch.
+The accepted CPython 3.12.13 environment, SQLite 3.53.1, uv 0.12.5, locked dependency set, and PAIM
+import were verified before bootstrap. The walkthrough did not reuse automated-test actors or
+fixtures.
+
+**Expected semantic checkpoints:** The walkthrough retained the twelve frozen I9-P1 checkpoints:
+exact principal-to-Actor resolution and bounded software access; Case and governing Configuration;
+Evidence/Authority provenance and Applicability; independent Value/Risk intake, acceptance,
+selection, freeze, and handoff; Integration and uncertainty; finalized Boundary; proposed and
+authorized Decision with exact Authorization Basis; Intervention, Completion Result, and accountable
+Completion Acceptance; exact prerequisites and explicit Activation Authorization; operation only
+after all guards; Learning without automatic Decision change; and deterministic authoritative
+reconstruction.
+
+**Observed gateway/operator actions:** The practitioner completed bootstrap and READY health,
+created and mapped the practitioner Actor, established bounded access, and created the Case and
+governing Configuration. The guided pathway then established Evidence/Authority and Applicability,
+independent Value and Risk inputs and accepted frozen selections, Integration and uncertainty
+records, a finalized Boundary, a proposed then authorized Decision with exact authority basis, an
+Intervention Obligation, Completion Evidence and Result, accountable Completion Acceptance,
+prerequisite satisfaction, explicit Activation Authorization, target operation, and a linked
+Learning record. Final inspection reported READY health, 225 operational audit facts, no credential
+content in audit facts, no Authority Gaps, and the required critical actions for Decision
+authorization, completion acceptance, activation authorization, and Learning creation.
+
+**Deterministic reconstruction result:** Reconstruction returned 28 exact Versions. Current Value
+and Risk selections were exact, independent, and frozen. At the pre-acceptance knowledge cutoff,
+both selection states were `INPUT SELECTION NOT ESTABLISHED`. The authorized Decision reconstructed
+exactly; at the pre-authorization cutoff it was `AUTHORIZED DECISION NOT ESTABLISHED`. The Case
+lifecycle reconstructed as `decided` before activation and as `operating_observing` afterward.
+Learning did not create or alter a Decision.
+
+**Result:** The practitioner reported: “Yes. I ultimately accomplished the objective of taking a
+PAIM Case from creation through authorized bounded operation and Learning linkage.” The pathway
+completed, but required substantial guidance and several corrections. The practitioner did not
+observe a release-blocking semantic failure or a release-blocking operational/security failure.
+
+**Semantic and authority observations:** Once exercised in sequence, the practitioner generally
+understood that Value and Risk remained separate; Evidence Applicability and acceptance/freeze were
+distinct from the analytical inputs; proposed and authorized Decisions were different states; and
+Intervention, Completion Result, accountable Acceptance, prerequisite satisfaction, and Activation
+Authorization were separate steps. Learning without automatic Decision change was understandable.
+Knowledge-time reconstruction was conceptually clear, though its operational mechanics were less
+intuitive. Software permission did not appear to create substantive Decision authority, and
+accountable role assignment, Decision authority, completion acceptance authority, and activation
+authority remained separate. These distinctions were not all readily discoverable from the current
+interface without the guided procedure.
+
+**Confusion/friction and output quality:** The practitioner reported substantial operational
+friction from the Git executable path, an unsupported PowerShell API, UTF-8 BOM rejection, quoting
+failures, an incorrect verifier expectation, and loss of a required Stage 21 variable. Although the
+issues were recoverable without changing PAIM semantics, together they made the walkthrough more
+difficult and time-consuming than the underlying management process. Outputs supplied enough exact
+information to verify success and record bindings once the practitioner knew what to inspect, but
+did not adequately identify the appropriate next practitioner action. The output was therefore
+adequate for verification and audit inspection, but not self-guiding.
+
+**Confidence:** The practitioner reported reasonably high confidence that PAIM preserved the
+governing Configuration, independent Value/Risk histories, authority basis, authorized Decision,
+prerequisites, and activation history. Staged verification and reconstruction materially supported
+that confidence. Confidence in the governed behavior was higher than confidence in operating it
+without expert guidance.
+
+#### I9-P1-F1 — Practitioner workflow is not sufficiently self-guiding
+
+- **Classification:** `NON-BLOCKING USABILITY/DOCUMENTATION DEFECT`
+- **Release severity:** Non-blocking for the bounded v0.1 claim, provided v0.1 is explicitly
+  understood as the current local governed application rather than a polished self-service product.
+- **Remediation disposition:** Improve practitioner-facing guidance so the required action sequence,
+  authority prerequisites, and next steps can be discovered without relying on a separately supplied
+  22-stage procedure.
+
+#### I9-P1-F2 — Walkthrough procedure/environment assumptions caused repeated interruptions
+
+- **Classification:** `NON-BLOCKING USABILITY/DOCUMENTATION DEFECT`
+- **Release severity:** Non-blocking because the issues were corrected without changing PAIM
+  semantics and the pathway ultimately completed.
+- **Remediation disposition:** Correct and harden practitioner walkthrough/setup instructions for
+  environment prerequisites, PowerShell compatibility, encoding, quoting, verifier expectations,
+  and preservation of required variables and state.
+
+The practitioner concluded that the walkthrough increased confidence that PAIM's governance
+distinctions are implemented rather than merely documentary. The difference between correct
+implementation and easy practitioner operation is material, but for bounded v0.1 was classified as
+a usability/documentation issue rather than a governing-model failure.
 
 ### I9-P2 — Trigger to completed Reassessment
 
@@ -214,8 +306,9 @@ stale evidence/release wording.
 ## 9. Remaining release gate
 
 Automated correctness, regression, boundary, security, recovery, degraded-operation, migration, and
-static evidence is green. Human usability/understandability evidence remains absent for I9-P1,
-I9-P2, and I9-P3. Therefore PAIM v0.1 validation and release remain pending, completion must remain
+static evidence is green. Human I9-P1 evidence is complete with two non-blocking
+usability/documentation findings. Human usability/understandability evidence remains absent for
+I9-P2 and I9-P3. Therefore PAIM v0.1 validation and release remain pending, completion must remain
 below 100%, and no final release verdict is authorized at this checkpoint.
 
 **INCREMENT 9 AUTOMATED EVIDENCE RECONCILED ON CPYTHON 3.12 — HUMAN PRACTITIONER VALIDATION PENDING**
