@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import sqlite3
 from collections.abc import Iterator
 from dataclasses import dataclass, replace
 from pathlib import Path
@@ -1008,6 +1009,24 @@ def test_health_degraded_database_failure_unsupported_boundaries_and_counters(
         "OBSERVATION" in table
         for table in operational.app.operational_store.table_counts(("adapter_intakes",))
     )
+
+
+@pytest.mark.parametrize("failure", [OSError("unavailable"), sqlite3.DatabaseError("invalid")])
+def test_health_reports_database_unavailable_for_supported_failure_types(
+    operational: OperationalContext,
+    monkeypatch: pytest.MonkeyPatch,
+    failure: Exception,
+) -> None:
+    def fail_connect(*_: object, **__: object) -> None:
+        raise failure
+
+    monkeypatch.setattr("paim.operational.recovery.sqlite3.connect", fail_connect)
+
+    degraded = operational.app.health()
+
+    assert degraded.process_alive
+    assert degraded.state is ReadinessState.DEGRADED
+    assert "DATABASE_UNAVAILABLE" in degraded.reasons
 
 
 def test_database_contention_blocks_commit_and_stale_register_blocks_action(

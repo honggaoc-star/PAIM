@@ -424,7 +424,7 @@ def health_report(app: OperationalApplication) -> HealthReport:
                 hashlib.sha256(content.encode("utf-8")).hexdigest() == checksum
                 for content, checksum in manifests
             )
-    except OSError, sqlite3.DatabaseError:
+    except (OSError, sqlite3.DatabaseError):
         reasons.append("DATABASE_UNAVAILABLE")
     if database_reachable and not schema_compatible:
         reasons.append("SCHEMA_REVISION_MISMATCH")
