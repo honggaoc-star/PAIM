@@ -13,6 +13,17 @@ That later decision did not design IRR-009 or IRR-014. It established a separate
 dimension for v0.1 and is controlling wherever this roadmap discusses Increment 9 entry or
 completion.
 
+**Release reconciliation:** Issue #69 froze the Increment 9 campaign. Issue #75 reconciled its
+automated pathway oracles, F-I9-001 correction, excluded-boundary oracles, full regression,
+security/access, recovery/degraded-operation, schema/migration, and static evidence onto the
+accepted CPython 3.12 baseline. Human practitioner walkthroughs I9-P1, I9-P2, and I9-P3 are
+complete. Issue #76 documentation remediation is merged, all eight practitioner findings are
+closed by bounded human confirmation, and Issue #78 has prepared the final Issue #69 verdict. The
+verdict is not effective until independent acceptance and merge of draft PR #70. Current evidence
+is recorded in `../system/testing/PAIM_INCREMENT_9_V0_1_VALIDATION_RESULTS_v0.1.md` and
+`PAIM_V0_1_RELEASE_GATE_DECISION_v0.1.md`. IRR-009 and IRR-014 remain semantically undesigned and
+outside the bounded v0.1 claim.
+
 Governing sources are:
 
 - `PAIM_PLATFORM_ARCHITECTURE_v0.1.md`, especially §§20 and 23;
@@ -63,7 +74,7 @@ The roadmap preserves the ten increments in Platform Architecture §23.
 | 6 — Reassessment and Interim Operating Disposition | Trigger/Reassessment workflow, restrictive overlays, confirmation/successor, history | `CLOSED — P1 RE-REVIEW GATE` — IRR-011 design accepted and specs hardened, pending independent closure review; IRR-014 remains conditional for stronger-state automation; accepted Increments 1–5 |
 | 7 — projections, Management Register, reports, and hooks | Rebuildable projections, Register, queues, reports, notification intents | `CLOSED — P1 RE-REVIEW GATE` — IRR-012 design accepted and specs hardened; independent closure review plus accepted Increments 1–6 required |
 | 8 — external adapters, security hardening, and operational readiness | Selected adapters, segmentation, recovery, observability, degraded operation | `CLOSED — UPSTREAM GATE` with adapter-specific P1 conditions |
-| 9 — integrated behavioral and human validation | Complete scenario, regression, longitudinal, and practitioner validation | `CLOSED — SEPARATE AUTHORIZATION REQUIRED` — v0.1 scope is complete, but this reconciliation must merge and a separate issue must freeze the bounded claim, pathways, hard oracles, evidence, practitioner study, traceability, and release verdict |
+| 9 — integrated behavioral and human validation | Complete scenario, regression, longitudinal, and practitioner validation | `COMPLETE — FINAL RELEASE VERDICT PREPARED` — automated evidence is reconciled on CPython 3.12; I9-P1/P2/P3 and bounded confirmation are complete; all eight findings are closed by confirmed documentation remediation; verdict awaits independent acceptance and merge |
 
 ## 3. P1 dependency map
 
@@ -234,6 +245,13 @@ verdict.
 | Specification changes | All in-claim P1 owner artifacts must already be accepted; Behavioral Validation must contain the accepted v0.1 boundary oracles while retaining future extension scenarios as post-v0.1. |
 | Acceptance evidence | Two-dimensional P1 matrix; full specification traceability; accepted frozen scenario/test plan; hard, directional, constraint, and reasoning oracles; human-study judgment boundaries; direct fail-closed proof for both exclusions. |
 | Completion evidence | Versioned formal test evidence, regression/security/access/recovery/degraded/history results, failure classification, longitudinal reconstruction, practitioner validation, usability findings separated from semantic failures, final traceability, and an explicit release/gate verdict. |
+
+**Current result:** automated evidence, all three human practitioner pathways, and the bounded
+confirmation are complete. All eight practitioner findings are closed by confirmed documentation
+remediation. The frozen plan, CPython 3.12 validation results, exact validated source commit,
+technically closed validation-driven finding, and two-dimensional IRR-009/014 status are retained
+in the Increment 9 evidence. The final Issue #69 bounded release verdict is prepared but is not
+effective until independent acceptance and merge of draft PR #70.
 
 ## 5. P1-to-specification ownership map
 
@@ -482,6 +500,14 @@ regression/security/access/recovery/degraded/history evidence,
 practitioner study and usability/semantic-failure separation, final traceability, and the release
 verdict. Scope completion does not authorize Increment 9 and does not mean validation or release is
 complete.
+
+**Current reconciliation:** Issue #69 authorized the campaign, Issue #75 re-established all
+automated evidence on CPython 3.12, and all three human pathways are complete. Issue #76 remediation
+is merged; the bounded confirmation is complete; and all eight practitioner findings are closed by
+confirmed documentation remediation. Issue #78 prepared the final Issue #69 verdict, which is not
+effective until independent acceptance and merge of draft PR #70. IRR-009 and IRR-014 remain
+semantically open; their excluded capabilities remain fail-closed and were not validated as
+positive semantics.
 
 ## 11. Final sequencing recommendation
 

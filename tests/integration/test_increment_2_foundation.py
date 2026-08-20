@@ -134,10 +134,11 @@ def add_role(
     delegation_effect: DelegationEffect = DelegationEffect.NONE,
     delegated_from: RecordVersionId | None = None,
     effective_from: datetime | None = None,
+    application_service: Increment2ApplicationService | None = None,
 ) -> tuple[RecordId, RecordVersionId]:
     identity = RecordId.new()
     version = RecordVersionId.new()
-    service(store).commit_role_assignment(
+    (application_service or service(store)).commit_role_assignment(
         meta(f"{key}-role"),
         RoleAssignmentVersionInput(
             identity,

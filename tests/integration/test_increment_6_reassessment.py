@@ -69,11 +69,13 @@ def context(
     key: str,
     *,
     roles: bool = True,
+    service: Increment6ApplicationService | None = None,
+    assessor_id: RecordId | None = None,
 ) -> Increment6Context:
-    fx = foundation(store, key)
+    service = service or Increment6ApplicationService(store, FixedClock(NOW))
+    fx = foundation(store, key, service=service, assessor_id=assessor_id)
     basis = authorization(fx, key)
     fx.context.service.authorize_decision(meta(f"{key}-authorize"), basis)
-    service = Increment6ApplicationService(store, FixedClock(NOW))
     trigger_determiner: RecordVersionId | None = None
     owner: RecordVersionId | None = None
     coordination: RecordVersionId | None = None
@@ -93,6 +95,7 @@ def context(
                 target_id=str(fx.context.case_id),
                 case_context_id=fx.context.case_id,
                 accountable=True,
+                application_service=service,
             )
             assignments.append(version_id)
         trigger_determiner, owner, coordination = assignments

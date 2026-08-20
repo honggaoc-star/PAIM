@@ -1121,6 +1121,94 @@ class Increment7ApplicationService(Increment6ApplicationService):
             return None
         return case_id, configuration_id
 
+    def _resolved_dependency_for_sources(
+        self,
+        transaction: Increment7Transaction,
+        *,
+        family: str,
+        record_id: RecordId,
+        source_version_ids: tuple[RecordVersionId, ...],
+        effective_at: datetime,
+        known_at: datetime,
+    ) -> tuple[RecordId, RecordVersionId] | None:
+        """Resolve exact source Versions through accepted equivalence determinations."""
+
+        resolved_by_source: dict[RecordVersionId, set[tuple[RecordId, RecordVersionId]]] = {
+            version_id: set() for version_id in source_version_ids
+        }
+        for identity in transaction.register_record_identities(("dependency-candidate-set",)):
+            candidate_set_id = RecordId.parse(identity["record_id"])
+            selected = transaction.select_current(
+                SelectionQuery(
+                    family="dependency-candidate-set",
+                    scope=identity["scope"],
+                    effective_at=effective_at,
+                    known_at=known_at,
+                    record_id=candidate_set_id,
+                )
+            )
+            if not isinstance(selected, SelectionFound):
+                continue
+            candidate_version_id = selected.candidate.version_id
+            detail = transaction.candidate_set_detail(candidate_version_id)
+            if detail is None or bool(detail["withdrawn"]):
+                continue
+            matching_versions = {
+                RecordVersionId.parse(cast("str", member["source_version_id"]))
+                for member in transaction.candidate_set_members(candidate_version_id)
+                if member["source_family"] == family
+                and member["source_record_id"] == str(record_id)
+                and RecordVersionId.parse(cast("str", member["source_version_id"]))
+                in resolved_by_source
+            }
+            if not matching_versions:
+                continue
+            equivalence = self._current_equivalence_in_transaction(
+                transaction,
+                candidate_set_version_id=candidate_version_id,
+                dependency_kind=cast("str", detail["dependency_kind"]),
+                equivalence_scope=cast("str", detail["equivalence_scope"]),
+                effective_at=effective_at,
+                known_at=known_at,
+            )
+            if (
+                not isinstance(equivalence, EquivalenceDeterminationFound)
+                or equivalence.outcome is not EquivalenceOutcome.EQUIVALENT
+                or equivalence.shared_dependency_version_id is None
+            ):
+                continue
+            dependency_version_id = equivalence.shared_dependency_version_id
+            dependency = transaction.get_version(dependency_version_id)
+            if dependency is None or dependency.family != "shared-dependency":
+                continue
+            current_dependency = transaction.select_current(
+                SelectionQuery(
+                    family=dependency.family,
+                    scope=dependency.scope,
+                    effective_at=effective_at,
+                    known_at=known_at,
+                    record_id=dependency.record_id,
+                )
+            )
+            if (
+                not isinstance(current_dependency, SelectionFound)
+                or current_dependency.candidate.version_id != dependency_version_id
+            ):
+                continue
+            for source_version_id in matching_versions:
+                resolved_by_source[source_version_id].add(
+                    (dependency.record_id, dependency_version_id)
+                )
+        resolutions = {
+            next(iter(values)) for values in resolved_by_source.values() if len(values) == 1
+        }
+        if (
+            all(len(values) == 1 for values in resolved_by_source.values())
+            and len(resolutions) == 1
+        ):
+            return next(iter(resolutions))
+        return None
+
     def derive_management_register(self, query: RegisterQuery) -> RegisterView:
         """Derive the Register directly from accepted authoritative families.
 
@@ -1282,6 +1370,17 @@ class Increment7ApplicationService(Increment6ApplicationService):
                         dependency_record_id = dependency.record_id
                     else:
                         dependency_version_id = None
+                if dependency_version_id is None:
+                    resolved_dependency = self._resolved_dependency_for_sources(
+                        transaction,
+                        family=family,
+                        record_id=record_id,
+                        source_version_ids=candidates,
+                        effective_at=effective_at,
+                        known_at=known_at,
+                    )
+                    if resolved_dependency is not None:
+                        dependency_record_id, dependency_version_id = resolved_dependency
                 selections.append(
                     RegisterSourceSelection(
                         key=RegisterConcernKey(

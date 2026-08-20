@@ -72,9 +72,11 @@ def _setup(
     acceptor_target: RoleTargetType | None = RoleTargetType.INTERVENTION,
     acceptor_effective: EffectiveInterval = EFFECTIVE,
     preauthorized: tuple[PreauthorizedActivationMechanismInput, ...] = (),
+    service: Increment5ApplicationService | None = None,
+    assessor_id: RecordId | None = None,
 ) -> Increment5Fixture:
-    fx = foundation(store, key)
-    service = Increment5ApplicationService(store, FixedClock(NOW))
+    service = service or Increment5ApplicationService(store, FixedClock(NOW))
+    fx = foundation(store, key, service=service, assessor_id=assessor_id)
     basis = replace(
         authorization(fx, key),
         preauthorized_activation_mechanisms=preauthorized,

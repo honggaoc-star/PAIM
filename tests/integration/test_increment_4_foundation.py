@@ -71,8 +71,14 @@ class Foundation:
     authority_gap_version_id: RecordVersionId | None
 
 
-def c4_context(store: SQLiteIntegrityStore, key: str) -> C4Context:
-    service = Increment4ApplicationService(store, FixedClock(NOW))
+def c4_context(
+    store: SQLiteIntegrityStore,
+    key: str,
+    *,
+    service: Increment4ApplicationService | None = None,
+    assessor_id: RecordId | None = None,
+) -> C4Context:
+    service = service or Increment4ApplicationService(store, FixedClock(NOW))
     case_id, case_version_id = RecordId.new(), RecordVersionId.new()
     service.commit_case(
         meta(f"{key}-case"),
@@ -102,11 +108,12 @@ def c4_context(store: SQLiteIntegrityStore, key: str) -> C4Context:
             accountable_mechanism="configuration-currentness board",
         ),
     )
-    actor_id = RecordId.new()
-    service.commit_actor(
-        meta(f"{key}-actor"),
-        ActorVersionInput(actor_id, RecordVersionId.new(), "Decision Authority", EFFECTIVE),
-    )
+    actor_id = assessor_id or RecordId.new()
+    if assessor_id is None:
+        service.commit_actor(
+            meta(f"{key}-actor"),
+            ActorVersionInput(actor_id, RecordVersionId.new(), "Decision Authority", EFFECTIVE),
+        )
     return C4Context(service, case_id, configuration_id, configuration_version_id, actor_id)
 
 
@@ -116,8 +123,10 @@ def foundation(
     *,
     human_clause: bool = False,
     include_authority_gap: bool = False,
+    service: Increment4ApplicationService | None = None,
+    assessor_id: RecordId | None = None,
 ) -> Foundation:
-    ctx = c4_context(store, key)
+    ctx = c4_context(store, key, service=service, assessor_id=assessor_id)
     gap_version_id: RecordVersionId | None = None
     if include_authority_gap:
         gap_id, gap_version_id = RecordId.new(), RecordVersionId.new()
