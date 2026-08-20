@@ -15,6 +15,11 @@ This plan freezes the bounded Increment 9 campaign. Later result evidence may re
 deviation or a validation-driven correction, but must not silently change this claim, denominator,
 oracle, pathway, finding-classification rule, or release criterion.
 
+**Runtime reconciliation note:** Issue #75 reconciles execution onto accepted `main` at
+`8fa187857d404242568dd24f0abac4b2995f9b6d`. The controlling runtime is CPython `>=3.12,<3.13`,
+with CPython `3.12.13` as the exact reference interpreter and `uv==0.12.5`. This execution note does
+not alter the frozen claim, pathways, oracles, practitioner protocol, denominator, or verdict rule.
+
 ## 2. Controlling sources and precedence
 
 The campaign applies, in descending precedence for this scope:

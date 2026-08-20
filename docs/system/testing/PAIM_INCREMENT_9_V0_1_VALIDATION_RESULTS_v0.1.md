@@ -1,231 +1,221 @@
 # PAIM Increment 9 v0.1 Validation Results
 
-## 1. Result and evidence identity
+## 1. Reconciliation status and evidence identity
 
-**Campaign result:** PASS
+**Automated integrated evidence:** PASSED
 
-**Execution date:** 2026-08-19
+**Human practitioner walkthroughs:** NOT YET EXECUTED
+
+**Reconciliation date:** 2026-08-20
 
 **Frozen plan commit:** `90fc285` (`Freeze Increment 9 validation plan`)
 
-**Validated source commit:** `221b7ad3832a0e28b9bf77b4938030fa2b871e8b`
+**Original Increment 9 implementation commit:**
+`221b7ad3832a0e28b9bf77b4938030fa2b871e8b`
 
-**Starting checkpoint:** `62c5d807c2cfec4d13c0f4c9d4f15280511327db`
+**CPython 3.12 reconciled source commit:**
+`427dec0bbb5f77129e2128c11c0340b56cd2ebcd`
+
+**Accepted runtime starting checkpoint:**
+`8fa187857d404242568dd24f0abac4b2995f9b6d` (merged PR #74)
 
 **Campaign branch:** `validation/increment-9-v0-1-release-gate`
 
-The campaign executed the frozen bounded claim and denominator in
-`PAIM_INCREMENT_9_V0_1_INTEGRATED_VALIDATION_PLAN_v0.1.md`. The tested source commit contains one
-validation-driven correction described in §8. No governing PAIM specification was changed.
+Issue #75 reconciled the substantive Increment 9 implementation and F-I9-001 correction onto the
+accepted CPython 3.12 runtime baseline. The historical PR #70 commits remain intact and are parents
+of the reconciled source commit. No governing specification or database migration changed.
+
+The four automated Increment 9 gateway tests provide integrated behavioral evidence. They do not
+constitute human practitioner evidence and do not support a final release verdict.
 
 | Identity | Observed value |
 |---|---|
 | Application | `paim 0.1.0` |
-| Python | `3.14.6` |
-| uv | `0.12.5` |
-| Alembic | `0008_increment_8 (head)` |
-| Full-suite population | 245 tests |
-| Local persistence | SQLite with foreign keys enabled |
+| Python | `3.12.13` (conda-forge build, 64-bit) |
+| SQLite | `3.53.1` |
+| uv | `0.12.5` (`210d1f678`) |
+| Alembic | `0008_increment_8` (head) |
+| Locked packages | 19 |
+| Lock SHA-256 | `E8BA6A8F9428C61A475C106745C8B857F2291C4DEA9B366E98EE8C69D2F853C7` |
+| Full-suite population | 250 tests |
+| Local persistence | SQLite with runtime foreign keys enabled |
 
-## 2. Command evidence
+Locked direct identities were PAIM `0.1.0`, Alembic `1.19.1`, SQLAlchemy `2.0.52`, uuid6
+`2025.0.1`, pytest `9.1.1`, mypy `1.20.2`, and Ruff `0.16.3`.
 
-Every required command completed successfully against the validated source commit. Test durations
-are wall-clock pytest durations and include Windows/SQLite contention from concurrently executing
-independent gates.
+## 2. Automated command evidence
+
+Every required automated command completed successfully against the reconciled source. Focused
+counts overlap the 250-test full-suite population and are not additive.
 
 | Gate | Result |
 |---|---|
-| `uv lock --check` | PASS — 18 locked packages resolved without lock mutation |
-| `uv run --locked pytest` | PASS — 245 passed in 1088.08s |
-| Core contract/identity/time/transaction command | PASS — 22 passed in 70.94s |
-| Increment 2 focused command | PASS — 17 passed in 108.16s |
-| Increment 3 focused command | PASS — 12 passed in 86.40s |
-| Increment 4 focused command | PASS — 19 passed in 150.10s |
-| Increment 5 focused command | PASS — 21 passed in 173.66s |
-| Increment 6 focused command | PASS — 47 passed in 362.04s |
-| Increment 7 focused command | PASS — 64 passed in 290.92s |
-| Increment 8 focused command | PASS — 22 passed in 179.93s |
-| Increment 9 focused command | PASS — 4 passed in 28.92s |
-| Migration/schema focused command | PASS — 16 passed in 69.12s |
-| `uv run --locked ruff format --check .` | PASS — 108 files formatted |
-| `uv run --locked ruff check .` | PASS |
+| `uv lock --check` | PASS — 19 packages resolved without lock mutation |
+| locked sync/import smoke | PASS — PAIM imported under Python 3.12.13 / SQLite 3.53.1 |
+| `uv run --locked pytest` | PASS — 250 passed in 787.09s |
+| Increment 1 contract/identity/time/transaction | PASS — 25 passed in 40.27s |
+| Increment 2 focused command | PASS — 17 passed in 63.25s |
+| Increment 3 focused command | PASS — 12 passed in 46.73s |
+| Increment 4 focused command | PASS — 19 passed in 71.95s |
+| Increment 5 focused command | PASS — 21 passed in 85.29s |
+| Increment 6 focused command | PASS — 47 passed in 185.86s |
+| Increment 7 focused command | PASS — 64 passed in 159.84s |
+| Increment 8 focused command | PASS — 24 passed in 103.16s |
+| Increment 9 automated command | PASS — 4 passed in 20.35s |
+| Migration/schema focused command | PASS — 16 passed in 48.34s |
+| Recovery/security/degraded/boundary assurance command | PASS — 9 passed in 38.37s |
+| tracked-Python Ruff format check | PASS — 70 files |
+| tracked-Python Ruff lint | PASS — 70 files |
 | `uv run --locked mypy src/paim` | PASS — 43 source files |
+| tracked-source high-confidence secret scan | PASS — no matches |
 | `git diff --check` | PASS |
-| Tracked-file high-confidence secret pattern scan | PASS — no matches |
 
-The full suite includes the contract, unit, integration, longitudinal-conflict, migration, schema,
-security, recovery, degraded-operation, and operational tests. The focused commands were also run
-independently; their counts overlap the 245-test full-suite population and are not additive.
+Repository-wide Ruff traversal used the complete tracked-Python file list because inaccessible old,
+ignored pytest temporary directories are not repository source. No tracked Python file was omitted.
 
-## 3. Practitioner walkthrough I9-P1
+## 3. Automated integrated pathway evidence
 
-**Objective:** take one bounded Case from governed Configuration through authorized target operation
-and linked Learning using the authenticated local gateway.
+### I9-P1 automated gateway oracle
 
-**Starting fixture:** a new local database at Alembic head, one enabled principal resolved to one
-Actor, no Case or domain records, and only explicit bootstrap/admin access.
+**Status:** `AUTOMATED INTEGRATED EVIDENCE — PASSED`
 
-**Observed gateway actions and checkpoints:**
+The automated gateway oracle traversed authenticated Case/Configuration establishment, exact
+Evidence and Authority handling, independent Value/Risk intake and freeze, Integration, Boundary,
+Decision and Authorization Basis, Intervention, Completion Acceptance, Activation, Learning, and
+authoritative reconstruction. Software access did not substitute for substantive authority, and no
+Value/Risk collapse or history rewrite occurred.
 
-1. authenticated principal/Actor resolution and scoped command grants;
-2. Case, finalized governing Configuration, typed substantive Roles, and exact histories;
-3. Evidence with provenance and exact Configuration-Version Applicability;
-4. separate accepted/frozen Value and Risk inputs, preserving their independent histories;
-5. Integration, uncertainty classification, immutable Boundary, Decision, and Authorization Basis;
-6. Intervention obligation, Completion Result, accountable Completion Acceptance, prerequisite
-   evaluation, Activation Authorization, and target operation;
-7. decision-specific Learning; and
-8. reconstruction of the exact Evidence, analytical-input, Decision, Intervention, and audit basis.
+### I9-P2 automated gateway oracle
 
-**Result:** PASS. No software permission substituted for PAIM authority; no Value/Risk collapse,
-implicit currentness, or history rewrite occurred.
+**Status:** `AUTOMATED INTEGRATED EVIDENCE — PASSED`
 
-**Confusion/friction:** none classified. The pathway intentionally requires several explicit
-governance records; this was consistent with the frozen claim.
+The automated gateway oracle traversed exact external occurrence intake, explicit Trigger
+promotion, accountable determination, Reassessment membership and coverage, overlap conflict,
+prospective exact-version coordination, restrictive interim operation, exactly one completion
+outcome, no-lost-trigger coverage, and dual-time reconstruction. Exact operating-state identities
+remained unordered.
 
-**Finding:** none.
+### I9-P3 automated gateway oracle
 
-## 4. Practitioner walkthrough I9-P2
+**Status:** `AUTOMATED INTEGRATED EVIDENCE — PASSED`
 
-**Objective:** take an exact external occurrence through explicit Trigger promotion, accountable
-determination, bounded concurrent Reassessment, restrictive interim operation, and completed
-Reassessment.
+The automated gateway oracle derived a multi-Case Register from exact authoritative sources,
+validated exact Shared Dependency identity/equivalence, access-filtered hidden data, retained
+deterministic output/manifest basis, launched the exact owning-domain command, and kept generic
+Register resolution unavailable.
 
-**Starting fixture:** a separately established authorized Decision/Configuration context with
-Trigger Determiner, Reassessment Owner, and Reassessment Coordination Authority assignments.
+These automated results establish correctness evidence for the pathways. They do not record a
+human operator's actions, comprehension, confusion, friction, or usability judgment.
 
-**Observed gateway actions and checkpoints:**
+## 4. Human practitioner walkthroughs
 
-1. an external occurrence entered as non-authoritative proposed intake;
-2. exact replay returned the same intake identity, while a similar distinct occurrence retained a
-   distinct identity;
-3. explicit practitioner promotion created the Trigger without an Observation Record;
-4. Trigger Determination and immutable Reassessment membership established coverage;
-5. overlapping Reassessments produced `REASSESSMENT OVERLAP CONFLICT — UNRESOLVED` until an exact,
-   accountable coexistence determination existed;
-6. advancement to a new Reassessment Version required prospective exact-version coordination
-   revalidation;
-7. two explicit state identities remained unordered, all explicit restrictions were intersected,
-   and only the indeterminate overlapping scope was suspended;
-8. Confirmation produced exactly one completed outcome and satisfied the exact Trigger; and
-9. histories, provenance, coverage, effective context, and knowledge context remained
-   reconstructable.
+### I9-P1 — Case to authorized operation
 
-**Result:** PASS.
+**Status:** `HUMAN PRACTITIONER WALKTHROUGH — NOT YET EXECUTED`
 
-**Confusion/friction:** an initial campaign oracle expected overlap to reject Reassessment creation.
-The governing contract instead preserves both analyses and blocks affected disposition/completion
-until coordination. The oracle was corrected before result judgment; PAIM behavior was unchanged.
+No human actions or observations are recorded. The walkthrough must restart from its prescribed
+starting fixture under the accepted CPython 3.12 environment.
 
-**Finding:** none against the product. The explicit-version revalidation is deliberate governance,
-not a usability defect.
+### I9-P2 — Trigger to completed Reassessment
 
-## 5. Practitioner walkthrough I9-P3
+**Status:** `HUMAN PRACTITIONER WALKTHROUGH — NOT YET EXECUTED`
 
-**Objective:** derive a multi-Case Management Register from exact authoritative sources, prove
-Shared Dependency grouping and access non-leakage, retain outputs, and launch an exact owning-domain
-action.
+No human actions or observations are recorded. This walkthrough begins only after I9-P1 is
+completed and recorded.
 
-**Starting fixture:** two Cases and Configurations with separate unresolved Authority Gaps, one
-immutable Dependency Candidate Set, one stable Shared Dependency, and one accountable
-`EQUIVALENT` determination.
+### I9-P3 — Multi-Case Register to owning-domain action
 
-**Observed gateway actions and checkpoints:**
+**Status:** `HUMAN PRACTITIONER WALKTHROUGH — NOT YET EXECUTED`
 
-1. the complete view contained both exact Case-local concern entries and one descriptive Shared
-   Dependency group;
-2. denying access to one Case removed its entry and all identifiers/facts/counts while retaining an
-   explicitly access-filtered visible group;
-3. grouping preserved Case-local authority, status, applicability, outcome, and closure;
-4. JSON/CSV outputs retained manifest checksum, rule Version, effective/knowledge context, and
-   access context;
-5. local notification delivery retained the exact manifest basis;
-6. `ASSIGN_OWNER` returned an authoritative owning-family command contract with the exact source
-   Version basis; and
-7. generic Register resolution remained unavailable.
+No human actions or observations are recorded. This walkthrough begins only after I9-P2 is
+completed and recorded.
 
-**Result:** PASS after the bounded correction in §8.
+Automated test actors are not practitioners. No finding classification, friction statement, or
+human pass result will be inferred from the automated evidence.
 
-**Finding F-I9-001:** automatic Register population did not initially resolve an accepted exact
-Candidate Set and Equivalence Determination back to its exact source Versions; grouping worked only
-when a dependency Version had already been embedded in source content.
+## 5. F-I9-001 reconciliation
 
-**Classification:** `RELEASE-BLOCKING SEMANTIC FAILURE`.
+The original Increment 9 campaign found that automatic Register population did not resolve an
+accepted exact Candidate Set and Equivalence Determination back to its exact source Versions.
+F-I9-001 was classified `RELEASE-BLOCKING SEMANTIC FAILURE` and corrected in `221b7ad`.
 
-**Release severity:** blocking until corrected and fully regressed.
+The correction remains unchanged after reconciliation. It resolves only current exact Candidate Set
+members through one current `EQUIVALENT` determination to one current exact Shared Dependency
+Version. Missing, conflicting, non-equivalent, withdrawn, stale, or inconsistent bindings establish
+no group. Case-local source records are preserved; no authority, applicability, satisfaction,
+outcome, or closure transfers; no semantic/AI similarity matching occurs; and effective-time and
+knowledge-time selection remains deterministic.
 
-**Disposition:** CLOSED in validated source commit `221b7ad`. The Register now resolves only current,
-exact Candidate Set members through one current `EQUIVALENT` determination to one current exact
-Shared Dependency Version. Missing, conflicting, non-equivalent, withdrawn, stale, or inconsistent
-bindings establish no group. Source records are not rewritten, and no authority or outcome is
-transferred.
+The full 250-test suite plus the focused Increment 7, Increment 8, and Increment 9 gates passed on
+CPython 3.12.13. F-I9-001 therefore remains technically closed at this automated checkpoint; the
+later human study may produce separate findings that must be recorded independently.
 
 ## 6. Excluded-boundary results
 
-### I9-B1 — Observation
+### I9-B1 — IRR-009 Observation boundary
 
-**Classification:** `EXPECTED V0.1 BOUNDARY — PASS`.
+**Automated classification:** `EXPECTED V0.1 BOUNDARY — PASS`
 
-- Observation Record/automation and telemetry-to-Evidence/Trigger/Register capabilities raise
-  explicit unsupported-capability results.
-- No Observation table or accepted Register source exists.
-- Intake arrival creates no substantive Evidence, Trigger, Register concern, or authority.
-- Explicit external occurrence → proposed intake → practitioner promotion → Trigger passed.
-- Exact replay identity controlled idempotency; similar text/source category did not.
-- Outputs, health, and audit made no continuous-monitoring claim.
+- first-class Observation persistence/automation requests failed explicitly;
+- no Observation table or accepted Register source exists;
+- intake arrival created no Evidence, Trigger, Register concern, or substantive authority;
+- explicit external occurrence to proposed intake to explicit authorized promotion to Trigger
+  passed without Observation;
+- exact replay identity, not semantic similarity, controlled idempotency; and
+- outputs and health behavior made no continuous-monitoring claim.
 
-IRR-009 remains `OPEN — SEMANTICS UNDESIGNED` and its bounded-v0.1 product gate remains
-`CLOSED BY DESIGN — OUTSIDE V0.1 CLAIM`.
+IRR-009 remains `OPEN — SEMANTICS UNDESIGNED` and `CLOSED BY DESIGN — OUTSIDE V0.1 CLAIM` for the
+bounded product gate.
 
-### I9-B2 — operating-state relation
+### I9-B2 — IRR-014 operating-state relation boundary
 
-**Classification:** `EXPECTED V0.1 BOUNDARY — PASS`.
+**Automated classification:** `EXPECTED V0.1 BOUNDARY — PASS`
 
-- Ranking and strength-inference capabilities raise explicit unsupported-capability results.
-- Exact values `state-a` and `state-z` remained an unordered set; labels and lexical order selected
-  no winner.
-- Structured allowed actions and required controls were intersected by exact scope.
-- Indeterminate combined state effect suspended only the overlapping scope.
-- Register and output contracts exposed no rank, severity, priority, or inferred escalation.
+- ranking and strength-inference requests failed explicitly;
+- exact operating-state values remained an unordered set;
+- labels, lexical order, presentation order, and recency selected no winner;
+- explicit restrictions were intersected by exact scope;
+- indeterminate combined effect suspended only the affected scope; and
+- Register/output contracts exposed no inferred rank, severity, priority, or escalation.
 
-IRR-014 remains `OPEN — SEMANTICS UNDESIGNED` and its bounded-v0.1 product gate remains
-`CLOSED BY DESIGN — OUTSIDE V0.1 CLAIM`.
+IRR-014 remains `OPEN — SEMANTICS UNDESIGNED` and `CLOSED BY DESIGN — OUTSIDE V0.1 CLAIM` for the
+bounded product gate.
 
-## 7. Cross-cutting evidence
+## 7. Schema, recovery, security, and repository evidence
 
-| Family | Result and retained evidence |
-|---|---|
-| Security/access | PASS — bad authentication rejected; principal remained Actor-bound; permission remained distinct from substantive authority; Case/Configuration denial removed hidden Register identifiers, facts, and counts; audit details contained no credential-field material. |
-| Recovery/durability | PASS — online backup, checksum/manifest/table counts, separate restore, authentication and history after restart, integrity/readiness, tamper rejection, and incompatible-revision rejection. |
-| Degraded operation | PASS — missing spool produced explicit `DEGRADED` readiness without loss or fabricated delivery; unavailable/unsupported semantic capabilities failed closed. Existing Increment 8 hard oracles cover quarantine, retry, stale projections, backup failure, and access/database failures. |
-| Dual time/history | PASS — immutable exact Versions, current-selection conflict, correction/supersession/withdrawal/expiry/revocation suites, exact Reassessment Version revalidation, Trigger coverage history, and Register effective/knowledge/rule/watermark basis. |
-| Schema/migration | PASS — empty SQLite database to `0008_increment_8`; each supported prior revision through head including `0007_increment_7`; expected tables, constraints, indexes, append-only triggers, and foreign-key enforcement. |
-| Output/rebuild | PASS — deterministic source-selected Register, checksummed manifest, JSON/CSV reconstruction basis, delivery intent/attempt, backup verification, and access-context enforcement. |
-| Boundary discipline | PASS — no Increment 9 schema or new semantic family; no Observation approximation; no operating-state ordering; no generic Register resolution. |
+The migration/schema gate upgraded an empty database and every supported prior revision, including
+`0007_increment_7`, to `0008_increment_8`. A separate fresh-database inventory reported 136 tables,
+97 check constraints, 429 foreign keys, 58 indexes, 268 triggers, `PRAGMA foreign_keys = 1`, and
+`PRAGMA quick_check = ok`. Increment 9 introduced no migration.
 
-## 8. Validation-driven change control
+The focused assurance gate passed application-consistent backup, checksum/manifest evidence,
+separate restore, restart/authentication/history reconstruction, tamper rejection, incompatible
+revision rejection, authentication failures, hidden-Case identifier/fact/count non-leakage,
+configuration/CLI secret hygiene, database-unavailable behavior, explicit degraded readiness, and
+the excluded-boundary failures. No degraded state fabricated semantic success or broadened
+authority.
 
-The campaign made only these bounded changes after the plan freeze:
+## 8. Reconciliation change control
 
-1. added gateway-level Increment 9 hard-oracle walkthrough tests;
-2. parameterized existing test builders so the walkthroughs use the actual
-   `OperationalApplication` service and authenticated Actor instead of creating test-only parallel
-   services/Actors; and
-3. corrected F-I9-001 by deriving Shared Dependency bindings from already-governing exact Candidate
-   Set and Equivalence records.
+The reconciled branch preserves:
 
-The correction introduced no new record family, schema, authority policy, source mutation,
-semantic matching, implicit winner, cross-Case authority, Observation behavior, or state relation.
-Focused Increment 7/8/9 gates, schema tests, static checks, and the full 245-test suite all passed
-after the correction.
+1. the frozen Increment 9 plan;
+2. all four automated Increment 9 gateway hard-oracle tests;
+3. the bounded F-I9-001 correction and regression coverage;
+4. security/access/recovery/degraded/boundary evidence;
+5. IRR-009 and IRR-014 two-dimensional status; and
+6. the bounded v0.1 claim and non-goals.
 
-## 9. Residual limitations and result
+Issue #75 changed no governing specification, schema migration, record family, authority policy,
+Observation semantics, operating-state relation, or product feature. It merged the accepted CPython
+3.12 baseline into the existing PR #70 branch, reran the complete automated gate, and corrected
+stale evidence/release wording.
 
-The released bounded claim excludes first-class Observation persistence, continuous telemetry
-automation, operating-state ranking/strength/breadth/severity/priority/escalation inference, live
-provider adapters, distributed/cloud/HA or multi-tenant topology, a polished browser/mobile UI,
-and generic workflow/Register resolution. These are post-v0.1 extensions, not hidden failures.
+## 9. Remaining release gate
 
-No release-blocking defect remains in the frozen v0.1 claim. The campaign supports 100% completion
-against the fixed bounded complete-functional-v0.1 denominator and the release verdict recorded in
-`../../engineering/PAIM_V0_1_RELEASE_GATE_DECISION_v0.1.md`.
+Automated correctness, regression, boundary, security, recovery, degraded-operation, migration, and
+static evidence is green. Human usability/understandability evidence remains absent for I9-P1,
+I9-P2, and I9-P3. Therefore PAIM v0.1 validation and release remain pending, completion must remain
+below 100%, and no final release verdict is authorized at this checkpoint.
+
+**INCREMENT 9 AUTOMATED EVIDENCE RECONCILED ON CPYTHON 3.12 — HUMAN PRACTITIONER VALIDATION PENDING**

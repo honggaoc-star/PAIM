@@ -137,7 +137,7 @@ prematurely.
 
 ## Current Development Status
 
-**PAIM v0.1 is released for the bounded local governed-application claim.**
+**PAIM v0.1 validation and release are pending human practitioner walkthroughs.**
 
 PAIM v0.1 is a complete functional local governed PAIM application for
 the implemented management lifecycle. It supports authenticated local
@@ -157,12 +157,13 @@ unsupported boundaries are explicit and fail closed. The supported v0.1
 paths use exact manual/external Trigger provenance and exact-state,
 exact-scope restrictive intersection or affected-scope suspension.
 
-PAIM v0.1 is **100% complete against the bounded complete-functional-v0.1
-denominator**. Increment 9 integrated/practitioner validation passed all
-three gateway pathways, both excluded-boundary oracles, the full 245-test
-suite, security/access, recovery/degraded-operation, schema/migration, and
-static gates. See the [validation results](docs/system/testing/PAIM_INCREMENT_9_V0_1_VALIDATION_RESULTS_v0.1.md)
-and [release-gate decision](docs/engineering/PAIM_V0_1_RELEASE_GATE_DECISION_v0.1.md).
+Increment 9 automated evidence has been reconciled onto the accepted CPython
+3.12 baseline: the full 250-test suite, focused Increment 1–9 gates, both
+excluded-boundary oracles, security/access, recovery/degraded-operation,
+schema/migration, and static gates pass. Human walkthroughs I9-P1, I9-P2,
+and I9-P3 have not yet been executed, so completion remains below 100% and
+no release verdict has been issued. See the [validation results](docs/system/testing/PAIM_INCREMENT_9_V0_1_VALIDATION_RESULTS_v0.1.md)
+and [pending release gate](docs/engineering/PAIM_V0_1_RELEASE_GATE_DECISION_v0.1.md).
 
 The current product is a local governed application. Enterprise/cloud
 deployment, live provider integrations, distributed infrastructure, and
@@ -182,11 +183,11 @@ evidence are recorded under `docs/engineering/`.
 
 ## Development Direction
 
-PAIM v0.1 is the frozen released baseline for its bounded claim. Future
-work requires separately authorized post-v0.1 scope and a new completion
-denominator. It must preserve v0.1 history and must not imply that
-IRR-009 Observation semantics or IRR-014 operating-state relations were
-designed by this release.
+The next release-gate work is the separately observed human I9-P1, I9-P2,
+and I9-P3 walkthrough sequence under the frozen Increment 9 protocol. No
+automated test result substitutes for those observations. Post-v0.1 work
+remains unauthorized, and no release statement may imply that IRR-009
+Observation semantics or IRR-014 operating-state relations were designed.
 
 ## Project Objective
 
