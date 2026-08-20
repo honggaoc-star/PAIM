@@ -6,6 +6,8 @@
 
 **Human practitioner walkthroughs:** I9-P1, I9-P2, AND I9-P3 COMPLETED
 
+**Bounded practitioner confirmation:** COMPLETED — ALL FIVE TARGETED PROPERTIES CONFIRMED
+
 **Reconciliation date:** 2026-08-20
 
 **Frozen plan commit:** `90fc285` (`Freeze Increment 9 validation plan`)
@@ -19,6 +21,9 @@
 **Accepted runtime starting checkpoint:**
 `8fa187857d404242568dd24f0abac4b2995f9b6d` (merged PR #74)
 
+**Issue #78 validation source commit:**
+`d1bca218f641ef8bef9b2385e96446383ccdb8e8`
+
 **Campaign branch:** `validation/increment-9-v0-1-release-gate`
 
 Issue #75 reconciled the substantive Increment 9 implementation and F-I9-001 correction onto the
@@ -26,9 +31,10 @@ accepted CPython 3.12 runtime baseline. The historical PR #70 commits remain int
 of the reconciled source commit. No governing specification or database migration changed.
 
 The four automated Increment 9 gateway tests provide integrated behavioral evidence. They do not
-constitute human practitioner evidence. All three separate human practitioner pathways are now
-complete; their retained evidence and findings require independent review before any final release
-verdict.
+constitute human practitioner evidence. All three separate human practitioner pathways and the
+bounded Issue #76 confirmation are complete. Issue #78 reconciled this branch with accepted `main`,
+reviewed each finding against the original statement, merged remediation, and actual confirmation,
+and reran the complete release evidence before preparing the final verdict for independent review.
 
 | Identity | Observed value |
 |---|---|
@@ -54,18 +60,18 @@ counts overlap the 250-test full-suite population and are not additive.
 |---|---|
 | `uv lock --check` | PASS — 19 packages resolved without lock mutation |
 | locked sync/import smoke | PASS — PAIM imported under Python 3.12.13 / SQLite 3.53.1 |
-| `uv run --locked pytest` | PASS — 250 passed in 787.09s |
-| Increment 1 contract/identity/time/transaction | PASS — 25 passed in 40.27s |
-| Increment 2 focused command | PASS — 17 passed in 63.25s |
-| Increment 3 focused command | PASS — 12 passed in 46.73s |
-| Increment 4 focused command | PASS — 19 passed in 71.95s |
-| Increment 5 focused command | PASS — 21 passed in 85.29s |
-| Increment 6 focused command | PASS — 47 passed in 185.86s |
-| Increment 7 focused command | PASS — 64 passed in 159.84s |
-| Increment 8 focused command | PASS — 24 passed in 103.16s |
-| Increment 9 automated command | PASS — 4 passed in 20.35s |
-| Migration/schema focused command | PASS — 16 passed in 48.34s |
-| Recovery/security/degraded/boundary assurance command | PASS — 9 passed in 38.37s |
+| `uv run --locked pytest` | PASS — 250 passed in 866.04s |
+| Increment 1 contract/identity/time/transaction | PASS — 25 passed in 34.59s |
+| Increment 2 focused command | PASS — 17 passed in 66.49s |
+| Increment 3 focused command | PASS — 12 passed in 40.45s |
+| Increment 4 focused command | PASS — 19 passed in 63.96s |
+| Increment 5 focused command | PASS — 21 passed in 73.38s |
+| Increment 6 focused command | PASS — 47 passed in 156.75s |
+| Increment 7 focused command | PASS — 64 passed in 131.27s |
+| Increment 8 focused command | PASS — 24 passed in 84.41s |
+| Increment 9 automated command | PASS — 4 passed in 19.83s |
+| Migration/schema focused command | PASS — 16 passed in 45.78s |
+| Recovery/security/degraded/boundary assurance command | PASS — 9 passed in 37.23s |
 | tracked-Python Ruff format check | PASS — 70 files |
 | tracked-Python Ruff lint | PASS — 70 files |
 | `uv run --locked mypy src/paim` | PASS — 43 source files |
@@ -437,6 +443,43 @@ reconstruction mechanisms are substantially more robust than the current practit
 procedure. The principal remaining weakness observed across the study was practitioner experience,
 not the underlying governance semantics.
 
+### Bounded Issue #76 practitioner confirmation
+
+**Status:** `COMPLETED — ALL FIVE TARGETED PROPERTIES CONFIRMED`
+
+The confirmation used a fresh isolated disposable fixture and a fresh protected credential held
+only in `PAIM_I9_CONFIRM_TOKEN`. No prior secret was recovered or persisted. The initial preflight
+in a new shell stopped because the earlier credential environment variable was absent; the
+practitioner classified that as expected ephemeral-secret behavior, not a PAIM defect.
+
+The locked invocation was clear and succeeded under CPython 3.12.13, and production health was
+`READY`. The practitioner correctly identified the contextual `ASSIGN_OWNER` prerequisites as
+`COMMAND` for `register.assign_owner`, exact-Case `CASE_READ / read`, and exact-Configuration
+`CONFIGURATION_READ / read`. The practitioner distinguished those software permissions from the
+applicable current Role Assignment and from substantive authority or Authorization Basis.
+
+The practitioner reconstructed Case, Configuration, source, and action context from persisted
+configuration and context artifacts without cross-stage PowerShell identity variables. The exact
+historical identities were:
+
+- source Record `01a0213e-73b8-79c4-b56f-e1e301959b1b`;
+- predecessor Version `01a0213e-73b9-7e12-8606-d7378db05c0d`; and
+- current Version `01a0213e-73ba-786f-a464-a65f2caae0af`.
+
+The practitioner explained that a broad semantic key such as `question_id` cannot establish which
+exact Version controls a historical query. The next action was correctly identified as the
+contextual `ASSIGN_OWNER` return to the owning-domain `commit_role_assignment` command. The
+practitioner stated that the Register action must not transfer authority, assign an owner by itself,
+mutate or close the source concern, or infer priority, ranking, semantic equivalence, or other
+governing meaning from presentation.
+
+The practitioner reported that all five targeted properties—locked runtime, access-prerequisite
+discoverability, persisted reconstruction, exact identity discipline, and next-action/authority
+guidance—were clear enough to use without undisclosed corrective instructions. The disposable
+fixture's initial in-memory tuple-versus-JSON-array verifier mismatch is retained as unclassified
+procedural evidence; the subsequent read-only verification treated canonical JSON arrays correctly.
+It is not converted into a practitioner finding. No historical walkthrough evidence was altered.
+
 ## 5. F-I9-001 reconciliation
 
 The original Increment 9 campaign found that automatic Register population did not resolve an
@@ -511,18 +554,23 @@ The reconciled branch preserves:
 6. the bounded v0.1 claim and non-goals.
 
 Issue #75 changed no governing specification, schema migration, record family, authority policy,
-Observation semantics, operating-state relation, or product feature. It merged the accepted CPython
-3.12 baseline into the existing PR #70 branch, reran the complete automated gate, and corrected
-stale evidence/release wording.
+Observation semantics, operating-state relation, or product feature. Issue #78 then merged accepted
+`main` checkpoint `29b3cc1450c3cec52a11d9d694aac1955e02ae82` into the existing PR #70
+branch. The resulting validation source commit `d1bca218f641ef8bef9b2385e96446383ccdb8e8`
+preserves the complete historical evidence, F-I9-001, the Python 3.12 baseline, the practitioner
+guide, the cross-pathway review, and every failed walkthrough attempt.
 
-## 9. Remaining release gate
+## 9. Final release-review gate
 
 Automated correctness, regression, boundary, security, recovery, degraded-operation, migration, and
-static evidence is green. Human I9-P1 evidence is complete with two, I9-P2 with three, and I9-P3
-with three practitioner-classified non-blocking usability/documentation findings. Across all three
-pathways, the practitioner observed no release-blocking semantic or operational/security failure.
-All findings remain open for final cross-pathway review; none is remediated or closed by this
-record. No final release verdict is issued here. Independent review must assess the complete retained
-evidence and select any authorized Issue #69 verdict.
+static evidence is green. Human I9-P1, I9-P2, and I9-P3 evidence remains unchanged, and the bounded
+confirmation directly supports closure of all eight practitioner-classified non-blocking
+usability/documentation findings. Across all three pathways and the confirmation, the practitioner
+observed no release-blocking semantic or operational/security failure.
 
-**INCREMENT 9 HUMAN AND AUTOMATED EVIDENCE COMPLETE — INDEPENDENT RELEASE REVIEW PENDING**
+Residual limitations remain explicit: PAIM v0.1 is a local CLI and typed-gateway application with
+documentation-led navigation, not a polished self-service product. IRR-009 and IRR-014 remain
+semantically undesigned and outside the bounded claim. The final release-gate artifact selects the
+authorized Issue #69 verdict, subject to independent review and merge control.
+
+**PAIM V0.1 RELEASED — BOUNDED CLAIM VALIDATED**

@@ -2,8 +2,9 @@
 
 ## 1. Evidence basis
 
-This review implements GitHub Issue #76. Its controlling practitioner-study evidence is draft PR
-#70 at commit `ffc4882be05952ce5453e6a45db719b84fb7be57`, especially:
+This review implements GitHub Issues #76 and #78. Its controlling practitioner-study evidence is
+draft PR #70, reconciled with accepted `main` through validation source commit
+`d1bca218f641ef8bef9b2385e96446383ccdb8e8`, especially:
 
 - `docs/system/testing/PAIM_INCREMENT_9_V0_1_VALIDATION_RESULTS_v0.1.md`;
 - `docs/engineering/PAIM_V0_1_RELEASE_GATE_DECISION_v0.1.md`;
@@ -13,8 +14,10 @@ This review implements GitHub Issue #76. Its controlling practitioner-study evid
 
 All three human pathways and automated gates are complete in PR #70. The practitioner recorded
 eight findings, all classified `NON-BLOCKING USABILITY/DOCUMENTATION DEFECT`, and observed no
-release-blocking semantic or operational/security failure. This review preserves those
-classifications. It does not rewrite historical failed attempts or issue a release verdict.
+release-blocking semantic or operational/security failure. PR #77 supplied the bounded
+documentation remediation, and the subsequently completed practitioner confirmation tested the
+five properties required by §9. This review preserves every original classification and failed
+attempt; it does not rewrite historical evidence.
 
 ## 2. Original findings
 
@@ -65,19 +68,21 @@ the accepted product boundary.
 
 ## 5. Per-finding disposition and traceability
 
-| Finding | Consolidated disposition | Implemented location | Closure state |
+| Finding | Implemented remediation | Direct confirmation evidence | Closure state |
 |---|---|---|---|
-| I9-P1-F1 | Document all three next-action sequences and authority boundaries | Practitioner guide §§4–7, 9 | Remediated in documentation; human confirmation pending |
-| I9-P1-F2 | Standardize locked runtime, BOM-free artifacts, stable encoding, stop/reconstruct rules | Practitioner guide §§2–3, 8–9 | Remediated in documentation; human confirmation pending |
-| I9-P2-F1 | Require self-contained stages, persisted reconstruction, production-only imports/enums | Practitioner guide §§2–3 | Remediated in documentation; human confirmation pending |
-| I9-P2-F2 | Make command/read/accountability/authority layers explicit | Practitioner guide §4 | Remediated in documentation; human confirmation pending |
-| I9-P2-F3 | Supply boundary-by-boundary prerequisites and next actions | Practitioner guide §§5–7, 9 | Remediated in documentation; human confirmation pending |
-| I9-P3-F1 | Explain lifecycle, exact grouping, filtering, and contextual action | Practitioner guide §7 | Remediated in documentation; human confirmation pending |
-| I9-P3-F2 | Mandate exact persisted Version selection and temporal verification | Practitioner guide §§2, 8 | Remediated in documentation; human confirmation pending |
-| I9-P3-F3 | Adopt persisted artifacts as continuity authority | Practitioner guide §§2–3 | Remediated in documentation; human confirmation pending |
+| I9-P1-F1 | Next-action sequences and authority boundaries in guide §§4–7, 9 | Practitioner correctly named the contextual owning action and its non-inference boundaries without hidden guidance | `CLOSED — DOCUMENTATION REMEDIATION CONFIRMED` |
+| I9-P1-F2 | Locked runtime, BOM-free artifacts, stable encoding, stop/reconstruct rules in guide §§2–3, 8–9 | Locked CPython 3.12.13 invocation was clear and succeeded; persisted reconstruction worked without shell identity state | `CLOSED — DOCUMENTATION REMEDIATION CONFIRMED` |
+| I9-P2-F1 | Self-contained stages, persisted reconstruction, production-only imports/enums in guide §§2–3 | Practitioner used the locked runtime and persisted context without corrective guidance or cross-stage identity variables | `CLOSED — DOCUMENTATION REMEDIATION CONFIRMED` |
+| I9-P2-F2 | Command/read/accountability/authority matrix in guide §4 | Practitioner identified all three exact access prerequisites and distinguished them from accountability and authority | `CLOSED — DOCUMENTATION REMEDIATION CONFIRMED` |
+| I9-P2-F3 | Boundary prerequisites and next actions in guide §§5–7, 9 | Practitioner identified `ASSIGN_OWNER` → `commit_role_assignment` and what PAIM must not infer or mutate | `CLOSED — DOCUMENTATION REMEDIATION CONFIRMED` |
+| I9-P3-F1 | Register lifecycle, grouping, filtering, and contextual action in guide §7 | Practitioner correctly described the Register action boundary, including no assignment, closure, ranking, priority, or semantic inference | `CLOSED — DOCUMENTATION REMEDIATION CONFIRMED` |
+| I9-P3-F2 | Exact persisted Version selection and temporal verification in guide §§2, 8 | Practitioner supplied the exact Record, predecessor Version, and current Version and rejected broad semantic keys | `CLOSED — DOCUMENTATION REMEDIATION CONFIRMED` |
+| I9-P3-F3 | Persisted artifacts as continuity authority in guide §§2–3 | Practitioner reconstructed the complete context without cross-stage PowerShell identity variables | `CLOSED — DOCUMENTATION REMEDIATION CONFIRMED` |
 
-No original finding is declared closed by this engineering review. Closure requires the bounded
-human confirmation in §9 and independent acceptance.
+Each closure is supported by the original statement, the directly corresponding PR #77
+documentation, and the practitioner's actual bounded-confirmation answer. The four consolidated
+themes remain the traceability structure; closure does not erase the original findings or residual
+v0.1 limitations.
 
 ## 6. Remediation implemented and deferred
 
@@ -110,28 +115,25 @@ objectives. Automated and human evidence found no release-blocking semantic or o
 failure. The defects materially affected efficiency, discoverability, and independence from expert
 guidance, but corrections did not require a semantic or product-behavior change.
 
-Documentation remediation is therefore proportionate before v0.1 release. This assessment does not
-close findings or authorize release: the practitioner must confirm that the consolidated guide
-actually improves the five targeted experience properties.
+Documentation remediation is therefore proportionate for bounded v0.1. The practitioner confirmed
+that the consolidated guide made all five targeted properties clear enough to use without
+undisclosed corrective instructions. All eight original findings are closed on that bounded basis.
+No new release-blocking defect emerged.
 
 ## 8. Regression evidence
 
-The change set is documentation-only. Required engineering validation is:
+Issue #78 reran the complete executable release gate because PR #70 also contains the Increment 9
+implementation and was reconciled onto newer `main`. The locked CPython 3.12.13 campaign passed
+250/250 tests, focused Increment 1–9 gates, 16 migration/schema tests, nine recovery/security/
+degraded/boundary tests, Ruff over 70 tracked Python files, strict mypy over 43 source files, the
+tracked-source secret scan, and `git diff --check`. Fresh inventory confirmed Alembic
+`0008_increment_8`, 136 tables, 97 check constraints, 429 foreign keys, 58 indexes, 268 triggers,
+enabled production foreign-key enforcement, zero foreign-key violations, and `quick_check = ok`.
 
-- `git diff --check`;
-- all changed-document relative paths resolve;
-- all eight finding IDs occur in this review and map to a disposition;
-- the three pathway headings and four consolidated themes are present;
-- examples use `uv run --locked` and do not import `tests.*`;
-- repository search confirms no Python, migration, or specification change; and
-- Markdown structure/link inspection passes.
+## 9. Bounded human revalidation — completed
 
-Executable regression, Ruff, and mypy are not required because executable behavior does not change.
-
-## 9. Minimum human revalidation
-
-Use one short practitioner confirmation, targeted at 10–15 minutes. Do not repeat I9-P1, I9-P2,
-or I9-P3.
+The completed confirmation remained limited to the five agreed properties and did not repeat
+I9-P1, I9-P2, or I9-P3.
 
 Preparation may reuse a safe existing study database or a disposable fixture. The facilitator
 provides only:
@@ -141,7 +143,7 @@ provides only:
 - one BOM-free JSON context artifact containing exact Case, Configuration, source Record, source
   Version, and current owning-action identities.
 
-The practitioner then uses only the new guide to:
+The practitioner used only the new guide to:
 
 1. run the locked-runtime/import preflight;
 2. reopen the configuration and context artifact without restoring cross-stage shell variables;
@@ -152,10 +154,16 @@ The practitioner then uses only the new guide to:
    must not infer or mutate; and
 6. run one read-only production health/reconstruction check appropriate to the fixture.
 
-Record only the practitioner's actual actions and answers. Confirmation passes only if the
-practitioner reports that the runtime invocation, access prerequisites, persisted reconstruction,
-exact identity discipline, and next-action/authority guidance are clear enough to complete without
-an undisclosed corrective instruction. Any failure remains evidence and is classified separately.
+The practitioner reported that all five properties were clear enough to use without undisclosed
+corrective instructions. Locked execution used CPython 3.12.13 and reached `READY`. Exact access
+prerequisites were correctly separated from accountability and authority; persisted context
+replaced shell identity variables; exact Record/Version identities controlled history; and the
+contextual owning action and prohibited inferences were correctly identified.
+
+The missing earlier credential in a new shell was classified by the practitioner as expected
+ephemeral-secret behavior, not a PAIM defect. A fresh disposable credential was used without
+recovering or persisting the old secret. The fixture verifier's tuple/JSON-array mismatch remains
+unclassified procedural evidence and is not converted into a finding.
 
 ## 10. Residual v0.1 limitations
 
@@ -171,12 +179,7 @@ it does not claim to remove every usability cost identified by the practitioner.
 
 ## 11. PR #70 and release-gate implications
 
-PR #70 remains draft and unmerged while Issue #76 is reviewed and the minimum human confirmation
-is outstanding. This remediation belongs to a separate bounded branch and PR. It does not modify
-PR #70 evidence, retroactively alter practitioner statements, or issue a `PAIM V0.1 RELEASED`
-verdict.
-
-After independent review and merge of this remediation, conduct only §9's bounded human
-confirmation. If accepted, record the actual confirmation evidence and update PR #70 for final
-independent release review. Until then, all eight findings remain open and the release decision
-remains pending.
+PR #70 remains draft and unmerged. Issue #78 reconciled it with accepted `main`, preserved all
+historical evidence, recorded the bounded confirmation, and closed the eight findings only where
+the original statement, remediation, and confirmation directly align. The release-gate artifact is
+prepared for independent review; this review does not authorize autonomous merge or post-v0.1 work.

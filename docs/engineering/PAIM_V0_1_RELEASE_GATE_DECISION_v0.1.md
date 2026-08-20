@@ -1,12 +1,15 @@
-# PAIM v0.1 Release Gate Decision — Pending
+# PAIM v0.1 Release Gate Decision
 
 ## 1. Decision status
 
-**Status:** DRAFT — NO RELEASE VERDICT ISSUED
+**Verdict:** PAIM V0.1 RELEASED — BOUNDED CLAIM VALIDATED
+
+**Merge control:** Prepared in draft PR #70 for independent review; not effective on `main` until
+that PR is independently accepted and merged.
 
 **Reconciliation date:** 2026-08-20
 
-**Authority basis:** GitHub Issues #69 and #75 under the PAIM handoff protocol
+**Authority basis:** GitHub Issues #69, #75, #76, and #78 under the PAIM handoff protocol
 
 **Frozen validation plan:**
 `../system/testing/PAIM_INCREMENT_9_V0_1_INTEGRATED_VALIDATION_PLAN_v0.1.md`
@@ -14,19 +17,20 @@
 **Reconciled validation results:**
 `../system/testing/PAIM_INCREMENT_9_V0_1_VALIDATION_RESULTS_v0.1.md`
 
-**CPython 3.12 reconciled source commit:**
-`427dec0bbb5f77129e2128c11c0340b56cd2ebcd`
+**Issue #78 validation source commit:**
+`d1bca218f641ef8bef9b2385e96446383ccdb8e8`
 
-The automated Increment 9 evidence has been reconciled onto the accepted CPython 3.12 baseline.
-Human practitioner walkthrough I9-P1 has been completed with two, I9-P2 with three, and I9-P3 with
-three practitioner-classified non-blocking usability/documentation findings. Across the three
-pathways the practitioner observed no release-blocking semantic or operational/security failure.
-All findings remain open for cross-pathway review. This artifact is now a complete evidence record
-awaiting independent review, not a release decision.
+The Increment 9 branch is reconciled onto accepted `main` checkpoint
+`29b3cc1450c3cec52a11d9d694aac1955e02ae82` and the accepted CPython 3.12 baseline. Human
+practitioner walkthrough I9-P1 completed with two, I9-P2 with three, and I9-P3 with three
+practitioner-classified non-blocking usability/documentation findings. PR #77 remediated the four
+consolidated documentation themes, and the bounded practitioner confirmation directly supported
+closure of all eight findings. Across the three pathways and confirmation, the practitioner
+observed no release-blocking semantic or operational/security failure.
 
-## 2. Bounded claim awaiting final validation
+## 2. Validated bounded claim
 
-The claim under test remains the frozen Issue #69 claim: PAIM v0.1 is intended to be a complete
+The validated frozen Issue #69 claim is: PAIM v0.1 is a complete
 functional local governed PAIM application for the implemented management lifecycle, with
 authenticated local operation, provenance-preserving manual/external intake, access segmentation,
 recovery, explicit degraded behavior, and source-traceable Management Register outputs.
@@ -36,9 +40,10 @@ does not infer operating-state strength, breadth, severity, ranking, priority, o
 capabilities remain semantically undesigned post-v0.1 extensions. Unsupported requests remain
 explicit and fail closed.
 
-All three human walkthroughs are complete and their exact actions, observations, friction,
-classifications, severity, and dispositions are retained. No final release statement may be made
-until that complete evidence receives independent review.
+All three human walkthroughs, their exact actions, observations, friction, classifications,
+severity, and dispositions are retained. The bounded confirmation and complete automated rerun are
+also recorded. This verdict remains subject to the explicit PR #70 independent-review and merge
+control above.
 
 ## 3. Current release criteria
 
@@ -52,6 +57,8 @@ until that complete evidence receives independent review.
 | Human I9-P1 walkthrough | Completed Case-to-authorized-operation pathway; two non-blocking usability/documentation findings; no release-blocking failure observed | PASS WITH NON-BLOCKING FINDINGS |
 | Human I9-P2 walkthrough | Completed external-intake-to-confirmed-Reassessment pathway; three non-blocking usability/documentation findings; no release-blocking failure observed | PASS WITH NON-BLOCKING FINDINGS |
 | Human I9-P3 walkthrough | Completed multi-Case-Register-to-owning-domain-action pathway; three non-blocking usability/documentation findings; no release-blocking failure observed | PASS WITH NON-BLOCKING FINDINGS |
+| Bounded practitioner confirmation | Locked runtime, access prerequisites, persisted reconstruction, exact identity, and next-action/authority guidance | PASS — ALL FIVE PROPERTIES CONFIRMED |
+| Eight practitioner findings | Individually traced from original statement through PR #77 remediation to confirmation | CLOSED — DOCUMENTATION REMEDIATION CONFIRMED |
 | I9-B1 Observation exclusion | Direct fail-closed automated oracle | PASS |
 | I9-B2 operating-state relation exclusion | Direct fail-closed automated oracle | PASS |
 | Regression and hard oracles | 250/250 full suite; focused Increment 1–9 gates | PASS |
@@ -75,9 +82,8 @@ until that complete evidence receives independent review.
 | Shared Dependency and derived Register outputs/actions | Management Register | Increment 7 gate; automated I9-P3 oracle; F-I9-001 regression |
 | Authenticated gateway, intake, access, output, recovery, health | Platform Architecture; operator guide | Increment 8 and assurance gates; automated I9-P1/P2/P3 oracles |
 
-This table records automated traceability only. Human I9-P1, I9-P2, and I9-P3 evidence is recorded
-separately in the validation results and requires independent cross-pathway review before a final
-release verdict.
+This table records automated capability traceability. Human I9-P1, I9-P2, I9-P3, and bounded
+confirmation evidence is recorded separately in the validation results and cross-pathway review.
 
 ## 5. P1 gate traceability
 
@@ -103,6 +109,9 @@ applicability, satisfaction, outcome, or closure. It performs no semantic/AI sim
 The correction introduced no schema migration and passed the CPython 3.12 full suite plus focused
 Increment 7, Increment 8, Increment 9, schema, recovery, security, boundary, and static gates.
 
+F-I9-001 is `TECHNICALLY CLOSED` for v0.1. Its original release-blocking classification and
+correction history remain preserved.
+
 ## 7. P1 and excluded-boundary status
 
 The accepted dispositions for implemented P1 capabilities remain unchanged. IRR-009 and IRR-014
@@ -114,17 +123,57 @@ each retain both dimensions:
 The automated fail-closed evidence for both exclusions passed. This does not design or semantically
 close either capability.
 
-## 8. Remaining denominator and verdict control
+## 8. Practitioner-finding disposition
+
+The eight original findings remain preserved under their practitioner classification
+`NON-BLOCKING USABILITY/DOCUMENTATION DEFECT`. Each is closed only because its exact defect was
+addressed by the merged practitioner guide and directly confirmed in the bounded human check:
+
+| Finding | Final disposition |
+|---|---|
+| I9-P1-F1 | `CLOSED — DOCUMENTATION REMEDIATION CONFIRMED` |
+| I9-P1-F2 | `CLOSED — DOCUMENTATION REMEDIATION CONFIRMED` |
+| I9-P2-F1 | `CLOSED — DOCUMENTATION REMEDIATION CONFIRMED` |
+| I9-P2-F2 | `CLOSED — DOCUMENTATION REMEDIATION CONFIRMED` |
+| I9-P2-F3 | `CLOSED — DOCUMENTATION REMEDIATION CONFIRMED` |
+| I9-P3-F1 | `CLOSED — DOCUMENTATION REMEDIATION CONFIRMED` |
+| I9-P3-F2 | `CLOSED — DOCUMENTATION REMEDIATION CONFIRMED` |
+| I9-P3-F3 | `CLOSED — DOCUMENTATION REMEDIATION CONFIRMED` |
+
+The retained four-theme traceability is workflow/next-action discoverability, procedure fragility
+and ephemeral shell state, access-prerequisite discoverability, and exact persisted identity/
+Version discipline. Closure does not rewrite the original practitioner evidence.
+
+The missing prior credential in a new shell remains practitioner-classified as expected
+ephemeral-secret behavior, not a defect. The tuple/JSON-array verifier mismatch remains preserved
+as unclassified procedural evidence and is not promoted into a new finding.
+
+## 9. Residual limitations and excluded semantics
+
+PAIM v0.1 remains a local CLI and typed-gateway application with documentation-led navigation. It
+is not a polished self-service product or an automatic workflow engine. Operators must understand
+exact Record/Version identity and applicable organizational accountability and authority.
+
+The verdict implies none of the following: first-class Observation, continuous telemetry
+automation, operating-state strength/ranking/priority/escalation, semantic dependency matching,
+generic Register resolution, cloud/distributed operation, or any other post-v0.1 semantics.
+Unsupported requests remain explicit and fail closed.
+
+IRR-009 remains both `OPEN — SEMANTICS UNDESIGNED` and
+`CLOSED BY DESIGN — OUTSIDE V0.1 CLAIM`. IRR-014 remains both
+`OPEN — SEMANTICS UNDESIGNED` and `CLOSED BY DESIGN — OUTSIDE V0.1 CLAIM`.
+
+## 10. Completed denominator and verdict control
 
 Integrated automated validation, regression, security/access, recovery/degraded-operation,
-schema/migration, boundary, traceability, and all three human practitioner pathways are complete.
-The human study retains eight practitioner-classified non-blocking usability/documentation findings:
-two from I9-P1, three from I9-P2, and three from I9-P3. None is remediated or closed by this record.
-The practitioner observed no release-blocking semantic or operational/security failure in any
-pathway.
+schema/migration, boundary, traceability, all three human practitioner pathways, the cross-pathway
+review, documentation remediation, and bounded human confirmation are complete. The full Issue #78
+rerun passed 250 tests plus every focused Increment 1–9, schema, assurance, static, secret, and diff
+gate. No release-blocking defect remains in the bounded claim.
 
-No allowed final Issue #69 verdict is selected at this checkpoint. The exact retained human and
-automated evidence must now be independently reviewed before this draft can become a release
-decision.
+The exact retained evidence therefore supports the authorized Issue #69 verdict:
 
-**PAIM V0.1 VALIDATION EVIDENCE COMPLETE — INDEPENDENT RELEASE DECISION PENDING**
+**PAIM V0.1 RELEASED — BOUNDED CLAIM VALIDATED**
+
+PR #70 remains draft and unmerged pending independent review. Codex must not merge it or begin
+post-v0.1 work autonomously.

@@ -5,9 +5,10 @@ operator guide, not a change to PAIM system semantics or the v0.1 release claim.
 
 The accepted v0.1 product scope and the Increment 9 automated and human pathways are complete in
 draft PR #70. Practitioner-findings remediation and its bounded human confirmation are also
-complete; independent final review and the release verdict remain outstanding. The Observation and
-operating-state limitations in §10 are intentional bounded v0.1 product boundaries, not silent
-placeholders or evidence that their substantive semantics have been designed.
+complete. Issue #78 prepared the bounded release verdict; it remains subject to independent review
+and merge of draft PR #70. The Observation and operating-state limitations in §10 are intentional
+bounded v0.1 product boundaries, not silent placeholders or evidence that their substantive
+semantics have been designed.
 
 ## 1. Boundary
 
@@ -313,5 +314,6 @@ and IRR-014 each remain `OPEN — SEMANTICS UNDESIGNED` while each bounded-v0.1 
 specification, implementation, and validation are required before either extension may be enabled,
 and no extension may reinterpret v0.1 historical records. Increment 9 practitioner evidence is
 retained in draft PR #70, and the findings review is retained in
-`../engineering/PAIM_INCREMENT_9_PRACTITIONER_FINDINGS_CROSS_PATHWAY_REVIEW_v0.1.md`; neither this
-guide nor that review issues or authorizes the final release verdict.
+`../engineering/PAIM_INCREMENT_9_PRACTITIONER_FINDINGS_CROSS_PATHWAY_REVIEW_v0.1.md`. The release
+verdict is controlled by `../engineering/PAIM_V0_1_RELEASE_GATE_DECISION_v0.1.md` and does not
+authorize autonomous merge or post-v0.1 work.

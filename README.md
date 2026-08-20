@@ -137,7 +137,7 @@ prematurely.
 
 ## Current Development Status
 
-**PAIM v0.1 validation and release are pending human practitioner walkthroughs.**
+**PAIM v0.1 bounded release decision is prepared in draft PR #70 for independent review.**
 
 PAIM v0.1 is a complete functional local governed PAIM application for
 the implemented management lifecycle. It supports authenticated local
@@ -157,10 +157,11 @@ unsupported boundaries are explicit and fail closed. The supported v0.1
 paths use exact manual/external Trigger provenance and exact-state,
 exact-scope restrictive intersection or affected-scope suspension.
 
-Increment 9 automated validation and all three human practitioner pathways
-are complete in draft PR #70. The bounded Issue #76 practitioner confirmation
-is also complete; final reconciliation and independent release review remain.
-This is not a release declaration. See the [validation results](docs/system/testing/PAIM_INCREMENT_9_V0_1_VALIDATION_RESULTS_v0.1.md),
+Increment 9 automated validation, all three human practitioner pathways, the
+Issue #76 remediation, and the bounded practitioner confirmation are complete.
+Issue #78 reconciled the evidence and prepared the bounded release verdict in
+draft PR #70. The verdict is not effective on `main` until independent review
+and merge. See the [validation results](docs/system/testing/PAIM_INCREMENT_9_V0_1_VALIDATION_RESULTS_v0.1.md),
 [practitioner findings review](docs/engineering/PAIM_INCREMENT_9_PRACTITIONER_FINDINGS_CROSS_PATHWAY_REVIEW_v0.1.md),
 and [release gate](docs/engineering/PAIM_V0_1_RELEASE_GATE_DECISION_v0.1.md).
 
@@ -186,11 +187,10 @@ Use `docs/operations/PAIM_LOCAL_OPERATIONAL_APPLICATION_v0.1.md` for local
 setup, administration, intake, export, delivery, recovery, and health. Use
 `docs/operations/PAIM_V0_1_PRACTITIONER_PATHWAYS_v0.1.md` for the production-
 only Case-to-operation, Trigger-to-Reassessment, and Register-to-owning-domain
-pathways. Independent acceptance of the completed confirmation and final
-release review—not scope or pathway completion alone—is required before PAIM
-v0.1 may be declared released. Post-v0.1 work remains unauthorized, and no
-release statement may imply that IRR-009 Observation semantics or IRR-014
-operating-state relations were designed.
+pathways. Draft PR #70 remains subject to independent acceptance and merge;
+post-v0.1 work remains unauthorized. No release statement may imply that
+IRR-009 Observation semantics or IRR-014 operating-state relations were
+designed.
 
 ## Project Objective
 
