@@ -1,6 +1,7 @@
 from dataclasses import replace
 
 import pytest
+from sqlalchemy import text
 
 from paim.application import (
     IdempotencyKeyReuseConflict,
@@ -8,7 +9,7 @@ from paim.application import (
     StalePrecondition,
 )
 from paim.audit import ActorResolution
-from paim.integrity import AuditId, FixedClock
+from paim.integrity import AuditId, FixedClock, RecordId, RecordVersionId
 from paim.persistence import ports
 from paim.persistence.sqlite import SQLiteIntegrityStore
 from tests.helpers import utc, version_command
@@ -33,6 +34,31 @@ def test_accepted_bundle_commits_version_idempotency_and_distinct_actor_audit(
     assert audit.actor_resolution is ActorResolution.PROVIDED
     assert audit.principal_id != audit.actor_id
     assert audit.request_digest == command.digest()
+
+
+def test_existing_uuidv7_text_contract_persists_and_reloads_without_rewrite(
+    sqlite_store: SQLiteIntegrityStore,
+) -> None:
+    record_text = "01890f47-1f00-7abc-8def-0123456789ab"
+    version_text = "01890f47-1f01-7abc-8def-0123456789ac"
+    command = version_command(
+        record_id=RecordId.parse(record_text),
+        version_id=RecordVersionId.parse(version_text),
+        idempotency_key="persisted-uuidv7-contract",
+    )
+
+    IntegrityApplicationService(sqlite_store, FixedClock(utc(2026, 1, 2))).commit_version(command)
+
+    with sqlite_store.engine.connect() as connection:
+        assert connection.execute(text("SELECT record_id FROM records")).scalar_one() == record_text
+        assert (
+            connection.execute(text("SELECT version_id FROM record_versions")).scalar_one()
+            == version_text
+        )
+    history = sqlite_store.get_history(RecordId.parse(record_text))
+    restored = next(iter(history.versions))
+    assert restored.record_id == RecordId.parse(record_text)
+    assert restored.version_id == RecordVersionId.parse(version_text)
 
 
 @pytest.mark.parametrize(

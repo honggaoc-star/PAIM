@@ -19,6 +19,27 @@ accountability determination, Evidence Applicability judgment, Decision Authorit
 Acceptance, or Activation Authorization. An operational administrator receives no substantive PAIM
 authority through administration permission.
 
+### Runtime prerequisite
+
+PAIM v0.1 supports CPython `>=3.12,<3.13`; CPython `3.12.13` is the exact reproducible reference
+interpreter. The interpreter, its SQLite extension, and installed native wheels must be permitted by
+the workstation's Application Control/security policy. Do not disable or bypass that policy. A
+downloaded or repository-local runtime is not supported merely because its version matches.
+
+Before setup, identify an organization-approved CPython 3.12.13 executable and verify it directly.
+In this example, replace the assigned path with the actual approved installation path:
+
+```powershell
+$PaimPython = 'C:\approved\Python312\python.exe'
+& $PaimPython -c "import sys, sqlite3; print(sys.version); print(sqlite3.sqlite_version)"
+uv sync --locked --python $PaimPython
+uv run --locked --python $PaimPython python -c "import paim; print(paim.__file__)"
+```
+
+The preflight must report Python 3.12.x, import SQLite without a policy error, complete locked sync,
+and import PAIM. Stop and obtain an approved runtime if any native component is blocked. Do not
+change `.python-version`, `pyproject.toml`, or `uv.lock` as a workstation workaround.
+
 ## 2. Configuration
 
 Create a local JSON file outside source control. The file contains paths and the name of an

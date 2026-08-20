@@ -4,7 +4,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Self
-from uuid import UUID, uuid7
+from uuid import UUID
+
+from uuid6 import uuid7
 
 
 @dataclass(frozen=True, slots=True)
