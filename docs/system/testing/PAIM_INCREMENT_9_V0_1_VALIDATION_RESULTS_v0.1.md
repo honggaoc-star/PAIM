@@ -4,7 +4,7 @@
 
 **Automated integrated evidence:** PASSED
 
-**Human practitioner walkthroughs:** I9-P1 COMPLETED; I9-P2 AND I9-P3 NOT YET EXECUTED
+**Human practitioner walkthroughs:** I9-P1 AND I9-P2 COMPLETED; I9-P3 NOT YET EXECUTED
 
 **Reconciliation date:** 2026-08-20
 
@@ -26,7 +26,8 @@ accepted CPython 3.12 runtime baseline. The historical PR #70 commits remain int
 of the reconciled source commit. No governing specification or database migration changed.
 
 The four automated Increment 9 gateway tests provide integrated behavioral evidence. They do not
-constitute human practitioner evidence and do not support a final release verdict.
+constitute human practitioner evidence and, while I9-P3 remains pending, do not support a final
+release verdict.
 
 | Identity | Observed value |
 |---|---|
@@ -210,10 +211,133 @@ a usability/documentation issue rather than a governing-model failure.
 
 ### I9-P2 — Trigger to completed Reassessment
 
-**Status:** `HUMAN PRACTITIONER WALKTHROUGH — NOT YET EXECUTED`
+**Status:** `HUMAN PRACTITIONER WALKTHROUGH — COMPLETED WITH NON-BLOCKING FINDINGS`
 
-No human actions or observations are recorded. This walkthrough begins only after I9-P1 is
-completed and recorded.
+**Practitioner:** the same human practitioner, completing I9-P2 as a separate pathway after I9-P1
+was completed and recorded and before I9-P3.
+
+**Task objective:** Take one exact external occurrence through proposed provenance-preserving
+intake, explicit Trigger promotion, accountable Trigger Determination, Reassessment, overlap
+coordination, restrictive Interim Operating Disposition, and accountable unchanged-Decision
+confirmed completion. Preserve exact replay/provenance behavior, dual-time history, no-lost-trigger
+coverage, and the IRR-009 and IRR-014 excluded boundaries.
+
+**Starting state/fixture:** A separate isolated study workspace and empty SQLite database were
+created from source commit `082e07c4b96581fb586948e546ba521c3c806a7c` on the campaign branch.
+The accepted CPython 3.12.13 locked environment, SQLite 3.53.1, uv 0.12.5, clean tracked worktree,
+and PAIM import were verified before bootstrap. The practitioner Actor was created and mapped. A
+production-only authorized starting fixture established one exact Case, Configuration and Version,
+independent Value and Risk Versions, Integration, Boundary, authorized Decision and Authorization
+Basis, and the Trigger Determiner, Reassessment Owner, and Reassessment Coordination Authority
+assignments. The corrected fixture used supported `paim.*` modules and no automated-test helper.
+
+**Observed gateway/operator actions:** The practitioner preserved one exact external occurrence as
+proposed intake `01a02053-1c56-7456-8180-ff41e8fb2f25`, explicitly promoted it to Trigger Version
+`01a02054-eb61-778f-9f65-a69776797fe3`, and committed a `REASSESSMENT_REQUIRED` Trigger
+Determination. The primary Reassessment and a second exact overlapping Trigger/Reassessment were
+created. PAIM returned `REASSESSMENT OVERLAP CONFLICT — UNRESOLVED` before coordination and
+`ACCOUNTABLE COEXISTENCE` only after an accountable exact-Version coexistence determination.
+
+Two Interim Operating Dispositions were committed against the primary Reassessment. One applied
+`state-z` to `service:a` and `service:b`; the other applied `state-a` to `service:b` and
+`service:c`. The combined result preserved exact unordered state identities, intersected allowed
+actions, accumulated explicit controls/prohibitions/conditions, suspended only `service:b` because
+its combined state effect was indeterminate, and did not suspend `service:a` or `service:c`.
+
+The primary Reassessment then advanced through exact `ANALYSIS_IN_PROGRESS` and
+`AWAITING_DECISION_AUTHORITY` successor Versions. Coexistence was revalidated prospectively against
+the exact current primary and overlapping Reassessment Versions. Accountable confirmation Version
+`01a020a2-c670-7283-bdd9-ac2cba0aeb4e` completed the primary Reassessment as
+`COMPLETED_CONFIRMED` without creating a successor Decision. Exactly one completion outcome was
+retained and the original Trigger coverage became `SATISFIED_BY_COMPLETED_REASSESSMENT`.
+
+**Final technical verification:** Exact replay returned the original intake identity and checksum
+without adding an intake or Trigger. A genuinely distinct occurrence was retained as proposed
+intake `01a020a7-859c-75bb-b815-0565f1a03861`, was not semantically deduplicated, and was not
+automatically promoted. Effective-time and knowledge-time reconstruction returned, in order,
+prospective ineligibility before effective time, determination-not-established, reassessment
+required/unassigned, the three exact active Reassessment Versions, and completed coverage. The
+overlapping Trigger remained `LINKED_ACTIVE`; no Trigger was lost. The three-Version primary
+Reassessment history and its two exact successor relationships remained reconstructable.
+
+Final health was `READY`; all health dimensions were true, foreign-key violations were zero, and
+the 89 operational audit facts matched the 89 event-log entries. No historical domain record was
+rewritten. No Observation record, family, table, approximation, or automatic conversion was
+created. Observation/telemetry capabilities and operating-state ranking/strength inference were
+explicitly unsupported. Exact `state-a` and `state-z` identities remained unordered, with no
+strongest-state, severity, priority, ranking, or escalation inference. The final technical artifact
+was retained as `i9-p2-final-technical-evidence.json` with status
+`I9_P2_TECHNICAL_PATHWAY_VERIFIED`.
+
+**Result:** The practitioner reported: “Yes. I accomplished the objective of taking an external
+occurrence through proposed intake, explicit Trigger promotion, Trigger Determination,
+Reassessment, overlap coordination, interim operating disposition, and accountable confirmed
+completion.” The practitioner did not observe a `RELEASE-BLOCKING SEMANTIC FAILURE` or
+`RELEASE-BLOCKING OPERATIONAL/SECURITY FAILURE` in I9-P2.
+
+**Semantic, replay, concurrency, and authority observations:** The practitioner reported that the
+distinctions were understandable once exercised in sequence: proposed intake was not a Trigger;
+promotion, Determination, Reassessment, overlap coordination, interim disposition, and completion
+were separate actions; and completion required accountable confirmation. Exact replay preserved
+identity while the similar distinct occurrence remained distinct, and retained source identity,
+checksum, Trigger binding, and reconstruction evidence supported confidence in provenance. PAIM
+preserved both overlapping Reassessments without silently choosing a winner and required
+accountable coexistence, including prospective revalidation for exact successor Versions.
+
+The practitioner understood exact-scope restrictive intersection, suspension of only `service:b`,
+and the absence of state ranking or escalation. Unchanged-Decision confirmation was clearly
+different from creating a successor Decision. Software permission, exact Case/Configuration
+visibility, Trigger Determiner accountability, Reassessment Owner accountability, Coordination
+Authority, and confirmation authority remained distinguishable. These distinctions were clearer
+through the guided sequence than they would have been from the practitioner interface alone.
+
+**Confusion/friction and output quality:** The practitioner reported substantial procedure-driven
+friction from a test-module import assumption, omitted exact Case/Configuration read permissions,
+lost PowerShell variables, an incorrect capitalization assumption, direct CPython invocation
+outside the locked environment, an encoding-sensitive em-dash comparison, and an in-memory tuple
+versus JSON-array comparison mismatch. These interruptions were preserved as walkthrough evidence.
+The later self-contained stages, which reconstructed inputs from persisted configuration,
+artifacts, database state, and current grants, were materially better. Outputs and artifacts were
+strong for exact verification, provenance, accountability, binding, disposition, completion, and
+reconstruction, but weak at guiding the practitioner to the next required action.
+
+**Confidence:** The practitioner reported high confidence that PAIM preserved exact Trigger
+coverage, Reassessment history, accountability, Decision and Configuration Version bindings,
+source provenance, and the IRR-009/014 exclusions. Repeated walkthrough failures did not corrupt or
+obscure persisted PAIM state; exact checkpoints were reconstructed and resumed without rewriting
+history.
+
+#### I9-P2-F1 — Practitioner walkthrough/tooling is too fragile and depends excessively on shell mechanics
+
+- **Classification:** `NON-BLOCKING USABILITY/DOCUMENTATION DEFECT`
+- **Release severity:** Non-blocking for the bounded v0.1 semantic claim, but significant enough
+  that the practitioner recommends correction before final release if it can be done without
+  altering semantics.
+- **Remediation disposition:** Replace the fragile multi-stage PowerShell procedure with a
+  self-contained practitioner harness or documented commands that reconstruct state from persisted
+  artifacts rather than ephemeral variables; use only the locked runtime, production modules,
+  production enums, and encoding-stable comparisons.
+
+#### I9-P2-F2 — Required access prerequisites are not sufficiently discoverable from the practitioner flow
+
+- **Classification:** `NON-BLOCKING USABILITY/DOCUMENTATION DEFECT`
+- **Release severity:** Non-blocking.
+- **Remediation disposition:** Improve practitioner-facing guidance so the distinction between
+  command permission and exact Case/Configuration visibility is explicit before an operation is
+  attempted.
+
+#### I9-P2-F3 — Practitioner outputs are strong for audit/reconstruction but weak for next-action guidance
+
+- **Classification:** `NON-BLOCKING USABILITY/DOCUMENTATION DEFECT`
+- **Release severity:** Non-blocking for the bounded v0.1 claim.
+- **Remediation disposition:** Improve operator guidance or command output so required next actions,
+  missing prerequisites, and authority dependencies are easier to discover without expert
+  walkthrough instructions.
+
+The practitioner concluded that PAIM's persisted governed state was substantially more robust than
+the walkthrough procedure. The ability to recover exact state after repeated shell, verifier, and
+runtime-invocation failures increased confidence in the governance and reconstruction model while
+demonstrating that the practitioner-facing operational experience needs improvement.
 
 ### I9-P3 — Multi-Case Register to owning-domain action
 
@@ -222,8 +346,8 @@ completed and recorded.
 No human actions or observations are recorded. This walkthrough begins only after I9-P2 is
 completed and recorded.
 
-Automated test actors are not practitioners. No finding classification, friction statement, or
-human pass result will be inferred from the automated evidence.
+Automated test actors are not practitioners. No I9-P3 finding classification, friction statement,
+or human pass result will be inferred from the automated evidence.
 
 ## 5. F-I9-001 reconciliation
 
@@ -307,8 +431,9 @@ stale evidence/release wording.
 
 Automated correctness, regression, boundary, security, recovery, degraded-operation, migration, and
 static evidence is green. Human I9-P1 evidence is complete with two non-blocking
+usability/documentation findings. Human I9-P2 evidence is complete with three non-blocking
 usability/documentation findings. Human usability/understandability evidence remains absent for
-I9-P2 and I9-P3. Therefore PAIM v0.1 validation and release remain pending, completion must remain
-below 100%, and no final release verdict is authorized at this checkpoint.
+I9-P3. Therefore PAIM v0.1 validation and release remain pending, completion must remain below
+100%, and no final release verdict is authorized at this checkpoint.
 
 **INCREMENT 9 AUTOMATED EVIDENCE RECONCILED ON CPYTHON 3.12 — HUMAN PRACTITIONER VALIDATION PENDING**
