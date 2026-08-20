@@ -18,11 +18,11 @@
 `427dec0bbb5f77129e2128c11c0340b56cd2ebcd`
 
 The automated Increment 9 evidence has been reconciled onto the accepted CPython 3.12 baseline.
-Human practitioner walkthrough I9-P1 has been completed with two non-blocking
-usability/documentation findings. I9-P2 has been completed with three non-blocking
-usability/documentation findings and no practitioner-observed release-blocking semantic or
-operational/security failure. I9-P3 has not yet been executed. This artifact is therefore still an
-incomplete release-gate record, not a release decision.
+Human practitioner walkthrough I9-P1 has been completed with two, I9-P2 with three, and I9-P3 with
+three practitioner-classified non-blocking usability/documentation findings. Across the three
+pathways the practitioner observed no release-blocking semantic or operational/security failure.
+All findings remain open for cross-pathway review. This artifact is now a complete evidence record
+awaiting independent review, not a release decision.
 
 ## 2. Bounded claim awaiting final validation
 
@@ -36,8 +36,9 @@ does not infer operating-state strength, breadth, severity, ranking, priority, o
 capabilities remain semantically undesigned post-v0.1 extensions. Unsupported requests remain
 explicit and fail closed.
 
-No final release statement may be made until all three human walkthroughs are completed and their
-exact actions, observations, friction, classifications, severity, and dispositions are retained.
+All three human walkthroughs are complete and their exact actions, observations, friction,
+classifications, severity, and dispositions are retained. No final release statement may be made
+until that complete evidence receives independent review.
 
 ## 3. Current release criteria
 
@@ -50,7 +51,7 @@ exact actions, observations, friction, classifications, severity, and dispositio
 | Automated I9-P3 pathway oracle | Register derivation, access, output, owning-domain action test | PASS — AUTOMATED ONLY |
 | Human I9-P1 walkthrough | Completed Case-to-authorized-operation pathway; two non-blocking usability/documentation findings; no release-blocking failure observed | PASS WITH NON-BLOCKING FINDINGS |
 | Human I9-P2 walkthrough | Completed external-intake-to-confirmed-Reassessment pathway; three non-blocking usability/documentation findings; no release-blocking failure observed | PASS WITH NON-BLOCKING FINDINGS |
-| Human I9-P3 walkthrough | No human observations recorded | PENDING |
+| Human I9-P3 walkthrough | Completed multi-Case-Register-to-owning-domain-action pathway; three non-blocking usability/documentation findings; no release-blocking failure observed | PASS WITH NON-BLOCKING FINDINGS |
 | I9-B1 Observation exclusion | Direct fail-closed automated oracle | PASS |
 | I9-B2 operating-state relation exclusion | Direct fail-closed automated oracle | PASS |
 | Regression and hard oracles | 250/250 full suite; focused Increment 1–9 gates | PASS |
@@ -74,9 +75,9 @@ exact actions, observations, friction, classifications, severity, and dispositio
 | Shared Dependency and derived Register outputs/actions | Management Register | Increment 7 gate; automated I9-P3 oracle; F-I9-001 regression |
 | Authenticated gateway, intake, access, output, recovery, health | Platform Architecture; operator guide | Increment 8 and assurance gates; automated I9-P1/P2/P3 oracles |
 
-This table records automated traceability only. Human I9-P1 and I9-P2 evidence is recorded
-separately in the validation results; human I9-P3 evidence remains pending and is required before a
-final release verdict.
+This table records automated traceability only. Human I9-P1, I9-P2, and I9-P3 evidence is recorded
+separately in the validation results and requires independent cross-pathway review before a final
+release verdict.
 
 ## 5. P1 gate traceability
 
@@ -116,14 +117,14 @@ close either capability.
 ## 8. Remaining denominator and verdict control
 
 Integrated automated validation, regression, security/access, recovery/degraded-operation,
-schema/migration, boundary, and traceability evidence is complete for this reconciliation
-checkpoint. Human I9-P1 validation is complete with two non-blocking usability/documentation
-findings, and human I9-P2 validation is complete with three non-blocking
-usability/documentation findings. Human I9-P3 validation remains incomplete.
+schema/migration, boundary, traceability, and all three human practitioner pathways are complete.
+The human study retains eight practitioner-classified non-blocking usability/documentation findings:
+two from I9-P1, three from I9-P2, and three from I9-P3. None is remediated or closed by this record.
+The practitioner observed no release-blocking semantic or operational/security failure in any
+pathway.
 
-PAIM v0.1 therefore remains below 100% against the bounded complete-functional-v0.1 denominator.
-No allowed final Issue #69 verdict is selected at this checkpoint. After I9-P1, I9-P2, and I9-P3
-are actually completed, the exact retained human evidence and any findings must be independently
-reviewed before this draft can become a release decision.
+No allowed final Issue #69 verdict is selected at this checkpoint. The exact retained human and
+automated evidence must now be independently reviewed before this draft can become a release
+decision.
 
-**PAIM V0.1 VALIDATION/RELEASE PENDING — HUMAN PRACTITIONER WALKTHROUGHS REQUIRED**
+**PAIM V0.1 VALIDATION EVIDENCE COMPLETE — INDEPENDENT RELEASE DECISION PENDING**

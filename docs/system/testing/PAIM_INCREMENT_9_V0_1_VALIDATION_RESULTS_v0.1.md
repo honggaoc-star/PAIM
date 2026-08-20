@@ -4,7 +4,7 @@
 
 **Automated integrated evidence:** PASSED
 
-**Human practitioner walkthroughs:** I9-P1 AND I9-P2 COMPLETED; I9-P3 NOT YET EXECUTED
+**Human practitioner walkthroughs:** I9-P1, I9-P2, AND I9-P3 COMPLETED
 
 **Reconciliation date:** 2026-08-20
 
@@ -26,8 +26,9 @@ accepted CPython 3.12 runtime baseline. The historical PR #70 commits remain int
 of the reconciled source commit. No governing specification or database migration changed.
 
 The four automated Increment 9 gateway tests provide integrated behavioral evidence. They do not
-constitute human practitioner evidence and, while I9-P3 remains pending, do not support a final
-release verdict.
+constitute human practitioner evidence. All three separate human practitioner pathways are now
+complete; their retained evidence and findings require independent review before any final release
+verdict.
 
 | Identity | Observed value |
 |---|---|
@@ -341,13 +342,100 @@ demonstrating that the practitioner-facing operational experience needs improvem
 
 ### I9-P3 — Multi-Case Register to owning-domain action
 
-**Status:** `HUMAN PRACTITIONER WALKTHROUGH — NOT YET EXECUTED`
+**Status:** `PASS WITH NON-BLOCKING FINDINGS`
 
-No human actions or observations are recorded. This walkthrough begins only after I9-P2 is
-completed and recorded.
+**Practitioner:** the same human practitioner, completing I9-P3 as a separate pathway after I9-P1
+and I9-P2 were completed and recorded.
 
-Automated test actors are not practitioners. No I9-P3 finding classification, friction statement,
-or human pass result will be inferred from the automated evidence.
+**Runtime and isolation:** The walkthrough used the accepted locked CPython 3.12.13 environment,
+production `paim.*` interfaces, a separate local SQLite study database, persisted configuration and
+stage artifacts, and reconstruction from persisted state rather than cross-stage shell variables.
+No `tests.*` helper was used. The practitioner preserved the draft PR and all prior pathway
+evidence.
+
+**Observed pathway:** The practitioner established an isolated two-Case fixture with exact
+Authority Gap histories, Evidence, a Candidate Set, an accountable `EQUIVALENT` determination,
+and one Shared Dependency. Complete and access-filtered Register views were derived, including
+current, conflict, informational, historical, stale, effective-time, and knowledge-time behavior.
+The hidden Case was then denied and remained absent from the filtered Register, JSON/CSV exports,
+notification/delivery output, and contextual-action path. The exact filtered view was persisted and
+exported; a notification intent was delivered; and `ASSIGN_OWNER` returned the practitioner to the
+exact owning family and source Version without performing the owning-domain action. Generic
+Register resolution remained unsupported.
+
+**Technical evidence:** Four retained artifacts passed their postconditions:
+
+- `i9-p3-starting-fixture.json` — SHA-256
+  `EC6C42B33F9F00360AC1DA7F37C915EE4AD84EC295E395D786FCAFE6870F7B57`;
+- `i9-p3-register-derivation.json` — SHA-256
+  `7EB0D1257BC8D2E3CB8E82DBBC1F17CC3B1C66B96E09BA6E56E85438FB697D91`;
+- `i9-p3-output-and-contextual-action.json` — SHA-256
+  `AF7309E6227E5CF49470087AA26E2941961C305535EBC36227FFB9D6A5621F1F`; and
+- `i9-p3-final-technical-evidence.json` — SHA-256
+  `6A9916D093B5F5550B406EB229E33F56C627F8BB0D7A92F242E0F3A9A2FD5FE9`.
+
+Final reconstruction verified exact Candidate Set membership, Shared Dependency identity, the
+accountable `EQUIVALENT` determination, lifecycle classifications, protected-data exclusion,
+manifest/export/notification/delivery consistency, contextual-launch basis, and temporal history.
+The similar but unlinked concern remained ungrouped. No Observation or telemetry-derived Register
+concern, semantic-similarity authority, substantive authority transfer, source mutation, fabricated
+closure, universal score, or inferred rank, strength, severity, priority, or escalation appeared.
+Health was `READY`, database integrity was `ok`, foreign-key violations were zero, audit identities
+were consistent, and historical semantic records were unchanged.
+
+**Preserved walkthrough-mechanics evidence:** Stage 1 initially failed because the procedure
+changed `question_id` across Authority Gap Versions, changing the governed identity scope. Stage 2
+initially failed because its verifier used a broad `question_id` query where the frozen temporal
+check required exact persisted Version IDs. Both attempts were preserved and corrected at the
+procedure/verifier level without changing PAIM semantics. Git also emitted distracting permission
+warnings for unreadable historical test directories; they did not affect the PAIM pathway.
+
+**Practitioner result:** The practitioner reported: “Yes. I accomplished the objective of moving
+from a governed multi-Case Register to the exact owning-domain action while preserving access
+boundaries, source identity, dependency identity, and history.” The practitioner did not observe a
+`RELEASE-BLOCKING SEMANTIC FAILURE` or `RELEASE-BLOCKING OPERATIONAL/SECURITY FAILURE` in I9-P3.
+
+**Clarity and confidence:** The practitioner found the Register lifecycle states understandable once
+exercised and found the distinction between exact Shared Dependency grouping and semantic
+similarity especially clear. Access filtering clearly excluded the protected Case's identifiers,
+facts, and global counts. `ASSIGN_OWNER` was understood as a contextual return to the owning domain,
+not an assignment, authority transfer, closure, or mutation by the Register. The practitioner
+reported high confidence in exact source preservation, access boundaries, Shared Dependency
+identity, historical reconstruction, and non-inference behavior.
+
+**Output quality and friction:** The retained outputs were strong for exact verification and
+non-leakage inspection, but remained weaker at guiding the next practitioner action without an
+external procedure. I9-P3 was materially smoother than I9-P1 and I9-P2 after its stages were made
+self-contained and reconstructed state from persisted artifacts and database records.
+
+#### I9-P3-F1 — Register semantics are correct but not sufficiently self-explanatory
+
+- **Classification:** `NON-BLOCKING USABILITY/DOCUMENTATION DEFECT`
+- **Release severity:** Non-blocking for the bounded v0.1 claim.
+- **Remediation disposition:** Improve practitioner guidance for Register lifecycle states,
+  exact-source grouping, Shared Dependency/equivalence, access-filtered aggregation, and the
+  distinction between contextual action and substantive authority.
+
+#### I9-P3-F2 — Walkthrough/verifier logic should use exact persisted identities
+
+- **Classification:** `NON-BLOCKING USABILITY/DOCUMENTATION DEFECT`
+- **Release severity:** Non-blocking.
+- **Remediation disposition:** Harden practitioner procedures and future tooling so temporal/history
+  reconstruction uses exact persisted Version IDs and stable governed identity rather than broad
+  `question_id` queries or similar shortcuts.
+
+#### I9-P3-F3 — Self-contained stages and persisted reconstruction materially improve execution
+
+- **Classification:** `NON-BLOCKING USABILITY/DOCUMENTATION DEFECT`
+- **Release severity:** Non-blocking, but relevant across all three pathways.
+- **Remediation disposition:** Make persisted-artifact/state reconstruction the standard
+  practitioner workflow and avoid dependence on ephemeral PowerShell state and fragile procedural
+  assumptions.
+
+The practitioner concluded that PAIM's governed state, provenance, access segmentation, and
+reconstruction mechanisms are substantially more robust than the current practitioner-facing
+procedure. The principal remaining weakness observed across the study was practitioner experience,
+not the underlying governance semantics.
 
 ## 5. F-I9-001 reconciliation
 
@@ -430,10 +518,11 @@ stale evidence/release wording.
 ## 9. Remaining release gate
 
 Automated correctness, regression, boundary, security, recovery, degraded-operation, migration, and
-static evidence is green. Human I9-P1 evidence is complete with two non-blocking
-usability/documentation findings. Human I9-P2 evidence is complete with three non-blocking
-usability/documentation findings. Human usability/understandability evidence remains absent for
-I9-P3. Therefore PAIM v0.1 validation and release remain pending, completion must remain below
-100%, and no final release verdict is authorized at this checkpoint.
+static evidence is green. Human I9-P1 evidence is complete with two, I9-P2 with three, and I9-P3
+with three practitioner-classified non-blocking usability/documentation findings. Across all three
+pathways, the practitioner observed no release-blocking semantic or operational/security failure.
+All findings remain open for final cross-pathway review; none is remediated or closed by this
+record. No final release verdict is issued here. Independent review must assess the complete retained
+evidence and select any authorized Issue #69 verdict.
 
-**INCREMENT 9 AUTOMATED EVIDENCE RECONCILED ON CPYTHON 3.12 — HUMAN PRACTITIONER VALIDATION PENDING**
+**INCREMENT 9 HUMAN AND AUTOMATED EVIDENCE COMPLETE — INDEPENDENT RELEASE REVIEW PENDING**
