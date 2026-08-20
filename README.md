@@ -157,12 +157,11 @@ unsupported boundaries are explicit and fail closed. The supported v0.1
 paths use exact manual/external Trigger provenance and exact-state,
 exact-scope restrictive intersection or affected-scope suspension.
 
-The current estimate is **approximately 92% complete against the bounded
-complete-functional-v0.1 denominator after Increment 8 and the accepted
-release-scope decision**. This is a functional-completion estimate, not a
-release declaration. With this reconciliation merged, remaining work is
-principally separately authorized Increment 9 integrated/practitioner
-validation plus final traceability and release evidence.
+Increment 9 automated validation and all three human practitioner pathways
+are complete in draft PR #70. Eight practitioner findings remain under a
+separate bounded usability/documentation remediation and confirmation gate.
+This is not a release declaration; independent review and an explicit release
+verdict remain required.
 
 The current product is a local governed application. Enterprise/cloud
 deployment, live provider integrations, distributed infrastructure, and
@@ -180,14 +179,15 @@ Application Control or security policy. A matching Python version is not by
 itself an approved or supported runtime. The runtime decision and migration
 evidence are recorded under `docs/engineering/`.
 
-## Development Direction
+## Practitioner and Operator Guidance
 
-Increment 9 remains a separate gate and has not begun. It may be
-authorized only through a separate bounded issue that freezes the exact
-claim, three practitioner pathways, hard boundary oracles, regression and
-operational evidence, practitioner study, final traceability, and release
-verdict. Passing that campaign—not scope completion alone—is required
-before PAIM v0.1 may be declared released.
+Use `docs/operations/PAIM_LOCAL_OPERATIONAL_APPLICATION_v0.1.md` for local
+setup, administration, intake, export, delivery, recovery, and health. Use
+`docs/operations/PAIM_V0_1_PRACTITIONER_PATHWAYS_v0.1.md` for the production-
+only Case-to-operation, Trigger-to-Reassessment, and Register-to-owning-domain
+pathways. Passing the remaining confirmation and release review—not scope or
+pathway completion alone—is required before PAIM v0.1 may be declared
+released.
 
 ## Project Objective
 
