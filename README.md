@@ -1,202 +1,149 @@
 # Practical AI Management (PAIM)
 
-## Overview
+**PAIM v0.1 is released under the bounded validated claim.**
 
-Practical AI Management (PAIM) is a practitioner-oriented management
-system for making, implementing, evaluating, and revising decisions
-about the use of artificial intelligence in organizations.
+Practical AI Management (PAIM) is a practitioner-oriented management system for making,
+implementing, evaluating, and revising decisions about organizational uses of artificial
+intelligence. The released v0.1 application is a local governed CLI and typed Python gateway.
 
-PAIM addresses a practical management question:
+PAIM addresses a recurring management question:
 
-> Given what is known about the value, risks, uncertainties,
-> alternatives, and organizational context of an AI use, what should
-> management do?
+> Given the evidence available now, what should we do about this AI-enabled use, why, what should
+> happen next, and what would cause us to reconsider?
 
-PAIM is intended to support continuing management of AI-enabled
-activities rather than one-time approval or classification.
+PAIM is designed for continuing management rather than one-time approval, classification, or a
+universal AI score.
 
-The project is being developed method-first. Software, including a
-possible PAIM Workbench, is expected to support the management method
-rather than define it.
+## What PAIM manages
 
-## Purpose
+PAIM manages a bounded AI-enabled configuration: the AI capability together with its complementary
+inputs, process or use context, and operating environment. Outcomes are not automatically
+attributed to the AI component independently of that configuration.
 
-PAIM integrates distinct value-management and risk-management evidence
-into practical, accountable, revisable management decisions. It does not
-assume that value and risk can always be reduced to a single score.
+The method keeps Value and Risk analytically independent. It brings their evidence together with
+organizational context, constraints, alternatives, uncertainty, and accountable authority to
+support a revisable management Decision. Missing evidence is not favorable evidence, software
+permission is not substantive authority, and presentation does not create priority or governing
+meaning.
 
-Its four broad functional capabilities are:
+## The management cycle
 
-1.  **Value Management** --- determine what value an AI-enabled
-    configuration is producing and what the evidence supports.
-2.  **Risk Management** --- identify and evaluate relevant risks,
-    consequences, uncertainties, and controls.
-3.  **Decision Integration** --- combine value evidence, risk evidence,
-    context, constraints, alternatives, and uncertainty into an
-    accountable management judgment.
-4.  **Management Learning** --- observe what happens after intervention
-    and use new evidence to reassess prior decisions.
+**Define → Establish → Assemble → Constrain → Generate Alternatives → Compare → Decide →
+Intervene → Observe → Learn → Reassess**
 
-## Management Object
+This is a management cycle, not a claim that v0.1 implements first-class Observation records or
+continuous telemetry. In v0.1, reassessment begins through exact supported manual or external-event
+provenance and an explicit owning-domain Trigger action.
 
-PAIM manages a bounded AI-enabled use or configuration rather than "AI"
-in the abstract.
+The released application was validated through three practitioner pathways:
 
-Conceptually:
+1. **Case to authorized bounded operation and Learning** — establish the governed Case and
+   Configuration, preserve independent Value/Risk inputs, authorize a Decision, satisfy
+   Intervention and Activation prerequisites, operate, and retain Learning without silently
+   changing the Decision.
+2. **External occurrence to completed Reassessment** — preserve intake provenance, explicitly
+   promote a Trigger, determine and coordinate Reassessment, apply restrictive interim operation,
+   and complete through accountable confirmation without losing history.
+3. **Multi-Case Management Register to owning-domain action** — derive source-traceable Register
+   views, preserve access filtering and exact Shared Dependency identity, and return contextual
+   actions to the authoritative owning domain without transferring authority or closing concerns.
 
-\[ M = (AI, X, P, E) \]
+The detailed production sequence is in the
+[PAIM v0.1 Practitioner Pathways](docs/operations/PAIM_V0_1_PRACTITIONER_PATHWAYS_v0.1.md).
 
-where (AI) is the relevant AI capability or system, (X) represents
-complementary inputs, (P) represents the process or use context, and (E)
-represents the operating environment.
+## What released v0.1 supports
 
-Observed outcomes should not automatically be attributed to the AI
-component independently of the surrounding configuration.
+PAIM v0.1 provides:
 
-## Decision Integration
+- authenticated local operation with explicit software-access checks;
+- Case, Managed Configuration, lifecycle, and typed Role/accountability records;
+- Evidence, Authority, Authority Gap, and exact Applicability history;
+- independent Value and Risk intake, selection, acceptance, freeze, and reconstruction;
+- Integration, Boundary, Decision, and exact Authorization Basis;
+- Intervention, Completion Acceptance, Activation Authorization, and Learning;
+- exact Trigger/Reassessment identity, coverage, concurrency, coordination, completion, and
+  restrictive Interim Operating Disposition;
+- source-traceable Management Register derivation, filtered outputs, exports, notification intent,
+  and contextual owning-domain actions;
+- SQLite persistence, immutable history, dual-time reconstruction, audit, backup/restore, health,
+  and explicit degraded behavior.
 
-Conceptually:
+## Try or operate PAIM
 
-\[ D = g(V, R, C, A, U) \]
+PAIM v0.1 supports CPython `>=3.12,<3.13`; CPython `3.12.13` is the exact reproducible reference
+interpreter. Dependencies are locked in `uv.lock`, and the accepted `uv` version is pinned in
+`pyproject.toml`.
 
-where (V) is value evidence, (R) is risk evidence, (C) is organizational
-context and constraints, (A) is the set of available alternatives, (U)
-is relevant uncertainty, and (D) is the management decision.
+From the repository root, the baseline environment commands are:
 
-This notation identifies decision inputs; it does not prescribe a
-universal numerical optimization function.
+```powershell
+uv sync --locked
+uv run --locked paim-local --help
+```
 
-## PAIM Management Cycle
+The interpreter and its native components must be permitted by local Application Control or
+security policy. For configuration, bootstrap, administration, intake, export, recovery, and
+health, use the
+[Local Operational Application guide](docs/operations/PAIM_LOCAL_OPERATIONAL_APPLICATION_v0.1.md).
+A shorter Quick Start is planned for documentation Pass B.
 
-**Define → Establish → Assemble → Constrain → Generate Alternatives →
-Compare → Decide → Intervene → Observe → Learn → Reassess**
+## Documentation
 
-The cycle treats management decisions as evidence-bounded judgments made
-under a particular evidence state and context. Decisions may therefore
-require reassessment as evidence, technology, costs, risks, workflows,
-policies, or alternatives change.
+Start with the [PAIM Documentation Map](docs/PAIM_DOCUMENTATION_MAP_v0.1.md), which distinguishes
+reader guidance, current technical contracts, validation evidence, and engineering history.
 
-## Core Principles
+| Reader intent | Start here |
+|---|---|
+| New to PAIM | This README; a fuller Conceptual Guide is planned for Pass B |
+| Want to try it | [Local Operational Application](docs/operations/PAIM_LOCAL_OPERATIONAL_APPLICATION_v0.1.md); a concise Quick Start is planned for Pass B |
+| Follow practitioner workflows | [PAIM v0.1 Practitioner Pathways](docs/operations/PAIM_V0_1_PRACTITIONER_PATHWAYS_v0.1.md) |
+| Operate or administer locally | [Local Operational Application](docs/operations/PAIM_LOCAL_OPERATIONAL_APPLICATION_v0.1.md) |
+| Implement or review contracts | [System Architecture](docs/system/architecture/PAIM_SYSTEM_ARCHITECTURE_v0.1.md) and [system specifications](docs/system/specifications/) |
+| Review validation and release evidence | [Increment 9 Validation Results](docs/system/testing/PAIM_INCREMENT_9_V0_1_VALIDATION_RESULTS_v0.1.md) and [v0.1 Release Gate Decision](docs/engineering/PAIM_V0_1_RELEASE_GATE_DECISION_v0.1.md) |
+| Study design and development rationale | [Engineering documentation](docs/engineering/) |
 
--   **Configuration Principle** --- manage the bounded AI-enabled
-    configuration rather than AI abstractly.
--   **Evidence-Boundary Principle** --- management conclusions should
-    not exceed the evidence supporting them.
--   **Missing-Evidence Principle** --- absence of evidence should not be
-    converted into favorable evidence.
--   **Constraint-Before-Trade-off Principle** --- impermissible
-    alternatives should be removed before comparative judgment.
--   **Alternative-Configuration Principle** --- consider realistic
-    alternative configurations rather than only AI-versus-no-AI choices.
--   **Judgment Principle** --- structured evidence supports accountable
-    management judgment; it does not eliminate judgment.
--   **Temporal-Decision Principle** --- decisions are made against an
-    evidence state and context and may require reassessment.
--   **Learning-Intervention Principle** --- generating decision-relevant
-    evidence can itself be an appropriate management intervention.
+## Method before software
 
-## Relationship to AIVM
+PAIM was developed method-first: management semantics and observable practitioner behavior were
+defined before platform implementation. The released application implements the bounded management
+model; software remains subordinate to the governing PAIM architecture and specifications. Future
+software convenience must not silently change PAIM meaning.
 
-AI Value Management (AIVM) provides the value-management leg of PAIM.
-Its practitioner process is:
+Core principles include managing the whole bounded Configuration, keeping conclusions within their
+Evidence boundary, preserving missing evidence and uncertainty, applying constraints before
+trade-offs, considering realistic alternatives, retaining accountable judgment, binding Decisions
+to their evidence and context in time, and using Learning to support—but not automatically replace—
+future management Decisions.
 
-**Discover → Establish → Decide → Learn → Reassess → Rediscover**
+AI Value Management (AIVM) is an upstream analytical capability that can provide the Value leg of
+PAIM. Risk is a separate analytical leg. PAIM operates within organizational governance; it does not
+replace organizational authority, accountability, policy, or mandatory controls.
 
-AIVM findings become inputs to PAIM decision integration. PAIM preserves
-their evidentiary boundaries rather than converting intermediate
-benefits into unsupported downstream value claims.
+## Bounded v0.1 exclusions
 
-## Relationship to AI Risk Management
+The release does **not** imply or provide:
 
-Risk management provides a separate analytical leg. Value and risk are
-related but are not mathematical inverses. Low risk does not imply high
-value, and high value does not imply acceptable risk. Controls may also
-alter value, cost, or operating characteristics.
+- a browser UI or polished self-service workflow;
+- first-class Observation persistence or continuous telemetry automation;
+- operating-state strength, breadth, ranking, priority, or state-derived escalation;
+- semantic dependency matching or generic Management Register resolution;
+- cloud, distributed, multi-tenant, or enterprise production deployment;
+- live provider integrations; or
+- any other post-v0.1 capability.
 
-PAIM integrates decision-relevant risk evidence without requiring a
-universal risk score.
+IRR-009 remains `OPEN — SEMANTICS UNDESIGNED` and
+`CLOSED BY DESIGN — OUTSIDE V0.1 CLAIM`. IRR-014 remains
+`OPEN — SEMANTICS UNDESIGNED` and `CLOSED BY DESIGN — OUTSIDE V0.1 CLAIM`. Their unsupported
+behaviors remain explicit and fail closed; the v0.1 release does not design either semantic family.
 
-## Relationship to Governance
+## Release evidence
 
-PAIM does not replace organizational AI governance. Governance
-establishes authority, accountability, policy, mandatory controls,
-escalation requirements, and organizational boundaries. PAIM operates
-within those structures to manage actual AI-enabled uses.
+The bounded claim, automated validation, three human practitioner pathways, usability remediation,
+and final release decision are recorded in:
 
-## Method Before Software
+- [Increment 9 v0.1 Validation Results](docs/system/testing/PAIM_INCREMENT_9_V0_1_VALIDATION_RESULTS_v0.1.md);
+- [Practitioner Findings Cross-Pathway Review](docs/engineering/PAIM_INCREMENT_9_PRACTITIONER_FINDINGS_CROSS_PATHWAY_REVIEW_v0.1.md); and
+- [PAIM v0.1 Release Gate Decision](docs/engineering/PAIM_V0_1_RELEASE_GATE_DECISION_v0.1.md).
 
-The intended progression is:
-
-\[ `\text{PAIM Method}`{=tex}
-`\rightarrow`{=tex}`\text{PAIM Operating Model}`{=tex}
-`\rightarrow`{=tex}`\text{PAIM Workbench}`{=tex} \]
-
-Workbench requirements should be derived from a sufficiently stable
-practitioner method rather than used to determine that method
-prematurely.
-
-## Current Development Status
-
-**PAIM v0.1 bounded release decision is prepared in draft PR #70 for independent review.**
-
-PAIM v0.1 is a complete functional local governed PAIM application for
-the implemented management lifecycle. It supports authenticated local
-operation, provenance-preserving manual/external intake, access
-segmentation, recovery, and explicit degraded behavior. The lifecycle
-includes Case and Configuration governance; Evidence and Authority;
-independent Value and Risk inputs; Integration, Boundary, Decision, and
-Authorization; Intervention, Activation, and Learning; explicit-event
-Reassessment and restrictive interim operation; and source-traceable
-Management Register outputs.
-
-PAIM v0.1 does not provide first-class Observation persistence or
-continuous telemetry automation, and it does not infer operating-state
-strength, breadth, severity, ranking, priority, or escalation. Those
-capabilities remain semantically undesigned post-v0.1 extensions. Their
-unsupported boundaries are explicit and fail closed. The supported v0.1
-paths use exact manual/external Trigger provenance and exact-state,
-exact-scope restrictive intersection or affected-scope suspension.
-
-Increment 9 automated validation, all three human practitioner pathways, the
-Issue #76 remediation, and the bounded practitioner confirmation are complete.
-Issue #78 reconciled the evidence and prepared the bounded release verdict in
-draft PR #70. The verdict is not effective on `main` until independent review
-and merge. See the [validation results](docs/system/testing/PAIM_INCREMENT_9_V0_1_VALIDATION_RESULTS_v0.1.md),
-[practitioner findings review](docs/engineering/PAIM_INCREMENT_9_PRACTITIONER_FINDINGS_CROSS_PATHWAY_REVIEW_v0.1.md),
-and [release gate](docs/engineering/PAIM_V0_1_RELEASE_GATE_DECISION_v0.1.md).
-
-The current product is a local governed application. Enterprise/cloud
-deployment, live provider integrations, distributed infrastructure, and
-generic workflow scope are not part of the v0.1 claim.
-
-## Engineering Runtime
-
-PAIM v0.1 supports CPython `>=3.12,<3.13`. CPython `3.12.13` is the exact
-reproducible reference interpreter, dependencies are committed in `uv.lock`,
-and the accepted `uv` version is pinned in `pyproject.toml`. Use `uv sync
---locked` and `uv run --locked` for repository work.
-
-The interpreter and its native components must be permitted by the local
-Application Control or security policy. A matching Python version is not by
-itself an approved or supported runtime. The runtime decision and migration
-evidence are recorded under `docs/engineering/`.
-
-## Practitioner and Operator Guidance
-
-Use `docs/operations/PAIM_LOCAL_OPERATIONAL_APPLICATION_v0.1.md` for local
-setup, administration, intake, export, delivery, recovery, and health. Use
-`docs/operations/PAIM_V0_1_PRACTITIONER_PATHWAYS_v0.1.md` for the production-
-only Case-to-operation, Trigger-to-Reassessment, and Register-to-owning-domain
-pathways. Draft PR #70 remains subject to independent acceptance and merge;
-post-v0.1 work remains unauthorized. No release statement may imply that
-IRR-009 Observation semantics or IRR-014 operating-state relations were
-designed.
-
-## Project Objective
-
-The long-term objective is a practical system that helps organizations
-answer, repeatedly and defensibly:
-
-> **Given the evidence available now, what should we do about this
-> AI-enabled use, why, what should happen next, and what would cause us
-> to reconsider?**
+The effective release checkpoint is merge commit
+`b5e68ee3387571ca1db027099aa44272f03f06d5`.

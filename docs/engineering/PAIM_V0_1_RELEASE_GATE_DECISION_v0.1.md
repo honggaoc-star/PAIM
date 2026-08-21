@@ -4,8 +4,8 @@
 
 **Verdict:** PAIM V0.1 RELEASED — BOUNDED CLAIM VALIDATED
 
-**Merge control:** Prepared in draft PR #70 for independent review; not effective on `main` until
-that PR is independently accepted and merged.
+**Effective checkpoint:** Independently accepted PR #70, merged to `main` as
+`b5e68ee3387571ca1db027099aa44272f03f06d5` on 2026-08-20.
 
 **Reconciliation date:** 2026-08-20
 
@@ -175,5 +175,6 @@ The exact retained evidence therefore supports the authorized Issue #69 verdict:
 
 **PAIM V0.1 RELEASED — BOUNDED CLAIM VALIDATED**
 
-PR #70 remains draft and unmerged pending independent review. Codex must not merge it or begin
-post-v0.1 work autonomously.
+PR #70 was independently accepted and merged as
+`b5e68ee3387571ca1db027099aa44272f03f06d5`. This release decision does not authorize post-v0.1
+work.
