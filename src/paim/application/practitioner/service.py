@@ -7,14 +7,26 @@ from datetime import datetime
 
 from paim.application.practitioner.models import (
     ActorContext,
+    AnalyticalLaneView,
     CaseListView,
     CaseOrientationView,
     CaseSummary,
+    CaseWorkspaceView,
+    ConfigurationView,
+    ExplanationView,
+    GovernedRecordView,
     HomeView,
     ReadState,
     SourceBasis,
 )
+from paim.domain import (
+    GoverningConfigurationAbsent,
+    GoverningConfigurationConflict,
+    GoverningConfigurationFound,
+    GoverningConfigurationSelection,
+)
 from paim.integrity import (
+    FinalizedRecordVersion,
     RecordId,
     SelectionAbsent,
     SelectionConflict,
@@ -149,6 +161,243 @@ class PractitionerQueryService:
         if selected is None:
             return None
         return CaseOrientationView(actor, selected, effective_at, known_at)
+
+    def workspace(
+        self,
+        *,
+        actor: ActorContext,
+        cases: tuple[CaseSummary, ...],
+        case_id: RecordId,
+        visible_configuration_ids: frozenset[RecordId],
+        governing: GoverningConfigurationSelection,
+        lifecycle_state: str,
+        action_access: Mapping[str, bool],
+        effective_at: datetime,
+        known_at: datetime,
+    ) -> CaseWorkspaceView | None:
+        selected_case = next((item for item in cases if item.case_id == str(case_id)), None)
+        if selected_case is None:
+            return None
+        source_versions = self._store.m1b_versions(
+            case_id=case_id,
+            visible_configuration_ids=visible_configuration_ids,
+        )
+        current = self._current_versions(source_versions, effective_at, known_at)
+        by_family: dict[str, list[FinalizedRecordVersion]] = {}
+        for version in current:
+            by_family.setdefault(version.family, []).append(version)
+
+        governing_ids: tuple[str, ...]
+        governing_basis: tuple[str, ...]
+        if isinstance(governing, GoverningConfigurationFound):
+            governing_state = ReadState.ESTABLISHED
+            governing_ids = (str(governing.configuration_version_id),)
+            governing_reason = "One exact governing Configuration is established."
+            governing_basis = (str(governing.designation_version_id),)
+        elif isinstance(governing, GoverningConfigurationConflict):
+            governing_state = ReadState.CONFLICT
+            governing_ids = tuple(
+                sorted(str(value) for value in governing.configuration_version_ids)
+            )
+            governing_reason = governing.reason
+            governing_basis = tuple(
+                sorted(str(value) for value in governing.designation_version_ids)
+            )
+        else:
+            assert isinstance(governing, GoverningConfigurationAbsent)
+            governing_state = ReadState.ABSENT
+            governing_ids = ()
+            governing_reason = governing.reason
+            governing_basis = ()
+
+        configuration_views = tuple(
+            ConfigurationView(
+                configuration_id=str(version.record_id),
+                version_id=str(version.version_id),
+                maturity=str(version.content.get("maturity", "unknown")),
+                purpose=str(version.content.get("purpose", "unknown")),
+                content=dict(version.content),
+                is_governing=str(version.version_id) in governing_ids,
+                basis=self._basis(version, effective_at, known_at),
+            )
+            for version in sorted(
+                by_family.get("managed-configuration", []),
+                key=lambda item: (item.recorded_at, str(item.version_id)),
+            )
+        )
+
+        evidence = self._record_views(by_family.get("evidence", []), effective_at, known_at)
+        authority = self._record_views(
+            by_family.get("authority-record", []), effective_at, known_at
+        )
+        gaps = self._record_views(by_family.get("authority-gap", []), effective_at, known_at)
+        applicability = self._record_views(
+            by_family.get("evidence-applicability", []), effective_at, known_at
+        )
+        value = self._lane_view("VALUE", by_family, action_access, effective_at, known_at)
+        risk = self._lane_view("RISK", by_family, action_access, effective_at, known_at)
+        return CaseWorkspaceView(
+            actor=actor,
+            case=selected_case,
+            lifecycle_state=lifecycle_state,
+            configurations=configuration_views,
+            governing_state=governing_state,
+            governing_configuration_version_ids=governing_ids,
+            governing_explanation=ExplanationView(
+                governing_state,
+                governing_reason,
+                "Designate an exact finalized candidate Configuration",
+                True,
+                action_access.get("configuration.designate", False),
+                True,
+                "Required by the governing designation command",
+                "Established only by the owning PAIM capability",
+                governing_basis,
+            ),
+            evidence=evidence,
+            authority=authority,
+            authority_gaps=gaps,
+            applicability=applicability,
+            value=value,
+            risk=risk,
+            effective_at=effective_at,
+            known_at=known_at,
+        )
+
+    def _current_versions(
+        self,
+        versions: tuple[FinalizedRecordVersion, ...],
+        effective_at: datetime,
+        known_at: datetime,
+    ) -> tuple[FinalizedRecordVersion, ...]:
+        record_ids = sorted({version.record_id for version in versions}, key=str)
+        selected: list[FinalizedRecordVersion] = []
+        exemplars = {version.record_id: version for version in versions}
+        for record_id in record_ids:
+            exemplar = exemplars[record_id]
+            result = self._store.select_current(
+                SelectionQuery(
+                    family=exemplar.family,
+                    scope=exemplar.scope,
+                    record_id=record_id,
+                    effective_at=effective_at,
+                    known_at=known_at,
+                )
+            )
+            candidates = (
+                (result.candidate,)
+                if isinstance(result, SelectionFound)
+                else tuple(result.candidates)
+                if isinstance(result, SelectionConflict)
+                else ()
+            )
+            for candidate in candidates:
+                version = self._store.get_version(candidate.version_id)
+                if version is not None:
+                    selected.append(version)
+        return tuple(selected)
+
+    @staticmethod
+    def _basis(
+        version: FinalizedRecordVersion, effective_at: datetime, known_at: datetime
+    ) -> SourceBasis:
+        return SourceBasis(
+            str(version.record_id), (str(version.version_id),), effective_at, known_at
+        )
+
+    def _record_views(
+        self,
+        versions: list[FinalizedRecordVersion],
+        effective_at: datetime,
+        known_at: datetime,
+    ) -> tuple[GovernedRecordView, ...]:
+        values = []
+        for version in versions:
+            content = dict(version.content)
+            label = next(
+                (
+                    str(content[key])
+                    for key in ("question", "source", "finding", "purpose", "category")
+                    if content.get(key)
+                ),
+                version.family.replace("-", " ").title(),
+            )
+            state = str(
+                content.get("outcome")
+                or content.get("attention")
+                or content.get("maturity")
+                or "ESTABLISHED"
+            )
+            values.append(
+                GovernedRecordView(
+                    str(version.record_id),
+                    str(version.version_id),
+                    version.family,
+                    label,
+                    state,
+                    content,
+                    self._basis(version, effective_at, known_at),
+                )
+            )
+        return tuple(sorted(values, key=lambda item: (item.label.casefold(), item.version_id)))
+
+    def _lane_view(
+        self,
+        lane: str,
+        by_family: Mapping[str, list[FinalizedRecordVersion]],
+        action_access: Mapping[str, bool],
+        effective_at: datetime,
+        known_at: datetime,
+    ) -> AnalyticalLaneView:
+        candidates = self._record_views(
+            by_family.get(f"{lane.casefold()}-input", []), effective_at, known_at
+        )
+        fitness = tuple(
+            item
+            for item in self._record_views(
+                by_family.get("lane-evidence-fitness", []), effective_at, known_at
+            )
+            if item.content.get("lane") == lane
+        )
+        selections = tuple(
+            item
+            for item in self._record_views(
+                by_family.get("input-acceptance-selection", []), effective_at, known_at
+            )
+            if item.content.get("lane") == lane
+        )
+        state = (
+            ReadState.ABSENT
+            if not selections
+            else ReadState.ESTABLISHED
+            if len(selections) == 1
+            else ReadState.CONFLICT
+        )
+        reason = (
+            f"{lane.title()} Input selection is not established."
+            if state is ReadState.ABSENT
+            else f"One exact {lane.title()} Input selection is established."
+            if state is ReadState.ESTABLISHED
+            else f"Multiple incompatible {lane.title()} selections remain explicit."
+        )
+        return AnalyticalLaneView(
+            lane,
+            candidates,
+            fitness,
+            selections,
+            state,
+            ExplanationView(
+                state,
+                reason,
+                f"Complete the exact {lane.title()} lane acceptance pathway",
+                True,
+                action_access.get(f"{lane.casefold()}-input.create", False),
+                True,
+                "Lane-specific accountability must be established",
+                "Software permission does not establish substantive authority",
+                tuple(item.version_id for item in selections),
+            ),
+        )
 
     def _case_summary(
         self,

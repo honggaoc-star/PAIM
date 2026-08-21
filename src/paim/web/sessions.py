@@ -28,6 +28,18 @@ class BrowserSession:
         return self.authentication is not None
 
 
+@dataclass(frozen=True, slots=True)
+class ActionIntent:
+    intent_id: str
+    action: str
+    payload: dict[str, str]
+    expected_version_ids: tuple[str, ...]
+    idempotency_key: str
+    created_at: datetime
+    expires_at: datetime
+    outcome_path: str | None = None
+
+
 class SessionRegistry:
     """Store only a digest of each opaque browser session identifier."""
 
@@ -46,6 +58,7 @@ class SessionRegistry:
         self._anonymous_timeout = anonymous_timeout
         self._maximum_sessions = maximum_sessions
         self._sessions: dict[str, BrowserSession] = {}
+        self._intents: dict[tuple[str, str], ActionIntent] = {}
 
     @staticmethod
     def _digest(identifier: str) -> str:
@@ -79,7 +92,59 @@ class SessionRegistry:
 
     def invalidate(self, identifier: str | None) -> None:
         if identifier:
-            self._sessions.pop(self._digest(identifier), None)
+            digest = self._digest(identifier)
+            self._sessions.pop(digest, None)
+            for key in tuple(self._intents):
+                if key[0] == digest:
+                    self._intents.pop(key, None)
+
+    def create_intent(
+        self,
+        identifier: str,
+        *,
+        action: str,
+        payload: dict[str, str],
+        expected_version_ids: tuple[str, ...],
+        lifetime: timedelta = timedelta(minutes=15),
+    ) -> ActionIntent:
+        session = self.get(identifier, touch=False)
+        if session is None or not session.authenticated:
+            raise ValueError("authenticated browser session required")
+        now = self._now()
+        intent = ActionIntent(
+            intent_id=secrets.token_urlsafe(24),
+            action=action,
+            payload=dict(payload),
+            expected_version_ids=expected_version_ids,
+            idempotency_key=secrets.token_urlsafe(32),
+            created_at=now,
+            expires_at=now + lifetime,
+        )
+        self._intents[(session.digest, intent.intent_id)] = intent
+        return intent
+
+    def intent(self, identifier: str, intent_id: str, *, action: str) -> ActionIntent | None:
+        session = self.get(identifier, touch=False)
+        if session is None:
+            return None
+        key = (session.digest, intent_id)
+        intent = self._intents.get(key)
+        if intent is None or intent.action != action or self._now() >= intent.expires_at:
+            self._intents.pop(key, None)
+            return None
+        return intent
+
+    def record_intent_outcome(
+        self, identifier: str, intent_id: str, *, outcome_path: str
+    ) -> ActionIntent:
+        session = self.get(identifier, touch=False)
+        if session is None:
+            raise ValueError("browser session unavailable")
+        key = (session.digest, intent_id)
+        intent = self._intents[key]
+        completed = replace(intent, outcome_path=outcome_path)
+        self._intents[key] = completed
+        return completed
 
     def verify_csrf(self, session: BrowserSession, supplied: str) -> bool:
         return hmac.compare_digest(session.csrf_secret, supplied)
@@ -96,6 +161,9 @@ class SessionRegistry:
                 session.last_active_at + self._inactivity_timeout
             ):
                 self._sessions.pop(digest, None)
+        for key, intent in tuple(self._intents.items()):
+            if intent.expires_at <= self._now() or key[0] not in self._sessions:
+                self._intents.pop(key, None)
 
     def _create(self, authentication: AuthenticatedSession | None) -> tuple[str, BrowserSession]:
         self.cleanup()

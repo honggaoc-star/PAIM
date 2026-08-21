@@ -1,21 +1,98 @@
 {% extends "base.html" %}
+{% macro exact_basis(item) -%}
+<details><summary>Exact identity and provenance</summary>
+  <p>Record <span class="mono">{{ item.record_id }}</span></p>
+  <p>Version <span class="mono">{{ item.version_id }}</span></p>
+  <p>Effective {{ item.basis.effective_at.isoformat() }}; known {{ item.basis.known_at.isoformat() }}</p>
+  <pre>{{ item.content | tojson(indent=2) }}</pre>
+</details>
+{%- endmacro %}
+{% macro lane_panel(lane, slug, governing_configuration) -%}
+<section class="lane" aria-labelledby="{{ slug }}-heading">
+  <h3 id="{{ slug }}-heading">{{ lane.lane.title() }}</h3>
+  <div class="status-panel"><strong>{{ lane.selection_state.value }}</strong><span>{{ lane.explanation.reason }}</span></div>
+  <details class="why"><summary>Why? What can legitimately change it?</summary>
+    <p>{{ lane.explanation.reason }}</p>
+    <p><strong>Owning action:</strong> {{ lane.explanation.owning_action }}</p>
+    <dl><dt>Software access</dt><dd>{{ lane.explanation.software_access }}</dd><dt>Exact context visible</dt><dd>{{ lane.explanation.context_visible }}</dd><dt>Accountability</dt><dd>{{ lane.explanation.accountability }}</dd><dt>Substantive authority</dt><dd>{{ lane.explanation.substantive_authority }}</dd></dl>
+  </details>
+  <h4>Candidate Inputs</h4>
+  {% if lane.candidates %}
+    {% for item in lane.candidates %}<article class="record-card"><strong>{{ item.label }}</strong><span class="state">{{ item.state }}</span>{{ exact_basis(item) }}
+    <form action="/cases/{{ view.case.case_id }}/{{ slug }}/readiness/review" method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="input_version_id" value="{{ item.version_id }}"><input type="hidden" name="effective_at" value="{{ view.effective_at.isoformat() }}">
+      <label>Readiness rationale<input name="rationale" required value="Exact lane-specific analytical review complete"></label><button type="submit">Review readiness record</button>
+    </form></article>{% endfor %}
+  {% else %}<p class="empty-state">No {{ lane.lane.title() }} candidate Input is visible.</p>{% endif %}
+  {% if view.governing_state.value == 'ESTABLISHED' %}
+  <details><summary>Create a {{ lane.lane.title() }} Input candidate</summary>
+    <form action="/cases/{{ view.case.case_id }}/{{ slug }}/input/review" method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="configuration_id" value="{{ governing_configuration.configuration_id }}"><input type="hidden" name="configuration_version_id" value="{{ governing_configuration.version_id }}"><input type="hidden" name="effective_at" value="{{ view.effective_at.isoformat() }}">
+      <label>Purpose<input name="purpose" required></label><label>Finding<textarea name="finding" required></textarea></label><label>Boundary of analysis<textarea name="boundary" required></textarea></label><label>Uncertainties, one per line<textarea name="uncertainties"></textarea></label><label>Management implication<textarea name="implication" required></textarea></label><label>Provenance source<input name="provenance" required></label><label>Exact Evidence Version IDs, one per line<textarea name="evidence_version_ids"></textarea></label><button type="submit">Review exact {{ lane.lane.title() }} Input</button>
+    </form>
+  </details>
+  <details><summary>Record {{ lane.lane.title() }} fitness</summary>
+    <form action="/cases/{{ view.case.case_id }}/{{ slug }}/fitness/review" method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="configuration_id" value="{{ governing_configuration.configuration_id }}"><input type="hidden" name="configuration_version_id" value="{{ governing_configuration.version_id }}"><input type="hidden" name="effective_at" value="{{ view.effective_at.isoformat() }}">
+      <label>Exact Input Version ID<input name="input_version_id" required></label><label>Use context<input name="use_context" required></label><label>Purpose<input name="purpose" required></label><label>Exact Evidence Version ID<input name="evidence_version_id" required></label><label>Exact Applicability Version ID<input name="applicability_version_id" required></label><label>Claimed scope<input name="claimed_scope" required></label><label>Rationale<textarea name="rationale" required></textarea></label><label>Accountable mechanism<input name="accountable_mechanism" required></label><button type="submit">Review exact fitness</button>
+    </form>
+  </details>
+  <details><summary>Select one exact {{ lane.lane.title() }} Input</summary>
+    <form action="/cases/{{ view.case.case_id }}/{{ slug }}/selection/review" method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="configuration_id" value="{{ governing_configuration.configuration_id }}"><input type="hidden" name="configuration_version_id" value="{{ governing_configuration.version_id }}"><input type="hidden" name="effective_at" value="{{ view.effective_at.isoformat() }}">
+      <label>Input Record ID<input name="input_id" required></label><label>Input Version ID<input name="input_version_id" required></label><label>Fitness Version ID<input name="fitness_version_id" required></label><label>Use context<input name="use_context" required></label><label>Purpose<input name="purpose" required></label><label>Material Applicability Version IDs, one per line<textarea name="material_applicability_version_ids" required></textarea></label><label>Rationale<textarea name="rationale" required></textarea></label><label>Accountable mechanism<input name="accountable_mechanism" required></label><button type="submit">Review exact selection</button>
+    </form>
+  </details>
+  {% endif %}
+  <h4>Fitness and selection history</h4>
+  {% for item in lane.fitness %}<article class="record-card"><strong>Fitness: {{ item.state }}</strong>{{ exact_basis(item) }}</article>{% endfor %}
+  {% for item in lane.selections %}<article class="record-card"><strong>Selected exact Input</strong>{{ exact_basis(item) }}</article>{% endfor %}
+</section>
+{%- endmacro %}
 {% block title %}{{ view.case.title }} — PAIM{% endblock %}
 {% block content %}
-<nav aria-label="Breadcrumb"><a href="/cases">Cases</a> / <span>Orientation</span></nav>
+<nav aria-label="Breadcrumb"><a href="/cases">Cases</a> / <span>Case Workspace</span></nav>
 <article aria-labelledby="case-heading">
   <h1 id="case-heading">{{ view.case.title }}</h1>
-  <p class="mono">Case {{ view.case.case_id }}</p>
-  <div class="status-panel"><strong>{{ view.case.state.value }}</strong><span>{{ view.case.explanation }}</span></div>
-  <dl>
-    <dt>Visible Configurations</dt><dd>{{ view.case.visible_configuration_count }}</dd>
-    <dt>Effective at</dt><dd>{{ view.case.basis.effective_at.isoformat() }}</dd>
-    <dt>Known at</dt><dd>{{ view.case.basis.known_at.isoformat() }}</dd>
-  </dl>
-  <details>
-    <summary>Exact authoritative source basis</summary>
-    <p>Record ID: <span class="mono">{{ view.case.basis.record_id }}</span></p>
-    {% if view.case.basis.version_ids %}<ul>{% for version_id in view.case.basis.version_ids %}<li class="mono">{{ version_id }}</li>{% endfor %}</ul>{% else %}<p>No exact current Version is established.</p>{% endif %}
-  </details>
-  <div class="empty-state"><h2>Read-only foundation</h2><p>Configuration and management actions are not available in M1A.</p></div>
+  <p>Case Workspace <span class="state">{{ view.lifecycle_state }}</span></p>
+  <nav class="workspace-nav" aria-label="Case workspace">
+    <a href="#overview">Overview</a><a href="#evidence">Evidence &amp; Assessment</a><a href="#future">Future M1 areas</a><a href="#history">Exact history</a>
+  </nav>
+  <section id="overview" aria-labelledby="overview-heading"><h2 id="overview-heading">Overview</h2>
+    <div class="status-panel"><strong>Governing Configuration: {{ view.governing_state.value }}</strong><span>{{ view.governing_explanation.reason }}</span></div>
+    <details class="why"><summary>Why? What can legitimately change it?</summary><p>{{ view.governing_explanation.reason }}</p><p><strong>Owning action:</strong> {{ view.governing_explanation.owning_action }}</p><p>Software access: {{ view.governing_explanation.software_access }}. This is separate from visibility, accountability, and substantive authority.</p></details>
+    <dl><dt>Case Record</dt><dd class="mono">{{ view.case.case_id }}</dd><dt>Effective at</dt><dd>{{ view.effective_at.isoformat() }}</dd><dt>Known at</dt><dd>{{ view.known_at.isoformat() }}</dd></dl>
+  </section>
+  <section id="configuration" aria-labelledby="configuration-heading"><h2 id="configuration-heading">Managed Configuration</h2>
+    {% set governing_configuration = namespace(value=none) %}
+    {% for configuration in view.configurations %}{% if configuration.is_governing %}{% set governing_configuration.value = configuration %}{% endif %}
+      <article class="record-card"><h3>{{ configuration.content.get('system', 'Managed Configuration') }}</h3><span class="state">{{ configuration.maturity }} / {{ configuration.purpose }}</span><dl><dt>Intended use</dt><dd>{{ configuration.content.get('intended_use', 'Not stated') }}</dd><dt>Users</dt><dd>{{ configuration.content.get('users', 'Not stated') }}</dd><dt>Workflow</dt><dd>{{ configuration.content.get('workflow', 'Not stated') }}</dd><dt>Conditions</dt><dd>{{ configuration.content.get('conditions', 'Not stated') }}</dd><dt>Exclusions</dt><dd>{{ configuration.content.get('exclusions', 'Not stated') }}</dd></dl>
+      <details><summary>Exact Configuration basis</summary><p>Record <span class="mono">{{ configuration.configuration_id }}</span></p><p>Version <span class="mono">{{ configuration.version_id }}</span></p></details>
+      {% if not configuration.is_governing %}<form action="/cases/{{ view.case.case_id }}/configuration/designation/review" method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="configuration_id" value="{{ configuration.configuration_id }}"><input type="hidden" name="configuration_version_id" value="{{ configuration.version_id }}"><input type="hidden" name="effective_at" value="{{ view.effective_at.isoformat() }}"><label>Exact accountable mechanism<input name="accountable_mechanism" required></label><button type="submit">Review governing designation</button></form>{% endif %}</article>
+    {% endfor %}
+    <details><summary>Create finalized candidate or successor Version</summary><form action="/cases/{{ view.case.case_id }}/configuration/review" method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="effective_at" value="{{ view.effective_at.isoformat() }}"><label>Existing Configuration Record ID (only for successor)<input name="configuration_id"></label><label>Exact current Version ID (only for successor)<input name="expected_version_id"></label><label>Successor reason (required with current Version)<input name="relationship_reason"></label><label>Purpose<select name="purpose"><option value="candidate">Candidate</option><option value="alternative">Alternative</option><option value="fallback">Fallback</option><option value="experimental">Experimental</option><option value="proposed">Proposed</option></select></label><label>System / scope label<input name="system" required></label><label>Intended use<textarea name="intended_use" required></textarea></label><label>Users<input name="users"></label><label>Workflow<input name="workflow"></label><label>Conditions<input name="conditions"></label><label>Exclusions<input name="exclusions"></label><button type="submit">Review exact Configuration Version</button></form></details>
+  </section>
+  {% set governing_configuration = governing_configuration.value %}
+  <section id="evidence" aria-labelledby="evidence-heading"><h2 id="evidence-heading">Evidence, Authority, and Applicability</h2>
+    <p>Evidence existence, exact Applicability, and substantive authority are separate governed facts.</p>
+    <div class="three-columns">
+      <section><h3>Evidence</h3>{% for item in view.evidence %}<article class="record-card"><strong>{{ item.label }}</strong><span class="state">{{ item.state }}</span>{{ exact_basis(item) }}</article>{% else %}<p class="empty-state">Evidence is absent. Missing Evidence is not favorable.</p>{% endfor %}</section>
+      <section><h3>Authority</h3>{% for item in view.authority %}<article class="record-card"><strong>{{ item.label }}</strong>{{ exact_basis(item) }}</article>{% else %}<p class="empty-state">No visible Authority Record is established.</p>{% endfor %}{% for item in view.authority_gaps %}<article class="record-card"><strong>Authority Gap: {{ item.label }}</strong><span class="state">{{ item.state }}</span>{{ exact_basis(item) }}</article>{% endfor %}</section>
+      <section><h3>Applicability / fitness</h3>{% for item in view.applicability %}<article class="record-card"><strong>{{ item.label }}</strong><span class="state">{{ item.state }}</span>{{ exact_basis(item) }}</article>{% else %}<p class="empty-state">Applicability is not established.</p>{% endfor %}</section>
+    </div>
+    {% if governing_configuration %}
+    <div class="three-columns">
+      <details><summary>Create Evidence</summary><form action="/cases/{{ view.case.case_id }}/evidence/review" method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="configuration_id" value="{{ governing_configuration.configuration_id }}"><input type="hidden" name="configuration_version_id" value="{{ governing_configuration.version_id }}"><input type="hidden" name="effective_at" value="{{ view.effective_at.isoformat() }}"><label>Classification<select name="classification"><option value="observed">Observed</option><option value="supported_inference">Supported inference</option><option value="estimate">Estimate</option><option value="assumption">Assumption</option><option value="unknown">Unknown</option></select></label><label>Source<input name="source" required></label><label>Provenance<input name="provenance" required></label><label>Statement<textarea name="statement" required></textarea></label><label>Observed as of (ISO with offset)<input name="observed_as_of"></label><input type="hidden" name="attention" value="current"><button type="submit">Review Evidence</button></form></details>
+      <details><summary>Create Authority Record</summary><form action="/cases/{{ view.case.case_id }}/authority/review" method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="configuration_id" value="{{ governing_configuration.configuration_id }}"><input type="hidden" name="configuration_version_id" value="{{ governing_configuration.version_id }}"><input type="hidden" name="effective_at" value="{{ view.effective_at.isoformat() }}"><label>Category<input name="category" required></label><label>Source<input name="source" required></label><label>Scope<input name="scope" required></label><label>Requirement<textarea name="requirement" required></textarea></label><label>Provenance<input name="provenance" required></label><label>Evidence Version IDs<textarea name="evidence_version_ids"></textarea></label><button type="submit">Review Authority Record</button></form></details>
+      <details><summary>Record Authority Gap</summary><form action="/cases/{{ view.case.case_id }}/authority-gap/review" method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="configuration_id" value="{{ governing_configuration.configuration_id }}"><input type="hidden" name="configuration_version_id" value="{{ governing_configuration.version_id }}"><input type="hidden" name="effective_at" value="{{ view.effective_at.isoformat() }}"><label>Stable question ID<input name="question_id" required></label><label>Authority question<textarea name="question" required></textarea></label><label>Scope<input name="scope" required></label><label>Rationale<textarea name="rationale" required></textarea></label><label>Provenance<input name="provenance" required></label><label>Evidence Version IDs<textarea name="evidence_version_ids"></textarea></label><button type="submit">Review Authority Gap</button></form></details>
+    </div>
+    <details><summary>Assess exact Evidence Applicability</summary><form action="/cases/{{ view.case.case_id }}/applicability/review" method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="configuration_id" value="{{ governing_configuration.configuration_id }}"><input type="hidden" name="configuration_version_id" value="{{ governing_configuration.version_id }}"><input type="hidden" name="effective_at" value="{{ view.effective_at.isoformat() }}"><label>Evidence Record ID<input name="evidence_id" required></label><label>Evidence Version ID<input name="evidence_version_id" required></label><label>Target type<select name="target_type"><option value="managed_configuration_version">Managed Configuration Version</option><option value="value_input_version">Value Input Version</option><option value="risk_input_version">Risk Input Version</option><option value="authority_record_version">Authority Record Version</option></select></label><label>Target Record ID<input name="target_id" required value="{{ governing_configuration.configuration_id }}"></label><label>Target Version ID<input name="target_version_id" required value="{{ governing_configuration.version_id }}"></label><label>Purpose<input name="purpose" required></label><label>Assessed scope<input name="assessed_scope" required></label><label>Outcome<select name="outcome"><option value="APPLICABLE">Applicable</option><option value="CONDITIONALLY_APPLICABLE">Conditionally applicable</option><option value="PARTIALLY_APPLICABLE">Partially applicable</option><option value="NOT_APPLICABLE">Not applicable</option><option value="INDETERMINATE">Indeterminate</option></select></label><label>Conditions<textarea name="conditions"></textarea></label><label>Limitations<textarea name="limitations"></textarea></label><label>Rationale<textarea name="rationale" required></textarea></label><label>Accountable mechanism<input name="accountable_mechanism" required></label><button type="submit">Review exact Applicability</button></form></details>
+    {% else %}<p class="empty-state">Establish exactly one governing Configuration before Configuration-bound Evidence assessment or analytical Inputs.</p>{% endif %}
+  </section>
+  <section aria-labelledby="lanes-heading"><h2 id="lanes-heading">Independent Value and Risk</h2><p>These peer lanes have no shared score, automatic consensus, or presentation-derived priority.</p><div class="peer-lanes">{{ lane_panel(view.value, 'value', governing_configuration) }}{{ lane_panel(view.risk, 'risk', governing_configuration) }}</div></section>
+  <section id="future" aria-labelledby="future-heading"><h2 id="future-heading">Later M1 boundaries</h2><div class="empty-state"><p><strong>Decision:</strong> future M1C. Integration, Boundary, proposal, and authorization are not available here.</p><p><strong>Implementation &amp; Operation:</strong> future M1D.</p><p><strong>Learning &amp; Reassessment:</strong> outside this active M1B pathway.</p></div></section>
+  <section id="history" aria-labelledby="history-heading"><h2 id="history-heading">Exact history boundary</h2><p>M1B progressively discloses exact Record/Version, effective-time, knowledge-time, and provenance on each visible source. It does not rewrite historical records or create a new management status.</p></section>
+  <details><summary>Exact authoritative source basis</summary><p class="mono">{{ view.case.basis.record_id }}</p>{% for version_id in view.case.basis.version_ids %}<p class="mono">{{ version_id }}</p>{% endfor %}</details>
+  <p class="summary-label">The M1A Read-only foundation remains the access-filtered basis beneath this M1B workspace.</p>
 </article>
 {% endblock %}

@@ -26,6 +26,7 @@ from paim.application.practitioner import (
     CaseListView,
     CaseOrientationView,
     CaseSummary,
+    CaseWorkspaceView,
     HomeView,
     PractitionerQueryService,
 )
@@ -327,6 +328,60 @@ class OperationalApplication:
             actor=actor,
             cases=cases,
             case_id=case_id,
+            effective_at=effective_at,
+            known_at=known_at,
+        )
+
+    def practitioner_workspace(
+        self, session: AuthenticatedSession, case_id: RecordId
+    ) -> CaseWorkspaceView | None:
+        actor, cases, effective_at, known_at = self._practitioner_context(session)
+        if not any(item.case_id == str(case_id) for item in cases):
+            return None
+        visible_configurations = self.operational_store.accessible_configuration_ids(
+            session.principal_id, frozenset({case_id})
+        )
+        governing = self._service.select_governing_configuration(
+            case_id=case_id,
+            effective_at=effective_at,
+            known_at=known_at,
+        )
+        actions = (
+            "configuration.create",
+            "configuration.designate",
+            "evidence.create",
+            "authority.create",
+            "authority-gap.create",
+            "evidence.applicability",
+            "value-input.create",
+            "risk-input.create",
+            "value-input.ready",
+            "risk-input.ready",
+            "value-fitness.create",
+            "risk-fitness.create",
+            "value-input.select",
+            "risk-input.select",
+        )
+        access = {
+            action: self.operational_store.permission_allowed(
+                session.principal_id,
+                Permission.COMMAND,
+                action,
+                ScopeType.CASE,
+                case_id,
+            )
+            for action in actions
+        }
+        return self._practitioner_queries.workspace(
+            actor=actor,
+            cases=cases,
+            case_id=case_id,
+            visible_configuration_ids=visible_configurations,
+            governing=governing,
+            lifecycle_state=self._service.current_lifecycle_state(
+                case_id=case_id, effective_at=effective_at
+            ).value,
+            action_access=access,
             effective_at=effective_at,
             known_at=known_at,
         )

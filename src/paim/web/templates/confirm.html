@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Confirm exact action — PAIM{% endblock %}
+{% block content %}
+<section class="narrow" aria-labelledby="confirm-heading">
+  <h1 id="confirm-heading">Confirm exact action</h1>
+  <p><strong>{{ intent.action }}</strong></p>
+  <p>The server will revalidate identity, software access, exact visibility, accountability,
+     substantive authority, and every bound Version when you confirm.</p>
+  <dl>
+  {% for key, value in intent.payload.items() %}
+    {% if key not in ['provenance'] %}<dt>{{ key.replace('_', ' ') }}</dt><dd class="mono">{{ value }}</dd>{% endif %}
+  {% endfor %}
+  </dl>
+  <details><summary>Exact expected Version basis</summary>
+    {% if intent.expected_version_ids %}<ul>{% for value in intent.expected_version_ids %}<li class="mono">{{ value }}</li>{% endfor %}</ul>{% else %}<p>The owning command expects a new identity.</p>{% endif %}
+  </details>
+  <form action="{{ commit_path }}" method="post" data-submit-lock>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <button type="submit">Confirm and revalidate</button>
+  </form>
+  <p><a href="{{ return_path }}">Cancel without changing PAIM</a></p>
+</section>
+{% endblock %}

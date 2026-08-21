@@ -21,6 +21,7 @@ from starlette.templating import Jinja2Templates
 from paim.integrity import RecordId
 from paim.operational import OperationalApplication
 from paim.operational.models import AccessDenied, AuthenticationFailed, LocalConfiguration
+from paim.web.m1b import register_m1b_routes
 from paim.web.sessions import BrowserSession, SessionRegistry
 
 COOKIE_NAME = "paim_session"
@@ -401,6 +402,23 @@ def create_web_application(
             request, "cases.html", {"view": view, "csrf_token": browser_session.csrf_secret}
         )
 
+    @app.get("/cases/new", response_class=HTMLResponse)
+    def new_case(request: Request) -> Response:
+        browser_session = require_session(request)
+        if isinstance(browser_session, Response):
+            return browser_session
+        assert browser_session.authentication is not None
+        view = gateway.practitioner_cases(browser_session.authentication)
+        return render(
+            request,
+            "case_new.html",
+            {
+                "view": view,
+                "csrf_token": browser_session.csrf_secret,
+                "effective_at": clock().astimezone(UTC).isoformat(),
+            },
+        )
+
     @app.get("/cases/{case_id}", response_class=HTMLResponse)
     def case_orientation(request: Request, case_id: str) -> Response:
         browser_session = require_session(request)
@@ -413,7 +431,7 @@ def create_web_application(
             return render(
                 request, "not_found.html", {"csrf_token": browser_session.csrf_secret}, 404
             )
-        view = gateway.practitioner_case(browser_session.authentication, identity)
+        view = gateway.practitioner_workspace(browser_session.authentication, identity)
         if view is None:
             return render(
                 request, "not_found.html", {"csrf_token": browser_session.csrf_secret}, 404
@@ -434,5 +452,15 @@ def create_web_application(
             "administration.html",
             {"view": view, "csrf_token": browser_session.csrf_secret},
         )
+
+    register_m1b_routes(
+        app,
+        gateway=gateway,
+        registry=registry,
+        render=render,
+        require_session=require_session,
+        same_origin=same_origin,
+        now=clock,
+    )
 
     return app

@@ -4180,5 +4180,100 @@ class SQLiteIntegrityStore:
         with self.engine.connect() as connection:
             return SQLiteIntegrityTransaction(connection).count_rows(table_name)
 
+    def m1b_versions(
+        self,
+        *,
+        case_id: RecordId,
+        visible_configuration_ids: frozenset[RecordId],
+    ) -> tuple[FinalizedRecordVersion, ...]:
+        """Return only the already access-filtered M1B source population."""
+        configuration_ids = tuple(str(value) for value in visible_configuration_ids)
+        if not configuration_ids:
+            return ()
+        version_ids: set[str] = set()
+        with self.engine.connect() as connection:
+            statements = (
+                select(managed_configuration_versions.c.version_id)
+                .join(
+                    managed_configurations,
+                    managed_configurations.c.configuration_id
+                    == managed_configuration_versions.c.configuration_id,
+                )
+                .where(
+                    managed_configurations.c.owning_case_id == str(case_id),
+                    managed_configurations.c.configuration_id.in_(configuration_ids),
+                ),
+                select(governing_configuration_designations.c.version_id)
+                .join(
+                    managed_configuration_versions,
+                    managed_configuration_versions.c.version_id
+                    == governing_configuration_designations.c.configuration_version_id,
+                )
+                .where(
+                    governing_configuration_designations.c.case_id == str(case_id),
+                    managed_configuration_versions.c.configuration_id.in_(configuration_ids),
+                ),
+                select(evidence_versions.c.version_id).where(
+                    evidence_versions.c.case_id == str(case_id),
+                    evidence_versions.c.configuration_id.in_(configuration_ids),
+                ),
+                select(authority_record_versions.c.version_id).where(
+                    authority_record_versions.c.case_id == str(case_id),
+                    authority_record_versions.c.configuration_id.in_(configuration_ids),
+                ),
+                select(authority_gap_versions.c.version_id).where(
+                    authority_gap_versions.c.case_id == str(case_id),
+                    authority_gap_versions.c.configuration_id.in_(configuration_ids),
+                ),
+                select(evidence_applicability_versions.c.version_id).where(
+                    evidence_applicability_versions.c.case_id == str(case_id),
+                    evidence_applicability_versions.c.configuration_id.in_(configuration_ids),
+                ),
+                select(analytical_input_versions.c.version_id).where(
+                    analytical_input_versions.c.case_id == str(case_id),
+                    analytical_input_versions.c.configuration_id.in_(configuration_ids),
+                ),
+                select(lane_fitness_versions.c.version_id).where(
+                    lane_fitness_versions.c.case_id == str(case_id),
+                    lane_fitness_versions.c.configuration_id.in_(configuration_ids),
+                ),
+                select(input_acceptance_versions.c.version_id).where(
+                    input_acceptance_versions.c.case_id == str(case_id),
+                    input_acceptance_versions.c.configuration_id.in_(configuration_ids),
+                ),
+                select(candidate_disposition_versions.c.version_id).where(
+                    candidate_disposition_versions.c.configuration_version_id.in_(
+                        select(managed_configuration_versions.c.version_id).where(
+                            managed_configuration_versions.c.configuration_id.in_(configuration_ids)
+                        )
+                    )
+                ),
+                select(role_assignment_versions.c.version_id).where(
+                    or_(
+                        (role_assignment_versions.c.target_type == RoleTargetType.CASE.value)
+                        & (role_assignment_versions.c.target_id == str(case_id)),
+                        (
+                            role_assignment_versions.c.target_type
+                            == RoleTargetType.CONFIGURATION.value
+                        )
+                        & role_assignment_versions.c.target_id.in_(configuration_ids),
+                    )
+                ),
+            )
+            for statement in statements:
+                version_ids.update(cast("str", value) for value in connection.scalars(statement))
+            if not version_ids:
+                return ()
+            rows = (
+                connection.execute(
+                    select(record_versions, records.c.family, records.c.scope)
+                    .join(records, records.c.record_id == record_versions.c.record_id)
+                    .where(record_versions.c.version_id.in_(tuple(version_ids)))
+                )
+                .mappings()
+                .all()
+            )
+        return tuple(_version_from_row(row) for row in rows)
+
     def dispose(self) -> None:
         self.engine.dispose()

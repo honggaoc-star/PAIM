@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} — PAIM{% endblock %}
+{% block content %}
+<section class="narrow" aria-labelledby="action-error-heading" tabindex="-1">
+  <div class="error-summary" role="alert">
+    <h1 id="action-error-heading">{{ title }}</h1>
+    <p>{{ message }}</p>
+    {% if details %}<ul>{% for detail in details %}<li>{{ detail }}</li>{% endfor %}</ul>{% endif %}
+  </div>
+  <p><a href="{{ return_path }}">Return and reconstruct authoritative state</a></p>
+</section>
+{% endblock %}

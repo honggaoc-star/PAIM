@@ -318,12 +318,19 @@ review is retained in
 release verdict is recorded in `../engineering/PAIM_V0_1_RELEASE_GATE_DECISION_v0.1.md`; it does
 not authorize post-v0.1 work.
 
-## 11. Post-v0.1 M1A browser foundation
+## 11. Post-v0.1 M1 browser development
 
-The M1A browser is an **under-development post-v0.1.0 foundation**. It is not part of the immutable
-PAIM v0.1.0 release claim and does not yet provide the Case-to-Decision management pathway. It
-offers secure local sign-in plus access-filtered, read-only Home, Cases, and Case-orientation
-views.
+The M1A/M1B browser is an **under-development post-v0.1.0 application**. It is not part of the
+immutable PAIM v0.1.0 release claim and is not broadly ready for external practitioners. M1A
+provides secure local sign-in plus access-filtered Home and Cases views. M1B adds browser Case
+creation and the first substantive Case Workspace: exact Configuration creation/successors and
+governing designation, Evidence, Authority and Authority Gaps, Configuration-bound Evidence
+Applicability, and equal independent Value and Risk input/readiness/fitness/selection lanes.
+
+M1B stops before Integration, Integrated Operating Boundary, Decision proposal/authorization,
+Intervention, Completion, Activation, Trigger/Reassessment, and Management Register work. Those
+areas are not implied by workspace navigation or summary presentation; M1C/M1D remain future
+bounded implementation gates.
 
 Use the same validated configuration and database as `paim-local`. The configured credential
 environment source must remain available for the existing configuration preflight, but browser
@@ -336,8 +343,8 @@ uv run --locked paim-web --config C:\secure\paim-local.json
 
 After required schema, health, integrity, resource, and secure-randomness checks pass, the command
 prints the exact local URL and binds only to `127.0.0.1` with one worker and no reload. Non-loopback
-binds and failed required startup checks are rejected. M1A does not claim concurrent CLI/web write
-support; use one managed application process when domain writes are introduced in later increments.
+binds and failed required startup checks are rejected. M1 does not claim concurrent CLI/web write
+support; use one managed application process for the authoritative domain write boundary.
 
 Browser sessions are opaque, server-side, and process-local. Inactivity expires a session after 30
 minutes; absolute expiry is eight hours; restart signs out every browser. The loopback HTTP cookie
@@ -355,5 +362,7 @@ uv run --locked pytest tests/browser --browser chromium
 ```
 
 Templates and static assets are repository-owned package resources. Essential sign-in, Home,
-Cases, Case orientation, and sign-out work without JavaScript. The small same-origin script only
-adds submit locking; it owns no PAIM meaning or state.
+Cases, the M1B Case Workspace and forms, confirmations, and sign-out work without JavaScript. Each
+consequential form creates a bounded server-held action intent, confirms its exact source-Version
+basis, invokes one named production capability, and reconstructs authoritative state through PRG.
+The small same-origin script only adds submit locking; it owns no PAIM meaning or state.
