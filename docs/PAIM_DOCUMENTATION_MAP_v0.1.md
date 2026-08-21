@@ -9,7 +9,7 @@ semantics.
 | Reader intent | Start here | Then continue to |
 |---|---|---|
 | New to PAIM / conceptual understanding | [Repository README](../README.md) | [PAIM v0.1 Conceptual Guide](PAIM_CONCEPTUAL_GUIDE_v0.1.md) |
-| Want to try PAIM | [Local Operational Application](operations/PAIM_LOCAL_OPERATIONAL_APPLICATION_v0.1.md) | **Quick Start — planned for documentation Pass B; not yet present** |
+| Want to try PAIM | [PAIM v0.1 Quick Start](operations/PAIM_QUICK_START_v0.1.md) | [Local Operational Application](operations/PAIM_LOCAL_OPERATIONAL_APPLICATION_v0.1.md) for full operation and recovery |
 | Follow the practitioner pathways | [PAIM v0.1 Practitioner Pathways](operations/PAIM_V0_1_PRACTITIONER_PATHWAYS_v0.1.md) | Validation evidence for the three pathways below |
 | Operate or administer a local instance | [Local Operational Application](operations/PAIM_LOCAL_OPERATIONAL_APPLICATION_v0.1.md) | Runtime decisions and recovery evidence under engineering documentation if deeper rationale is needed |
 | Implement or review PAIM contracts | [System Architecture](system/architecture/PAIM_SYSTEM_ARCHITECTURE_v0.1.md) | [Current system specifications](system/specifications/) and [behavioral validation strategy](system/testing/PAIM_SYSTEM_BEHAVIORAL_VALIDATION_STRATEGY_v0.1.md) |
@@ -19,18 +19,16 @@ semantics.
 
 ## Practitioner and operator guidance
 
-The two current operational guides serve different purposes:
+The three current operational guides serve different purposes:
 
+- [PAIM v0.1 Quick Start](operations/PAIM_QUICK_START_v0.1.md) provides the shortest supported
+  path from a clean checkout to a healthy local instance and first Case/Configuration context.
 - [PAIM v0.1 Practitioner Pathways](operations/PAIM_V0_1_PRACTITIONER_PATHWAYS_v0.1.md)
   explains the production-only management pathways, exact prerequisites, persisted-state
   continuity, authority boundaries, and contextual next actions.
 - [PAIM Local Operational Application](operations/PAIM_LOCAL_OPERATIONAL_APPLICATION_v0.1.md)
   covers local configuration, bootstrap, authentication and access, intake, exports,
   notifications, backup/restore, health, and explicit unsupported boundaries.
-
-A concise Quick Start is planned for Pass B. Until it exists, the Local Operational Application is
-the authoritative reader entry for setup and commands; no nonexistent Quick Start file is linked
-from this map.
 
 ## Current architecture and technical contracts
 
