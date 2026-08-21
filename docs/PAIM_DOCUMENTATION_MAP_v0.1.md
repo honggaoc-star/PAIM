@@ -8,7 +8,7 @@ semantics.
 
 | Reader intent | Start here | Then continue to |
 |---|---|---|
-| New to PAIM / conceptual understanding | [Repository README](../README.md) | **Conceptual Guide — planned for documentation Pass B; not yet present** |
+| New to PAIM / conceptual understanding | [Repository README](../README.md) | [PAIM v0.1 Conceptual Guide](PAIM_CONCEPTUAL_GUIDE_v0.1.md) |
 | Want to try PAIM | [Local Operational Application](operations/PAIM_LOCAL_OPERATIONAL_APPLICATION_v0.1.md) | **Quick Start — planned for documentation Pass B; not yet present** |
 | Follow the practitioner pathways | [PAIM v0.1 Practitioner Pathways](operations/PAIM_V0_1_PRACTITIONER_PATHWAYS_v0.1.md) | Validation evidence for the three pathways below |
 | Operate or administer a local instance | [Local Operational Application](operations/PAIM_LOCAL_OPERATIONAL_APPLICATION_v0.1.md) | Runtime decisions and recovery evidence under engineering documentation if deeper rationale is needed |
