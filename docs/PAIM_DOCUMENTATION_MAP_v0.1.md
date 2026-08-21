@@ -14,6 +14,7 @@ semantics.
 | Operate or administer a local instance | [Local Operational Application](operations/PAIM_LOCAL_OPERATIONAL_APPLICATION_v0.1.md) | Runtime decisions and recovery evidence under engineering documentation if deeper rationale is needed |
 | Implement or review PAIM contracts | [System Architecture](system/architecture/PAIM_SYSTEM_ARCHITECTURE_v0.1.md) | [Current system specifications](system/specifications/) and [behavioral validation strategy](system/testing/PAIM_SYSTEM_BEHAVIORAL_VALIDATION_STRATEGY_v0.1.md) |
 | Review validation and release evidence | [Increment 9 v0.1 Validation Results](system/testing/PAIM_INCREMENT_9_V0_1_VALIDATION_RESULTS_v0.1.md) | [v0.1 Release Gate Decision](engineering/PAIM_V0_1_RELEASE_GATE_DECISION_v0.1.md) and the frozen validation plan |
+| Plan or review empirical PAIM research | [PAIM Empirical Research Agenda](research/PAIM_EMPIRICAL_RESEARCH_AGENDA_v0.1.md) | Current concepts and bounded validation evidence as sources, not empirical proof |
 | Study design rationale or development history | [Engineering documentation](engineering/) | Increment decisions, readiness assessments, runtime decisions, sequencing, and practitioner-findings review |
 
 ## Practitioner and operator guidance
@@ -68,6 +69,13 @@ semantics:
 Testing and release evidence demonstrates conformance to defined behavior. It must not be rewritten
 or interpreted as authority to expand product semantics.
 
+## Empirical research
+
+The [PAIM Empirical Research Agenda](research/PAIM_EMPIRICAL_RESEARCH_AGENDA_v0.1.md) identifies
+revisable questions about PAIM, alternatives to it, and emergent practitioner behavior. It is a
+research-planning artifact, not a product specification, literature review, experimental protocol,
+or validation claim.
+
 ## Engineering decisions and development history
 
 Files under [engineering](engineering/) record design rationale, implementation sequencing,
@@ -85,6 +93,8 @@ read it as evidence of that checkpoint rather than as the current product status
   contracts or evidence, as applicable to each document.
 - `docs/operations/**` contains practitioner and local operator guidance. It explains how to use
   the released application without changing governing semantics.
+- `docs/research/**` contains empirical research-planning artifacts. Research questions and
+  hypotheses do not amend product semantics or constitute validation evidence.
 - `docs/engineering/**` contains design rationale, implementation decisions, assessments, and
   development/release history unless a document explicitly declares a controlling role.
 - Testing and release artifacts remain evidence. They do not silently amend PAIM architecture,

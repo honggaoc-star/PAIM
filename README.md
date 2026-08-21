@@ -100,6 +100,7 @@ reader guidance, current technical contracts, validation evidence, and engineeri
 | Operate or administer locally | [Local Operational Application](docs/operations/PAIM_LOCAL_OPERATIONAL_APPLICATION_v0.1.md) |
 | Implement or review contracts | [System Architecture](docs/system/architecture/PAIM_SYSTEM_ARCHITECTURE_v0.1.md) and [system specifications](docs/system/specifications/) |
 | Review validation and release evidence | [Increment 9 Validation Results](docs/system/testing/PAIM_INCREMENT_9_V0_1_VALIDATION_RESULTS_v0.1.md) and [v0.1 Release Gate Decision](docs/engineering/PAIM_V0_1_RELEASE_GATE_DECISION_v0.1.md) |
+| Plan or review empirical research | [PAIM Empirical Research Agenda](docs/research/PAIM_EMPIRICAL_RESEARCH_AGENDA_v0.1.md) |
 | Study design and development rationale | [Engineering documentation](docs/engineering/) |
 
 ## Method before software
