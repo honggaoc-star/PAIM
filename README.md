@@ -94,7 +94,7 @@ reader guidance, current technical contracts, validation evidence, and engineeri
 
 | Reader intent | Start here |
 |---|---|
-| New to PAIM | This README; a fuller Conceptual Guide is planned for Pass B |
+| New to PAIM | This README and the [PAIM v0.1 Conceptual Guide](docs/PAIM_CONCEPTUAL_GUIDE_v0.1.md) |
 | Want to try it | [Local Operational Application](docs/operations/PAIM_LOCAL_OPERATIONAL_APPLICATION_v0.1.md); a concise Quick Start is planned for Pass B |
 | Follow practitioner workflows | [PAIM v0.1 Practitioner Pathways](docs/operations/PAIM_V0_1_PRACTITIONER_PATHWAYS_v0.1.md) |
 | Operate or administer locally | [Local Operational Application](docs/operations/PAIM_LOCAL_OPERATIONAL_APPLICATION_v0.1.md) |
