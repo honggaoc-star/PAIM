@@ -21,6 +21,14 @@ from paim.application import (
     Increment7ApplicationService,
     StalePrecondition,
 )
+from paim.application.practitioner import (
+    ActorContext,
+    CaseListView,
+    CaseOrientationView,
+    CaseSummary,
+    HomeView,
+    PractitionerQueryService,
+)
 from paim.audit import ActorResolution
 from paim.domain import (
     CommandMeta,
@@ -84,6 +92,7 @@ class OperationalApplication:
         self.domain_store = SQLiteIntegrityStore(config.database_url)
         self.operational_store = OperationalStore(config.database_url, config.event_log_path)
         self._service = Increment7ApplicationService(self.domain_store, self.clock)
+        self._practitioner_queries = PractitionerQueryService(self.domain_store)
         self._register_queries: dict[str, RegisterQuery] = {}
 
     def close(self) -> None:
@@ -281,6 +290,76 @@ class OperationalApplication:
             details={"resolved": principal.actor_id is not None},
         )
         return session
+
+    def revalidate_session(self, session: AuthenticatedSession) -> None:
+        """Fail closed when current principal status or Actor mapping has changed."""
+        self._validate_session(session, "browser.session")
+
+    def practitioner_home(self, session: AuthenticatedSession) -> HomeView:
+        actor, cases, effective_at, known_at = self._practitioner_context(session)
+        health = self.health()
+        return self._practitioner_queries.home(
+            actor=actor,
+            cases=cases,
+            health_state=health.state.value,
+            health_reasons=health.reasons,
+            effective_at=effective_at,
+            known_at=known_at,
+        )
+
+    def practitioner_cases(
+        self, session: AuthenticatedSession, *, search_text: str = ""
+    ) -> CaseListView:
+        actor, cases, effective_at, known_at = self._practitioner_context(session)
+        return self._practitioner_queries.case_list(
+            actor=actor,
+            cases=cases,
+            search_text=search_text,
+            effective_at=effective_at,
+            known_at=known_at,
+        )
+
+    def practitioner_case(
+        self, session: AuthenticatedSession, case_id: RecordId
+    ) -> CaseOrientationView | None:
+        actor, cases, effective_at, known_at = self._practitioner_context(session)
+        return self._practitioner_queries.orientation(
+            actor=actor,
+            cases=cases,
+            case_id=case_id,
+            effective_at=effective_at,
+            known_at=known_at,
+        )
+
+    def _practitioner_context(
+        self, session: AuthenticatedSession
+    ) -> tuple[ActorContext, tuple[CaseSummary, ...], datetime, datetime]:
+        self._validate_session(session, "practitioner.read")
+        if session.actor_id is None:
+            raise AccessDenied("current Actor mapping is not established")
+        now = self.clock.now()
+        visible_cases = self.operational_store.accessible_case_ids(session.principal_id)
+        visible_configurations = self.operational_store.accessible_configuration_ids(
+            session.principal_id, visible_cases
+        )
+        configuration_counts = {case_id: 0 for case_id in visible_cases}
+        for configuration_id in visible_configurations:
+            owning_case_id = self.operational_store.configuration_case(configuration_id)
+            if owning_case_id in visible_cases:
+                configuration_counts[owning_case_id] += 1
+        actor = self._practitioner_queries.actor_context(
+            principal_id=session.principal_id,
+            actor_id=session.actor_id,
+            effective_at=now,
+            known_at=now,
+        )
+        cases = self._practitioner_queries.cases(
+            visible_case_ids=visible_cases,
+            visible_configuration_counts=configuration_counts,
+            effective_at=now,
+            known_at=now,
+        )
+        return actor, cases, now, now
 
     def run_command(
         self,

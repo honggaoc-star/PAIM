@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Home — PAIM{% endblock %}
+{% block content %}
+<section aria-labelledby="home-heading">
+  <h1 id="home-heading">Management home</h1>
+  <div class="status-panel" aria-label="Application health">
+    <strong>Application health: {{ view.health }}</strong>
+    {% if view.health_reasons %}<span>{{ view.health_reasons | join(', ') }}</span>{% else %}<span>Required local checks passed.</span>{% endif %}
+  </div>
+  <div class="summary-card">
+    <span class="summary-label">Visible Cases</span>
+    <strong class="summary-value">{{ view.visible_case_count }}</strong>
+    <p>Counted only after current access filtering.</p>
+  </div>
+</section>
+<section aria-labelledby="recent-heading">
+  <h2 id="recent-heading">Visible Case orientation</h2>
+  {% if view.cases %}
+  <ul class="card-list">
+    {% for case in view.cases %}
+    <li><a href="/cases/{{ case.case_id }}">{{ case.title }}</a><span class="state">{{ case.state.value }}</span></li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <div class="empty-state"><h3>No visible Cases</h3><p>No Case is currently visible to this principal. This statement reveals no inaccessible Case count.</p></div>
+  {% endif %}
+</section>
+<section aria-labelledby="future-heading">
+  <h2 id="future-heading">Foundation boundary</h2>
+  <p>M1A provides read-only orientation. Case creation and the Case-to-Decision pathway arrive only in separately reviewed increments.</p>
+</section>
+{% endblock %}

@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}{{ view.case.title }} — PAIM{% endblock %}
+{% block content %}
+<nav aria-label="Breadcrumb"><a href="/cases">Cases</a> / <span>Orientation</span></nav>
+<article aria-labelledby="case-heading">
+  <h1 id="case-heading">{{ view.case.title }}</h1>
+  <p class="mono">Case {{ view.case.case_id }}</p>
+  <div class="status-panel"><strong>{{ view.case.state.value }}</strong><span>{{ view.case.explanation }}</span></div>
+  <dl>
+    <dt>Visible Configurations</dt><dd>{{ view.case.visible_configuration_count }}</dd>
+    <dt>Effective at</dt><dd>{{ view.case.basis.effective_at.isoformat() }}</dd>
+    <dt>Known at</dt><dd>{{ view.case.basis.known_at.isoformat() }}</dd>
+  </dl>
+  <details>
+    <summary>Exact authoritative source basis</summary>
+    <p>Record ID: <span class="mono">{{ view.case.basis.record_id }}</span></p>
+    {% if view.case.basis.version_ids %}<ul>{% for version_id in view.case.basis.version_ids %}<li class="mono">{{ version_id }}</li>{% endfor %}</ul>{% else %}<p>No exact current Version is established.</p>{% endif %}
+  </details>
+  <div class="empty-state"><h2>Read-only foundation</h2><p>Configuration and management actions are not available in M1A.</p></div>
+</article>
+{% endblock %}

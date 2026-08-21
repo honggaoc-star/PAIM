@@ -7,6 +7,8 @@ import pytest
 
 from paim.persistence.sqlite import SQLiteIntegrityStore, upgrade_database
 
+pytest_plugins = ("tests.web_support",)
+
 
 @pytest.fixture
 def sqlite_store(tmp_path: Path) -> Iterator[SQLiteIntegrityStore]:
