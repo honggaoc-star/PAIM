@@ -101,8 +101,19 @@ reader guidance, current technical contracts, validation evidence, and engineeri
 | Operate or administer locally | [Local Operational Application](docs/operations/PAIM_LOCAL_OPERATIONAL_APPLICATION_v0.1.md) |
 | Implement or review contracts | [System Architecture](docs/system/architecture/PAIM_SYSTEM_ARCHITECTURE_v0.1.md) and [system specifications](docs/system/specifications/) |
 | Review validation and release evidence | [Increment 9 Validation Results](docs/system/testing/PAIM_INCREMENT_9_V0_1_VALIDATION_RESULTS_v0.1.md) and [v0.1 Release Gate Decision](docs/engineering/PAIM_V0_1_RELEASE_GATE_DECISION_v0.1.md) |
+| Review or test PAIM and report findings | [Focused feedback](FEEDBACK.md) and [v0.1 GitHub Release Notes source](docs/release/PAIM_V0_1_GITHUB_RELEASE_NOTES.md) |
 | Plan or review empirical research | [PAIM Empirical Research Agenda](docs/research/PAIM_EMPIRICAL_RESEARCH_AGENDA_v0.1.md) |
 | Study design and development rationale | [Engineering documentation](docs/engineering/) |
+
+## License, citation, and focused review
+
+PAIM is licensed under the [Apache License 2.0](LICENSE); third-party attribution retained with the
+source is recorded in [NOTICE](NOTICE). Citation metadata is available in
+[`CITATION.cff`](CITATION.cff). Focused conceptual, usability, technical, and hands-on pathway
+findings—including contradictory, null, and negative results—are welcome through the process in
+[`FEEDBACK.md`](FEEDBACK.md). This invitation is for review and experimentation, not consequential
+production reliance; do not place confidential Case material or other sensitive information in a
+public issue.
 
 ## Method before software
 

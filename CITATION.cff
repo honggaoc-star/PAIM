@@ -1,0 +1,13 @@
+cff-version: 1.2.0
+message: "If you use Practical AI Management (PAIM), please cite this software using these metadata."
+title: "Practical AI Management (PAIM)"
+type: software
+version: 0.1.0
+authors:
+  - name: "Practical AI Management (PAIM) project"
+repository-code: "https://github.com/honggaoc-star/PAIM"
+license: Apache-2.0
+abstract: >-
+  A bounded research and reference implementation for making, implementing,
+  evaluating, and revising organizational management decisions about uses of
+  artificial intelligence.

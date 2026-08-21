@@ -13,7 +13,9 @@ semantics.
 | Follow the practitioner pathways | [PAIM v0.1 Practitioner Pathways](operations/PAIM_V0_1_PRACTITIONER_PATHWAYS_v0.1.md) | Validation evidence for the three pathways below |
 | Operate or administer a local instance | [Local Operational Application](operations/PAIM_LOCAL_OPERATIONAL_APPLICATION_v0.1.md) | Runtime decisions and recovery evidence under engineering documentation if deeper rationale is needed |
 | Implement or review PAIM contracts | [System Architecture](system/architecture/PAIM_SYSTEM_ARCHITECTURE_v0.1.md) | [Current system specifications](system/specifications/) and [behavioral validation strategy](system/testing/PAIM_SYSTEM_BEHAVIORAL_VALIDATION_STRATEGY_v0.1.md) |
+| License or cite PAIM | [Apache License 2.0](../LICENSE) and [NOTICE](../NOTICE) | [`CITATION.cff`](../CITATION.cff) |
 | Review validation and release evidence | [Increment 9 v0.1 Validation Results](system/testing/PAIM_INCREMENT_9_V0_1_VALIDATION_RESULTS_v0.1.md) | [v0.1 Release Gate Decision](engineering/PAIM_V0_1_RELEASE_GATE_DECISION_v0.1.md) and the frozen validation plan |
+| Review or test PAIM and report findings | [Focused feedback](../FEEDBACK.md) | [v0.1 GitHub Release Notes source](release/PAIM_V0_1_GITHUB_RELEASE_NOTES.md) |
 | Plan or review empirical PAIM research | [PAIM Empirical Research Agenda](research/PAIM_EMPIRICAL_RESEARCH_AGENDA_v0.1.md) | Current concepts and bounded validation evidence as sources, not empirical proof |
 | Study design rationale or development history | [Engineering documentation](engineering/) | Increment decisions, readiness assessments, runtime decisions, sequencing, and practitioner-findings review |
 
