@@ -22,8 +22,8 @@ architecture. The locked environment resolves:
 | Browser automation (development only) | Playwright 1.62.0 | Apache-2.0 |
 | Pytest browser integration (development only) | pytest-playwright 0.8.0 | Apache-2.0 |
 
-All selected packages support CPython 3.12 and their licenses are compatible with PAIM's MIT
-license. The locked Playwright release supplies Windows x86-64 Chromium/Chrome-for-Testing support.
+All selected packages support CPython 3.12 and their licenses are compatible with PAIM's Apache
+License 2.0. The locked Playwright release supplies Windows x86-64 Chromium/Chrome-for-Testing support.
 No Node.js, npm, frontend build chain, CDN, HTMX, client framework, external session store, or
 accessibility package was required for this gate.
 
