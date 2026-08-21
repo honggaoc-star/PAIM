@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Create a Case — PAIM{% endblock %}
+{% block content %}
+<nav aria-label="Breadcrumb"><a href="/cases">Cases</a> / <span>Create</span></nav>
+<section class="narrow" aria-labelledby="new-case-heading">
+  <h1 id="new-case-heading">Create a Case</h1>
+  <p>This creates one PAIM Case only. It does not assign an owner, accountability, or authority.</p>
+  <form action="/cases/new/review" method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <input type="hidden" name="effective_at" value="{{ effective_at }}">
+    <label for="case-title">Management question or Case title</label>
+    <input id="case-title" name="title" maxlength="300" required>
+    <button type="submit">Review exact Case creation</button>
+  </form>
+</section>
+{% endblock %}

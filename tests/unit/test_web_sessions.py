@@ -83,3 +83,32 @@ def test_attempt_limiter_is_bounded_and_recovers_after_window() -> None:
     assert limiter.allowed("principal:a")
     clock.advance(timedelta(minutes=1))
     assert limiter.allowed("principal:b")
+
+
+def test_action_intent_binds_exact_payload_reuses_outcome_and_expires() -> None:
+    clock = MutableNow()
+    registry = SessionRegistry(now=clock)
+    anonymous_id, _ = registry.create_anonymous()
+    identifier, _ = registry.rotate_authenticated(anonymous_id, authenticated())
+    intent = registry.create_intent(
+        identifier,
+        action="value-input.select",
+        payload={"input_version_id": "version:exact"},
+        expected_version_ids=("version:exact",),
+    )
+    assert registry.intent(identifier, intent.intent_id, action=intent.action) == intent
+    assert registry.intent(identifier, intent.intent_id, action="risk-input.select") is None
+
+    second = registry.create_intent(
+        identifier,
+        action="value-input.select",
+        payload={"input_version_id": "version:exact"},
+        expected_version_ids=("version:exact",),
+    )
+    completed = registry.record_intent_outcome(
+        identifier, second.intent_id, outcome_path="/cases/exact"
+    )
+    assert completed.idempotency_key == second.idempotency_key
+    assert completed.outcome_path == "/cases/exact"
+    clock.advance(timedelta(minutes=16))
+    assert registry.intent(identifier, second.intent_id, action=second.action) is None

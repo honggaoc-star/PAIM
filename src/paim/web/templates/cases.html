@@ -3,6 +3,7 @@
 {% block content %}
 <section aria-labelledby="cases-heading">
   <h1 id="cases-heading">Cases</h1>
+  <p><a class="button-link" href="/cases/new">Create a Case</a></p>
   <form action="/cases" method="get" role="search">
     <label for="case-search">Search visible Cases</label>
     <div class="search-row"><input id="case-search" name="q" value="{{ view.search_text }}" maxlength="200"><button type="submit">Search</button></div>

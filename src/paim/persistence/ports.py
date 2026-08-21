@@ -84,5 +84,12 @@ class IntegrityStore(Protocol):
 
     def count_rows(self, table_name: str) -> int: ...
 
+    def m1b_versions(
+        self,
+        *,
+        case_id: RecordId,
+        visible_configuration_ids: frozenset[RecordId],
+    ) -> tuple[FinalizedRecordVersion, ...]: ...
+
 
 type CreatedIdentity = AuditId | EventId | RecordVersionId | RelationshipId
