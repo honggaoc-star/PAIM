@@ -266,17 +266,24 @@ answer. Management Judgment remains explicit and accountable.
 ## 6. A Decision Requires Accountability and Authority
 
 A person’s ability to click or submit a command is not authority to make the underlying Decision.
-PAIM separates three layers that organizations often blur:
+PAIM separates five layers that organizations often blur:
 
-1. **Software access** determines whether a principal may attempt an operation and view its
-   governed context.
-2. **Accountability** identifies the eligible current Actor or organizational mechanism responsible
-   for a particular obligation.
-3. **Substantive authority** establishes that the Actor or mechanism may perform the governed act
-   for the exact scope and time.
+1. **Identity** establishes the authenticated principal and its current mapped Actor. Knowing who
+   is acting does not give that Actor permission to attempt a command or authority to decide.
+2. **Software access** establishes `COMMAND` permission to attempt the exact action at the required
+   scope. It does not make the governed Case or Configuration visible.
+3. **Exact governed-context visibility** establishes `CASE_READ` access to the owning Case and,
+   when applicable, `CONFIGURATION_READ` access to the exact Configuration. Visibility permits the
+   Actor to see the context needed for the command; it does not permit mutation or create authority.
+4. **Accountability** identifies the eligible current Actor or organizational mechanism responsible
+   for the typed target and particular obligation.
+5. **Substantive authority** establishes that the Actor or mechanism may perform the governed act
+   for the exact scope and time through the applicable Authority or Authorization Basis.
 
-All applicable layers must be established. A role label, administrator status, recency, seniority,
-or broad software permission cannot fill a missing authority link. Where accountability is absent,
+Each applicable layer must be established in its own right. Generic administrator status or broad
+command permission does not supply exact Case or Configuration visibility. A role label, recency,
+seniority, or software permission cannot fill a missing authority link. Where accountability is
+absent,
 PAIM records a vacancy. Where incompatible eligible assignments coexist, it records an explicit
 conflict. It does not choose a winner by specificity, breadth, recency, role hierarchy, or software
 permission.
