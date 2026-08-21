@@ -317,3 +317,43 @@ review is retained in
 `../engineering/PAIM_INCREMENT_9_PRACTITIONER_FINDINGS_CROSS_PATHWAY_REVIEW_v0.1.md`. The effective
 release verdict is recorded in `../engineering/PAIM_V0_1_RELEASE_GATE_DECISION_v0.1.md`; it does
 not authorize post-v0.1 work.
+
+## 11. Post-v0.1 M1A browser foundation
+
+The M1A browser is an **under-development post-v0.1.0 foundation**. It is not part of the immutable
+PAIM v0.1.0 release claim and does not yet provide the Case-to-Decision management pathway. It
+offers secure local sign-in plus access-filtered, read-only Home, Cases, and Case-orientation
+views.
+
+Use the same validated configuration and database as `paim-local`. The configured credential
+environment source must remain available for the existing configuration preflight, but browser
+credentials are entered at sign-in and are never read from that environment variable, persisted,
+placed in a cookie, or rendered back to the browser.
+
+```powershell
+uv run --locked paim-web --config C:\secure\paim-local.json
+```
+
+After required schema, health, integrity, resource, and secure-randomness checks pass, the command
+prints the exact local URL and binds only to `127.0.0.1` with one worker and no reload. Non-loopback
+binds and failed required startup checks are rejected. M1A does not claim concurrent CLI/web write
+support; use one managed application process when domain writes are introduced in later increments.
+
+Browser sessions are opaque, server-side, and process-local. Inactivity expires a session after 30
+minutes; absolute expiry is eight hours; restart signs out every browser. The loopback HTTP cookie
+is host-only, `HttpOnly`, `SameSite=Strict`, and `Path=/`. It cannot use `Secure` under the
+intentionally HTTP-only M1 posture; any future HTTPS or non-loopback architecture must use a
+`Secure` `__Host-` cookie and requires a new decision. Every protected request revalidates current
+principal status, Actor mapping, and current visible access.
+
+For browser development, install the browser binary matched to the locked Playwright package, then
+run the bounded browser gate:
+
+```powershell
+uv run --locked playwright install chromium
+uv run --locked pytest tests/browser --browser chromium
+```
+
+Templates and static assets are repository-owned package resources. Essential sign-in, Home,
+Cases, Case orientation, and sign-out work without JavaScript. The small same-origin script only
+adds submit locking; it owns no PAIM meaning or state.

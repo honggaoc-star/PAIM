@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} — PAIM{% endblock %}
+{% block content %}
+<section class="narrow" aria-labelledby="error-heading">
+  <div class="error-summary" role="alert"><h1 id="error-heading">{{ title }}</h1><p>{{ message }}</p></div>
+  {% if reference is defined and reference %}<p>Reference: <span class="mono">{{ reference }}</span></p>{% endif %}
+  <p><a href="/login">Return to sign in</a></p>
+</section>
+{% endblock %}

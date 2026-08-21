@@ -263,9 +263,27 @@ class OperationalStore:
         return candidates[0]["effect"] == AccessEffect.ALLOW.value
 
     def accessible_case_ids(self, principal_id: str) -> frozenset[RecordId]:
+        if self.permission_allowed(principal_id, Permission.CASE_READ, "read"):
+            candidates = self.all_case_ids()
+        else:
+            candidates = self._scoped_allowed_ids(
+                principal_id, Permission.CASE_READ, "read", ScopeType.CASE
+            )
+            if not candidates:
+                return frozenset()
+            with self.read() as connection:
+                existing = frozenset(
+                    RecordId.parse(item)
+                    for item in connection.scalars(
+                        select(paim_cases.c.case_id).where(
+                            paim_cases.c.case_id.in_(tuple(str(item) for item in candidates))
+                        )
+                    ).all()
+                )
+            candidates &= existing
         return frozenset(
             case_id
-            for case_id in self.all_case_ids()
+            for case_id in candidates
             if self.permission_allowed(
                 principal_id,
                 Permission.CASE_READ,
@@ -296,17 +314,33 @@ class OperationalStore:
     ) -> frozenset[RecordId]:
         if not case_ids:
             return frozenset()
+        global_read = self.permission_allowed(principal_id, Permission.CONFIGURATION_READ, "read")
+        scoped_candidates = (
+            frozenset()
+            if global_read
+            else self._scoped_allowed_ids(
+                principal_id,
+                Permission.CONFIGURATION_READ,
+                "read",
+                ScopeType.CONFIGURATION,
+            )
+        )
+        if not global_read and not scoped_candidates:
+            return frozenset()
         with self.read() as connection:
-            rows = connection.execute(
-                select(
-                    managed_configurations.c.configuration_id,
-                    managed_configurations.c.owning_case_id,
-                ).where(
-                    managed_configurations.c.owning_case_id.in_(
-                        tuple(str(item) for item in case_ids)
+            statement = select(
+                managed_configurations.c.configuration_id,
+                managed_configurations.c.owning_case_id,
+            ).where(
+                managed_configurations.c.owning_case_id.in_(tuple(str(item) for item in case_ids))
+            )
+            if not global_read:
+                statement = statement.where(
+                    managed_configurations.c.configuration_id.in_(
+                        tuple(str(item) for item in scoped_candidates)
                     )
                 )
-            ).all()
+            rows = connection.execute(statement).all()
         visible: set[RecordId] = set()
         for configuration_text, _case_text in rows:
             configuration_id = RecordId.parse(cast("str", configuration_text))
@@ -319,6 +353,31 @@ class OperationalStore:
             ):
                 visible.add(configuration_id)
         return frozenset(visible)
+
+    def _scoped_allowed_ids(
+        self,
+        principal_id: str,
+        permission: Permission,
+        action: str,
+        scope_type: ScopeType,
+    ) -> frozenset[RecordId]:
+        with self.read() as connection:
+            grants = self._current_grants(connection, principal_id)
+        values: set[RecordId] = set()
+        for row in grants:
+            if (
+                row["permission"] != permission.value
+                or row["action"] not in {action, "*"}
+                or row["scope_type"] != scope_type.value
+                or row["scope_id"] is None
+                or row["effect"] != AccessEffect.ALLOW.value
+            ):
+                continue
+            try:
+                values.add(RecordId.parse(cast("str", row["scope_id"])))
+            except ValueError:
+                continue
+        return frozenset(values)
 
     def configuration_case(self, configuration_id: RecordId) -> RecordId | None:
         with self.read() as connection:

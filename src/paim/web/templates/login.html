@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Sign in — PAIM{% endblock %}
+{% block content %}
+<section class="narrow" aria-labelledby="login-heading">
+  <h1 id="login-heading">Sign in to PAIM</h1>
+  <p>Use an existing PAIM principal and its protected local credential.</p>
+  {% if error %}
+  <div class="error-summary" role="alert" tabindex="-1">
+    <h2>Sign-in was not completed</h2>
+    <p>{{ error }}</p>
+  </div>
+  {% endif %}
+  <form action="/session" method="post" data-submit-lock>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <label for="principal-id">Principal ID</label>
+    <input id="principal-id" name="principal_id" autocomplete="username" maxlength="200" required>
+    <label for="credential">Protected credential</label>
+    <input id="credential" name="credential" type="password" autocomplete="current-password" maxlength="4096" required>
+    <button type="submit">Sign in</button>
+  </form>
+  <details>
+    <summary>What this sign-in establishes</summary>
+    <p>Identity and software access are checked here. PAIM accountability and substantive authority remain separate governed facts.</p>
+  </details>
+</section>
+{% endblock %}

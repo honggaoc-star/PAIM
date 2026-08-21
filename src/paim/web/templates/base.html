@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}PAIM{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', path='paim.css') }}">
+  <script src="{{ url_for('static', path='paim.js') }}" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  <header class="site-header">
+    <div>
+      <a class="product-name" href="/home">Practical AI Management</a>
+      <span class="phase">M1 foundation</span>
+    </div>
+    {% if view is defined and view.actor is defined %}
+    <div class="identity">
+      <span>Signed in as</span>
+      <strong>{{ view.actor.display_name }}</strong>
+      <span class="mono">{{ view.actor.actor_id }}</span>
+    </div>
+    {% endif %}
+  </header>
+  {% if view is defined and view.actor is defined %}
+  <nav aria-label="Primary">
+    <a href="/home">Home</a>
+    <a href="/cases">Cases</a>
+    <a href="/administration">Administration</a>
+    <form action="/logout" method="post" class="inline-form" data-submit-lock>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <button type="submit">Sign out</button>
+    </form>
+  </nav>
+  {% endif %}
+  <main id="main-content" tabindex="-1">
+    {% block content %}{% endblock %}
+  </main>
+  <footer>
+    PAIM browser support is a post-v0.1.0 foundation under active M1 development.
+  </footer>
+</body>
+</html>

@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Cases — PAIM{% endblock %}
+{% block content %}
+<section aria-labelledby="cases-heading">
+  <h1 id="cases-heading">Cases</h1>
+  <form action="/cases" method="get" role="search">
+    <label for="case-search">Search visible Cases</label>
+    <div class="search-row"><input id="case-search" name="q" value="{{ view.search_text }}" maxlength="200"><button type="submit">Search</button></div>
+  </form>
+  <p>{{ view.visible_case_count }} visible result{% if view.visible_case_count != 1 %}s{% endif %}. Search is evaluated only over the access-filtered population.</p>
+  {% if view.cases %}
+  <ul class="card-list">
+    {% for case in view.cases %}
+    <li>
+      <div><a href="/cases/{{ case.case_id }}">{{ case.title }}</a><div class="mono">{{ case.case_id }}</div></div>
+      <span class="state">{{ case.state.value }}</span>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <div class="empty-state"><h2>No visible matches</h2><p>Try a different visible label or exact identifier.</p></div>
+  {% endif %}
+</section>
+{% endblock %}
