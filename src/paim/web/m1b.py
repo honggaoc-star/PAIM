@@ -55,6 +55,14 @@ def _version_ids(value: str) -> tuple[RecordVersionId, ...]:
     return tuple(RecordVersionId.parse(item) for item in _lines(value.replace(",", "\n")))
 
 
+def _boolean(value: str) -> bool:
+    if value == "TRUE":
+        return True
+    if value == "FALSE":
+        return False
+    raise ValueError("boolean value must be exactly TRUE or FALSE")
+
+
 def _required(payload: dict[str, str], names: tuple[str, ...]) -> tuple[str, ...]:
     return tuple(name for name in names if not payload.get(name, "").strip())
 
@@ -140,10 +148,14 @@ _REQUIRED: dict[str, tuple[str, ...]] = {
         "input_version_id",
         "use_context",
         "purpose",
+        "outcome",
+        "decision_limiting",
         "rationale",
         "accountable_mechanism",
         "evidence_version_id",
         "applicability_version_id",
+        "evidence_role",
+        "required_support",
         "claimed_scope",
         "effective_at",
     ),
@@ -153,10 +165,14 @@ _REQUIRED: dict[str, tuple[str, ...]] = {
         "input_version_id",
         "use_context",
         "purpose",
+        "outcome",
+        "decision_limiting",
         "rationale",
         "accountable_mechanism",
         "evidence_version_id",
         "applicability_version_id",
+        "evidence_role",
+        "required_support",
         "claimed_scope",
         "effective_at",
     ),
@@ -461,8 +477,8 @@ def _execute(
         basis = MaterialEvidenceBasisInput(
             RecordVersionId.parse(data["evidence_version_id"]),
             RecordVersionId.parse(data["applicability_version_id"]),
-            data.get("evidence_role", "material support"),
-            True,
+            data["evidence_role"],
+            _boolean(data["required_support"]),
             data["claimed_scope"],
         )
         gateway.run_command(
@@ -483,10 +499,10 @@ def _execute(
                     configuration_version_id,
                     data["use_context"],
                     data["purpose"],
-                    FitnessOutcome.SUPPORTABLE,
+                    FitnessOutcome(data["outcome"]),
                     data["rationale"],
-                    None,
-                    False,
+                    data.get("indeterminate_treatment") or None,
+                    _boolean(data["decision_limiting"]),
                     None,
                     data["accountable_mechanism"],
                     (basis,),

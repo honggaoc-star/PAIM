@@ -142,16 +142,22 @@ def test_m1b_browser_exact_evidence_and_independent_lane_path(
             fitness_form.get_by_label("Exact Input Version ID").fill(candidate.version_id)
             fitness_form.get_by_label("Use context").fill("bounded-operation")
             fitness_form.get_by_label("Purpose").fill("bounded-management")
+            fitness_form.get_by_label("Fitness outcome").select_option("SUPPORTABLE")
+            fitness_form.get_by_label("Decision-limiting").select_option("FALSE")
             fitness_form.get_by_label("Exact Evidence Version ID").fill(evidence.version_id)
             fitness_form.get_by_label("Exact Applicability Version ID").fill(
                 applicability_view.version_id
             )
+            fitness_form.get_by_label("Material-evidence role").fill("material support")
+            fitness_form.get_by_label("Required support").select_option("TRUE")
             fitness_form.get_by_label("Claimed scope").fill("exact governed Configuration")
             fitness_form.get_by_label("Rationale").fill("Exact material support is supportable")
             fitness_form.get_by_label("Accountable mechanism").fill(
                 f"governed:m1b-browser-{slug}-fitness"
             )
             fitness_form.get_by_role("button", name="Review exact fitness").click()
+            assert page.get_by_text("SUPPORTABLE", exact=True).is_visible()
+            assert page.get_by_text("material support", exact=True).is_visible()
             _confirm(page)
             workspace = web_fixture.operational.practitioner_workspace(
                 web_fixture.admin_session, web_fixture.visible_case_id

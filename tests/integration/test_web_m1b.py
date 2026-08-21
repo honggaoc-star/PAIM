@@ -212,32 +212,73 @@ def test_m1b_workspace_exact_configuration_and_independent_value_risk_path(
                 )[2].status_code
                 == 303
             )
-        assert (
-            _review_commit(
-                web_fixture.client,
-                f"{base}/{slug}/fitness/review",
-                {
-                    "configuration_id": configuration.configuration_id,
-                    "configuration_version_id": configuration.version_id,
-                    "input_version_id": candidate.version_id,
-                    "use_context": "bounded-operation",
-                    "purpose": "bounded-management",
-                    "rationale": "Exact material basis is supportable",
-                    "accountable_mechanism": f"governed:m1b-{slug}-fitness",
-                    "evidence_version_id": evidence.version_id,
-                    "applicability_version_id": applicability.version_id,
-                    "claimed_scope": "exact governed Configuration",
-                    "effective_at": workspace.effective_at.isoformat(),
-                },
-            )[2].status_code
-            == 303
+        fitness_data = {
+            "configuration_id": configuration.configuration_id,
+            "configuration_version_id": configuration.version_id,
+            "input_version_id": candidate.version_id,
+            "use_context": "bounded-operation",
+            "purpose": "bounded-management",
+            "outcome": "SUPPORTABLE",
+            "decision_limiting": "FALSE",
+            "indeterminate_treatment": "",
+            "rationale": "Exact material basis is supportable",
+            "accountable_mechanism": f"governed:m1b-{slug}-fitness",
+            "evidence_version_id": evidence.version_id,
+            "applicability_version_id": applicability.version_id,
+            "evidence_role": "material support",
+            "required_support": "TRUE",
+            "claimed_scope": "exact governed Configuration",
+            "effective_at": workspace.effective_at.isoformat(),
+        }
+        _, fitness_confirmation, fitness_commit = _review_commit(
+            web_fixture.client,
+            f"{base}/{slug}/fitness/review",
+            fitness_data,
         )
+        assert fitness_commit.status_code == 303
+        assert "SUPPORTABLE" in fitness_confirmation.text
+        assert "required support" in fitness_confirmation.text
+        assert "TRUE" in fitness_confirmation.text
         current = web_fixture.operational.practitioner_workspace(
             web_fixture.admin_session, web_fixture.visible_case_id
         )
         assert current is not None
         lane_view = current.value if lane == "VALUE" else current.risk
-        fitness = lane_view.fitness[0]
+        fitness = next(
+            item for item in lane_view.fitness if item.content["outcome"] == "SUPPORTABLE"
+        )
+        assert fitness.content["decision_limiting"] is False
+        assert fitness.content["material_evidence"][0]["required_support"] is True
+        if lane == "RISK":
+            blocked_data = {
+                **fitness_data,
+                "outcome": "BLOCKED",
+                "decision_limiting": "TRUE",
+                "indeterminate_treatment": "Escalate unresolved lane evidence",
+                "rationale": "Exact Risk evidence remains decision-limiting",
+                "required_support": "FALSE",
+            }
+            _, blocked_confirmation, blocked_commit = _review_commit(
+                web_fixture.client,
+                f"{base}/{slug}/fitness/review",
+                blocked_data,
+            )
+            assert blocked_commit.status_code == 303
+            assert "BLOCKED" in blocked_confirmation.text
+            assert "Escalate unresolved lane evidence" in blocked_confirmation.text
+            current = web_fixture.operational.practitioner_workspace(
+                web_fixture.admin_session, web_fixture.visible_case_id
+            )
+            assert current is not None
+            blocked = next(
+                item for item in current.risk.fitness if item.content["outcome"] == "BLOCKED"
+            )
+            assert blocked.content["input_version_id"] == candidate.version_id
+            assert blocked.content["decision_limiting"] is True
+            assert blocked.content["indeterminate_treatment"] == (
+                "Escalate unresolved lane evidence"
+            )
+            assert blocked.content["material_evidence"][0]["required_support"] is False
         assert (
             _review_commit(
                 web_fixture.client,
@@ -265,6 +306,14 @@ def test_m1b_workspace_exact_configuration_and_independent_value_risk_path(
     assert completed is not None
     assert completed.value.selection_state.value == "ESTABLISHED"
     assert completed.risk.selection_state.value == "ESTABLISHED"
+    assert {item.content["outcome"] for item in completed.value.fitness} == {"SUPPORTABLE"}
+    assert {item.content["outcome"] for item in completed.risk.fitness} == {
+        "SUPPORTABLE",
+        "BLOCKED",
+    }
+    assert {item.record_id for item in completed.value.fitness}.isdisjoint(
+        item.record_id for item in completed.risk.fitness
+    )
     assert (
         completed.value.selections[0].content["input_version_id"]
         != completed.risk.selections[0].content["input_version_id"]
