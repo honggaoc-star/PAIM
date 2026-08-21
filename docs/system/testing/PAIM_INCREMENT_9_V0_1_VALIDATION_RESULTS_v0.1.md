@@ -570,7 +570,8 @@ observed no release-blocking semantic or operational/security failure.
 
 Residual limitations remain explicit: PAIM v0.1 is a local CLI and typed-gateway application with
 documentation-led navigation, not a polished self-service product. IRR-009 and IRR-014 remain
-semantically undesigned and outside the bounded claim. The final release-gate artifact selects the
-authorized Issue #69 verdict, subject to independent review and merge control.
+semantically undesigned and outside the bounded claim. The final release-gate artifact selected the
+authorized Issue #69 verdict, which became effective when PR #70 was independently accepted and
+merged as `b5e68ee3387571ca1db027099aa44272f03f06d5`.
 
 **PAIM V0.1 RELEASED — BOUNDED CLAIM VALIDATED**
