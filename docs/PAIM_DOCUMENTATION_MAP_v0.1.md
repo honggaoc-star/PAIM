@@ -11,6 +11,7 @@ semantics.
 | New to PAIM / conceptual understanding | [Repository README](../README.md) | [PAIM v0.1 Conceptual Guide](PAIM_CONCEPTUAL_GUIDE_v0.1.md) |
 | Want to try PAIM | [PAIM v0.1 Quick Start](operations/PAIM_QUICK_START_v0.1.md) | [Local Operational Application](operations/PAIM_LOCAL_OPERATIONAL_APPLICATION_v0.1.md) for full operation and recovery |
 | Follow the practitioner pathways | [PAIM v0.1 Practitioner Pathways](operations/PAIM_V0_1_PRACTITIONER_PATHWAYS_v0.1.md) | Validation evidence for the three pathways below |
+| Exercise and challenge PAIM concepts | [PAIM Reference Cases](reference-cases/) | [Small-Business Lending exercise protocol](reference-cases/PAIM_REFERENCE_CASE_EXERCISE_PROTOCOL.md) |
 | Operate or administer a local instance | [Local Operational Application](operations/PAIM_LOCAL_OPERATIONAL_APPLICATION_v0.1.md) | Runtime decisions and recovery evidence under engineering documentation if deeper rationale is needed |
 | Implement or review PAIM contracts | [System Architecture](system/architecture/PAIM_SYSTEM_ARCHITECTURE_v0.1.md) | [Current system specifications](system/specifications/) and [behavioral validation strategy](system/testing/PAIM_SYSTEM_BEHAVIORAL_VALIDATION_STRATEGY_v0.1.md) |
 | Plan or review the bounded practitioner browser experience | [Practitioner Experience Architecture M1](design/PAIM_PRACTITIONER_EXPERIENCE_ARCHITECTURE_M1_v0.1.md) | Current system architecture and specifications remain controlling implementation contracts |
@@ -78,6 +79,14 @@ revisable questions about PAIM, alternatives to it, and emergent practitioner be
 research-planning artifact, not a product specification, literature review, experimental protocol,
 or validation claim.
 
+## Reference cases
+
+[PAIM Reference Cases](reference-cases/) are illustrative, framework-revealing practitioner
+exercises. They separate external-source statements, structuring interpretations, and PAIM-created
+fictional scenario design. They may reveal useful behavior, confusion, disproportionate work, or
+cases where PAIM adds little value. They are not product specifications, production advice,
+empirical validation, or evidence that PAIM is effective.
+
 ## Engineering decisions and development history
 
 Files under [engineering](engineering/) record design rationale, implementation sequencing,
@@ -97,6 +106,8 @@ read it as evidence of that checkpoint rather than as the current product status
   the released application without changing governing semantics.
 - `docs/research/**` contains empirical research-planning artifacts. Research questions and
   hypotheses do not amend product semantics or constitute validation evidence.
+- `docs/reference-cases/**` contains illustrative exercise designs and source reconstructions. They
+  do not amend product semantics or constitute empirical evidence.
 - `docs/engineering/**` contains design rationale, implementation decisions, assessments, and
   development/release history unless a document explicitly declares a controlling role.
 - Testing and release artifacts remain evidence. They do not silently amend PAIM architecture,

@@ -98,6 +98,7 @@ reader guidance, current technical contracts, validation evidence, and engineeri
 | New to PAIM | This README and the [PAIM v0.1 Conceptual Guide](docs/PAIM_CONCEPTUAL_GUIDE_v0.1.md) |
 | Want to try it | [PAIM v0.1 Quick Start](docs/operations/PAIM_QUICK_START_v0.1.md), then the [Local Operational Application](docs/operations/PAIM_LOCAL_OPERATIONAL_APPLICATION_v0.1.md) |
 | Follow practitioner workflows | [PAIM v0.1 Practitioner Pathways](docs/operations/PAIM_V0_1_PRACTITIONER_PATHWAYS_v0.1.md) |
+| Exercise and challenge PAIM concepts | [PAIM Reference Cases](docs/reference-cases/) |
 | Operate or administer locally | [Local Operational Application](docs/operations/PAIM_LOCAL_OPERATIONAL_APPLICATION_v0.1.md) |
 | Implement or review contracts | [System Architecture](docs/system/architecture/PAIM_SYSTEM_ARCHITECTURE_v0.1.md) and [system specifications](docs/system/specifications/) |
 | Review validation and release evidence | [Increment 9 Validation Results](docs/system/testing/PAIM_INCREMENT_9_V0_1_VALIDATION_RESULTS_v0.1.md) and [v0.1 Release Gate Decision](docs/engineering/PAIM_V0_1_RELEASE_GATE_DECISION_v0.1.md) |
