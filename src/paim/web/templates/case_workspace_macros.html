@@ -14,6 +14,7 @@
   <a href="/cases/{{ view.case.case_id }}/configuration"{% if active == 'configuration' %} aria-current="page"{% endif %}>Configuration</a>
   <a href="/cases/{{ view.case.case_id }}/evidence"{% if active == 'evidence' %} aria-current="page"{% endif %}>Evidence &amp; Authority</a>
   <a href="/cases/{{ view.case.case_id }}/assessment"{% if active == 'assessment' %} aria-current="page"{% endif %}>Value &amp; Risk</a>
+  <a href="/cases/{{ view.case.case_id }}/decision"{% if active == 'decision' %} aria-current="page"{% endif %}>Integration &amp; Decision</a>
   <a href="/cases/{{ view.case.case_id }}/history"{% if active == 'history' %} aria-current="page"{% endif %}>History &amp; provenance</a>
 </nav>
 {%- endmacro %}

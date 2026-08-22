@@ -4275,5 +4275,110 @@ class SQLiteIntegrityStore:
             )
         return tuple(_version_from_row(row) for row in rows)
 
+    def m1c_versions(
+        self,
+        *,
+        case_id: RecordId,
+        visible_configuration_ids: frozenset[RecordId],
+    ) -> tuple[FinalizedRecordVersion, ...]:
+        """Return the access-filtered M1B population plus exact Increment 4 sources."""
+        configuration_ids = tuple(str(value) for value in visible_configuration_ids)
+        if not configuration_ids:
+            return ()
+        versions = {
+            str(value.version_id): value
+            for value in self.m1b_versions(
+                case_id=case_id, visible_configuration_ids=visible_configuration_ids
+            )
+        }
+        version_ids: set[str] = set()
+        with self.engine.connect() as connection:
+            integration_ids = tuple(
+                connection.scalars(
+                    select(integration_versions.c.version_id).where(
+                        integration_versions.c.case_id == str(case_id),
+                        integration_versions.c.configuration_id.in_(configuration_ids),
+                    )
+                )
+            )
+            boundary_ids = tuple(
+                connection.scalars(
+                    select(boundary_snapshot_versions.c.version_id).where(
+                        boundary_snapshot_versions.c.case_id == str(case_id),
+                        boundary_snapshot_versions.c.configuration_id.in_(configuration_ids),
+                    )
+                )
+            )
+            decision_rows = tuple(
+                connection.execute(
+                    select(decision_versions.c.version_id, decision_versions.c.decision_id).where(
+                        decision_versions.c.case_id == str(case_id),
+                        decision_versions.c.configuration_id.in_(configuration_ids),
+                    )
+                ).all()
+            )
+            decision_version_ids = tuple(row.version_id for row in decision_rows)
+            decision_record_ids = tuple(row.decision_id for row in decision_rows)
+            version_ids.update(cast("str", value) for value in integration_ids)
+            version_ids.update(cast("str", value) for value in boundary_ids)
+            version_ids.update(cast("str", value) for value in decision_version_ids)
+            if integration_ids:
+                version_ids.update(
+                    cast("str", value)
+                    for value in connection.scalars(
+                        select(uncertainty_classification_versions.c.version_id).where(
+                            uncertainty_classification_versions.c.integration_version_id.in_(
+                                integration_ids
+                            )
+                        )
+                    )
+                )
+            if boundary_ids:
+                version_ids.update(
+                    cast("str", value)
+                    for value in connection.scalars(
+                        select(boundary_determination_versions.c.version_id).where(
+                            boundary_determination_versions.c.snapshot_version_id.in_(boundary_ids)
+                        )
+                    )
+                )
+            if decision_version_ids:
+                version_ids.update(
+                    cast("str", value)
+                    for value in connection.scalars(
+                        select(decision_authorization_basis_versions.c.version_id).where(
+                            decision_authorization_basis_versions.c.decision_version_id.in_(
+                                decision_version_ids
+                            )
+                        )
+                    )
+                )
+            if decision_record_ids:
+                version_ids.update(
+                    cast("str", value)
+                    for value in connection.scalars(
+                        select(role_assignment_versions.c.version_id).where(
+                            role_assignment_versions.c.target_type == RoleTargetType.DECISION.value,
+                            role_assignment_versions.c.target_id.in_(decision_record_ids),
+                        )
+                    )
+                )
+            missing = tuple(version_ids.difference(versions))
+            if missing:
+                rows = (
+                    connection.execute(
+                        select(record_versions, records.c.family, records.c.scope)
+                        .join(records, records.c.record_id == record_versions.c.record_id)
+                        .where(record_versions.c.version_id.in_(missing))
+                    )
+                    .mappings()
+                    .all()
+                )
+                versions.update(
+                    (str(version.version_id), version)
+                    for version in (_version_from_row(row) for row in rows)
+                )
+        return tuple(versions.values())
+
     def dispose(self) -> None:
         self.engine.dispose()

@@ -91,5 +91,12 @@ class IntegrityStore(Protocol):
         visible_configuration_ids: frozenset[RecordId],
     ) -> tuple[FinalizedRecordVersion, ...]: ...
 
+    def m1c_versions(
+        self,
+        *,
+        case_id: RecordId,
+        visible_configuration_ids: frozenset[RecordId],
+    ) -> tuple[FinalizedRecordVersion, ...]: ...
+
 
 type CreatedIdentity = AuditId | EventId | RecordVersionId | RelationshipId

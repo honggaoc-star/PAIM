@@ -22,6 +22,7 @@ from paim.integrity import RecordId
 from paim.operational import OperationalApplication
 from paim.operational.models import AccessDenied, AuthenticationFailed, LocalConfiguration
 from paim.web.m1b import register_m1b_routes
+from paim.web.m1c import register_m1c_routes
 from paim.web.sessions import BrowserSession, SessionRegistry
 
 COOKIE_NAME = "paim_session"
@@ -440,6 +441,7 @@ def create_web_application(
             "configuration": "case_configuration.html",
             "evidence": "case_evidence.html",
             "assessment": "case_assessment.html",
+            "decision": "case_decision.html",
             "history": "case_history.html",
         }
         template = templates_by_area.get(area)
@@ -479,6 +481,15 @@ def create_web_application(
         )
 
     register_m1b_routes(
+        app,
+        gateway=gateway,
+        registry=registry,
+        render=render,
+        require_session=require_session,
+        same_origin=same_origin,
+        now=clock,
+    )
+    register_m1c_routes(
         app,
         gateway=gateway,
         registry=registry,

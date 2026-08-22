@@ -6,6 +6,7 @@ from collections.abc import Mapping
 from dataclasses import replace
 from datetime import datetime
 
+from paim.application.practitioner.integration_basis import exact_current_integration_basis
 from paim.application.practitioner.models import (
     ActorContext,
     AnalyticalLaneView,
@@ -15,6 +16,7 @@ from paim.application.practitioner.models import (
     CaseSummary,
     CaseWorkspaceView,
     ConfigurationView,
+    DecisionWorkspaceView,
     ExplanationView,
     GovernedRecordView,
     HomeView,
@@ -180,12 +182,15 @@ class PractitionerQueryService:
         selected_case = next((item for item in cases if item.case_id == str(case_id)), None)
         if selected_case is None:
             return None
-        source_versions = self._store.m1b_versions(
+        source_versions = self._store.m1c_versions(
             case_id=case_id,
             visible_configuration_ids=visible_configuration_ids,
         )
         current = self._current_versions(source_versions, effective_at, known_at)
-        visible_versions = self._exact_visible_version_index(current)
+        visible_versions = self._exact_visible_version_index(source_versions)
+        all_by_family: dict[str, list[FinalizedRecordVersion]] = {}
+        for version in source_versions:
+            all_by_family.setdefault(version.family, []).append(version)
         by_family: dict[str, list[FinalizedRecordVersion]] = {}
         for version in current:
             by_family.setdefault(version.family, []).append(version)
@@ -250,6 +255,16 @@ class PractitionerQueryService:
         risk = self._lane_view(
             "RISK", by_family, action_access, effective_at, known_at, visible_versions
         )
+        decision = self._decision_workspace(
+            by_family=by_family,
+            all_by_family=all_by_family,
+            value=value,
+            risk=risk,
+            action_access=action_access,
+            effective_at=effective_at,
+            known_at=known_at,
+            visible_versions=visible_versions,
+        )
         attention = self._attention(
             case_id=case_id,
             governing_state=governing_state,
@@ -269,6 +284,7 @@ class PractitionerQueryService:
             applicability=applicability,
             value=value,
             risk=risk,
+            decision=decision,
             action_access=action_access,
         )
         return CaseWorkspaceView(
@@ -295,6 +311,7 @@ class PractitionerQueryService:
             applicability=applicability,
             value=value,
             risk=risk,
+            decision=decision,
             attention=attention,
             effective_at=effective_at,
             known_at=known_at,
@@ -311,6 +328,7 @@ class PractitionerQueryService:
         applicability: tuple[GovernedRecordView, ...],
         value: AnalyticalLaneView,
         risk: AnalyticalLaneView,
+        decision: DecisionWorkspaceView,
         action_access: Mapping[str, bool],
     ) -> tuple[AttentionItemView, ...]:
         base = f"/cases/{case_id}"
@@ -400,7 +418,266 @@ class PractitionerQueryService:
                         ),
                     )
                 )
+        decision_attention = (
+            ("integration", "Integration not yet established", decision.integration_explanation)
+            if decision.integration_state is not ReadState.ESTABLISHED
+            and value.selection_state is ReadState.ESTABLISHED
+            and risk.selection_state is ReadState.ESTABLISHED
+            else (
+                "boundary",
+                "Operating Boundary not yet established",
+                decision.boundary_explanation,
+            )
+            if decision.integration_state is ReadState.ESTABLISHED
+            and decision.boundary_state is not ReadState.ESTABLISHED
+            else (
+                "proposal",
+                "Decision proposal not yet established",
+                decision.decision_explanation,
+            )
+            if decision.boundary_state is ReadState.ESTABLISHED
+            and decision.decision_state is not ReadState.ESTABLISHED
+            else (
+                "authorization",
+                "Decision awaits separate authorization",
+                decision.authorization_explanation,
+            )
+            if decision.decision_state is ReadState.ESTABLISHED
+            and decision.authorization_state is not ReadState.ESTABLISHED
+            else None
+        )
+        if decision_attention is not None:
+            key, label, explanation = decision_attention
+            items.append(
+                AttentionItemView(
+                    f"decision-{key}", label, explanation.reason, f"{base}/decision", explanation
+                )
+            )
         return tuple(items)
+
+    def _decision_workspace(
+        self,
+        *,
+        by_family: Mapping[str, list[FinalizedRecordVersion]],
+        all_by_family: Mapping[str, list[FinalizedRecordVersion]],
+        value: AnalyticalLaneView,
+        risk: AnalyticalLaneView,
+        action_access: Mapping[str, bool],
+        effective_at: datetime,
+        known_at: datetime,
+        visible_versions: Mapping[str, FinalizedRecordVersion | None],
+    ) -> DecisionWorkspaceView:
+        def selected(lane: AnalyticalLaneView) -> GovernedRecordView | None:
+            if lane.selection_state is not ReadState.ESTABLISHED:
+                return None
+            selection = lane.selections[0]
+            matches = tuple(
+                item
+                for item in lane.candidates
+                if item.version_id == selection.content.get("input_version_id")
+                and item.record_id == selection.content.get("input_id")
+            )
+            return matches[0] if len(matches) == 1 else None
+
+        selected_value = selected(value)
+        selected_risk = selected(risk)
+        all_integrations = self._record_views(
+            by_family.get("integration", []), effective_at, known_at, visible_versions
+        )
+        integrations = tuple(
+            item
+            for item in all_integrations
+            if exact_current_integration_basis(item, value=value, risk=risk) is not None
+        )
+        integration_versions = {item.version_id: item for item in integrations}
+        all_boundaries = self._record_views(
+            by_family.get("boundary-snapshot", []), effective_at, known_at, visible_versions
+        )
+        boundaries = tuple(
+            item
+            for item in all_boundaries
+            if (
+                integration := integration_versions.get(
+                    str(item.content.get("integration_version_id", ""))
+                )
+            )
+            is not None
+            and item.content.get("integration_id") == integration.record_id
+            and item.content.get("configuration_id") == integration.content.get("configuration_id")
+            and item.content.get("configuration_version_id")
+            == integration.content.get("configuration_version_id")
+        )
+        boundary_versions = {item.version_id: item for item in boundaries}
+        all_decisions = self._record_views(
+            by_family.get("management-decision", []), effective_at, known_at, visible_versions
+        )
+        decisions = tuple(
+            item
+            for item in all_decisions
+            if (
+                integration := integration_versions.get(
+                    str(item.content.get("integration_version_id", ""))
+                )
+            )
+            is not None
+            and (
+                boundary := boundary_versions.get(
+                    str(item.content.get("boundary_snapshot_version_id", ""))
+                )
+            )
+            is not None
+            and item.content.get("integration_id") == integration.record_id
+            and item.content.get("boundary_snapshot_id") == boundary.record_id
+            and boundary.content.get("integration_version_id") == integration.version_id
+            and item.content.get("configuration_id") == integration.content.get("configuration_id")
+            and item.content.get("configuration_version_id")
+            == integration.content.get("configuration_version_id")
+        )
+        decision_versions = {item.version_id: item for item in decisions}
+        all_authorizations = self._record_views(
+            by_family.get("decision-authorization-basis", []),
+            effective_at,
+            known_at,
+            visible_versions,
+        )
+        authorizations = tuple(
+            item
+            for item in all_authorizations
+            if (decision := decision_versions.get(str(item.content.get("decision_version_id", ""))))
+            is not None
+            and item.content.get("decision_id") == decision.record_id
+            and item.content.get("configuration_id") == decision.content.get("configuration_id")
+            and item.content.get("configuration_version_id")
+            == decision.content.get("configuration_version_id")
+        )
+        assignments = tuple(
+            item
+            for item in self._record_views(
+                by_family.get("role-assignment", []),
+                effective_at,
+                known_at,
+                visible_versions,
+            )
+            if item.content.get("role") == "Decision Authority"
+            and item.content.get("accountable") is True
+        )
+        history_versions = tuple(
+            version
+            for family in (
+                "integration",
+                "uncertainty-classification",
+                "boundary-snapshot",
+                "boundary-determination",
+                "management-decision",
+                "decision-authorization-basis",
+            )
+            for version in all_by_family.get(family, [])
+        )
+        history = self._record_views(
+            list(history_versions), effective_at, known_at, visible_versions
+        )
+
+        def state(values: tuple[GovernedRecordView, ...]) -> ReadState:
+            return (
+                ReadState.ABSENT
+                if not values
+                else ReadState.ESTABLISHED
+                if len(values) == 1
+                else ReadState.CONFLICT
+            )
+
+        integration_state = state(integrations)
+        boundary_state = state(tuple(item for item in boundaries if item.state == "finalized"))
+        decision_state = state(
+            tuple(item for item in decisions if item.state in {"proposed", "pending_authorization"})
+        )
+        authorization_state = state(authorizations)
+
+        def explanation(
+            stage_state: ReadState,
+            established: str,
+            absent: str,
+            action: str,
+            access_action: str,
+            basis: tuple[GovernedRecordView, ...],
+            accountability: str,
+            authority: str,
+        ) -> ExplanationView:
+            reason = (
+                established
+                if stage_state is ReadState.ESTABLISHED
+                else f"Multiple incompatible current {absent} records remain explicit."
+                if stage_state is ReadState.CONFLICT
+                else f"No exact current {absent} is established."
+            )
+            return ExplanationView(
+                stage_state,
+                reason,
+                action,
+                True,
+                action_access.get(access_action, False),
+                True,
+                accountability,
+                authority,
+                tuple(item.version_id for item in basis),
+            )
+
+        return DecisionWorkspaceView(
+            selected_value,
+            selected_risk,
+            integrations,
+            boundaries,
+            decisions,
+            authorizations,
+            assignments,
+            history,
+            integration_state,
+            boundary_state,
+            decision_state,
+            authorization_state,
+            explanation(
+                integration_state,
+                "One exact Integration remains valid for the current selected "
+                "Value and Risk basis.",
+                "Integration",
+                "Integrate the exact selected Value and Risk analyses",
+                "integration.create",
+                integrations,
+                "The Integration must retain an explicit accountable basis.",
+                "Integration does not authorize a Decision.",
+            ),
+            explanation(
+                boundary_state,
+                "One exact finalized operating Boundary is established.",
+                "finalized Boundary",
+                "Establish explicit Boundary clauses for the exact Integration",
+                "boundary.create",
+                boundaries,
+                "The Boundary owner remains explicit.",
+                "A Boundary limits a Decision; it does not authorize one.",
+            ),
+            explanation(
+                decision_state,
+                "One exact current Decision proposal is established.",
+                "Decision proposal",
+                "Propose a Decision bound to the exact Integration and Boundary",
+                "decision.propose",
+                decisions,
+                "Proposal authorship is not Decision authority.",
+                "A proposal is not an authorization.",
+            ),
+            explanation(
+                authorization_state,
+                "One exact Decision Authorization Basis is established.",
+                "Decision Authorization Basis",
+                "Authorize through the owning Decision authority capability",
+                "decision.authorize",
+                authorizations,
+                "Exactly one eligible accountable Decision Authority assignment is required.",
+                "Substantive authority must be established by exact assignment and authority "
+                "source; software access is insufficient.",
+            ),
+        )
 
     def _current_versions(
         self,
@@ -465,6 +742,7 @@ class PractitionerQueryService:
                 content.get("outcome")
                 or content.get("attention")
                 or content.get("maturity")
+                or content.get("status")
                 or "ESTABLISHED"
             )
             view = GovernedRecordView(
@@ -620,6 +898,58 @@ class PractitionerQueryService:
                 return f"{lane.title()} assessment selected — {finding}"
             lane_label = lane.title() if isinstance(lane, str) and lane else "Lane"
             return f"{lane_label} assessment selection — exact analysis unavailable"
+
+        if version.family == "integration":
+            value_input = exact(content.get("value_input_version_id"))
+            risk_input = exact(content.get("risk_input_version_id"))
+            value_finding = (
+                text(value_input, "finding")
+                if value_input is not None and value_input.family == "value-input"
+                else None
+            )
+            risk_finding = (
+                text(risk_input, "finding")
+                if risk_input is not None and risk_input.family == "risk-input"
+                else None
+            )
+            if value_finding and risk_finding:
+                return f"Integration — Value: {value_finding} | Risk: {risk_finding}"
+            return "Integration — exact selected Value/Risk basis unavailable"
+
+        if version.family == "boundary-snapshot":
+            integration = exact(content.get("integration_version_id"))
+            rationale = text(version, "narrative_rationale")
+            if integration is not None and integration.family == "integration" and rationale:
+                return f"Boundary — {rationale}"
+            return "Boundary — exact Integration relation unavailable"
+
+        if version.family == "management-decision":
+            integration = exact(content.get("integration_version_id"))
+            boundary = exact(content.get("boundary_snapshot_version_id"))
+            proposed_action = text(version, "proposed_action")
+            if (
+                integration is not None
+                and integration.family == "integration"
+                and boundary is not None
+                and boundary.family == "boundary-snapshot"
+                and proposed_action
+            ):
+                return f"Proposed Decision — {proposed_action}"
+            return "Decision proposal — exact Integration/Boundary basis unavailable"
+
+        if version.family == "decision-authorization-basis":
+            decision = exact(content.get("decision_version_id"))
+            scope = text(version, "authorized_scope")
+            proposed_action = text(decision, "proposed_action") if decision is not None else None
+            if decision is not None and decision.family == "management-decision" and scope:
+                return f"Authorized Decision — {proposed_action or 'exact proposal'} — {scope}"
+            return "Decision authorization — exact proposal relation unavailable"
+
+        if version.family == "role-assignment" and content.get("role") == "Decision Authority":
+            target_type = content.get("target_type")
+            if isinstance(target_type, str):
+                return f"Decision Authority — {target_type.replace('_', ' ').title()} scope"
+            return "Decision Authority assignment — exact target unavailable"
 
         return default
 
