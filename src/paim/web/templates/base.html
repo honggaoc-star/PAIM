@@ -12,13 +12,11 @@
   <header class="site-header">
     <div>
       <a class="product-name" href="/home">Practical AI Management</a>
-      <span class="phase">M1B active development</span>
     </div>
     {% if view is defined and view.actor is defined %}
     <div class="identity">
       <span>Signed in as</span>
       <strong>{{ view.actor.display_name }}</strong>
-      <span class="mono">{{ view.actor.actor_id }}</span>
     </div>
     {% endif %}
   </header>
@@ -26,7 +24,6 @@
   <nav aria-label="Primary">
     <a href="/home">Home</a>
     <a href="/cases">Cases</a>
-    <a href="/administration">Administration</a>
     <form action="/logout" method="post" class="inline-form" data-submit-lock>
       <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
       <button type="submit">Sign out</button>
@@ -36,8 +33,6 @@
   <main id="main-content" tabindex="-1">
     {% block content %}{% endblock %}
   </main>
-  <footer>
-    PAIM browser support is a post-v0.1.0 foundation under active M1 development.
-  </footer>
+  <footer>Practical AI Management - local practitioner workspace</footer>
 </body>
 </html>

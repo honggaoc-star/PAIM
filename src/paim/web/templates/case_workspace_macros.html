@@ -1,0 +1,32 @@
+{% macro workspace_header(view, active) -%}
+<nav aria-label="Breadcrumb"><a href="/cases">Your Cases</a> / <span>{{ view.case.title }}</span></nav>
+<header class="workspace-header">
+  <div><h1>{{ view.case.title }}</h1><p>Case workspace · {{ view.lifecycle_state.replace('_', ' ').title() }}</p></div>
+  <div class="context-summary">
+    {% if view.governing_state.value == 'ESTABLISHED' %}<strong>Governing Configuration established</strong>
+    {% elif view.governing_state.value == 'CONFLICT' %}<strong>Governing Configuration conflict</strong>
+    {% else %}<strong>Governing Configuration not yet established</strong>{% endif %}
+    <span>{{ view.attention | length }} current attention item{% if view.attention | length != 1 %}s{% endif %}</span>
+  </div>
+</header>
+<nav class="workspace-nav" aria-label="Case workspace">
+  <a href="/cases/{{ view.case.case_id }}"{% if active == 'overview' %} aria-current="page"{% endif %}>Overview</a>
+  <a href="/cases/{{ view.case.case_id }}/configuration"{% if active == 'configuration' %} aria-current="page"{% endif %}>Configuration</a>
+  <a href="/cases/{{ view.case.case_id }}/evidence"{% if active == 'evidence' %} aria-current="page"{% endif %}>Evidence &amp; Authority</a>
+  <a href="/cases/{{ view.case.case_id }}/assessment"{% if active == 'assessment' %} aria-current="page"{% endif %}>Value &amp; Risk</a>
+  <a href="/cases/{{ view.case.case_id }}/history"{% if active == 'history' %} aria-current="page"{% endif %}>History &amp; provenance</a>
+</nav>
+{%- endmacro %}
+
+{% macro why(explanation, expanded=false) -%}
+<details class="why"{% if expanded %} open{% endif %}>
+  <summary>Why is this shown? What can legitimately change it?</summary>
+  <p>{{ explanation.reason }}</p>
+  <p><strong>Owning action:</strong> {{ explanation.owning_action }}</p>
+  <dl class="compact-facts"><dt>Software access</dt><dd>{{ 'Available' if explanation.software_access else 'Not available' }}</dd><dt>Exact governed context</dt><dd>{{ 'Visible' if explanation.context_visible else 'Not visible' }}</dd><dt>Accountability</dt><dd>{{ explanation.accountability }}</dd><dt>Substantive authority</dt><dd>{{ explanation.substantive_authority }}</dd></dl>
+</details>
+{%- endmacro %}
+
+{% macro exact_basis(item, title='Identity and provenance') -%}
+<details class="provenance"><summary>{{ title }}</summary><p>Record <span class="mono">{{ item.record_id }}</span></p><p>Version <span class="mono">{{ item.version_id }}</span></p><p>Effective {{ item.basis.effective_at.isoformat() }}; known {{ item.basis.known_at.isoformat() }}</p><pre>{{ item.content | tojson(indent=2) }}</pre></details>
+{%- endmacro %}

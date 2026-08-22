@@ -3,30 +3,23 @@
 {% block content %}
 <section aria-labelledby="home-heading">
   <h1 id="home-heading">Management home</h1>
-  <div class="status-panel" aria-label="Application health">
-    <strong>Application health: {{ view.health }}</strong>
-    {% if view.health_reasons %}<span>{{ view.health_reasons | join(', ') }}</span>{% else %}<span>Required local checks passed.</span>{% endif %}
-  </div>
   <div class="summary-card">
-    <span class="summary-label">Visible Cases</span>
+    <span class="summary-label">Your Cases</span>
     <strong class="summary-value">{{ view.visible_case_count }}</strong>
-    <p>Counted only after current access filtering.</p>
+    <p><a href="/cases">Open your Case list</a></p>
   </div>
 </section>
 <section aria-labelledby="recent-heading">
-  <h2 id="recent-heading">Visible Case orientation</h2>
+  <h2 id="recent-heading">Continue Case work</h2>
   {% if view.cases %}
   <ul class="card-list">
     {% for case in view.cases %}
-    <li><a href="/cases/{{ case.case_id }}">{{ case.title }}</a><span class="state">{{ case.state.value }}</span></li>
+    <li><a href="/cases/{{ case.case_id }}">{{ case.title }}</a></li>
     {% endfor %}
   </ul>
   {% else %}
-  <div class="empty-state"><h3>No visible Cases</h3><p>No Case is currently visible to this principal. This statement reveals no inaccessible Case count.</p></div>
+  <div class="empty-state"><h3>No Cases available</h3><p>No Case is currently available in your workspace.</p></div>
   {% endif %}
 </section>
-<section aria-labelledby="future-heading">
-  <h2 id="future-heading">Foundation boundary</h2>
-  <p>M1B provides bounded Case creation and the Configuration, Evidence, Authority, and independent Value/Risk workspace. Integration, Boundary, and Decision remain future M1C work.</p>
-</section>
+<details class="system-status"><summary>Local system status</summary><p><strong>{{ view.health }}</strong>{% if view.health_reasons %}: {{ view.health_reasons | join(', ') }}{% else %}. Required local checks passed.{% endif %}</p></details>
 {% endblock %}

@@ -6,12 +6,13 @@
   <p><strong>{{ intent.action }}</strong></p>
   <p>The server will revalidate identity, software access, exact visibility, accountability,
      substantive authority, and every bound Version when you confirm.</p>
-  <dl>
+  <h2>Practitioner review</h2><dl>
   {% for key, value in intent.payload.items() %}
-    {% if key not in ['provenance'] %}<dt>{{ key.replace('_', ' ') }}</dt><dd class="mono">{{ value }}</dd>{% endif %}
+    {% if key not in ['provenance'] and not key.endswith('_id') and not key.endswith('_ids') and key not in ['effective_at', 'configuration_choice', 'target_choice', 'evidence_choice'] %}<dt>{{ key.replace('_', ' ').title() }}</dt><dd>{{ value if value else 'None recorded' }}</dd>{% endif %}
   {% endfor %}
   </dl>
-  <details><summary>Exact expected Version basis</summary>
+  <details><summary>Exact identity and Version basis</summary>
+    <dl>{% for key, value in intent.payload.items() %}{% if (key.endswith('_id') or key.endswith('_ids')) and value %}<dt>{{ key.replace('_', ' ').title() }}</dt><dd class="mono">{{ value }}</dd>{% endif %}{% endfor %}</dl>
     {% if intent.expected_version_ids %}<ul>{% for value in intent.expected_version_ids %}<li class="mono">{{ value }}</li>{% endfor %}</ul>{% else %}<p>The owning command expects a new identity.</p>{% endif %}
   </details>
   <form action="{{ commit_path }}" method="post" data-submit-lock>

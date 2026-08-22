@@ -54,12 +54,14 @@ def test_m1b_browser_exact_evidence_and_independent_lane_path(
         assert "Protected hidden service" not in page.content()
         assert str(web_fixture.hidden_case_id) not in page.content()
 
-        page.get_by_label("Exact accountable mechanism").fill("governed:m1b-browser-configuration")
-        page.get_by_role("button", name="Review governing designation").click()
+        page.get_by_role("link", name="Configuration", exact=True).click()
+        page.get_by_label("Accountable mechanism").fill("governed:m1b-browser-configuration")
+        page.get_by_role("button", name="Review designation as governing").click()
         _confirm(page)
-        assert "Governing Configuration: ESTABLISHED" in page.content()
+        assert "Governing Configuration established" in page.content()
 
-        evidence_form = page.locator("details").filter(has_text="Create Evidence")
+        page.get_by_role("link", name="Evidence & Authority", exact=True).click()
+        evidence_form = page.locator("details").filter(has_text="Add Evidence")
         evidence_form.locator("summary").click()
         evidence_form.get_by_label("Source").fill("browser-observation:v1")
         evidence_form.get_by_label("Provenance").fill("bounded browser capture")
@@ -74,10 +76,11 @@ def test_m1b_browser_exact_evidence_and_independent_lane_path(
         evidence = workspace.evidence[0]
 
         for lane_name, slug in (("Value", "value"), ("Risk", "risk")):
+            page.get_by_role("link", name="Value & Risk", exact=True).click()
             lane = page.locator("section.lane").filter(
                 has=page.get_by_role("heading", name=lane_name)
             )
-            create = lane.locator("details").filter(has_text=f"Create a {lane_name} Input")
+            create = lane.locator("details").filter(has_text=f"Add {lane_name} analysis")
             create.locator("summary").click()
             create.get_by_label("Purpose").fill("bounded-management")
             create.get_by_label("Finding").fill(f"Independent {lane_name} finding")
@@ -87,10 +90,8 @@ def test_m1b_browser_exact_evidence_and_independent_lane_path(
             )
             create.get_by_label("Management implication").fill(f"Retain exact {lane_name} basis")
             create.get_by_label("Provenance source").fill(f"{slug}-browser-analysis:v1")
-            create.get_by_label("Exact Evidence Version IDs, one per line").fill(
-                evidence.version_id
-            )
-            create.get_by_role("button", name=f"Review exact {lane_name} Input").click()
+            create.get_by_label("Supporting Evidence (optional)").select_option(evidence.version_id)
+            create.get_by_role("button", name=f"Review {lane_name} analysis").click()
             _confirm(page)
             workspace = web_fixture.operational.practitioner_workspace(
                 web_fixture.admin_session, web_fixture.visible_case_id
@@ -99,22 +100,22 @@ def test_m1b_browser_exact_evidence_and_independent_lane_path(
             lane_view = workspace.value if slug == "value" else workspace.risk
             candidate = lane_view.candidates[0]
 
-            applicability = page.locator("details").filter(
-                has_text="Assess exact Evidence Applicability"
-            )
+            page.get_by_role("link", name="Evidence & Authority", exact=True).click()
+            applicability = page.locator("details").filter(has_text="Assess Evidence Applicability")
             applicability.locator("summary").click()
-            applicability.get_by_label("Evidence Record ID").fill(evidence.record_id)
-            applicability.get_by_label("Evidence Version ID").fill(evidence.version_id)
-            applicability.get_by_label("Target type").select_option(f"{slug}_input_version")
-            applicability.get_by_label("Target Record ID").fill(candidate.record_id)
-            applicability.get_by_label("Target Version ID").fill(candidate.version_id)
+            applicability.locator('select[name="evidence_choice"]').select_option(
+                evidence.version_id
+            )
+            applicability.locator('select[name="target_choice"]').select_option(
+                candidate.version_id
+            )
             applicability.get_by_label("Purpose").fill("bounded-management")
             applicability.get_by_label("Assessed scope").fill("exact governed Configuration")
             applicability.get_by_label("Rationale").fill(f"Exact {lane_name} basis")
             applicability.get_by_label("Accountable mechanism").fill(
                 "governed:m1b-browser-applicability"
             )
-            applicability.get_by_role("button", name="Review exact Applicability").click()
+            applicability.get_by_role("button", name="Review Applicability determination").click()
             _confirm(page)
             workspace = web_fixture.operational.practitioner_workspace(
                 web_fixture.admin_session, web_fixture.visible_case_id
@@ -126,26 +127,34 @@ def test_m1b_browser_exact_evidence_and_independent_lane_path(
                 if item.content["target_version_id"] == candidate.version_id
             )
 
+            page.get_by_role("link", name="Value & Risk", exact=True).click()
             lane = page.locator("section.lane").filter(
                 has=page.get_by_role("heading", name=lane_name)
             )
             candidate_card = lane.locator("article.record-card").filter(
                 has_text=f"Independent {lane_name} finding"
             )
-            candidate_card.get_by_role("button", name="Review readiness record").click()
+            candidate_card.get_by_label("Basis for readiness").fill(
+                f"Exact {lane_name} review complete"
+            )
+            candidate_card.get_by_role("button", name="Review readiness determination").click()
             _confirm(page)
             lane = page.locator("section.lane").filter(
                 has=page.get_by_role("heading", name=lane_name)
             )
-            fitness_form = lane.locator("details").filter(has_text=f"Record {lane_name} fitness")
+            fitness_form = lane.locator("details").filter(
+                has_text="Determine fitness for a bounded use"
+            )
             fitness_form.locator("summary").click()
-            fitness_form.get_by_label("Exact Input Version ID").fill(candidate.version_id)
+            fitness_form.get_by_label(f"{lane_name} analysis").select_option(candidate.version_id)
             fitness_form.get_by_label("Use context").fill("bounded-operation")
             fitness_form.get_by_label("Purpose").fill("bounded-management")
             fitness_form.get_by_label("Fitness outcome").select_option("SUPPORTABLE")
             fitness_form.get_by_label("Decision-limiting").select_option("FALSE")
-            fitness_form.get_by_label("Exact Evidence Version ID").fill(evidence.version_id)
-            fitness_form.get_by_label("Exact Applicability Version ID").fill(
+            fitness_form.locator('select[name="evidence_version_id"]').select_option(
+                evidence.version_id
+            )
+            fitness_form.locator('select[name="applicability_version_id"]').select_option(
                 applicability_view.version_id
             )
             fitness_form.get_by_label("Material-evidence role").fill("material support")
@@ -155,7 +164,7 @@ def test_m1b_browser_exact_evidence_and_independent_lane_path(
             fitness_form.get_by_label("Accountable mechanism").fill(
                 f"governed:m1b-browser-{slug}-fitness"
             )
-            fitness_form.get_by_role("button", name="Review exact fitness").click()
+            fitness_form.get_by_role("button", name="Review fitness determination").click()
             assert page.get_by_text("SUPPORTABLE", exact=True).is_visible()
             assert page.get_by_text("material support", exact=True).is_visible()
             _confirm(page)
@@ -170,22 +179,21 @@ def test_m1b_browser_exact_evidence_and_independent_lane_path(
                 has=page.get_by_role("heading", name=lane_name)
             )
             selection = lane.locator("details").filter(
-                has_text=f"Select one exact {lane_name} Input"
+                has_text="Select an assessment for bounded use"
             )
             selection.locator("summary").click()
-            selection.get_by_label("Input Record ID").fill(candidate.record_id)
-            selection.get_by_label("Input Version ID").fill(candidate.version_id)
-            selection.get_by_label("Fitness Version ID").fill(fitness.version_id)
+            selection.get_by_label(f"{lane_name} analysis").select_option(candidate.version_id)
+            selection.get_by_label("Fitness determination").select_option(fitness.version_id)
             selection.get_by_label("Use context").fill("bounded-operation")
             selection.get_by_label("Purpose").fill("bounded-management")
-            selection.get_by_label("Material Applicability Version IDs, one per line").fill(
+            selection.get_by_label("Material Applicability determinations").select_option(
                 applicability_view.version_id
             )
             selection.get_by_label("Rationale").fill(f"Exact {lane_name} selection")
             selection.get_by_label("Accountable mechanism").fill(
                 f"governed:m1b-browser-{slug}-acceptance"
             )
-            selection.get_by_role("button", name="Review exact selection").click()
+            selection.get_by_role("button", name="Review assessment selection").click()
             _confirm(page)
 
         final = web_fixture.operational.practitioner_workspace(
@@ -198,6 +206,7 @@ def test_m1b_browser_exact_evidence_and_independent_lane_path(
             final.value.selections[0].content["input_version_id"]
             != final.risk.selections[0].content["input_version_id"]
         )
-        assert page.get_by_text("Exact identity and provenance").first.is_visible()
-        assert "future M1C" in page.content()
+        assert page.get_by_text("Identity and provenance").first.is_visible()
+        assert "It does not integrate them" in page.content()
+        assert "M1C" not in page.content()
         page.close()

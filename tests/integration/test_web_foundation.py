@@ -51,7 +51,7 @@ def test_login_rotation_home_cases_no_js_paths_and_security_headers(
     home = client.get("/home")
     assert home.status_code == 200
     assert "M1A Practitioner" in home.text
-    assert "Visible Cases" in home.text
+    assert "Your Cases" in home.text
     assert ">1<" in home.text
     assert "Visible governed service" in home.text
     assert "Protected hidden service" not in home.text
@@ -69,8 +69,9 @@ def test_login_rotation_home_cases_no_js_paths_and_security_headers(
     assert "Visible governed service" in cases.text
     orientation = client.get(f"/cases/{web_fixture.visible_case_id}")
     assert orientation.status_code == 200
-    assert "Exact authoritative source basis" in orientation.text
-    assert "Read-only foundation" in orientation.text
+    assert "Current attention" in orientation.text
+    history = client.get(f"/cases/{web_fixture.visible_case_id}/history")
+    assert "Identity and version basis" in history.text
 
     logout_result = client.post(
         "/logout",
@@ -90,7 +91,7 @@ def test_hidden_case_search_and_not_found_have_no_existence_leak(
     assert response.status_code == 303
 
     search = web_fixture.client.get("/cases?q=Protected+hidden")
-    assert "0 visible results" in search.text
+    assert "0 results" in search.text
     assert "Protected hidden service" not in search.text
     assert str(web_fixture.hidden_case_id) not in search.text
 
@@ -197,7 +198,8 @@ def test_referer_fallback_throttling_autoescape_and_degraded_shell(
     monkeypatch.setattr(web_fixture.operational, "health", lambda: degraded)
     home = client.get("/home")
     assert home.status_code == 200
-    assert "Application health: DEGRADED" in home.text
+    assert "Local system status" in home.text
+    assert "DEGRADED" in home.text
     assert "REQUIRED_DIRECTORY_UNAVAILABLE" in home.text
 
 

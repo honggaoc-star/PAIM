@@ -9,6 +9,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import RedirectResponse, Response
 
 from paim.application import DomainPreconditionFailed, DomainRuleViolation, StalePrecondition
+from paim.application.practitioner import CaseWorkspaceView, GovernedRecordView
 from paim.domain import (
     AcceptanceSelectionVersionInput,
     AnalyticalInputVersionInput,
@@ -65,6 +66,171 @@ def _boolean(value: str) -> bool:
 
 def _required(payload: dict[str, str], names: tuple[str, ...]) -> tuple[str, ...]:
     return tuple(name for name in names if not payload.get(name, "").strip())
+
+
+_MULTI_FIELDS = frozenset({"evidence_version_ids", "material_applicability_version_ids"})
+
+
+def _form_payload(form: object) -> dict[str, str]:
+    payload: dict[str, str] = {}
+    for key, value in form.multi_items():  # type: ignore[attr-defined]
+        name = str(key)
+        if name not in _MULTI_FIELDS:
+            payload[name] = str(value).strip()
+    for name in _MULTI_FIELDS:
+        values = tuple(
+            str(value).strip()
+            for value in form.getlist(name)  # type: ignore[attr-defined]
+            if str(value).strip()
+        )
+        if values:
+            payload[name] = "\n".join(values)
+    return payload
+
+
+def _record_by_version(
+    values: tuple[GovernedRecordView, ...], version_id: str, description: str
+) -> GovernedRecordView:
+    matches = tuple(item for item in values if item.version_id == version_id)
+    if len(matches) != 1:
+        raise ValueError(f"selected {description} is no longer one exact visible Version")
+    return matches[0]
+
+
+def _bind_visible_choices(action: str, payload: dict[str, str], view: CaseWorkspaceView) -> None:
+    configuration_choice = payload.get("configuration_choice")
+    if action == "configuration.create" and configuration_choice:
+        configuration_matches = tuple(
+            item for item in view.configurations if item.version_id == configuration_choice
+        )
+        if len(configuration_matches) != 1:
+            raise ValueError("selected Configuration is no longer one exact visible Version")
+        selected_configuration = configuration_matches[0]
+        payload["configuration_id"] = selected_configuration.configuration_id
+        payload["expected_version_id"] = selected_configuration.version_id
+        payload["configuration_label"] = str(
+            selected_configuration.content.get("system", "Managed Configuration")
+        )
+
+    if payload.get("configuration_version_id"):
+        bound_configurations = tuple(
+            item
+            for item in view.configurations
+            if item.version_id == payload["configuration_version_id"]
+            and item.configuration_id == payload.get("configuration_id")
+        )
+        if len(bound_configurations) != 1:
+            raise ValueError("bound Configuration is no longer one exact visible Version")
+
+    evidence_versions = _lines(payload.get("evidence_version_ids", ""))
+    if evidence_versions:
+        supporting_evidence = tuple(
+            _record_by_version(view.evidence, version_id, "Evidence")
+            for version_id in evidence_versions
+        )
+        payload["evidence_labels"] = "; ".join(item.label for item in supporting_evidence)
+
+    if action == "evidence.applicability":
+        selected_evidence = _record_by_version(
+            view.evidence, payload.get("evidence_choice", ""), "Evidence"
+        )
+        payload["evidence_id"] = selected_evidence.record_id
+        payload["evidence_version_id"] = selected_evidence.version_id
+        payload["evidence_label"] = selected_evidence.label
+        target_version_id = payload.get("target_choice", "")
+        configurations = tuple(
+            item for item in view.configurations if item.version_id == target_version_id
+        )
+        candidates = view.value.candidates + view.risk.candidates + view.authority
+        targets = tuple(item for item in candidates if item.version_id == target_version_id)
+        if len(configurations) + len(targets) != 1:
+            raise ValueError("selected governed target is no longer one exact visible Version")
+        if configurations:
+            target = configurations[0]
+            payload["target_type"] = ApplicabilityTargetType.MANAGED_CONFIGURATION_VERSION.value
+            payload["target_id"] = target.configuration_id
+            payload["target_version_id"] = target.version_id
+            payload["target_label"] = str(target.content.get("system", "Managed Configuration"))
+        else:
+            target_record = targets[0]
+            target_types = {
+                "value-input": ApplicabilityTargetType.VALUE_INPUT_VERSION,
+                "risk-input": ApplicabilityTargetType.RISK_INPUT_VERSION,
+                "authority-record": ApplicabilityTargetType.AUTHORITY_RECORD_VERSION,
+            }
+            target_type = target_types.get(target_record.family)
+            if target_type is None:
+                raise ValueError("selected governed target type is unsupported")
+            payload["target_type"] = target_type.value
+            payload["target_id"] = target_record.record_id
+            payload["target_version_id"] = target_record.version_id
+            payload["target_label"] = target_record.label
+
+    if action.endswith("input.ready"):
+        lane = view.value if action.startswith("value") else view.risk
+        ready_input = _record_by_version(
+            lane.candidates, payload.get("input_version_id", ""), "analytical Input"
+        )
+        payload["input_label"] = ready_input.label
+
+    if action.endswith("fitness.create"):
+        lane = view.value if action.startswith("value") else view.risk
+        selected_input = _record_by_version(
+            lane.candidates, payload.get("input_version_id", ""), "analytical Input"
+        )
+        fitness_evidence = _record_by_version(
+            view.evidence, payload.get("evidence_version_id", ""), "Evidence"
+        )
+        fitness_applicability = _record_by_version(
+            view.applicability,
+            payload.get("applicability_version_id", ""),
+            "Applicability determination",
+        )
+        payload["input_label"] = selected_input.label
+        payload["evidence_label"] = fitness_evidence.label
+        payload["applicability_label"] = fitness_applicability.label
+
+    if action.endswith("input.select"):
+        lane = view.value if action.startswith("value") else view.risk
+        selected_input = _record_by_version(
+            lane.candidates, payload.get("input_version_id", ""), "analytical Input"
+        )
+        fitness = _record_by_version(
+            lane.fitness, payload.get("fitness_version_id", ""), "fitness determination"
+        )
+        applicability_ids = _lines(payload.get("material_applicability_version_ids", ""))
+        selected_applicability = tuple(
+            _record_by_version(view.applicability, value, "Applicability determination")
+            for value in applicability_ids
+        )
+        payload["input_id"] = selected_input.record_id
+        payload["input_label"] = selected_input.label
+        payload["fitness_label"] = f"{fitness.state}: {fitness.label}"
+        payload["material_applicability_labels"] = "; ".join(
+            item.label for item in selected_applicability
+        )
+
+
+def _expected_versions(payload: dict[str, str]) -> tuple[str, ...]:
+    values: list[str] = []
+    for name, value in payload.items():
+        if name == "version_id" or not value:
+            continue
+        if name.endswith("version_id"):
+            values.append(value)
+        elif name.endswith("version_ids"):
+            values.extend(_lines(value))
+    return tuple(sorted(set(values)))
+
+
+def _return_path(action: str, case_id: RecordId) -> str:
+    if action.startswith("configuration"):
+        return f"/cases/{case_id}/configuration"
+    if action.startswith(("evidence", "authority")):
+        return f"/cases/{case_id}/evidence"
+    if action.startswith(("value", "risk")):
+        return f"/cases/{case_id}/assessment"
+    return f"/cases/{case_id}"
 
 
 _REQUIRED: dict[str, tuple[str, ...]] = {
@@ -295,7 +461,7 @@ def _execute(
                 ),
             ),
         )
-        return f"/cases/{case_id}#configuration"
+        return _return_path(intent.action, case_id)
 
     if intent.action.endswith("input.ready"):
         gateway.run_command(
@@ -310,7 +476,7 @@ def _execute(
                 rationale=data["rationale"],
             ),
         )
-        return f"/cases/{case_id}"
+        return _return_path(intent.action, case_id)
 
     assert configuration_id is not None
     configuration_version_id = RecordVersionId.parse(data["configuration_version_id"])
@@ -542,7 +708,7 @@ def _execute(
         )
     else:
         raise ValueError("unsupported M1B action")
-    return f"/cases/{case_id}"
+    return _return_path(intent.action, case_id)
 
 
 def register_m1b_routes(
@@ -566,6 +732,14 @@ def register_m1b_routes(
             return RedirectResponse("/login", status_code=303)
         return identifier, session
 
+    def action_return_path(action: str, case_id_text: str | None) -> str:
+        if case_id_text is None:
+            return "/cases/new"
+        try:
+            return _return_path(action, RecordId.parse(case_id_text))
+        except ValueError:
+            return "/cases"
+
     async def review(request: Request, action: str, case_id_text: str | None) -> Response:
         state = current(request)
         if isinstance(state, Response):
@@ -586,9 +760,31 @@ def register_m1b_routes(
                 {"title": "Request rejected", "message": "The form token was invalid."},
                 403,
             )
-        payload = {str(key): str(value).strip() for key, value in form.multi_items()}
+        payload = _form_payload(form)
         payload.pop("csrf_token", None)
         payload.setdefault("effective_at", now().astimezone(UTC).isoformat())
+        if case_id_text is not None:
+            assert session.authentication is not None
+            try:
+                case_id = RecordId.parse(case_id_text)
+                view = gateway.practitioner_workspace(session.authentication, case_id)
+                if view is None:
+                    raise ValueError("Case workspace is no longer visible")
+                _bind_visible_choices(action, payload, view)
+            except (AccessDenied, ValueError) as error:
+                return render(
+                    request,
+                    "action_error.html",
+                    {
+                        "view": None,
+                        "csrf_token": session.csrf_secret,
+                        "title": "Selected source is unavailable",
+                        "message": "No governed record was changed.",
+                        "details": (str(error),),
+                        "return_path": action_return_path(action, case_id_text),
+                    },
+                    409,
+                )
         missing = _required(payload, _REQUIRED[action])
         if missing:
             return render(
@@ -600,21 +796,16 @@ def register_m1b_routes(
                     "title": "Required exact inputs are missing",
                     "message": "No governed record was changed.",
                     "details": tuple(f"{name} is required" for name in missing),
-                    "return_path": f"/cases/{case_id_text}" if case_id_text else "/cases/new",
+                    "return_path": action_return_path(action, case_id_text),
                 },
                 400,
             )
         _new_identities(action, payload)
-        expected = tuple(
-            value
-            for name, value in payload.items()
-            if name != "version_id" and name.endswith("version_id") and value
-        )
         intent = registry.create_intent(
             identifier,
             action=action,
             payload=payload,
-            expected_version_ids=tuple(sorted(set(expected))),
+            expected_version_ids=_expected_versions(payload),
         )
         prefix = f"/cases/{case_id_text}" if case_id_text else "/cases"
         return RedirectResponse(
@@ -639,7 +830,7 @@ def register_m1b_routes(
                     "title": "Action intent expired",
                     "message": "Reconstruct the authoritative workspace before trying again.",
                     "details": (),
-                    "return_path": f"/cases/{case_id_text}" if case_id_text else "/cases",
+                    "return_path": action_return_path(action, case_id_text),
                 },
                 409,
             )
@@ -652,7 +843,7 @@ def register_m1b_routes(
                 "csrf_token": session.csrf_secret,
                 "intent": intent,
                 "commit_path": (f"{prefix}/{action.replace('.', '-')}/commit/{intent.intent_id}"),
-                "return_path": f"/cases/{case_id_text}" if case_id_text else "/cases/new",
+                "return_path": action_return_path(action, case_id_text),
             },
             200,
         )
@@ -686,6 +877,15 @@ def register_m1b_routes(
             return RedirectResponse(intent.outcome_path, status_code=303)
         try:
             case_id = RecordId.parse(case_id_text) if case_id_text else None
+            if case_id is not None:
+                assert session.authentication is not None
+                view = gateway.practitioner_workspace(session.authentication, case_id)
+                if view is None:
+                    raise AccessDenied("Case workspace is no longer visible")
+                try:
+                    _bind_visible_choices(action, intent.payload, view)
+                except ValueError as error:
+                    raise StalePrecondition(str(error)) from error
             outcome = _execute(gateway, session, intent, case_id)
         except AccessDenied:
             title, status = "Software access or exact visibility denied", 403
@@ -729,7 +929,7 @@ def register_m1b_routes(
                     "What can legitimately change it: use the named owning-domain action after "
                     "the missing prerequisite is established.",
                 ),
-                "return_path": f"/cases/{case_id_text}" if case_id_text else "/cases",
+                "return_path": action_return_path(action, case_id_text),
             },
             status,
         )
