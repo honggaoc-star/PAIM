@@ -16,7 +16,7 @@
 <section aria-labelledby="attention-heading">
   <h2 id="attention-heading">Current attention</h2>
   <p class="summary-label">Items are grouped by owning work area; their order does not express priority, severity, or ranking.</p>
-  {% for item in view.attention %}<article class="attention-card"><h3><a href="{{ item.href }}">{{ item.label }}</a></h3><p>{{ item.summary }}</p>{{ why(item.explanation, true) }}</article>
+  {% for item in view.attention %}<article class="attention-card"><h3><a href="{{ item.href }}">{{ item.label }}</a></h3><p>{{ item.summary }}</p>{{ why(item.explanation) }}</article>
   {% else %}<div class="empty-state"><h3>No current workspace attention item is established</h3><p>This is not a universal readiness or risk conclusion.</p></div>{% endfor %}
 </section>
 {% endblock %}
