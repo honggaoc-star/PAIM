@@ -65,11 +65,32 @@ def test_m1b_workspace_exact_configuration_and_independent_value_risk_path(
     base = f"/cases/{case_id}"
     initial = web_fixture.client.get(base)
     assert initial.status_code == 200
-    assert "Governing Configuration: ABSENT" in initial.text
-    assert "Missing Evidence is not favorable" in initial.text
-    assert "Independent Value and Risk" in initial.text
-    assert "future M1C" in initial.text
+    assert "Governing Configuration not yet established" in initial.text
+    assert "Current attention" in initial.text
+    assert f"{base}/configuration" in initial.text
+    assert f"{base}/assessment#value" in initial.text
+    assert "Create or update a Configuration" not in initial.text
+    assert "Assess Evidence Applicability" not in initial.text
+    assert "Determine fitness for a bounded use" not in initial.text
     assert str(web_fixture.hidden_case_id) not in initial.text
+    assert "M1B phase" not in initial.text and "future M1C" not in initial.text
+    assert "Administration" not in initial.text
+
+    configuration_page = web_fixture.client.get(f"{base}/configuration")
+    evidence_page = web_fixture.client.get(f"{base}/evidence")
+    assessment_page = web_fixture.client.get(f"{base}/assessment")
+    history_page = web_fixture.client.get(f"{base}/history")
+    for page in (configuration_page, evidence_page, assessment_page, history_page):
+        assert str(web_fixture.hidden_case_id) not in page.text
+    assert "Create or update a Configuration" in configuration_page.text
+    assert "Add Evidence" not in configuration_page.text
+    assert "Evidence &amp; Authority" in evidence_page.text
+    assert "Establish one governing Configuration" in evidence_page.text
+    assert "Determine fitness for a bounded use" not in evidence_page.text
+    assert "Value &amp; Risk" in assessment_page.text
+    assert "Create or update a Configuration" not in assessment_page.text
+    assert "History &amp; provenance" in history_page.text
+    assert "/review" not in history_page.text
 
     workspace = web_fixture.operational.practitioner_workspace(
         web_fixture.admin_session, web_fixture.visible_case_id
@@ -138,17 +159,14 @@ def test_m1b_workspace_exact_configuration_and_independent_value_risk_path(
         lane_view = current.value if lane == "VALUE" else current.risk
         candidate = lane_view.candidates[0]
 
-        _, _, applicability_commit = _review_commit(
+        _, applicability_confirmation, applicability_commit = _review_commit(
             web_fixture.client,
             f"{base}/applicability/review",
             {
                 "configuration_id": configuration.configuration_id,
                 "configuration_version_id": configuration.version_id,
-                "evidence_id": evidence.record_id,
-                "evidence_version_id": evidence.version_id,
-                "target_type": f"{slug}_input_version",
-                "target_id": candidate.record_id,
-                "target_version_id": candidate.version_id,
+                "evidence_choice": evidence.version_id,
+                "target_choice": candidate.version_id,
                 "purpose": "bounded-management",
                 "assessed_scope": "exact governed Configuration",
                 "outcome": "APPLICABLE",
@@ -158,6 +176,8 @@ def test_m1b_workspace_exact_configuration_and_independent_value_risk_path(
             },
         )
         assert applicability_commit.status_code == 303
+        assert evidence.label in applicability_confirmation.text
+        assert candidate.label in applicability_confirmation.text
         current = web_fixture.operational.practitioner_workspace(
             web_fixture.admin_session, web_fixture.visible_case_id
         )
@@ -237,7 +257,7 @@ def test_m1b_workspace_exact_configuration_and_independent_value_risk_path(
         )
         assert fitness_commit.status_code == 303
         assert "SUPPORTABLE" in fitness_confirmation.text
-        assert "required support" in fitness_confirmation.text
+        assert "Required Support" in fitness_confirmation.text
         assert "TRUE" in fitness_confirmation.text
         current = web_fixture.operational.practitioner_workspace(
             web_fixture.admin_session, web_fixture.visible_case_id
@@ -279,6 +299,41 @@ def test_m1b_workspace_exact_configuration_and_independent_value_risk_path(
                 "Escalate unresolved lane evidence"
             )
             assert blocked.content["material_evidence"][0]["required_support"] is False
+            assessment = web_fixture.client.get(f"{base}/assessment")
+            fitness_choices = "".join(
+                part.split("</select>", maxsplit=1)[0]
+                for part in assessment.text.split('<select name="fitness_version_id"')[1:]
+            )
+            assert f'value="{fitness.version_id}"' in fitness_choices
+            assert f'value="{blocked.version_id}"' not in fitness_choices
+            overview_before_selection = web_fixture.client.get(base)
+            assert "Risk assessment not yet selected" in overview_before_selection.text
+            assert "Risk assessment blocked for a recorded use" not in (
+                overview_before_selection.text
+            )
+
+            selection_count = web_fixture.operational.domain_store.count_rows(
+                "input_acceptance_versions"
+            )
+            rejected = web_fixture.client.post(
+                f"{base}/{slug}/selection/review",
+                data={
+                    "csrf_token": csrf_from(assessment.text),
+                    "configuration_id": configuration.configuration_id,
+                    "configuration_version_id": configuration.version_id,
+                    "input_version_id": candidate.version_id,
+                    "fitness_version_id": blocked.version_id,
+                    "material_applicability_version_ids": applicability.version_id,
+                },
+                headers={"Origin": ORIGIN},
+            )
+            assert rejected.status_code == 409
+            assert "selected fitness determination is not SUPPORTABLE" in rejected.text
+            assert blocked.version_id not in rejected.text
+            assert (
+                web_fixture.operational.domain_store.count_rows("input_acceptance_versions")
+                == selection_count
+            )
         assert (
             _review_commit(
                 web_fixture.client,
@@ -286,7 +341,6 @@ def test_m1b_workspace_exact_configuration_and_independent_value_risk_path(
                 {
                     "configuration_id": configuration.configuration_id,
                     "configuration_version_id": configuration.version_id,
-                    "input_id": candidate.record_id,
                     "input_version_id": candidate.version_id,
                     "fitness_version_id": fitness.version_id,
                     "use_context": "bounded-operation",
@@ -318,9 +372,14 @@ def test_m1b_workspace_exact_configuration_and_independent_value_risk_path(
         completed.value.selections[0].content["input_version_id"]
         != completed.risk.selections[0].content["input_version_id"]
     )
-    page = web_fixture.client.get(base)
+    page = web_fixture.client.get(f"{base}/assessment")
     assert "shared score" in page.text
-    assert "Integration" in page.text and "future M1C" in page.text
+    assert "It does not integrate them" in page.text
+    assert "M1C" not in page.text and "future milestone" not in page.text
+    overview = web_fixture.client.get(base)
+    assert "Risk assessment blocked for a recorded use" not in overview.text
+    assert "Risk assessment not yet selected" not in overview.text
+    assert "priority, severity, or ranking" in overview.text
 
 
 def test_m1b_stale_configuration_successor_stops_and_duplicate_intent_is_idempotent(
@@ -339,8 +398,7 @@ def test_m1b_stale_configuration_successor_stops_and_duplicate_intent_is_idempot
         web_fixture.client,
         f"{base}/configuration/review",
         {
-            "configuration_id": configuration.configuration_id,
-            "expected_version_id": configuration.version_id,
+            "configuration_choice": configuration.version_id,
             "relationship_reason": "bounded successor",
             "purpose": "candidate",
             "system": "visible successor",
@@ -364,9 +422,8 @@ def test_m1b_stale_configuration_successor_stops_and_duplicate_intent_is_idempot
     stale_review = web_fixture.client.post(
         f"{base}/configuration/review",
         data={
-            "csrf_token": csrf_from(web_fixture.client.get(base).text),
-            "configuration_id": configuration.configuration_id,
-            "expected_version_id": configuration.version_id,
+            "csrf_token": csrf_from(web_fixture.client.get(f"{base}/configuration").text),
+            "configuration_choice": configuration.version_id,
             "relationship_reason": "stale attempted successor",
             "purpose": "candidate",
             "system": "stale candidate",
@@ -376,15 +433,9 @@ def test_m1b_stale_configuration_successor_stops_and_duplicate_intent_is_idempot
         headers={"Origin": ORIGIN},
         follow_redirects=False,
     )
-    stale_confirmation = web_fixture.client.get(stale_review.headers["location"])
-    stopped = web_fixture.client.post(
-        stale_confirmation.request.url.path.replace("/confirm/", "/commit/"),
-        data={"csrf_token": csrf_from(stale_confirmation.text)},
-        headers={"Origin": ORIGIN},
-    )
-    assert stopped.status_code == 409
-    assert "Exact Version changed" in stopped.text
-    assert "authoritative current state" in stopped.text
+    assert stale_review.status_code == 409
+    assert "Selected source is unavailable" in stale_review.text
+    assert "no longer one exact visible Version" in stale_review.text
     assert (
         web_fixture.operational.domain_store.count_rows("managed_configuration_versions") == count
     )
@@ -477,6 +528,29 @@ def test_m1b_case_authority_gap_and_access_error_boundaries(web_fixture: WebFixt
     assert len(current.authority) == 1
     assert len(current.authority_gaps) == 1
     assert current.authority_gaps[0].state == "UNRESOLVED"
+    attention = web_fixture.client.get(base)
+    assert "Unresolved authority question" in attention.text
+    assert f"{base}/evidence" in attention.text
+
+    applicability_count = web_fixture.operational.domain_store.count_rows(
+        "evidence_applicability_versions"
+    )
+    tampered = web_fixture.client.post(
+        f"{base}/applicability/review",
+        data={
+            "csrf_token": csrf_from(web_fixture.client.get(f"{base}/evidence").text),
+            "evidence_choice": str(web_fixture.hidden_case_id),
+            "target_choice": configuration.version_id,
+        },
+        headers={"Origin": ORIGIN},
+    )
+    assert tampered.status_code == 409
+    assert "Selected source is unavailable" in tampered.text
+    assert str(web_fixture.hidden_case_id) not in tampered.text
+    assert (
+        web_fixture.operational.domain_store.count_rows("evidence_applicability_versions")
+        == applicability_count
+    )
 
     grant(
         web_fixture,
@@ -567,7 +641,8 @@ def test_m1b_governing_configuration_conflict_is_explicit_without_implicit_winne
         first.version_id,
         second.version_id,
     }
-    page = web_fixture.client.get(base)
-    assert "Governing Configuration: CONFLICT" in page.text
+    page = web_fixture.client.get(f"{base}/configuration")
+    assert "Governing Configuration conflict" in page.text
     assert "GOVERNING CONFIGURATION CONFLICT" in page.text
-    assert "Why? What can legitimately change it?" in page.text
+    overview = web_fixture.client.get(base)
+    assert "Why is this shown? What can legitimately change it?" in overview.text

@@ -8,6 +8,7 @@ from datetime import datetime
 from paim.application.practitioner.models import (
     ActorContext,
     AnalyticalLaneView,
+    AttentionItemView,
     CaseListView,
     CaseOrientationView,
     CaseSummary,
@@ -236,6 +237,27 @@ class PractitionerQueryService:
         )
         value = self._lane_view("VALUE", by_family, action_access, effective_at, known_at)
         risk = self._lane_view("RISK", by_family, action_access, effective_at, known_at)
+        attention = self._attention(
+            case_id=case_id,
+            governing_state=governing_state,
+            governing_explanation=ExplanationView(
+                governing_state,
+                governing_reason,
+                "Designate a finalized candidate Configuration",
+                True,
+                action_access.get("configuration.designate", False),
+                True,
+                "Required by the governing designation command",
+                "Established only by the owning PAIM capability",
+                governing_basis,
+            ),
+            evidence=evidence,
+            authority_gaps=gaps,
+            applicability=applicability,
+            value=value,
+            risk=risk,
+            action_access=action_access,
+        )
         return CaseWorkspaceView(
             actor=actor,
             case=selected_case,
@@ -260,9 +282,112 @@ class PractitionerQueryService:
             applicability=applicability,
             value=value,
             risk=risk,
+            attention=attention,
             effective_at=effective_at,
             known_at=known_at,
         )
+
+    @staticmethod
+    def _attention(
+        *,
+        case_id: RecordId,
+        governing_state: ReadState,
+        governing_explanation: ExplanationView,
+        evidence: tuple[GovernedRecordView, ...],
+        authority_gaps: tuple[GovernedRecordView, ...],
+        applicability: tuple[GovernedRecordView, ...],
+        value: AnalyticalLaneView,
+        risk: AnalyticalLaneView,
+        action_access: Mapping[str, bool],
+    ) -> tuple[AttentionItemView, ...]:
+        base = f"/cases/{case_id}"
+        items: list[AttentionItemView] = []
+        if governing_state is not ReadState.ESTABLISHED:
+            label = (
+                "Governing Configuration conflict"
+                if governing_state is ReadState.CONFLICT
+                else "Governing Configuration not yet established"
+            )
+            items.append(
+                AttentionItemView(
+                    "governing-configuration",
+                    label,
+                    governing_explanation.reason,
+                    f"{base}/configuration",
+                    governing_explanation,
+                )
+            )
+        unresolved = tuple(item for item in authority_gaps if item.state == "UNRESOLVED")
+        if unresolved:
+            items.append(
+                AttentionItemView(
+                    "authority-gap",
+                    "Unresolved authority question",
+                    f"{len(unresolved)} visible authority question(s) remain unresolved.",
+                    f"{base}/evidence",
+                    ExplanationView(
+                        ReadState.ABSENT,
+                        "The recorded Authority Gap remains unresolved; PAIM does not infer "
+                        "authority from software access or surrounding evidence.",
+                        "Work through the owning Authority Gap pathway",
+                        True,
+                        False,
+                        True,
+                        "The applicable accountable assignment or mechanism must remain explicit",
+                        "Only the owning authority capability may establish or change "
+                        "substantive authority",
+                        tuple(item.version_id for item in unresolved),
+                    ),
+                )
+            )
+        if evidence and not applicability:
+            items.append(
+                AttentionItemView(
+                    "applicability",
+                    "Evidence Applicability not yet established",
+                    "Evidence exists, but no visible exact Applicability determination is "
+                    "established.",
+                    f"{base}/evidence",
+                    ExplanationView(
+                        ReadState.ABSENT,
+                        "Evidence existence does not establish Applicability to a Configuration "
+                        "or analytical Input.",
+                        "Assess Evidence Applicability for an exact visible target",
+                        True,
+                        action_access.get("evidence.applicability", False),
+                        True,
+                        "Applicability requires an explicit accountable basis",
+                        "Applicability does not create substantive authority",
+                    ),
+                )
+            )
+        for lane in (value, risk):
+            if lane.selection_state is not ReadState.ESTABLISHED:
+                label = (
+                    f"{lane.lane.title()} assessment selection conflict"
+                    if lane.selection_state is ReadState.CONFLICT
+                    else f"{lane.lane.title()} assessment not yet selected"
+                )
+                items.append(
+                    AttentionItemView(
+                        f"{lane.lane.casefold()}-selection",
+                        label,
+                        lane.explanation.reason,
+                        f"{base}/assessment#{lane.lane.casefold()}",
+                        ExplanationView(
+                            lane.selection_state,
+                            lane.explanation.reason,
+                            f"Select one exact {lane.lane.title()} analysis for the stated use",
+                            True,
+                            action_access.get(f"{lane.lane.casefold()}-input.select", False),
+                            True,
+                            lane.explanation.accountability,
+                            lane.explanation.substantive_authority,
+                            lane.explanation.basis_version_ids,
+                        ),
+                    )
+                )
+        return tuple(items)
 
     def _current_versions(
         self,

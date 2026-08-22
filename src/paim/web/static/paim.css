@@ -38,11 +38,22 @@ button { padding: .55rem .9rem; border: 1px solid var(--accent); border-radius: 
 .mono { font-family: ui-monospace, "Cascadia Mono", monospace; overflow-wrap: anywhere; }
 .button-link { display: inline-block; padding: .5rem .8rem; color: white; background: var(--accent); text-decoration: none; border-radius: .2rem; }
 .workspace-nav { display: flex; flex-wrap: wrap; gap: 1rem; padding: .75rem 0; border-block: 1px solid var(--line); }
+.workspace-nav a[aria-current="page"] { color: var(--ink); font-weight: 700; text-decoration-thickness: .2rem; }
+.workspace-header { display: flex; justify-content: space-between; align-items: end; gap: 2rem; }
+.workspace-header h1 { margin-bottom: 0; }
+.context-summary { display: flex; flex-direction: column; max-width: 24rem; }
 .record-card { margin: 1rem 0; padding: 1rem; border: 1px solid var(--line); border-radius: .25rem; }
 .record-card > .state { float: right; }
 .peer-lanes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
 .lane { padding: 1rem; border: 1px solid var(--line); }
 .three-columns { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
+.overview-grid, .content-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.attention-card { margin: 1rem 0; padding: 1rem; border: 1px solid var(--line); border-left: .35rem solid var(--focus); border-radius: .25rem; }
+.attention-card h3 { margin-top: 0; }
+.boundary-note, .system-status { margin-top: 1.5rem; padding: 1rem; background: var(--surface); }
+.compact-facts { display: grid; grid-template-columns: minmax(8rem, 12rem) 1fr; column-gap: 1rem; }
+.compact-facts dt { margin-top: .35rem; }
+.compact-facts dd { margin-top: .35rem; }
 pre { overflow: auto; padding: .75rem; background: var(--surface); white-space: pre-wrap; }
 dt { margin-top: .75rem; font-weight: 700; }
 dd { margin-left: 0; }
@@ -52,5 +63,7 @@ dd { margin-left: 0; }
   nav[aria-label="Primary"] { align-items: flex-start; flex-wrap: wrap; padding: .75rem 1rem; }
   main { padding: 1rem; }
   .search-row { flex-direction: column; }
-  .peer-lanes, .three-columns { grid-template-columns: 1fr; }
+  .workspace-header { align-items: start; flex-direction: column; gap: .5rem; }
+  .peer-lanes, .three-columns, .overview-grid, .content-grid { grid-template-columns: 1fr; }
+  .compact-facts { grid-template-columns: 1fr; }
 }

@@ -85,6 +85,15 @@ class ExplanationView:
 
 
 @dataclass(frozen=True, slots=True)
+class AttentionItemView:
+    key: str
+    label: str
+    summary: str
+    href: str
+    explanation: ExplanationView
+
+
+@dataclass(frozen=True, slots=True)
 class ConfigurationView:
     configuration_id: str
     version_id: str
@@ -131,5 +140,6 @@ class CaseWorkspaceView:
     applicability: tuple[GovernedRecordView, ...]
     value: AnalyticalLaneView
     risk: AnalyticalLaneView
+    attention: tuple[AttentionItemView, ...]
     effective_at: datetime
     known_at: datetime

@@ -326,6 +326,11 @@ provides secure local sign-in plus access-filtered Home and Cases views. M1B add
 creation and the first substantive Case Workspace: exact Configuration creation/successors and
 governing designation, Evidence, Authority and Authority Gaps, Configuration-bound Evidence
 Applicability, and equal independent Value and Risk input/readiness/fitness/selection lanes.
+The workspace is divided into Overview, Configuration, Evidence & Authority, Value & Risk, and
+History & provenance work areas. Overview attention items are derived from existing authoritative
+facts and link to the owning work area; their order does not imply priority, severity, ranking, or
+substantive authority. Routine pages use practitioner labels and keep exact identity, dual-time,
+and provenance detail behind intentional disclosure or in History & provenance.
 
 M1B stops before Integration, Integrated Operating Boundary, Decision proposal/authorization,
 Intervention, Completion, Activation, Trigger/Reassessment, and Management Register work. Those
@@ -365,4 +370,7 @@ Templates and static assets are repository-owned package resources. Essential si
 Cases, the M1B Case Workspace and forms, confirmations, and sign-out work without JavaScript. Each
 consequential form creates a bounded server-held action intent, confirms its exact source-Version
 basis, invokes one named production capability, and reconstructs authoritative state through PRG.
+Where a finite visible set exists, the server renders practitioner-labelled choices, binds the
+selected option to its exact Record/Version identity, and revalidates visibility and currency again
+at confirmation. A disappeared, hidden, or superseded choice fails closed before mutation.
 The small same-origin script only adds submit locking; it owns no PAIM meaning or state.

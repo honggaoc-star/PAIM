@@ -419,8 +419,7 @@ def create_web_application(
             },
         )
 
-    @app.get("/cases/{case_id}", response_class=HTMLResponse)
-    def case_orientation(request: Request, case_id: str) -> Response:
+    def render_case_area(request: Request, case_id: str, area: str) -> Response:
         browser_session = require_session(request)
         if isinstance(browser_session, Response):
             return browser_session
@@ -436,9 +435,35 @@ def create_web_application(
             return render(
                 request, "not_found.html", {"csrf_token": browser_session.csrf_secret}, 404
             )
+        templates_by_area = {
+            "overview": "case.html",
+            "configuration": "case_configuration.html",
+            "evidence": "case_evidence.html",
+            "assessment": "case_assessment.html",
+            "history": "case_history.html",
+        }
+        template = templates_by_area.get(area)
+        if template is None:
+            return render(
+                request, "not_found.html", {"csrf_token": browser_session.csrf_secret}, 404
+            )
         return render(
-            request, "case.html", {"view": view, "csrf_token": browser_session.csrf_secret}
+            request,
+            template,
+            {
+                "view": view,
+                "active_area": area,
+                "csrf_token": browser_session.csrf_secret,
+            },
         )
+
+    @app.get("/cases/{case_id}", response_class=HTMLResponse)
+    def case_overview(request: Request, case_id: str) -> Response:
+        return render_case_area(request, case_id, "overview")
+
+    @app.get("/cases/{case_id}/{area}", response_class=HTMLResponse)
+    def case_work_area(request: Request, case_id: str, area: str) -> Response:
+        return render_case_area(request, case_id, area)
 
     @app.get("/administration", response_class=HTMLResponse)
     def administration(request: Request) -> Response:
