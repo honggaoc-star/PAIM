@@ -362,33 +362,16 @@ class PractitionerQueryService:
                 )
             )
         for lane in (value, risk):
-            blocked = tuple(item for item in lane.fitness if item.state == "BLOCKED")
-            if blocked:
-                items.append(
-                    AttentionItemView(
-                        f"{lane.lane.casefold()}-blocked",
-                        f"{lane.lane.title()} assessment blocked for a recorded use",
-                        blocked[0].label,
-                        f"{base}/assessment#{lane.lane.casefold()}",
-                        ExplanationView(
-                            ReadState.ABSENT,
-                            "An accountable lane-fitness determination records BLOCKED; this is "
-                            "not a score or cross-lane conclusion.",
-                            f"Record a new exact {lane.lane.title()} fitness determination",
-                            True,
-                            action_access.get(f"{lane.lane.casefold()}-fitness.create", False),
-                            True,
-                            lane.explanation.accountability,
-                            lane.explanation.substantive_authority,
-                            tuple(item.version_id for item in blocked),
-                        ),
-                    )
+            if lane.selection_state is not ReadState.ESTABLISHED:
+                label = (
+                    f"{lane.lane.title()} assessment selection conflict"
+                    if lane.selection_state is ReadState.CONFLICT
+                    else f"{lane.lane.title()} assessment not yet selected"
                 )
-            elif lane.selection_state is not ReadState.ESTABLISHED:
                 items.append(
                     AttentionItemView(
                         f"{lane.lane.casefold()}-selection",
-                        f"{lane.lane.title()} assessment not yet selected",
+                        label,
                         lane.explanation.reason,
                         f"{base}/assessment#{lane.lane.casefold()}",
                         ExplanationView(

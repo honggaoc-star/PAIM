@@ -299,6 +299,41 @@ def test_m1b_workspace_exact_configuration_and_independent_value_risk_path(
                 "Escalate unresolved lane evidence"
             )
             assert blocked.content["material_evidence"][0]["required_support"] is False
+            assessment = web_fixture.client.get(f"{base}/assessment")
+            fitness_choices = "".join(
+                part.split("</select>", maxsplit=1)[0]
+                for part in assessment.text.split('<select name="fitness_version_id"')[1:]
+            )
+            assert f'value="{fitness.version_id}"' in fitness_choices
+            assert f'value="{blocked.version_id}"' not in fitness_choices
+            overview_before_selection = web_fixture.client.get(base)
+            assert "Risk assessment not yet selected" in overview_before_selection.text
+            assert "Risk assessment blocked for a recorded use" not in (
+                overview_before_selection.text
+            )
+
+            selection_count = web_fixture.operational.domain_store.count_rows(
+                "input_acceptance_versions"
+            )
+            rejected = web_fixture.client.post(
+                f"{base}/{slug}/selection/review",
+                data={
+                    "csrf_token": csrf_from(assessment.text),
+                    "configuration_id": configuration.configuration_id,
+                    "configuration_version_id": configuration.version_id,
+                    "input_version_id": candidate.version_id,
+                    "fitness_version_id": blocked.version_id,
+                    "material_applicability_version_ids": applicability.version_id,
+                },
+                headers={"Origin": ORIGIN},
+            )
+            assert rejected.status_code == 409
+            assert "selected fitness determination is not SUPPORTABLE" in rejected.text
+            assert blocked.version_id not in rejected.text
+            assert (
+                web_fixture.operational.domain_store.count_rows("input_acceptance_versions")
+                == selection_count
+            )
         assert (
             _review_commit(
                 web_fixture.client,
@@ -342,7 +377,8 @@ def test_m1b_workspace_exact_configuration_and_independent_value_risk_path(
     assert "It does not integrate them" in page.text
     assert "M1C" not in page.text and "future milestone" not in page.text
     overview = web_fixture.client.get(base)
-    assert "Risk assessment blocked for a recorded use" in overview.text
+    assert "Risk assessment blocked for a recorded use" not in overview.text
+    assert "Risk assessment not yet selected" not in overview.text
     assert "priority, severity, or ranking" in overview.text
 
 

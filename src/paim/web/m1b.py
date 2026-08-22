@@ -198,6 +198,8 @@ def _bind_visible_choices(action: str, payload: dict[str, str], view: CaseWorksp
         fitness = _record_by_version(
             lane.fitness, payload.get("fitness_version_id", ""), "fitness determination"
         )
+        if fitness.state != FitnessOutcome.SUPPORTABLE.value:
+            raise ValueError("selected fitness determination is not SUPPORTABLE")
         applicability_ids = _lines(payload.get("material_applicability_version_ids", ""))
         selected_applicability = tuple(
             _record_by_version(view.applicability, value, "Applicability determination")
