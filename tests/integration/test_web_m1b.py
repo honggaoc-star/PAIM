@@ -67,6 +67,8 @@ def test_m1b_workspace_exact_configuration_and_independent_value_risk_path(
     assert initial.status_code == 200
     assert "Governing Configuration not yet established" in initial.text
     assert "Current attention" in initial.text
+    assert '<details class="why">' in initial.text
+    assert '<details class="why" open>' not in initial.text
     assert f"{base}/configuration" in initial.text
     assert f"{base}/assessment#value" in initial.text
     assert "Create or update a Configuration" not in initial.text
@@ -133,6 +135,26 @@ def test_m1b_workspace_exact_configuration_and_independent_value_risk_path(
     )
     assert with_evidence is not None and len(with_evidence.evidence) == 1
     evidence = with_evidence.evidence[0]
+
+    assert (
+        _review_commit(
+            web_fixture.client,
+            f"{base}/applicability/review",
+            {
+                "configuration_id": configuration.configuration_id,
+                "configuration_version_id": configuration.version_id,
+                "evidence_choice": evidence.version_id,
+                "target_choice": configuration.version_id,
+                "purpose": "bounded-management",
+                "assessed_scope": "exact governed Configuration",
+                "outcome": "APPLICABLE",
+                "rationale": "Exact Configuration material basis",
+                "accountable_mechanism": "governed:m1b-applicability-board",
+                "effective_at": workspace.effective_at.isoformat(),
+            },
+        )[2].status_code
+        == 303
+    )
 
     for lane, slug in (("VALUE", "value"), ("RISK", "risk")):
         _, _, input_commit = _review_commit(
@@ -372,7 +394,45 @@ def test_m1b_workspace_exact_configuration_and_independent_value_risk_path(
         completed.value.selections[0].content["input_version_id"]
         != completed.risk.selections[0].content["input_version_id"]
     )
+    applicability_labels = {
+        "Applicable — m1b-practitioner-source:v1 → visible",
+        ("Applicable — m1b-practitioner-source:v1 → Value analysis: Independent Value finding"),
+        ("Applicable — m1b-practitioner-source:v1 → Risk analysis: Independent Risk finding"),
+    }
+    assert {item.label for item in completed.applicability} == applicability_labels
+    assert all(
+        item.label.startswith("Value fitness — ")
+        and "Independent Value finding" in item.label
+        and "Independent Risk finding" not in item.label
+        for item in completed.value.fitness
+    )
+    assert all(
+        item.label.startswith("Risk fitness — ")
+        and "Independent Risk finding" in item.label
+        and "Independent Value finding" not in item.label
+        for item in completed.risk.fitness
+    )
+    assert completed.value.selections[0].label == (
+        "Value assessment selected — Independent Value finding"
+    )
+    assert completed.risk.selections[0].label == (
+        "Risk assessment selected — Independent Risk finding"
+    )
     page = web_fixture.client.get(f"{base}/assessment")
+    evidence_page = web_fixture.client.get(f"{base}/evidence")
+    history_page = web_fixture.client.get(f"{base}/history")
+    for label in applicability_labels:
+        assert label in evidence_page.text
+        assert label in history_page.text
+        assert label in page.text
+    for label in (
+        "Value fitness — Supportable — Independent Value finding",
+        "Risk fitness — Supportable — Independent Risk finding",
+        "Risk fitness — Blocked — Independent Risk finding",
+        "Value assessment selected — Independent Value finding",
+        "Risk assessment selected — Independent Risk finding",
+    ):
+        assert label in history_page.text
     assert "shared score" in page.text
     assert "It does not integrate them" in page.text
     assert "M1C" not in page.text and "future milestone" not in page.text
@@ -487,6 +547,17 @@ def test_m1b_case_authority_gap_and_access_error_boundaries(web_fixture: WebFixt
             "effective_at": view.effective_at.isoformat(),
         },
     )
+    evidence_actions = web_fixture.client.get(f"{base}/evidence").text
+    authority_action_group = evidence_actions.split('id="authority-actions-heading"', maxsplit=1)[
+        1
+    ].split("</section>", maxsplit=1)[0]
+    applicability_action_group = evidence_actions.split(
+        'id="applicability-actions-heading"', maxsplit=1
+    )[1].split("</section>", maxsplit=1)[0]
+    assert "Add an Authority source" in authority_action_group
+    assert "Record an Authority Gap" in authority_action_group
+    assert "Record an Authority Gap" not in applicability_action_group
+    assert "Assess Evidence Applicability" in applicability_action_group
     assert (
         _review_commit(
             web_fixture.client,

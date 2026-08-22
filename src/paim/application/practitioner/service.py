@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from dataclasses import replace
 from datetime import datetime
 
 from paim.application.practitioner.models import (
@@ -184,6 +185,7 @@ class PractitionerQueryService:
             visible_configuration_ids=visible_configuration_ids,
         )
         current = self._current_versions(source_versions, effective_at, known_at)
+        visible_versions = self._exact_visible_version_index(current)
         by_family: dict[str, list[FinalizedRecordVersion]] = {}
         for version in current:
             by_family.setdefault(version.family, []).append(version)
@@ -227,16 +229,27 @@ class PractitionerQueryService:
             )
         )
 
-        evidence = self._record_views(by_family.get("evidence", []), effective_at, known_at)
+        evidence = self._record_views(
+            by_family.get("evidence", []), effective_at, known_at, visible_versions
+        )
         authority = self._record_views(
-            by_family.get("authority-record", []), effective_at, known_at
+            by_family.get("authority-record", []), effective_at, known_at, visible_versions
         )
-        gaps = self._record_views(by_family.get("authority-gap", []), effective_at, known_at)
+        gaps = self._record_views(
+            by_family.get("authority-gap", []), effective_at, known_at, visible_versions
+        )
         applicability = self._record_views(
-            by_family.get("evidence-applicability", []), effective_at, known_at
+            by_family.get("evidence-applicability", []),
+            effective_at,
+            known_at,
+            visible_versions,
         )
-        value = self._lane_view("VALUE", by_family, action_access, effective_at, known_at)
-        risk = self._lane_view("RISK", by_family, action_access, effective_at, known_at)
+        value = self._lane_view(
+            "VALUE", by_family, action_access, effective_at, known_at, visible_versions
+        )
+        risk = self._lane_view(
+            "RISK", by_family, action_access, effective_at, known_at, visible_versions
+        )
         attention = self._attention(
             case_id=case_id,
             governing_state=governing_state,
@@ -435,6 +448,7 @@ class PractitionerQueryService:
         versions: list[FinalizedRecordVersion],
         effective_at: datetime,
         known_at: datetime,
+        visible_versions: Mapping[str, FinalizedRecordVersion | None],
     ) -> tuple[GovernedRecordView, ...]:
         values = []
         for version in versions:
@@ -453,18 +467,161 @@ class PractitionerQueryService:
                 or content.get("maturity")
                 or "ESTABLISHED"
             )
+            view = GovernedRecordView(
+                str(version.record_id),
+                str(version.version_id),
+                version.family,
+                label,
+                state,
+                content,
+                self._basis(version, effective_at, known_at),
+            )
             values.append(
-                GovernedRecordView(
-                    str(version.record_id),
-                    str(version.version_id),
-                    version.family,
-                    label,
-                    state,
-                    content,
-                    self._basis(version, effective_at, known_at),
-                )
+                replace(view, label=self._contextual_label(version, visible_versions, label))
             )
         return tuple(sorted(values, key=lambda item: (item.label.casefold(), item.version_id)))
+
+    @staticmethod
+    def _exact_visible_version_index(
+        versions: tuple[FinalizedRecordVersion, ...],
+    ) -> dict[str, FinalizedRecordVersion | None]:
+        """Index only unambiguous exact Versions from the access-filtered current population."""
+
+        indexed: dict[str, FinalizedRecordVersion | None] = {}
+        for version in versions:
+            key = str(version.version_id)
+            indexed[key] = version if key not in indexed else None
+        return indexed
+
+    @staticmethod
+    def _contextual_label(
+        version: FinalizedRecordVersion,
+        visible_versions: Mapping[str, FinalizedRecordVersion | None],
+        default: str,
+    ) -> str:
+        """Derive display text only from exact, visible, authoritative relations."""
+
+        content = version.content
+
+        def exact(version_id: object) -> FinalizedRecordVersion | None:
+            if not isinstance(version_id, str) or not version_id:
+                return None
+            return visible_versions.get(version_id)
+
+        def text(source: FinalizedRecordVersion, key: str) -> str | None:
+            value = source.content.get(key)
+            return value.strip() if isinstance(value, str) and value.strip() else None
+
+        def exact_target(
+            *, version_id: object, record_id: object, family: str
+        ) -> FinalizedRecordVersion | None:
+            target = exact(version_id)
+            if (
+                target is None
+                or target.family != family
+                or not isinstance(record_id, str)
+                or str(target.record_id) != record_id
+            ):
+                return None
+            return target
+
+        if version.family == "evidence-applicability":
+            evidence = exact_target(
+                version_id=content.get("evidence_version_id"),
+                record_id=content.get("evidence_id"),
+                family="evidence",
+            )
+            target_type = content.get("target_type")
+            target_family = (
+                {
+                    "managed_configuration_version": "managed-configuration",
+                    "value_input_version": "value-input",
+                    "risk_input_version": "risk-input",
+                    "authority_record_version": "authority-record",
+                    "authority_gap": "authority-gap",
+                }.get(target_type)
+                if isinstance(target_type, str)
+                else None
+            )
+            target = (
+                exact_target(
+                    version_id=content.get("target_version_id"),
+                    record_id=content.get("target_id"),
+                    family=target_family,
+                )
+                if target_family is not None
+                else None
+            )
+            source_label = text(evidence, "source") if evidence is not None else None
+            target_label: str | None = None
+            if target is not None:
+                if target.family == "managed-configuration":
+                    target_label = text(target, "system")
+                elif target.family == "value-input":
+                    finding = text(target, "finding")
+                    target_label = f"Value analysis: {finding}" if finding else None
+                elif target.family == "risk-input":
+                    finding = text(target, "finding")
+                    target_label = f"Risk analysis: {finding}" if finding else None
+                elif target.family == "authority-record":
+                    source = text(target, "source")
+                    target_label = f"Authority source: {source}" if source else None
+                elif target.family == "authority-gap":
+                    question = text(target, "question")
+                    target_label = f"Authority question: {question}" if question else None
+            outcome = content.get("outcome")
+            if source_label and target_label and isinstance(outcome, str) and outcome:
+                return f"{outcome.replace('_', ' ').title()} — {source_label} → {target_label}"
+            return "Applicability — exact related records unavailable"
+
+        if version.family == "lane-evidence-fitness":
+            lane_value = content.get("lane")
+            lane = lane_value if isinstance(lane_value, str) else None
+            expected_family = (
+                {"VALUE": "value-input", "RISK": "risk-input"}.get(lane)
+                if lane is not None
+                else None
+            )
+            analytical_input = exact(content.get("input_version_id"))
+            finding = (
+                text(analytical_input, "finding")
+                if analytical_input is not None and analytical_input.family == expected_family
+                else None
+            )
+            outcome = content.get("outcome")
+            if isinstance(lane, str) and finding and isinstance(outcome, str) and outcome:
+                return f"{lane.title()} fitness — {outcome.replace('_', ' ').title()} — {finding}"
+            lane_label = lane.title() if isinstance(lane, str) and lane else "Lane"
+            return f"{lane_label} fitness — exact analysis unavailable"
+
+        if version.family == "input-acceptance-selection":
+            lane_value = content.get("lane")
+            lane = lane_value if isinstance(lane_value, str) else None
+            expected_family = (
+                {"VALUE": "value-input", "RISK": "risk-input"}.get(lane)
+                if lane is not None
+                else None
+            )
+            analytical_input = exact_target(
+                version_id=content.get("input_version_id"),
+                record_id=content.get("input_id"),
+                family=expected_family or "",
+            )
+            fitness = exact(content.get("fitness_version_id"))
+            exact_fitness = (
+                fitness is not None
+                and fitness.family == "lane-evidence-fitness"
+                and fitness.content.get("lane") == lane
+                and fitness.content.get("input_version_id") == content.get("input_version_id")
+                and fitness.content.get("outcome") == "SUPPORTABLE"
+            )
+            finding = text(analytical_input, "finding") if analytical_input is not None else None
+            if isinstance(lane, str) and finding and exact_fitness:
+                return f"{lane.title()} assessment selected — {finding}"
+            lane_label = lane.title() if isinstance(lane, str) and lane else "Lane"
+            return f"{lane_label} assessment selection — exact analysis unavailable"
+
+        return default
 
     def _lane_view(
         self,
@@ -473,21 +630,31 @@ class PractitionerQueryService:
         action_access: Mapping[str, bool],
         effective_at: datetime,
         known_at: datetime,
+        visible_versions: Mapping[str, FinalizedRecordVersion | None],
     ) -> AnalyticalLaneView:
         candidates = self._record_views(
-            by_family.get(f"{lane.casefold()}-input", []), effective_at, known_at
+            by_family.get(f"{lane.casefold()}-input", []),
+            effective_at,
+            known_at,
+            visible_versions,
         )
         fitness = tuple(
             item
             for item in self._record_views(
-                by_family.get("lane-evidence-fitness", []), effective_at, known_at
+                by_family.get("lane-evidence-fitness", []),
+                effective_at,
+                known_at,
+                visible_versions,
             )
             if item.content.get("lane") == lane
         )
         selections = tuple(
             item
             for item in self._record_views(
-                by_family.get("input-acceptance-selection", []), effective_at, known_at
+                by_family.get("input-acceptance-selection", []),
+                effective_at,
+                known_at,
+                visible_versions,
             )
             if item.content.get("lane") == lane
         )

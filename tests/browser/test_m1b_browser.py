@@ -51,6 +51,8 @@ def test_m1b_browser_exact_evidence_and_independent_lane_path(
         page.get_by_role("link", name="Cases", exact=True).click()
         page.get_by_role("link", name="Visible governed service").click()
         assert page.get_by_role("heading", name="Overview").is_visible()
+        assert page.locator("details.why").count() > 0
+        assert all(item.get_attribute("open") is None for item in page.locator("details.why").all())
         assert "Protected hidden service" not in page.content()
         assert str(web_fixture.hidden_case_id) not in page.content()
 
@@ -61,6 +63,13 @@ def test_m1b_browser_exact_evidence_and_independent_lane_path(
         assert "Governing Configuration established" in page.content()
 
         page.get_by_role("link", name="Evidence & Authority", exact=True).click()
+        authority_actions = page.locator('[aria-labelledby="authority-actions-heading"]')
+        applicability_actions = page.locator('[aria-labelledby="applicability-actions-heading"]')
+        assert authority_actions.get_by_text("Record an Authority Gap", exact=True).is_visible()
+        assert applicability_actions.get_by_text(
+            "Assess Evidence Applicability", exact=True
+        ).is_visible()
+        assert applicability_actions.get_by_text("Record an Authority Gap", exact=True).count() == 0
         evidence_form = page.locator("details").filter(has_text="Add Evidence")
         evidence_form.locator("summary").click()
         evidence_form.get_by_label("Source").fill("browser-observation:v1")
@@ -126,6 +135,10 @@ def test_m1b_browser_exact_evidence_and_independent_lane_path(
                 for item in workspace.applicability
                 if item.content["target_version_id"] == candidate.version_id
             )
+            assert applicability_view.label == (
+                f"Applicable — browser-observation:v1 → {lane_name} analysis: "
+                f"Independent {lane_name} finding"
+            )
 
             page.get_by_role("link", name="Value & Risk", exact=True).click()
             lane = page.locator("section.lane").filter(
@@ -146,7 +159,9 @@ def test_m1b_browser_exact_evidence_and_independent_lane_path(
                 has_text="Determine fitness for a bounded use"
             )
             fitness_form.locator("summary").click()
-            fitness_form.get_by_label(f"{lane_name} analysis").select_option(candidate.version_id)
+            fitness_form.locator('select[name="input_version_id"]').select_option(
+                candidate.version_id
+            )
             fitness_form.get_by_label("Use context").fill("bounded-operation")
             fitness_form.get_by_label("Purpose").fill("bounded-management")
             fitness_form.get_by_label("Fitness outcome").select_option("SUPPORTABLE")
@@ -182,7 +197,7 @@ def test_m1b_browser_exact_evidence_and_independent_lane_path(
                 has_text="Select an assessment for bounded use"
             )
             selection.locator("summary").click()
-            selection.get_by_label(f"{lane_name} analysis").select_option(candidate.version_id)
+            selection.locator('select[name="input_version_id"]').select_option(candidate.version_id)
             selection.get_by_label("Fitness determination").select_option(fitness.version_id)
             selection.get_by_label("Use context").fill("bounded-operation")
             selection.get_by_label("Purpose").fill("bounded-management")
@@ -206,7 +221,20 @@ def test_m1b_browser_exact_evidence_and_independent_lane_path(
             final.value.selections[0].content["input_version_id"]
             != final.risk.selections[0].content["input_version_id"]
         )
-        assert page.get_by_text("Identity and provenance").first.is_visible()
         assert "It does not integrate them" in page.content()
         assert "M1C" not in page.content()
+        page.get_by_role("link", name="History & provenance", exact=True).click()
+        assert page.get_by_text(
+            "Value fitness — Supportable — Independent Value finding", exact=True
+        ).is_visible()
+        assert page.get_by_text(
+            "Risk fitness — Supportable — Independent Risk finding", exact=True
+        ).is_visible()
+        assert page.get_by_text(
+            "Value assessment selected — Independent Value finding", exact=True
+        ).is_visible()
+        assert page.get_by_text(
+            "Risk assessment selected — Independent Risk finding", exact=True
+        ).is_visible()
+        assert page.get_by_text("Identity and provenance").first.is_visible()
         page.close()
