@@ -126,6 +126,26 @@ class AnalyticalLaneView:
 
 
 @dataclass(frozen=True, slots=True)
+class DecisionWorkspaceView:
+    selected_value: GovernedRecordView | None
+    selected_risk: GovernedRecordView | None
+    integrations: tuple[GovernedRecordView, ...]
+    boundaries: tuple[GovernedRecordView, ...]
+    decisions: tuple[GovernedRecordView, ...]
+    authorizations: tuple[GovernedRecordView, ...]
+    authority_assignments: tuple[GovernedRecordView, ...]
+    history: tuple[GovernedRecordView, ...]
+    integration_state: ReadState
+    boundary_state: ReadState
+    decision_state: ReadState
+    authorization_state: ReadState
+    integration_explanation: ExplanationView
+    boundary_explanation: ExplanationView
+    decision_explanation: ExplanationView
+    authorization_explanation: ExplanationView
+
+
+@dataclass(frozen=True, slots=True)
 class CaseWorkspaceView:
     actor: ActorContext
     case: CaseSummary
@@ -140,6 +160,7 @@ class CaseWorkspaceView:
     applicability: tuple[GovernedRecordView, ...]
     value: AnalyticalLaneView
     risk: AnalyticalLaneView
+    decision: DecisionWorkspaceView
     attention: tuple[AttentionItemView, ...]
     effective_at: datetime
     known_at: datetime

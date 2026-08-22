@@ -11,6 +11,7 @@
     <article class="summary-card"><h3>Evidence &amp; Authority</h3><p>{{ view.evidence | length }} Evidence item{% if view.evidence | length != 1 %}s{% endif %}; {{ view.authority_gaps | length }} Authority Gap{% if view.authority_gaps | length != 1 %}s{% endif %}.</p><a href="/cases/{{ view.case.case_id }}/evidence">Open Evidence &amp; Authority</a></article>
     <article class="summary-card"><h3>Value</h3><p><strong>{% if view.value.selection_state.value == 'ESTABLISHED' %}Value assessment selected{% else %}Value assessment not yet selected{% endif %}</strong></p><a href="/cases/{{ view.case.case_id }}/assessment#value">Open Value work</a></article>
     <article class="summary-card"><h3>Risk</h3><p><strong>{% if view.risk.selection_state.value == 'ESTABLISHED' %}Risk assessment selected{% else %}Risk assessment not yet selected{% endif %}</strong></p><a href="/cases/{{ view.case.case_id }}/assessment#risk">Open Risk work</a></article>
+    <article class="summary-card"><h3>Integration &amp; Decision</h3><p><strong>{% if view.decision.authorization_state.value == 'ESTABLISHED' %}Decision authorization established{% elif view.decision.decision_state.value == 'ESTABLISHED' %}Decision proposal awaits separate authorization{% elif view.decision.integration_state.value == 'ESTABLISHED' %}Integration established{% else %}Integration not yet established{% endif %}</strong></p><a href="/cases/{{ view.case.case_id }}/decision">Open Integration &amp; Decision work</a></article>
   </div>
 </section>
 <section aria-labelledby="attention-heading">

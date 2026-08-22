@@ -361,6 +361,11 @@ class OperationalApplication:
             "risk-fitness.create",
             "value-input.select",
             "risk-input.select",
+            "case.lifecycle.advance",
+            "integration.create",
+            "boundary.create",
+            "decision.propose",
+            "decision.authorize",
         )
         access = {
             action: self.operational_store.permission_allowed(
