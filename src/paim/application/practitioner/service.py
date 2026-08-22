@@ -6,6 +6,7 @@ from collections.abc import Mapping
 from dataclasses import replace
 from datetime import datetime
 
+from paim.application.practitioner.integration_basis import exact_current_integration_basis
 from paim.application.practitioner.models import (
     ActorContext,
     AnalyticalLaneView,
@@ -480,20 +481,74 @@ class PractitionerQueryService:
 
         selected_value = selected(value)
         selected_risk = selected(risk)
-        integrations = self._record_views(
+        all_integrations = self._record_views(
             by_family.get("integration", []), effective_at, known_at, visible_versions
         )
-        boundaries = self._record_views(
+        integrations = tuple(
+            item
+            for item in all_integrations
+            if exact_current_integration_basis(item, value=value, risk=risk) is not None
+        )
+        integration_versions = {item.version_id: item for item in integrations}
+        all_boundaries = self._record_views(
             by_family.get("boundary-snapshot", []), effective_at, known_at, visible_versions
         )
-        decisions = self._record_views(
+        boundaries = tuple(
+            item
+            for item in all_boundaries
+            if (
+                integration := integration_versions.get(
+                    str(item.content.get("integration_version_id", ""))
+                )
+            )
+            is not None
+            and item.content.get("integration_id") == integration.record_id
+            and item.content.get("configuration_id") == integration.content.get("configuration_id")
+            and item.content.get("configuration_version_id")
+            == integration.content.get("configuration_version_id")
+        )
+        boundary_versions = {item.version_id: item for item in boundaries}
+        all_decisions = self._record_views(
             by_family.get("management-decision", []), effective_at, known_at, visible_versions
         )
-        authorizations = self._record_views(
+        decisions = tuple(
+            item
+            for item in all_decisions
+            if (
+                integration := integration_versions.get(
+                    str(item.content.get("integration_version_id", ""))
+                )
+            )
+            is not None
+            and (
+                boundary := boundary_versions.get(
+                    str(item.content.get("boundary_snapshot_version_id", ""))
+                )
+            )
+            is not None
+            and item.content.get("integration_id") == integration.record_id
+            and item.content.get("boundary_snapshot_id") == boundary.record_id
+            and boundary.content.get("integration_version_id") == integration.version_id
+            and item.content.get("configuration_id") == integration.content.get("configuration_id")
+            and item.content.get("configuration_version_id")
+            == integration.content.get("configuration_version_id")
+        )
+        decision_versions = {item.version_id: item for item in decisions}
+        all_authorizations = self._record_views(
             by_family.get("decision-authorization-basis", []),
             effective_at,
             known_at,
             visible_versions,
+        )
+        authorizations = tuple(
+            item
+            for item in all_authorizations
+            if (decision := decision_versions.get(str(item.content.get("decision_version_id", ""))))
+            is not None
+            and item.content.get("decision_id") == decision.record_id
+            and item.content.get("configuration_id") == decision.content.get("configuration_id")
+            and item.content.get("configuration_version_id")
+            == decision.content.get("configuration_version_id")
         )
         assignments = tuple(
             item
@@ -582,7 +637,8 @@ class PractitionerQueryService:
             authorization_state,
             explanation(
                 integration_state,
-                "One exact current Integration is established.",
+                "One exact Integration remains valid for the current selected "
+                "Value and Risk basis.",
                 "Integration",
                 "Integrate the exact selected Value and Risk analyses",
                 "integration.create",

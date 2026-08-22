@@ -10,7 +10,12 @@ from fastapi import FastAPI, Request
 from fastapi.responses import RedirectResponse, Response
 
 from paim.application import DomainPreconditionFailed, DomainRuleViolation, StalePrecondition
-from paim.application.practitioner import CaseWorkspaceView, GovernedRecordView, ReadState
+from paim.application.practitioner import (
+    CaseWorkspaceView,
+    GovernedRecordView,
+    ReadState,
+    exact_current_integration_basis,
+)
 from paim.domain import (
     BoundaryClauseEffect,
     BoundaryClauseInput,
@@ -132,6 +137,15 @@ def _selected_lane(
     return selected, selection
 
 
+def _current_integration(view: CaseWorkspaceView, version_id: str) -> GovernedRecordView:
+    integration = _record(view.decision.integrations, version_id, "Integration")
+    if exact_current_integration_basis(integration, value=view.value, risk=view.risk) is None:
+        raise ValueError(
+            "Integration no longer binds the exact current selected Value and Risk basis"
+        )
+    return integration
+
+
 def _form_payload(form: object) -> dict[str, str]:
     payload = {
         str(key): str(value).strip()
@@ -220,17 +234,13 @@ def _bind(action: str, payload: dict[str, str], view: CaseWorkspaceView) -> None
             _record(view.authority_gaps, version_id, "Authority Gap")
 
     elif action == "boundary.create":
-        integration = _record(
-            view.decision.integrations, payload.get("integration_version_id", ""), "Integration"
-        )
+        integration = _current_integration(view, payload.get("integration_version_id", ""))
         if integration.state != IntegrationStatus.COMPLETED.value:
             raise ValueError("exact completed Integration is required")
         payload["integration_id"] = integration.record_id
 
     elif action == "decision.propose":
-        integration = _record(
-            view.decision.integrations, payload.get("integration_version_id", ""), "Integration"
-        )
+        integration = _current_integration(view, payload.get("integration_version_id", ""))
         boundary = _record(
             view.decision.boundaries, payload.get("boundary_snapshot_version_id", ""), "Boundary"
         )
@@ -254,6 +264,24 @@ def _bind(action: str, payload: dict[str, str], view: CaseWorkspaceView) -> None
             DecisionStatus.PENDING_AUTHORIZATION.value,
         }:
             raise ValueError("exact current proposed Decision is required")
+        integration = _current_integration(
+            view, str(decision.content.get("integration_version_id", ""))
+        )
+        boundary = _record(
+            view.decision.boundaries,
+            str(decision.content.get("boundary_snapshot_version_id", "")),
+            "Boundary",
+        )
+        if (
+            decision.content.get("integration_id") != integration.record_id
+            or decision.content.get("boundary_snapshot_id") != boundary.record_id
+            or boundary.content.get("integration_id") != integration.record_id
+            or boundary.content.get("integration_version_id") != integration.version_id
+            or boundary.state != "finalized"
+        ):
+            raise ValueError(
+                "Decision proposal no longer binds the exact current Integration/Boundary chain"
+            )
         assignment = _record(
             view.decision.authority_assignments,
             payload.get("authority_assignment_version_id", ""),
