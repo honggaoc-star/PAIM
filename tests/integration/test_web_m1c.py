@@ -664,6 +664,17 @@ def test_m1c_old_chain_fails_closed_after_current_lane_selection_changes(
         )
     )
     assert counts_after == counts_before
+    reconstructed = web_fixture.operational.practitioner_workspace(
+        web_fixture.admin_session, web_fixture.visible_case_id
+    )
+    assert reconstructed is not None
+    historical_version_ids = {item.version_id for item in reconstructed.decision.history}
+    assert {integration.version_id, boundary.version_id, decision.version_id} <= (
+        historical_version_ids
+    )
     history = web_fixture.client.get(f"{base}/history")
-    for version_id in (integration.version_id, boundary.version_id, decision.version_id):
-        assert version_id in history.text
+    assert "Integration" in history.text
+    assert "Boundary Snapshot" in history.text
+    assert "Decision" in history.text
+    assert integration.version_id not in history.text
+    assert "technical inspection is deferred" in history.text

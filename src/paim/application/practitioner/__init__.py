@@ -7,7 +7,6 @@ from paim.application.practitioner.integration_basis import (
 from paim.application.practitioner.models import (
     ActorContext,
     AnalyticalLaneView,
-    AttentionItemView,
     CaseListView,
     CaseOrientationView,
     CaseSummary,
@@ -17,6 +16,8 @@ from paim.application.practitioner.models import (
     ExplanationView,
     GovernedRecordView,
     HomeView,
+    OrientationItemView,
+    PractitionerExceptionView,
     ReadState,
     SourceBasis,
 )
@@ -25,7 +26,6 @@ from paim.application.practitioner.service import PractitionerQueryService
 __all__ = [
     "ActorContext",
     "AnalyticalLaneView",
-    "AttentionItemView",
     "CaseListView",
     "CaseOrientationView",
     "CaseSummary",
@@ -36,6 +36,8 @@ __all__ = [
     "ExplanationView",
     "GovernedRecordView",
     "HomeView",
+    "OrientationItemView",
+    "PractitionerExceptionView",
     "PractitionerQueryService",
     "ReadState",
     "SourceBasis",

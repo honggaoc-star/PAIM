@@ -65,13 +65,16 @@ def test_m1b_workspace_exact_configuration_and_independent_value_risk_path(
     base = f"/cases/{case_id}"
     initial = web_fixture.client.get(base)
     assert initial.status_code == 200
-    assert "Governing Configuration not yet established" in initial.text
-    assert "Current attention" in initial.text
-    assert '<details class="why">' in initial.text
-    assert '<details class="why" open>' not in initial.text
+    assert "no single setup is established for assessment" in initial.text
+    assert "Establish one setup for assessment" in initial.text
+    assert "Required for the action you chose" not in initial.text
+    assert "Material conditions still unresolved" in initial.text
+    assert "Current attention" not in initial.text
+    assert "Software access" not in initial.text
+    assert "Exact governed context" not in initial.text
     assert f"{base}/configuration" in initial.text
-    assert f"{base}/assessment#value" in initial.text
-    assert "Create or update a Configuration" not in initial.text
+    assert f"{base}/assessment#value" not in initial.text
+    assert "Add or revise a setup" not in initial.text
     assert "Assess Evidence Applicability" not in initial.text
     assert "Determine fitness for a bounded use" not in initial.text
     assert str(web_fixture.hidden_case_id) not in initial.text
@@ -84,14 +87,14 @@ def test_m1b_workspace_exact_configuration_and_independent_value_risk_path(
     history_page = web_fixture.client.get(f"{base}/history")
     for page in (configuration_page, evidence_page, assessment_page, history_page):
         assert str(web_fixture.hidden_case_id) not in page.text
-    assert "Create or update a Configuration" in configuration_page.text
+    assert "Add or revise a setup" in configuration_page.text
     assert "Add Evidence" not in configuration_page.text
     assert "Evidence &amp; Authority" in evidence_page.text
     assert "Establish one governing Configuration" in evidence_page.text
     assert "Determine fitness for a bounded use" not in evidence_page.text
     assert "Value &amp; Risk" in assessment_page.text
-    assert "Create or update a Configuration" not in assessment_page.text
-    assert "History &amp; provenance" in history_page.text
+    assert "Add or revise a setup" not in assessment_page.text
+    assert "Source, history, and governance basis" in history_page.text
     assert "/review" not in history_page.text
 
     workspace = web_fixture.operational.practitioner_workspace(
@@ -329,7 +332,8 @@ def test_m1b_workspace_exact_configuration_and_independent_value_risk_path(
             assert f'value="{fitness.version_id}"' in fitness_choices
             assert f'value="{blocked.version_id}"' not in fitness_choices
             overview_before_selection = web_fixture.client.get(base)
-            assert "Risk assessment not yet selected" in overview_before_selection.text
+            assert "Assess Risk" in overview_before_selection.text
+            assert "Required for the action you chose" not in overview_before_selection.text
             assert "Risk assessment blocked for a recorded use" not in (
                 overview_before_selection.text
             )
@@ -439,7 +443,7 @@ def test_m1b_workspace_exact_configuration_and_independent_value_risk_path(
     overview = web_fixture.client.get(base)
     assert "Risk assessment blocked for a recorded use" not in overview.text
     assert "Risk assessment not yet selected" not in overview.text
-    assert "priority, severity, or ranking" in overview.text
+    assert "not a ranking, recommendation, or priority" in overview.text
 
 
 def test_m1b_stale_configuration_successor_stops_and_duplicate_intent_is_idempotent(
@@ -713,7 +717,8 @@ def test_m1b_governing_configuration_conflict_is_explicit_without_implicit_winne
         second.version_id,
     }
     page = web_fixture.client.get(f"{base}/configuration")
-    assert "Governing Configuration conflict" in page.text
-    assert "GOVERNING CONFIGURATION CONFLICT" in page.text
+    assert "The assessment setup is conflicted" in page.text
+    assert "More than one setup claims to be the current assessment basis" in page.text
     overview = web_fixture.client.get(base)
-    assert "Why is this shown? What can legitimately change it?" in overview.text
+    assert "Why this blocks work and how to resolve it" in overview.text
+    assert "PAIM cannot choose" in overview.text

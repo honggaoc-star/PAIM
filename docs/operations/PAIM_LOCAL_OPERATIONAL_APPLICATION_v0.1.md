@@ -320,22 +320,28 @@ not authorize post-v0.1 work.
 
 ## 11. Post-v0.1 M1 browser development
 
-The M1A/M1B browser is an **under-development post-v0.1.0 application**. It is not part of the
+The M1 browser is an **under-development post-v0.1.0 application**. It is not part of the
 immutable PAIM v0.1.0 release claim and is not broadly ready for external practitioners. M1A
 provides secure local sign-in plus access-filtered Home and Cases views. M1B adds browser Case
 creation and the first substantive Case Workspace: exact Configuration creation/successors and
 governing designation, Evidence, Authority and Authority Gaps, Configuration-bound Evidence
 Applicability, and equal independent Value and Risk input/readiness/fitness/selection lanes.
-The workspace is divided into Overview, Configuration, Evidence & Authority, Value & Risk, and
-History & provenance work areas. Overview attention items are derived from existing authoritative
-facts and link to the owning work area; their order does not imply priority, severity, ranking, or
-substantive authority. Routine pages use practitioner labels and keep exact identity, dual-time,
-and provenance detail behind intentional disclosure or in History & provenance.
+M1C adds exact current-basis Integration, finalized Boundary, and separate Decision proposal and
+authorization interactions. UX-1 adds a read-only task-oriented orientation shell: persisted Case
+title, plain current position, unranked available work, and separately disclosed unresolved
+conditions. Passive Case orientation does not infer an intended downstream action or promote the
+last incomplete lane to a required next task. It does not persist or infer a generic
+task, attention, rank, priority, readiness, authority, or operating status.
 
-M1B stops before Integration, Integrated Operating Boundary, Decision proposal/authorization,
-Intervention, Completion, Activation, Trigger/Reassessment, and Management Register work. Those
-areas are not implied by workspace navigation or summary presentation; M1C/M1D remain future
-bounded implementation gates.
+The workspace is divided into Overview, Proposal setup, What we know, Value & Risk, Management
+judgment, and Source & history. Governing assessment basis remains distinct from authorization and
+operation. Routine pages use practitioner language; raw identifiers and payloads are omitted because
+the browser does not yet have a separately enforceable Technical inspection permission. Authorized
+operators retain the production CLI and audit paths for exact inspection and reconstruction.
+
+The browser still stops before Intervention, Completion, Activation, Trigger/Reassessment, and
+Management Register work. UX-1 does not redesign the existing Evidence/Authority, Value/Risk, or
+Management judgment task flows. M1D and UX-2 onward remain future bounded implementation gates.
 
 Use the same validated configuration and database as `paim-local`. The configured credential
 environment source must remain available for the existing configuration preflight, but browser

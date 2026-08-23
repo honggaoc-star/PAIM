@@ -2,9 +2,9 @@
 
 ## Status
 
-This is a decomposition proposal, not authorization to implement. Each increment requires its own
-bounded issue, branch, tests, practitioner review, and independent semantic acceptance. M1D remains
-out of scope.
+This is the bounded implementation sequence. UX-1 is implemented as a read-only orientation and
+vocabulary shell; every later increment still requires its own issue, branch, tests, practitioner
+review, and independent semantic acceptance. M1D remains out of scope.
 
 ## Questions requiring semantic or domain review
 
@@ -52,6 +52,18 @@ the UI increment and return to semantic design authority.
 
 ### UX-1 — Read-only orientation and vocabulary shell
 
+Implementation status: implemented by Issue #111. The Case Overview now uses the persisted Case
+title, distinguishes unranked available work from unresolved conditions, and separates
+Configuration assessment basis from authorization and operation. The
+workspace navigation uses practitioner task language, while Source & history provides readable
+governance trace. Raw identifiers and payloads are omitted from the browser because a separately
+enforceable Technical inspection permission does not yet exist; authorized production CLI and audit
+paths remain available.
+
+Passive Case orientation does not infer an intended downstream action. A lone unfinished Value or
+Risk lane therefore remains available work; it becomes a required prerequisite only in the context
+of a separately established attempt to perform an action that requires both lane selections.
+
 Scope:
 
 - concise, Configuration-stable Case title using the existing persisted title contract;
@@ -63,6 +75,10 @@ Scope:
 
 Gate: read composition is deterministic, access-filtered, non-ranking, does not fabricate a durable
 management question, and does not misstate governing currentness, authorization, or operation.
+
+This increment does not redesign Evidence/Authority tasks, Value/Risk analytical checkpoints,
+Integration/Boundary work, Decision proposal or authorization, or any later lifecycle surface. It
+adds no persisted task, attention, ranking, priority, readiness, authorization, or operating state.
 
 ### UX-2 — Task-oriented “What we know” surface
 

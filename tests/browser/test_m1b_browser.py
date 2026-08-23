@@ -51,18 +51,32 @@ def test_m1b_browser_exact_evidence_and_independent_lane_path(
         page.get_by_role("link", name="Cases", exact=True).click()
         page.get_by_role("link", name="Visible governed service").click()
         assert page.get_by_role("heading", name="Overview").is_visible()
-        assert page.locator("details.why").count() > 0
+        assert page.locator(".current-position").is_visible()
+        assert page.get_by_role("heading", name="Independent work available now").is_visible()
         assert all(item.get_attribute("open") is None for item in page.locator("details.why").all())
         assert "Protected hidden service" not in page.content()
         assert str(web_fixture.hidden_case_id) not in page.content()
 
-        page.get_by_role("link", name="Configuration", exact=True).click()
-        page.get_by_label("Accountable mechanism").fill("governed:m1b-browser-configuration")
-        page.get_by_role("button", name="Review designation as governing").click()
+        page.get_by_role("link", name="Proposal setup", exact=True).click()
+        page.get_by_label("Responsible governance process").fill(
+            "governed:m1b-browser-configuration"
+        )
+        page.get_by_role("button", name="Review using this setup for assessment").click()
         _confirm(page)
-        assert "Governing Configuration established" in page.content()
+        assert "One setup is used for this assessment" in page.content()
+        assert "does not authorize or start operation" in page.content()
 
-        page.get_by_role("link", name="Evidence & Authority", exact=True).click()
+        page.get_by_role("link", name="Overview", exact=True).click()
+        assert page.get_by_role("heading", name="Independent work available now").is_visible()
+        assert page.get_by_role("link", name="Assess Value", exact=True).is_visible()
+        assert page.get_by_role("link", name="Assess Risk", exact=True).is_visible()
+        assert "Their display order is not a ranking" in page.content()
+        assert "Current attention" not in page.content()
+        assert page.evaluate(
+            "document.documentElement.scrollWidth <= document.documentElement.clientWidth"
+        )
+
+        page.get_by_role("link", name="What we know", exact=True).click()
         authority_actions = page.locator('[aria-labelledby="authority-actions-heading"]')
         applicability_actions = page.locator('[aria-labelledby="applicability-actions-heading"]')
         assert authority_actions.get_by_text("Record an Authority Gap", exact=True).is_visible()
@@ -109,7 +123,7 @@ def test_m1b_browser_exact_evidence_and_independent_lane_path(
             lane_view = workspace.value if slug == "value" else workspace.risk
             candidate = lane_view.candidates[0]
 
-            page.get_by_role("link", name="Evidence & Authority", exact=True).click()
+            page.get_by_role("link", name="What we know", exact=True).click()
             applicability = page.locator("details").filter(has_text="Assess Evidence Applicability")
             applicability.locator("summary").click()
             applicability.locator('select[name="evidence_choice"]').select_option(
@@ -223,7 +237,7 @@ def test_m1b_browser_exact_evidence_and_independent_lane_path(
         )
         assert "It does not integrate them" in page.content()
         assert "M1C" not in page.content()
-        page.get_by_role("link", name="History & provenance", exact=True).click()
+        page.get_by_role("link", name="Source & history", exact=True).click()
         assert page.get_by_text(
             "Value fitness — Supportable — Independent Value finding", exact=True
         ).is_visible()
@@ -236,5 +250,6 @@ def test_m1b_browser_exact_evidence_and_independent_lane_path(
         assert page.get_by_text(
             "Risk assessment selected — Independent Risk finding", exact=True
         ).is_visible()
-        assert page.get_by_text("Identity and provenance").first.is_visible()
+        assert page.get_by_text("Source, history, and governance basis").first.is_visible()
+        assert page.get_by_text("Identity and provenance").count() == 0
         page.close()

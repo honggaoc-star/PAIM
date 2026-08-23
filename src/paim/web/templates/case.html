@@ -1,23 +1,34 @@
 {% extends "base.html" %}
-{% from "case_workspace_macros.html" import workspace_header, why %}
+{% from "case_workspace_macros.html" import explain_exception, workspace_header %}
 {% block title %}{{ view.case.title }} — PAIM{% endblock %}
 {% block content %}
 {{ workspace_header(view, active_area) }}
 <section aria-labelledby="overview-heading">
   <h2 id="overview-heading">Overview</h2>
-  <p>Use this page to understand the Case’s current management position and move to the owning work area.</p>
-  <div class="overview-grid">
-    <article class="summary-card"><h3>Configuration</h3><p><strong>{% if view.governing_state.value == 'ESTABLISHED' %}Governing Configuration established{% elif view.governing_state.value == 'CONFLICT' %}Governing Configuration conflict{% else %}Governing Configuration not yet established{% endif %}</strong></p><a href="/cases/{{ view.case.case_id }}/configuration">Open Configuration work</a></article>
-    <article class="summary-card"><h3>Evidence &amp; Authority</h3><p>{{ view.evidence | length }} Evidence item{% if view.evidence | length != 1 %}s{% endif %}; {{ view.authority_gaps | length }} Authority Gap{% if view.authority_gaps | length != 1 %}s{% endif %}.</p><a href="/cases/{{ view.case.case_id }}/evidence">Open Evidence &amp; Authority</a></article>
-    <article class="summary-card"><h3>Value</h3><p><strong>{% if view.value.selection_state.value == 'ESTABLISHED' %}Value assessment selected{% else %}Value assessment not yet selected{% endif %}</strong></p><a href="/cases/{{ view.case.case_id }}/assessment#value">Open Value work</a></article>
-    <article class="summary-card"><h3>Risk</h3><p><strong>{% if view.risk.selection_state.value == 'ESTABLISHED' %}Risk assessment selected{% else %}Risk assessment not yet selected{% endif %}</strong></p><a href="/cases/{{ view.case.case_id }}/assessment#risk">Open Risk work</a></article>
-    <article class="summary-card"><h3>Integration &amp; Decision</h3><p><strong>{% if view.decision.authorization_state.value == 'ESTABLISHED' %}Decision authorization established{% elif view.decision.decision_state.value == 'ESTABLISHED' %}Decision proposal awaits separate authorization{% elif view.decision.integration_state.value == 'ESTABLISHED' %}Integration established{% else %}Integration not yet established{% endif %}</strong></p><a href="/cases/{{ view.case.case_id }}/decision">Open Integration &amp; Decision work</a></article>
+  <p>See the setup under consideration, work available now, and material conditions still unresolved.</p>
+</section>
+<section aria-labelledby="setup-heading">
+  <div class="section-heading"><div><h2 id="setup-heading">What is being considered</h2><p>Visible setups are shown by their management purpose. Assessment basis, authorization, and operation remain separate.</p></div><a href="/cases/{{ view.case.case_id }}/configuration">Review proposal setup</a></div>
+  <div class="orientation-grid">
+  {% for configuration in view.configurations %}<article class="orientation-card"><p class="eyebrow">{{ configuration.practitioner_label }}</p><h3>{{ configuration.content.get('system', 'Setup') }}</h3><p>{{ configuration.content.get('intended_use', 'The intended use is not stated.') }}</p><p class="summary-label">{{ configuration.context_summary }}</p></article>
+  {% else %}<div class="empty-state"><h3>No visible setup</h3><p>No Configuration details are available in this session.</p></div>{% endfor %}
   </div>
 </section>
-<section aria-labelledby="attention-heading">
-  <h2 id="attention-heading">Current attention</h2>
-  <p class="summary-label">Items are grouped by owning work area; their order does not express priority, severity, or ranking.</p>
-  {% for item in view.attention %}<article class="attention-card"><h3><a href="{{ item.href }}">{{ item.label }}</a></h3><p>{{ item.summary }}</p>{{ why(item.explanation) }}</article>
-  {% else %}<div class="empty-state"><h3>No current workspace attention item is established</h3><p>This is not a universal readiness or risk conclusion.</p></div>{% endfor %}
+{% if view.required_prerequisite %}<section aria-labelledby="prerequisite-heading">
+  <h2 id="prerequisite-heading">Required for the action you chose</h2>
+  <article class="prerequisite-card"><h3><a href="{{ view.required_prerequisite.href }}">{{ view.required_prerequisite.label }}</a></h3><p>{{ view.required_prerequisite.summary }}</p>{{ explain_exception(view.required_prerequisite.exception) }}</article>
+</section>{% endif %}
+<section aria-labelledby="available-heading">
+  <h2 id="available-heading">Independent work available now</h2>
+  <p class="summary-label">These tasks are peers. Their display order is not a ranking, recommendation, or priority.</p>
+  <div class="orientation-grid">
+  {% for item in view.available_work %}<article class="work-card"><h3><a href="{{ item.href }}">{{ item.label }}</a></h3><p>{{ item.summary }}</p></article>
+  {% else %}<div class="empty-state"><h3>No independent work is available in this session</h3><p>Review the required prerequisite or unresolved conditions below.</p></div>{% endfor %}
+  </div>
+</section>
+<section aria-labelledby="unresolved-heading">
+  <h2 id="unresolved-heading">Material conditions still unresolved</h2>
+  {% for item in view.unresolved_conditions %}<article class="unresolved-card"><h3><a href="{{ item.href }}">{{ item.label }}</a></h3><p>{{ item.summary }}</p>{{ explain_exception(item.exception) }}</article>
+  {% else %}<div class="empty-state"><h3>No visible unresolved condition is established</h3><p>This is not a universal readiness, authorization, or risk conclusion.</p></div>{% endfor %}
 </section>
 {% endblock %}
