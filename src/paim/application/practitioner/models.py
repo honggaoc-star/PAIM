@@ -85,12 +85,20 @@ class ExplanationView:
 
 
 @dataclass(frozen=True, slots=True)
-class AttentionItemView:
+class PractitionerExceptionView:
+    intended_action: str
+    condition: str
+    why_it_matters: str
+    resolution: str
+
+
+@dataclass(frozen=True, slots=True)
+class OrientationItemView:
     key: str
     label: str
     summary: str
     href: str
-    explanation: ExplanationView
+    exception: PractitionerExceptionView | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -101,6 +109,8 @@ class ConfigurationView:
     purpose: str
     content: dict[str, Any]
     is_governing: bool
+    practitioner_label: str
+    context_summary: str
     basis: SourceBasis
 
 
@@ -154,6 +164,7 @@ class CaseWorkspaceView:
     governing_state: ReadState
     governing_configuration_version_ids: tuple[str, ...]
     governing_explanation: ExplanationView
+    current_position: str
     evidence: tuple[GovernedRecordView, ...]
     authority: tuple[GovernedRecordView, ...]
     authority_gaps: tuple[GovernedRecordView, ...]
@@ -161,6 +172,8 @@ class CaseWorkspaceView:
     value: AnalyticalLaneView
     risk: AnalyticalLaneView
     decision: DecisionWorkspaceView
-    attention: tuple[AttentionItemView, ...]
+    available_work: tuple[OrientationItemView, ...]
+    required_prerequisite: OrientationItemView | None
+    unresolved_conditions: tuple[OrientationItemView, ...]
     effective_at: datetime
     known_at: datetime

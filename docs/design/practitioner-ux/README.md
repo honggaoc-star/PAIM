@@ -35,7 +35,10 @@ choices, and reveal machinery only when it helps a governance, audit, or diagnos
 - [Task-to-capability mapping](PAIM_TASK_TO_GOVERNED_CAPABILITY_MAPPING.md) shows how simplified
   interactions preserve separate governed acts and records.
 - [Semantic review and implementation decomposition](PAIM_TASK_ORIENTED_UX_IMPLEMENTATION_PLAN.md)
-  lists unresolved questions and bounded follow-on increments.
+  records UX-1 implementation status, unresolved questions, and bounded follow-on increments.
+
+UX-1 is the implemented read-only orientation and vocabulary increment. It does not authorize UX-2,
+M1D, or any domain-semantic extension.
 
 ## Exercise boundary
 

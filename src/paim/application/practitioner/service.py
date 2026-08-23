@@ -10,7 +10,6 @@ from paim.application.practitioner.integration_basis import exact_current_integr
 from paim.application.practitioner.models import (
     ActorContext,
     AnalyticalLaneView,
-    AttentionItemView,
     CaseListView,
     CaseOrientationView,
     CaseSummary,
@@ -20,6 +19,8 @@ from paim.application.practitioner.models import (
     ExplanationView,
     GovernedRecordView,
     HomeView,
+    OrientationItemView,
+    PractitionerExceptionView,
     ReadState,
     SourceBasis,
 )
@@ -195,9 +196,36 @@ class PractitionerQueryService:
         for version in current:
             by_family.setdefault(version.family, []).append(version)
 
+        visible_configuration_version_ids = frozenset(
+            str(version.version_id)
+            for version in source_versions
+            if version.family == "managed-configuration"
+        )
+
         governing_ids: tuple[str, ...]
         governing_basis: tuple[str, ...]
-        if isinstance(governing, GoverningConfigurationFound):
+        if (
+            isinstance(governing, GoverningConfigurationFound)
+            and str(governing.configuration_version_id) not in visible_configuration_version_ids
+        ):
+            governing_state = ReadState.INACCESSIBLE
+            governing_ids = ()
+            governing_reason = (
+                "The setup used for this Case cannot be shown in the current visible context."
+            )
+            governing_basis = ()
+        elif (
+            isinstance(governing, GoverningConfigurationConflict)
+            and not {str(value) for value in governing.configuration_version_ids}
+            <= visible_configuration_version_ids
+        ):
+            governing_state = ReadState.INACCESSIBLE
+            governing_ids = ()
+            governing_reason = (
+                "The setup used for this Case cannot be resolved in the current visible context."
+            )
+            governing_basis = ()
+        elif isinstance(governing, GoverningConfigurationFound):
             governing_state = ReadState.ESTABLISHED
             governing_ids = (str(governing.configuration_version_id),)
             governing_reason = "One exact governing Configuration is established."
@@ -219,14 +247,11 @@ class PractitionerQueryService:
             governing_basis = ()
 
         configuration_views = tuple(
-            ConfigurationView(
-                configuration_id=str(version.record_id),
-                version_id=str(version.version_id),
-                maturity=str(version.content.get("maturity", "unknown")),
-                purpose=str(version.content.get("purpose", "unknown")),
-                content=dict(version.content),
+            self._configuration_view(
+                version,
                 is_governing=str(version.version_id) in governing_ids,
-                basis=self._basis(version, effective_at, known_at),
+                effective_at=effective_at,
+                known_at=known_at,
             )
             for version in sorted(
                 by_family.get("managed-configuration", []),
@@ -265,20 +290,26 @@ class PractitionerQueryService:
             known_at=known_at,
             visible_versions=visible_versions,
         )
-        attention = self._attention(
+        authorized_configuration_versions = {
+            str(item.content.get("configuration_version_id", ""))
+            for item in decision.authorizations
+        }
+        configuration_views = tuple(
+            replace(
+                item,
+                practitioner_label="Authorized setup",
+                context_summary=(
+                    "A Decision authorizes this setup under recorded limits. Authorization "
+                    "does not by itself establish operation."
+                ),
+            )
+            if item.version_id in authorized_configuration_versions
+            else item
+            for item in configuration_views
+        )
+        available_work, required_prerequisite, unresolved_conditions = self._orientation_items(
             case_id=case_id,
             governing_state=governing_state,
-            governing_explanation=ExplanationView(
-                governing_state,
-                governing_reason,
-                "Designate a finalized candidate Configuration",
-                True,
-                action_access.get("configuration.designate", False),
-                True,
-                "Required by the governing designation command",
-                "Established only by the owning PAIM capability",
-                governing_basis,
-            ),
             evidence=evidence,
             authority_gaps=gaps,
             applicability=applicability,
@@ -305,6 +336,7 @@ class PractitionerQueryService:
                 "Established only by the owning PAIM capability",
                 governing_basis,
             ),
+            current_position=self._current_position(lifecycle_state, governing_state),
             evidence=evidence,
             authority=authority,
             authority_gaps=gaps,
@@ -312,17 +344,18 @@ class PractitionerQueryService:
             value=value,
             risk=risk,
             decision=decision,
-            attention=attention,
+            available_work=available_work,
+            required_prerequisite=required_prerequisite,
+            unresolved_conditions=unresolved_conditions,
             effective_at=effective_at,
             known_at=known_at,
         )
 
     @staticmethod
-    def _attention(
+    def _orientation_items(
         *,
         case_id: RecordId,
         governing_state: ReadState,
-        governing_explanation: ExplanationView,
         evidence: tuple[GovernedRecordView, ...],
         authority_gaps: tuple[GovernedRecordView, ...],
         applicability: tuple[GovernedRecordView, ...],
@@ -330,130 +363,290 @@ class PractitionerQueryService:
         risk: AnalyticalLaneView,
         decision: DecisionWorkspaceView,
         action_access: Mapping[str, bool],
-    ) -> tuple[AttentionItemView, ...]:
+    ) -> tuple[
+        tuple[OrientationItemView, ...],
+        OrientationItemView | None,
+        tuple[OrientationItemView, ...],
+    ]:
         base = f"/cases/{case_id}"
-        items: list[AttentionItemView] = []
+        available: list[OrientationItemView] = []
+        unresolved: list[OrientationItemView] = []
+        required: OrientationItemView | None = None
+
         if governing_state is not ReadState.ESTABLISHED:
-            label = (
-                "Governing Configuration conflict"
+            condition = (
+                "More than one setup claims to be the current assessment basis."
                 if governing_state is ReadState.CONFLICT
-                else "Governing Configuration not yet established"
+                else "The assessment setup is not visible in this session."
+                if governing_state is ReadState.INACCESSIBLE
+                else "No single setup is established as the current assessment basis."
             )
-            items.append(
-                AttentionItemView(
-                    "governing-configuration",
-                    label,
-                    governing_explanation.reason,
+            resolution = (
+                "Review the competing setup designations and use the governed Configuration "
+                "process to preserve one valid assessment basis."
+                if governing_state is ReadState.CONFLICT
+                else "Ask an administrator to restore access to the Case's setup."
+                if governing_state is ReadState.INACCESSIBLE
+                else "Use the proposal setup page to establish one finalized setup for assessment."
+            )
+            exception = PractitionerExceptionView(
+                "Begin evidence or independent assessment work",
+                condition,
+                (
+                    "PAIM cannot choose a setup by recency, specificity, role, or presentation "
+                    "order."
+                    if governing_state is ReadState.CONFLICT
+                    else "Evidence and assessments must remain bound to one visible "
+                    "Configuration Version."
+                ),
+                resolution,
+            )
+            required = OrientationItemView(
+                "assessment-setup",
+                "Establish one setup for assessment",
+                condition,
+                f"{base}/configuration",
+                exception,
+            )
+            unresolved.append(
+                OrientationItemView(
+                    "assessment-setup-condition",
+                    "Assessment setup unresolved",
+                    condition,
                     f"{base}/configuration",
-                    governing_explanation,
+                    exception,
                 )
             )
-        unresolved = tuple(item for item in authority_gaps if item.state == "UNRESOLVED")
-        if unresolved:
-            items.append(
-                AttentionItemView(
+
+        unresolved_gaps = tuple(item for item in authority_gaps if item.state == "UNRESOLVED")
+        if unresolved_gaps:
+            unresolved_condition = PractitionerExceptionView(
+                "Use the unresolved requirement or authority as a Decision basis",
+                "A recorded authority question remains unresolved.",
+                "PAIM does not infer governing authority from access, nearby evidence, "
+                "or role labels.",
+                "Review the question and route it to the responsible authority role or "
+                "governance process.",
+            )
+            unresolved.append(
+                OrientationItemView(
                     "authority-gap",
                     "Unresolved authority question",
-                    f"{len(unresolved)} visible authority question(s) remain unresolved.",
+                    "A visible requirement or authority question still needs an explicit "
+                    "resolution.",
                     f"{base}/evidence",
-                    ExplanationView(
-                        ReadState.ABSENT,
-                        "The recorded Authority Gap remains unresolved; PAIM does not infer "
-                        "authority from software access or surrounding evidence.",
-                        "Work through the owning Authority Gap pathway",
-                        True,
-                        False,
-                        True,
-                        "The applicable accountable assignment or mechanism must remain explicit",
-                        "Only the owning authority capability may establish or change "
-                        "substantive authority",
-                        tuple(item.version_id for item in unresolved),
-                    ),
+                    unresolved_condition,
                 )
             )
+
         if evidence and not applicability:
-            items.append(
-                AttentionItemView(
+            unresolved.append(
+                OrientationItemView(
                     "applicability",
-                    "Evidence Applicability not yet established",
-                    "Evidence exists, but no visible exact Applicability determination is "
-                    "established.",
+                    "How the available information applies is unresolved",
+                    "Information is recorded, but its relevance to this setup has not been "
+                    "decided.",
                     f"{base}/evidence",
-                    ExplanationView(
-                        ReadState.ABSENT,
-                        "Evidence existence does not establish Applicability to a Configuration "
-                        "or analytical Input.",
-                        "Assess Evidence Applicability for an exact visible target",
-                        True,
-                        action_access.get("evidence.applicability", False),
-                        True,
-                        "Applicability requires an explicit accountable basis",
-                        "Applicability does not create substantive authority",
+                    PractitionerExceptionView(
+                        "Use recorded information in an assessment",
+                        "No visible Applicability determination is established.",
+                        "Recorded information does not automatically bear on a setup or analysis.",
+                        "Decide what the information bears on, under what limits, and why.",
                     ),
                 )
             )
-        for lane in (value, risk):
-            if lane.selection_state is not ReadState.ESTABLISHED:
-                label = (
-                    f"{lane.lane.title()} assessment selection conflict"
-                    if lane.selection_state is ReadState.CONFLICT
-                    else f"{lane.lane.title()} assessment not yet selected"
+
+        if governing_state is ReadState.ESTABLISHED:
+            available.append(
+                OrientationItemView(
+                    "review-known",
+                    "Review what is known and unresolved",
+                    "Review visible information, limitations, requirements, and authority "
+                    "questions.",
+                    f"{base}/evidence",
                 )
-                items.append(
-                    AttentionItemView(
-                        f"{lane.lane.casefold()}-selection",
-                        label,
-                        lane.explanation.reason,
+            )
+
+        incomplete_lanes = tuple(
+            lane for lane in (value, risk) if lane.selection_state is not ReadState.ESTABLISHED
+        )
+        for lane in (value, risk):
+            if lane.selection_state is ReadState.CONFLICT:
+                unresolved.append(
+                    OrientationItemView(
+                        f"{lane.lane.casefold()}-selection-conflict",
+                        f"{lane.lane.title()} assessment choice is conflicted",
+                        f"More than one incompatible {lane.lane.title()} assessment choice "
+                        "remains visible.",
                         f"{base}/assessment#{lane.lane.casefold()}",
-                        ExplanationView(
-                            lane.selection_state,
-                            lane.explanation.reason,
-                            f"Select one exact {lane.lane.title()} analysis for the stated use",
-                            True,
-                            action_access.get(f"{lane.lane.casefold()}-input.select", False),
-                            True,
-                            lane.explanation.accountability,
-                            lane.explanation.substantive_authority,
-                            lane.explanation.basis_version_ids,
+                        PractitionerExceptionView(
+                            "Use the lane in a management judgment",
+                            f"The {lane.lane.title()} assessment choice is conflicted.",
+                            "PAIM cannot choose among incompatible lane selections.",
+                            f"Resolve the {lane.lane.title()} selection through its governed "
+                            "lane process.",
                         ),
                     )
                 )
-        decision_attention = (
-            ("integration", "Integration not yet established", decision.integration_explanation)
-            if decision.integration_state is not ReadState.ESTABLISHED
-            and value.selection_state is ReadState.ESTABLISHED
-            and risk.selection_state is ReadState.ESTABLISHED
-            else (
-                "boundary",
-                "Operating Boundary not yet established",
-                decision.boundary_explanation,
+            elif (
+                governing_state is ReadState.ESTABLISHED
+                and lane.selection_state is ReadState.ABSENT
+                and len(incomplete_lanes) != 1
+            ):
+                action_prefix = lane.lane.casefold()
+                if action_access.get(f"{action_prefix}-input.create", False) or action_access.get(
+                    f"{action_prefix}-input.select", False
+                ):
+                    available.append(
+                        OrientationItemView(
+                            f"{action_prefix}-assessment",
+                            f"Assess {lane.lane.title()}",
+                            f"Develop and explicitly choose the {lane.lane.title()} assessment "
+                            "management will use.",
+                            f"{base}/assessment#{action_prefix}",
+                        )
+                    )
+                else:
+                    unresolved.append(
+                        OrientationItemView(
+                            f"{action_prefix}-software-access",
+                            f"{lane.lane.title()} work cannot be recorded in this session",
+                            "The required software permission is not available.",
+                            f"{base}/assessment#{action_prefix}",
+                            PractitionerExceptionView(
+                                f"Record or choose a {lane.lane.title()} assessment",
+                                "This session lacks the required command access.",
+                                "Software access permits an attempt but does not establish "
+                                "accountability or authority.",
+                                "Ask a software administrator for the required access; the "
+                                "lane's accountability remains separate.",
+                            ),
+                        )
+                    )
+
+        if governing_state is ReadState.ESTABLISHED and len(incomplete_lanes) == 1:
+            lane = incomplete_lanes[0]
+            required = OrientationItemView(
+                f"{lane.lane.casefold()}-assessment",
+                f"Choose the {lane.lane.title()} assessment before management judgment",
+                f"The independent {lane.lane.title()} assessment choice is the one unmet "
+                "lane prerequisite.",
+                f"{base}/assessment#{lane.lane.casefold()}",
+                PractitionerExceptionView(
+                    "Record the management judgment",
+                    f"The {lane.lane.title()} assessment choice is not uniquely established.",
+                    "Management judgment requires current, independently selected Value and "
+                    "Risk bases.",
+                    f"Complete or resolve the {lane.lane.title()} lane selection without "
+                    "changing the other lane.",
+                ),
             )
-            if decision.integration_state is ReadState.ESTABLISHED
-            and decision.boundary_state is not ReadState.ESTABLISHED
-            else (
-                "proposal",
-                "Decision proposal not yet established",
-                decision.decision_explanation,
-            )
-            if decision.boundary_state is ReadState.ESTABLISHED
-            and decision.decision_state is not ReadState.ESTABLISHED
-            else (
-                "authorization",
-                "Decision awaits separate authorization",
-                decision.authorization_explanation,
-            )
-            if decision.decision_state is ReadState.ESTABLISHED
-            and decision.authorization_state is not ReadState.ESTABLISHED
-            else None
-        )
-        if decision_attention is not None:
-            key, label, explanation = decision_attention
-            items.append(
-                AttentionItemView(
-                    f"decision-{key}", label, explanation.reason, f"{base}/decision", explanation
+
+        if governing_state is ReadState.ESTABLISHED and not incomplete_lanes:
+            downstream = (
+                (
+                    "management-judgment",
+                    "Record the management judgment",
+                    "Relate the independent Value and Risk assessments without combining them.",
+                    "integration.create",
                 )
+                if decision.integration_state is not ReadState.ESTABLISHED
+                else (
+                    "operating-limits",
+                    "Define operating limits and conditions",
+                    "State the permitted scope, controls, conditions, and exclusions.",
+                    "boundary.create",
+                )
+                if decision.boundary_state is not ReadState.ESTABLISHED
+                else (
+                    "proposal",
+                    "Propose an action",
+                    "Prepare an action for separate authorization.",
+                    "decision.propose",
+                )
+                if decision.decision_state is not ReadState.ESTABLISHED
+                else (
+                    "authorization",
+                    "Review the proposal for authorization",
+                    "Authorization remains a separate governed act.",
+                    "decision.authorize",
+                )
+                if decision.authorization_state is not ReadState.ESTABLISHED
+                else None
             )
-        return tuple(items)
+            if downstream is not None:
+                key, label, summary, action = downstream
+                if action_access.get(action, False):
+                    available.append(OrientationItemView(key, label, summary, f"{base}/decision"))
+
+        return tuple(available), required, tuple(unresolved)
+
+    @staticmethod
+    def _current_position(lifecycle_state: str, governing_state: ReadState) -> str:
+        if governing_state is ReadState.CONFLICT:
+            return "Work is paused because the setup for assessment is conflicted."
+        if governing_state is ReadState.INACCESSIBLE:
+            return "The Case is visible, but its assessment setup is not visible in this session."
+        if governing_state is ReadState.ABSENT:
+            return "The Case is open, but no single setup is established for assessment."
+        positions = {
+            "OPEN": "A setup is established for assessment; the management concern remains open.",
+            "CONFIGURATION_DEFINED": (
+                "The setup for assessment is established; evidence and independent "
+                "assessment work can proceed."
+            ),
+            "EVIDENCE_ANALYSIS": (
+                "Information and independent Value and Risk assessments are being developed."
+            ),
+            "READY_FOR_INTEGRATION": (
+                "Independent Value and Risk bases are ready for management judgment."
+            ),
+            "DECISION_PENDING": "A proposed action is awaiting a separate authorization decision.",
+            "DECIDED": (
+                "An authorized management Decision is established; operation remains "
+                "separately governed."
+            ),
+        }
+        return positions.get(lifecycle_state, "Management work is in progress for this Case.")
+
+    @staticmethod
+    def _configuration_view(
+        version: FinalizedRecordVersion,
+        *,
+        is_governing: bool,
+        effective_at: datetime,
+        known_at: datetime,
+    ) -> ConfigurationView:
+        purpose = str(version.content.get("purpose", "unknown"))
+        maturity = str(version.content.get("maturity", "unknown"))
+        if (is_governing and purpose == "candidate") or purpose in {
+            "proposed",
+            "experimental",
+        }:
+            practitioner_label = "Proposed setup under review"
+        elif purpose in {"alternative", "fallback"}:
+            practitioner_label = "Comparison option"
+        elif is_governing:
+            practitioner_label = "Setup used for this assessment"
+        else:
+            practitioner_label = "Other visible setup"
+        context_summary = (
+            "This is the Case's current assessment basis. That fact does not authorize or "
+            "start operation."
+            if is_governing
+            else "This setup is visible for comparison and is not the current assessment basis."
+        )
+        return ConfigurationView(
+            configuration_id=str(version.record_id),
+            version_id=str(version.version_id),
+            maturity=maturity,
+            purpose=purpose,
+            content=dict(version.content),
+            is_governing=is_governing,
+            practitioner_label=practitioner_label,
+            context_summary=context_summary,
+            basis=PractitionerQueryService._basis(version, effective_at, known_at),
+        )
 
     def _decision_workspace(
         self,

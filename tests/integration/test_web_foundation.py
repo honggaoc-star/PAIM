@@ -69,9 +69,13 @@ def test_login_rotation_home_cases_no_js_paths_and_security_headers(
     assert "Visible governed service" in cases.text
     orientation = client.get(f"/cases/{web_fixture.visible_case_id}")
     assert orientation.status_code == 200
-    assert "Current attention" in orientation.text
+    assert "Required before the intended next stage" in orientation.text
+    assert "Material conditions still unresolved" in orientation.text
+    assert "Current attention" not in orientation.text
     history = client.get(f"/cases/{web_fixture.visible_case_id}/history")
-    assert "Identity and version basis" in history.text
+    assert "Source, history, and governance basis" in history.text
+    assert "Identity and version basis" not in history.text
+    assert str(web_fixture.visible_configuration_id) not in history.text
 
     logout_result = client.post(
         "/logout",
