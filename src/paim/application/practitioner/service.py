@@ -371,6 +371,7 @@ class PractitionerQueryService:
         base = f"/cases/{case_id}"
         available: list[OrientationItemView] = []
         unresolved: list[OrientationItemView] = []
+        # This read is passive orientation; no downstream action intent is established.
         required: OrientationItemView | None = None
 
         if governing_state is not ReadState.ESTABLISHED:
@@ -401,13 +402,17 @@ class PractitionerQueryService:
                 ),
                 resolution,
             )
-            required = OrientationItemView(
-                "assessment-setup",
-                "Establish one setup for assessment",
-                condition,
-                f"{base}/configuration",
-                exception,
-            )
+            if action_access.get("configuration.create", False) or action_access.get(
+                "configuration.designate", False
+            ):
+                available.append(
+                    OrientationItemView(
+                        "assessment-setup",
+                        "Establish one setup for assessment",
+                        "Review visible setups or record the setup that assessment work will use.",
+                        f"{base}/configuration",
+                    )
+                )
             unresolved.append(
                 OrientationItemView(
                     "assessment-setup-condition",
@@ -491,7 +496,6 @@ class PractitionerQueryService:
             elif (
                 governing_state is ReadState.ESTABLISHED
                 and lane.selection_state is ReadState.ABSENT
-                and len(incomplete_lanes) != 1
             ):
                 action_prefix = lane.lane.casefold()
                 if action_access.get(f"{action_prefix}-input.create", False) or action_access.get(
@@ -523,24 +527,6 @@ class PractitionerQueryService:
                             ),
                         )
                     )
-
-        if governing_state is ReadState.ESTABLISHED and len(incomplete_lanes) == 1:
-            lane = incomplete_lanes[0]
-            required = OrientationItemView(
-                f"{lane.lane.casefold()}-assessment",
-                f"Choose the {lane.lane.title()} assessment before management judgment",
-                f"The independent {lane.lane.title()} assessment choice is the one unmet "
-                "lane prerequisite.",
-                f"{base}/assessment#{lane.lane.casefold()}",
-                PractitionerExceptionView(
-                    "Record the management judgment",
-                    f"The {lane.lane.title()} assessment choice is not uniquely established.",
-                    "Management judgment requires current, independently selected Value and "
-                    "Risk bases.",
-                    f"Complete or resolve the {lane.lane.title()} lane selection without "
-                    "changing the other lane.",
-                ),
-            )
 
         if governing_state is ReadState.ESTABLISHED and not incomplete_lanes:
             downstream = (

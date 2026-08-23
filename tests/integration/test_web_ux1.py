@@ -159,6 +159,8 @@ def test_ux1_orientation_keeps_proposed_governing_setup_separate_from_operation(
     assert "Operating setup" not in page.text
     assert "Current operating process" not in page.text
     assert "Current attention" not in page.text
+    assert "persisted Case title" not in page.text
+    assert "separate management question" not in page.text
     assert "Software access" not in page.text
     assert "Exact governed context" not in page.text
     assert proposed_id not in page.text
@@ -170,7 +172,7 @@ def test_ux1_orientation_keeps_proposed_governing_setup_separate_from_operation(
     assert "next_task" not in view.__dataclass_fields__
 
 
-def test_ux1_unique_prerequisite_is_distinct_from_peer_work_and_unresolved_conditions(
+def test_ux1_passive_orientation_keeps_lone_incomplete_lane_as_available_work(
     web_fixture: WebFixture,
 ) -> None:
     _grant_ux1(web_fixture)
@@ -198,12 +200,9 @@ def test_ux1_unique_prerequisite_is_distinct_from_peer_work_and_unresolved_condi
         },
     )
 
-    assert required is not None
-    assert required.key == "risk-assessment"
-    assert required.exception is not None
-    assert required.exception.intended_action == "Record the management judgment"
-    assert {item.key for item in available} == {"review-known"}
-    assert all(item.key != required.key for item in unresolved)
+    assert required is None
+    assert {item.key for item in available} == {"review-known", "risk-assessment"}
+    assert all(item.key != "risk-assessment" for item in unresolved)
 
 
 def test_ux1_hidden_governing_setup_fails_closed_without_orientation_leak(
@@ -228,9 +227,12 @@ def test_ux1_hidden_governing_setup_fails_closed_without_orientation_leak(
     assert view is not None
     assert view.governing_state is ReadState.INACCESSIBLE
     assert view.governing_configuration_version_ids == ()
-    assert view.required_prerequisite is not None
-    assert view.required_prerequisite.exception is not None
-    assert "restore access" in view.required_prerequisite.exception.resolution
+    assert view.required_prerequisite is None
+    setup_condition = next(
+        item for item in view.unresolved_conditions if item.key == "assessment-setup-condition"
+    )
+    assert setup_condition.exception is not None
+    assert "restore access" in setup_condition.exception.resolution
 
     page = web_fixture.client.get(f"/cases/{web_fixture.visible_case_id}")
     assert page.status_code == 200

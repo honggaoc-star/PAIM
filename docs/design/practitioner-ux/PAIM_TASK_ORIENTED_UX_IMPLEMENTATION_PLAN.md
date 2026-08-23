@@ -53,12 +53,16 @@ the UI increment and return to semantic design authority.
 ### UX-1 — Read-only orientation and vocabulary shell
 
 Implementation status: implemented by Issue #111. The Case Overview now uses the persisted Case
-title, distinguishes unranked available work from a unique required prerequisite and unresolved
-conditions, and separates Configuration assessment basis from authorization and operation. The
+title, distinguishes unranked available work from unresolved conditions, and separates
+Configuration assessment basis from authorization and operation. The
 workspace navigation uses practitioner task language, while Source & history provides readable
 governance trace. Raw identifiers and payloads are omitted from the browser because a separately
 enforceable Technical inspection permission does not yet exist; authorized production CLI and audit
 paths remain available.
+
+Passive Case orientation does not infer an intended downstream action. A lone unfinished Value or
+Risk lane therefore remains available work; it becomes a required prerequisite only in the context
+of a separately established attempt to perform an action that requires both lane selections.
 
 Scope:
 

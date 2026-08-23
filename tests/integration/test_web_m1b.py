@@ -66,7 +66,8 @@ def test_m1b_workspace_exact_configuration_and_independent_value_risk_path(
     initial = web_fixture.client.get(base)
     assert initial.status_code == 200
     assert "no single setup is established for assessment" in initial.text
-    assert "Required before the intended next stage" in initial.text
+    assert "Establish one setup for assessment" in initial.text
+    assert "Required for the action you chose" not in initial.text
     assert "Material conditions still unresolved" in initial.text
     assert "Current attention" not in initial.text
     assert "Software access" not in initial.text
@@ -331,10 +332,8 @@ def test_m1b_workspace_exact_configuration_and_independent_value_risk_path(
             assert f'value="{fitness.version_id}"' in fitness_choices
             assert f'value="{blocked.version_id}"' not in fitness_choices
             overview_before_selection = web_fixture.client.get(base)
-            assert (
-                "Choose the Risk assessment before management judgment"
-                in overview_before_selection.text
-            )
+            assert "Assess Risk" in overview_before_selection.text
+            assert "Required for the action you chose" not in overview_before_selection.text
             assert "Risk assessment blocked for a recorded use" not in (
                 overview_before_selection.text
             )

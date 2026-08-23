@@ -328,8 +328,9 @@ governing designation, Evidence, Authority and Authority Gaps, Configuration-bou
 Applicability, and equal independent Value and Risk input/readiness/fitness/selection lanes.
 M1C adds exact current-basis Integration, finalized Boundary, and separate Decision proposal and
 authorization interactions. UX-1 adds a read-only task-oriented orientation shell: persisted Case
-title, plain current position, unranked available work, one required prerequisite only when uniquely
-established, and separately disclosed unresolved conditions. It does not persist or infer a generic
+title, plain current position, unranked available work, and separately disclosed unresolved
+conditions. Passive Case orientation does not infer an intended downstream action or promote the
+last incomplete lane to a required next task. It does not persist or infer a generic
 task, attention, rank, priority, readiness, authority, or operating status.
 
 The workspace is divided into Overview, Proposal setup, What we know, Value & Risk, Management

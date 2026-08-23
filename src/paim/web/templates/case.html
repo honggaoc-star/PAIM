@@ -5,7 +5,7 @@
 {{ workspace_header(view, active_area) }}
 <section aria-labelledby="overview-heading">
   <h2 id="overview-heading">Overview</h2>
-  <p>This orientation uses the persisted Case title above. It does not invent a separate management question.</p>
+  <p>See the setup under consideration, work available now, and material conditions still unresolved.</p>
 </section>
 <section aria-labelledby="setup-heading">
   <div class="section-heading"><div><h2 id="setup-heading">What is being considered</h2><p>Visible setups are shown by their management purpose. Assessment basis, authorization, and operation remain separate.</p></div><a href="/cases/{{ view.case.case_id }}/configuration">Review proposal setup</a></div>
@@ -15,7 +15,7 @@
   </div>
 </section>
 {% if view.required_prerequisite %}<section aria-labelledby="prerequisite-heading">
-  <h2 id="prerequisite-heading">Required before the intended next stage</h2>
+  <h2 id="prerequisite-heading">Required for the action you chose</h2>
   <article class="prerequisite-card"><h3><a href="{{ view.required_prerequisite.href }}">{{ view.required_prerequisite.label }}</a></h3><p>{{ view.required_prerequisite.summary }}</p>{{ explain_exception(view.required_prerequisite.exception) }}</article>
 </section>{% endif %}
 <section aria-labelledby="available-heading">
