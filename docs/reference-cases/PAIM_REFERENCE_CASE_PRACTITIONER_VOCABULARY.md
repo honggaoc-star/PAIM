@@ -5,6 +5,10 @@
 This is provisional exercise vocabulary, not a replacement for the PAIM specifications and not a
 final product glossary. It should be revised from practitioner evidence.
 
+The Harborlight Scenario-A checkpoint produced a revised audience/task classification in
+[Scenario-A Provisional Practitioner Vocabulary Classification](../design/practitioner-ux/PAIM_SCENARIO_A_VOCABULARY_CLASSIFICATION.md).
+That refinement remains provisional and does not rename domain or API contracts.
+
 **PAIM enforces engineering invariants; practitioners should not have to operate in engineering
 terminology.** Exact identity and history still matter, but the interface should disclose their
 technical representation only when it helps the task, audit, or troubleshooting need at hand.

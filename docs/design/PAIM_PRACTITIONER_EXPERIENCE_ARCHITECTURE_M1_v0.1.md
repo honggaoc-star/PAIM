@@ -7,6 +7,10 @@ organizes existing PAIM v0.1 capabilities; it does not amend the system architec
 specifications, authority model, released runtime, or persistence model. If this design conflicts
 with a contract under `docs/system/`, the system contract controls.
 
+The later [Task-Oriented Practitioner UX design checkpoint](practitioner-ux/) refines the
+interaction model from the Harborlight Scenario-A exercise. It does not amend this document's
+semantic constraints or authorize implementation.
+
 ## 1. Purpose and M1 boundary
 
 M1 should let a practitioner use a local browser to create or open a Case, understand its exact
