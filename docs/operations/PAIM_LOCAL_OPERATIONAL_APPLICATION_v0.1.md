@@ -333,6 +333,15 @@ conditions. Passive Case orientation does not infer an intended downstream actio
 last incomplete lane to a required next task. It does not persist or infer a generic
 task, attention, rank, priority, readiness, authority, or operating status.
 
+UX-2 changes the `What we know` browser organization without changing the production write
+contracts. It separates recorded information available for consideration, explicitly unavailable
+information, requirements/authority sources, and review work. Information is placed in the
+unavailable section only when its governed content establishes `unknown = true` and
+`not_a_positive_finding = true` under the `unknown` Evidence classification. Other unknown records
+remain neutral, and repository silence creates no inferred gap. Applicability and unresolved Authority
+questions remain explicit governed judgments; displaying a source establishes no Value/Risk
+relevance, sufficiency, accountability, substantive authority, or Decision support.
+
 The workspace is divided into Overview, Proposal setup, What we know, Value & Risk, Management
 judgment, and Source & history. Governing assessment basis remains distinct from authorization and
 operation. Routine pages use practitioner language; raw identifiers and payloads are omitted because
@@ -340,8 +349,9 @@ the browser does not yet have a separately enforceable Technical inspection perm
 operators retain the production CLI and audit paths for exact inspection and reconstruction.
 
 The browser still stops before Intervention, Completion, Activation, Trigger/Reassessment, and
-Management Register work. UX-1 does not redesign the existing Evidence/Authority, Value/Risk, or
-Management judgment task flows. M1D and UX-2 onward remain future bounded implementation gates.
+Management Register work. UX-2 does not redesign Value/Risk analysis, Fitness or Selection,
+Integration/management judgment, Boundary/operating limits, proposal or authorization, or the
+broader Source & history narrative. M1D and UX-3 onward remain future bounded implementation gates.
 
 Use the same validated configuration and database as `paim-local`. The configured credential
 environment source must remain available for the existing configuration preflight, but browser

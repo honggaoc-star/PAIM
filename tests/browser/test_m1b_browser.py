@@ -77,19 +77,23 @@ def test_m1b_browser_exact_evidence_and_independent_lane_path(
         )
 
         page.get_by_role("link", name="What we know", exact=True).click()
-        authority_actions = page.locator('[aria-labelledby="authority-actions-heading"]')
-        applicability_actions = page.locator('[aria-labelledby="applicability-actions-heading"]')
-        assert authority_actions.get_by_text("Record an Authority Gap", exact=True).is_visible()
-        assert applicability_actions.get_by_text(
-            "Assess Evidence Applicability", exact=True
-        ).is_visible()
-        assert applicability_actions.get_by_text("Record an Authority Gap", exact=True).count() == 0
-        evidence_form = page.locator("details").filter(has_text="Add Evidence")
+        for heading in (
+            "What we know",
+            "What we still need to know",
+            "Requirements and authority",
+            "What needs review",
+        ):
+            assert page.get_by_role("heading", name=heading, exact=True).is_visible()
+        assert page.locator(".three-columns").count() == 0
+        assert page.evaluate(
+            "document.documentElement.scrollWidth <= document.documentElement.clientWidth"
+        )
+        evidence_form = page.locator("details").filter(has_text="Add information")
         evidence_form.locator("summary").click()
         evidence_form.get_by_label("Source").fill("browser-observation:v1")
-        evidence_form.get_by_label("Provenance").fill("bounded browser capture")
-        evidence_form.get_by_label("Statement").fill("The exact control was observed.")
-        evidence_form.get_by_role("button", name="Review Evidence").click()
+        evidence_form.get_by_label("Where this came from").fill("bounded browser capture")
+        evidence_form.get_by_label("What was recorded").fill("The exact control was observed.")
+        evidence_form.get_by_role("button", name="Review information").click()
         assert page.get_by_role("heading", name="Confirm exact action").is_visible()
         _confirm(page)
         workspace = web_fixture.operational.practitioner_workspace(
@@ -124,7 +128,9 @@ def test_m1b_browser_exact_evidence_and_independent_lane_path(
             candidate = lane_view.candidates[0]
 
             page.get_by_role("link", name="What we know", exact=True).click()
-            applicability = page.locator("details").filter(has_text="Assess Evidence Applicability")
+            applicability = page.locator("details").filter(
+                has_text="Review how information applies"
+            )
             applicability.locator("summary").click()
             applicability.locator('select[name="evidence_choice"]').select_option(
                 evidence.version_id
@@ -132,13 +138,15 @@ def test_m1b_browser_exact_evidence_and_independent_lane_path(
             applicability.locator('select[name="target_choice"]').select_option(
                 candidate.version_id
             )
-            applicability.get_by_label("Purpose").fill("bounded-management")
-            applicability.get_by_label("Assessed scope").fill("exact governed Configuration")
-            applicability.get_by_label("Rationale").fill(f"Exact {lane_name} basis")
-            applicability.get_by_label("Accountable mechanism").fill(
+            applicability.get_by_label("Purpose for this review").fill("bounded-management")
+            applicability.get_by_label("Scope of this judgment").fill(
+                "exact governed Configuration"
+            )
+            applicability.get_by_label("Why", exact=True).fill(f"Exact {lane_name} basis")
+            applicability.get_by_label("Responsible governance process").fill(
                 "governed:m1b-browser-applicability"
             )
-            applicability.get_by_role("button", name="Review Applicability determination").click()
+            applicability.get_by_role("button", name="Review applicability judgment").click()
             _confirm(page)
             workspace = web_fixture.operational.practitioner_workspace(
                 web_fixture.admin_session, web_fixture.visible_case_id

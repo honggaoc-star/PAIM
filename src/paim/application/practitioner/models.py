@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime
 from enum import StrEnum
@@ -166,6 +167,9 @@ class CaseWorkspaceView:
     governing_explanation: ExplanationView
     current_position: str
     evidence: tuple[GovernedRecordView, ...]
+    available_information: tuple[GovernedRecordView, ...]
+    explicitly_unavailable_information: tuple[GovernedRecordView, ...]
+    information_action_access: Mapping[str, bool]
     authority: tuple[GovernedRecordView, ...]
     authority_gaps: tuple[GovernedRecordView, ...]
     applicability: tuple[GovernedRecordView, ...]

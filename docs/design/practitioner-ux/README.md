@@ -37,8 +37,11 @@ choices, and reveal machinery only when it helps a governance, audit, or diagnos
 - [Semantic review and implementation decomposition](PAIM_TASK_ORIENTED_UX_IMPLEMENTATION_PLAN.md)
   records UX-1 implementation status, unresolved questions, and bounded follow-on increments.
 
-UX-1 is the implemented read-only orientation and vocabulary increment. It does not authorize UX-2,
-M1D, or any domain-semantic extension.
+UX-1 is the implemented read-only orientation and vocabulary increment. UX-2 is the implemented
+task-oriented `What we know` workspace: it separates available information, deterministically
+explicit unavailable information, requirements/authority sources, and unresolved review work while
+retaining the existing governed records and commands. Neither increment authorizes UX-3, M1D, or
+any domain-semantic extension.
 
 ## Exercise boundary
 
