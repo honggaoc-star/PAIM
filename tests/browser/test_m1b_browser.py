@@ -70,7 +70,8 @@ def test_m1b_browser_exact_evidence_and_independent_lane_path(
         assert page.get_by_role("heading", name="Independent work available now").is_visible()
         assert page.get_by_role("link", name="Assess Value", exact=True).is_visible()
         assert page.get_by_role("link", name="Assess Risk", exact=True).is_visible()
-        assert "Their display order is not a ranking" in page.content()
+        assert "Choose the task that fits the work you are doing now." in page.content()
+        assert "display order is not a ranking" not in page.content()
         assert "Current attention" not in page.content()
         assert page.evaluate(
             "document.documentElement.scrollWidth <= document.documentElement.clientWidth"

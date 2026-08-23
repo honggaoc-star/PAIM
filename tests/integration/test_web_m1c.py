@@ -677,4 +677,5 @@ def test_m1c_old_chain_fails_closed_after_current_lane_selection_changes(
     assert "Boundary Snapshot" in history.text
     assert "Decision" in history.text
     assert integration.version_id not in history.text
-    assert "technical inspection is deferred" in history.text
+    assert "when a governance or audit task requires full technical inspection" in history.text
+    assert "technical inspection is deferred" not in history.text

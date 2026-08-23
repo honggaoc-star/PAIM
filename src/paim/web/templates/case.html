@@ -8,7 +8,7 @@
   <p>See the setup under consideration, work available now, and material conditions still unresolved.</p>
 </section>
 <section aria-labelledby="setup-heading">
-  <div class="section-heading"><div><h2 id="setup-heading">What is being considered</h2><p>Visible setups are shown by their management purpose. Assessment basis, authorization, and operation remain separate.</p></div><a href="/cases/{{ view.case.case_id }}/configuration">Review proposal setup</a></div>
+  <div class="section-heading"><div><h2 id="setup-heading">What is being considered</h2><p>Compare the visible setups and review which one is being used for this assessment.</p></div><a href="/cases/{{ view.case.case_id }}/configuration">Review proposal setup</a></div>
   <div class="orientation-grid">
   {% for configuration in view.configurations %}<article class="orientation-card"><p class="eyebrow">{{ configuration.practitioner_label }}</p><h3>{{ configuration.content.get('system', 'Setup') }}</h3><p>{{ configuration.content.get('intended_use', 'The intended use is not stated.') }}</p><p class="summary-label">{{ configuration.context_summary }}</p></article>
   {% else %}<div class="empty-state"><h3>No visible setup</h3><p>No Configuration details are available in this session.</p></div>{% endfor %}
@@ -20,7 +20,7 @@
 </section>{% endif %}
 <section aria-labelledby="available-heading">
   <h2 id="available-heading">Independent work available now</h2>
-  <p class="summary-label">These tasks are peers. Their display order is not a ranking, recommendation, or priority.</p>
+  <p class="summary-label">Choose the task that fits the work you are doing now.</p>
   <div class="orientation-grid">
   {% for item in view.available_work %}<article class="work-card"><h3><a href="{{ item.href }}">{{ item.label }}</a></h3><p>{{ item.summary }}</p></article>
   {% else %}<div class="empty-state"><h3>No independent work is available in this session</h3><p>Review the required prerequisite or unresolved conditions below.</p></div>{% endfor %}

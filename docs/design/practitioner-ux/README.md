@@ -26,6 +26,9 @@ choices, and reveal machinery only when it helps a governance, audit, or diagnos
   from proposed responses.
 - [Practitioner UX principles](PAIM_TASK_ORIENTED_UX_PRINCIPLES.md) defines reusable interaction
   rules and hard constraints.
+- [Practitioner-language standard](PAIM_PRACTITIONER_LANGUAGE_STANDARD.md) defines the durable
+  editorial layers, vocabulary treatment, safeguard rules, component guidance, reference-case
+  guidance, and PR checklist that gate UX-3 and later practitioner-facing work.
 - [Scenario-A task flow and wireframes](PAIM_HARBORLIGHT_SCENARIO_A_TASK_FLOW.md) specifies the
   end-to-end practitioner experience without pre-deciding an outcome.
 - [Information architecture](PAIM_TASK_ORIENTED_INFORMATION_ARCHITECTURE.md) locates ordinary work,
@@ -40,8 +43,9 @@ choices, and reveal machinery only when it helps a governance, audit, or diagnos
 UX-1 is the implemented read-only orientation and vocabulary increment. UX-2 is the implemented
 task-oriented `What we know` workspace: it separates available information, deterministically
 explicit unavailable information, requirements/authority sources, and unresolved review work while
-retaining the existing governed records and commands. Neither increment authorizes UX-3, M1D, or
-any domain-semantic extension.
+retaining the existing governed records and commands. Issue #115 establishes the cross-cutting
+practitioner-language standard required before UX-3. It does not itself authorize UX-3, M1D, or any
+domain-semantic extension.
 
 ## Exercise boundary
 

@@ -443,7 +443,8 @@ def test_m1b_workspace_exact_configuration_and_independent_value_risk_path(
     overview = web_fixture.client.get(base)
     assert "Risk assessment blocked for a recorded use" not in overview.text
     assert "Risk assessment not yet selected" not in overview.text
-    assert "not a ranking, recommendation, or priority" in overview.text
+    assert "Choose the task that fits the work you are doing now." in overview.text
+    assert "not a ranking, recommendation, or priority" not in overview.text
 
 
 def test_m1b_stale_configuration_successor_stops_and_duplicate_intent_is_idempotent(

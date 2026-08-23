@@ -135,6 +135,9 @@ def test_ux2_information_groups_require_explicit_governed_unavailability(
     assert "No live applicant outcome evidence is available." not in known
     assert "No live applicant outcome evidence is available." in unavailable
     assert "This is not a positive finding." in unavailable
+    assert "Recorded information" not in known
+    assert "Explicitly unavailable" not in unavailable
+    assert "Repository silence" not in page.text
     assert "No additional gap is inferred." not in unavailable
     assert "not_a_positive_finding" not in page.text
     assert "Identity and provenance" not in page.text
@@ -206,11 +209,13 @@ def test_ux2_authority_review_and_access_boundaries_remain_fail_closed(
     role_count = web_fixture.operational.domain_store.count_rows("role_assignment_versions")
     page = web_fixture.client.get(f"{base}/evidence")
     assert "Practitioner review policy" in page.text
-    assert "A source does not by itself authorize a person or action." in page.text
+    assert "recorded scope and requirement" in page.text
+    assert "A source does not by itself authorize a person or action." not in page.text
     assert "Who may approve the review conclusion?" in page.text
     assert "Unresolved question" in page.text
     assert "Review how information applies" in page.text
-    assert "No applicability judgment is established" in page.text
+    assert "Record what the information bears on, its scope and limits, and why." in page.text
+    assert "explicit judgments or questions that remain separate" not in page.text
     assert (
         "Value"
         not in page.text.split('id="known-heading"', maxsplit=1)[1].split("</section>", maxsplit=1)[
