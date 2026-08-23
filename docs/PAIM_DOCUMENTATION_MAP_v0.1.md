@@ -15,6 +15,7 @@ semantics.
 | Operate or administer a local instance | [Local Operational Application](operations/PAIM_LOCAL_OPERATIONAL_APPLICATION_v0.1.md) | Runtime decisions and recovery evidence under engineering documentation if deeper rationale is needed |
 | Implement or review PAIM contracts | [System Architecture](system/architecture/PAIM_SYSTEM_ARCHITECTURE_v0.1.md) | [Current system specifications](system/specifications/) and [behavioral validation strategy](system/testing/PAIM_SYSTEM_BEHAVIORAL_VALIDATION_STRATEGY_v0.1.md) |
 | Plan or review the bounded practitioner browser experience | [Practitioner Experience Architecture M1](design/PAIM_PRACTITIONER_EXPERIENCE_ARCHITECTURE_M1_v0.1.md) | Current system architecture and specifications remain controlling implementation contracts |
+| Review the task-oriented practitioner UX checkpoint | [Task-Oriented Practitioner UX](design/practitioner-ux/) | [Harborlight Scenario-A task flow](design/practitioner-ux/PAIM_HARBORLIGHT_SCENARIO_A_TASK_FLOW.md) and gated implementation decomposition |
 | Review the selected M1 browser implementation architecture | [UI M1 Implementation Architecture Decision](engineering/PAIM_UI_M1_IMPLEMENTATION_ARCHITECTURE_DECISION_v0.1.md) | Practitioner Experience Architecture M1 defines the required experience; implementation remains separately gated |
 | License or cite PAIM | [Apache License 2.0](../LICENSE) and [NOTICE](../NOTICE) | [`CITATION.cff`](../CITATION.cff) |
 | Review validation and release evidence | [Increment 9 v0.1 Validation Results](system/testing/PAIM_INCREMENT_9_V0_1_VALIDATION_RESULTS_v0.1.md) | [v0.1 Release Gate Decision](engineering/PAIM_V0_1_RELEASE_GATE_DECISION_v0.1.md) and the frozen validation plan |
@@ -87,6 +88,10 @@ fictional scenario design. They may reveal useful behavior, confusion, dispropor
 cases where PAIM adds little value. They are not product specifications, production advice,
 empirical validation, or evidence that PAIM is effective.
 
+The [Task-Oriented Practitioner UX design checkpoint](design/practitioner-ux/) records interaction
+findings and proposed responses from the Harborlight Scenario-A stopping point. It is a design input,
+not empirical proof or authorization to implement.
+
 ## Engineering decisions and development history
 
 Files under [engineering](engineering/) record design rationale, implementation sequencing,
@@ -108,6 +113,8 @@ read it as evidence of that checkpoint rather than as the current product status
   hypotheses do not amend product semantics or constitute validation evidence.
 - `docs/reference-cases/**` contains illustrative exercise designs and source reconstructions. They
   do not amend product semantics or constitute empirical evidence.
+- `docs/design/**` contains non-normative practitioner-experience and interaction proposals. System
+  contracts control, and a design document does not itself authorize implementation.
 - `docs/engineering/**` contains design rationale, implementation decisions, assessments, and
   development/release history unless a document explicitly declares a controlling role.
 - Testing and release artifacts remain evidence. They do not silently amend PAIM architecture,
