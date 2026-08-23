@@ -89,8 +89,8 @@ def test_m1b_workspace_exact_configuration_and_independent_value_risk_path(
         assert str(web_fixture.hidden_case_id) not in page.text
     assert "Add or revise a setup" in configuration_page.text
     assert "Add Evidence" not in configuration_page.text
-    assert "Evidence &amp; Authority" in evidence_page.text
-    assert "Establish one governing Configuration" in evidence_page.text
+    assert "What we know" in evidence_page.text
+    assert "Establish one setup for assessment" in evidence_page.text
     assert "Determine fitness for a bounded use" not in evidence_page.text
     assert "Value &amp; Risk" in assessment_page.text
     assert "Add or revise a setup" not in assessment_page.text
@@ -552,16 +552,9 @@ def test_m1b_case_authority_gap_and_access_error_boundaries(web_fixture: WebFixt
         },
     )
     evidence_actions = web_fixture.client.get(f"{base}/evidence").text
-    authority_action_group = evidence_actions.split('id="authority-actions-heading"', maxsplit=1)[
-        1
-    ].split("</section>", maxsplit=1)[0]
-    applicability_action_group = evidence_actions.split(
-        'id="applicability-actions-heading"', maxsplit=1
-    )[1].split("</section>", maxsplit=1)[0]
-    assert "Add an Authority source" in authority_action_group
-    assert "Record an Authority Gap" in authority_action_group
-    assert "Record an Authority Gap" not in applicability_action_group
-    assert "Assess Evidence Applicability" in applicability_action_group
+    assert "Add a requirement or authority source" in evidence_actions
+    assert "Record an unresolved requirement or authority question" in evidence_actions
+    assert "Review how information applies" not in evidence_actions
     assert (
         _review_commit(
             web_fixture.client,

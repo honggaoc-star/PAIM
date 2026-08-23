@@ -3,8 +3,9 @@
 ## Status
 
 This is the bounded implementation sequence. UX-1 is implemented as a read-only orientation and
-vocabulary shell; every later increment still requires its own issue, branch, tests, practitioner
-review, and independent semantic acceptance. M1D remains out of scope.
+vocabulary shell, and UX-2 is implemented as the task-oriented `What we know` workspace. Every
+later increment still requires its own issue, branch, tests, practitioner review, and independent
+semantic acceptance. M1D remains out of scope.
 
 ## Questions requiring semantic or domain review
 
@@ -82,6 +83,20 @@ adds no persisted task, attention, ranking, priority, readiness, authorization, 
 
 ### UX-2 — Task-oriented “What we know” surface
 
+Implementation status: implemented by Issue #113. The read composition groups Evidence as
+explicitly unavailable only when governed content carries all three deterministic facts:
+`classification = unknown`, `unknown = true`, and `not_a_positive_finding = true`. An unknown
+classification without that complete basis remains neutral recorded information, and repository
+silence creates no missing-information item. This intentionally narrow rule avoids free-text
+classification and records the present model limitation for later semantic review.
+
+The browser presents available information, explicitly unavailable information,
+requirements/authority sources, and unresolved Applicability/Authority questions as separate
+practitioner tasks. Contextual labels invoke the unchanged Evidence, Authority, Authority Gap, and
+Applicability review/commit paths. Display creates no Applicability, Value/Risk relevance,
+accountability, authority, or Decision support. Ordinary cards omit technical identities and raw
+payloads; access-filtered read composition remains controlling.
+
 Scope:
 
 - separate available information, missing/unknown information, and requirements/authority;
@@ -91,6 +106,10 @@ Scope:
 
 Gate: no inferred Applicability, no conversion of absence into favorable Evidence, and exact current
 target revalidation at commit.
+
+UX-2 does not redesign Value/Risk analysis, Fitness, Selection, Integration, management judgment,
+Boundary/operating limits, proposal, authorization, or the broader Source & history narrative. It
+does not implement UX-3+, M1D, or a new missing-information status.
 
 ### UX-3 — Independent Value and Risk work surfaces
 

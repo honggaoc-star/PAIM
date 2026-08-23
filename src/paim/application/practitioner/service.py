@@ -25,6 +25,7 @@ from paim.application.practitioner.models import (
     SourceBasis,
 )
 from paim.domain import (
+    EvidenceClassification,
     GoverningConfigurationAbsent,
     GoverningConfigurationConflict,
     GoverningConfigurationFound,
@@ -262,6 +263,9 @@ class PractitionerQueryService:
         evidence = self._record_views(
             by_family.get("evidence", []), effective_at, known_at, visible_versions
         )
+        available_information, explicitly_unavailable_information = self._information_groups(
+            evidence
+        )
         authority = self._record_views(
             by_family.get("authority-record", []), effective_at, known_at, visible_versions
         )
@@ -338,6 +342,17 @@ class PractitionerQueryService:
             ),
             current_position=self._current_position(lifecycle_state, governing_state),
             evidence=evidence,
+            available_information=available_information,
+            explicitly_unavailable_information=explicitly_unavailable_information,
+            information_action_access={
+                action: action_access.get(action, False)
+                for action in (
+                    "evidence.create",
+                    "authority.create",
+                    "authority-gap.create",
+                    "evidence.applicability",
+                )
+            },
             authority=authority,
             authority_gaps=gaps,
             applicability=applicability,
@@ -350,6 +365,23 @@ class PractitionerQueryService:
             effective_at=effective_at,
             known_at=known_at,
         )
+
+    @staticmethod
+    def _information_groups(
+        evidence: tuple[GovernedRecordView, ...],
+    ) -> tuple[tuple[GovernedRecordView, ...], tuple[GovernedRecordView, ...]]:
+        """Split only explicitly governed unavailable information from neutral information."""
+
+        unavailable = tuple(
+            item
+            for item in evidence
+            if item.content.get("classification") == EvidenceClassification.UNKNOWN.value
+            and item.content.get("unknown") is True
+            and item.content.get("not_a_positive_finding") is True
+        )
+        unavailable_versions = {item.version_id for item in unavailable}
+        available = tuple(item for item in evidence if item.version_id not in unavailable_versions)
+        return available, unavailable
 
     @staticmethod
     def _orientation_items(

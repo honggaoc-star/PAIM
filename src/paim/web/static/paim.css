@@ -50,6 +50,13 @@ button { padding: .55rem .9rem; border: 1px solid var(--accent); border-radius: 
 .three-columns { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
 .overview-grid, .content-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
 .orientation-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
+.information-grid, .review-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.information-card, .missing-information-card, .authority-card, .review-card, .reviewed-judgment-card { margin: 1rem 0; padding: 1rem; border: 1px solid var(--line); border-radius: .25rem; }
+.information-card h3, .missing-information-card h3, .authority-card h3, .review-card h3, .reviewed-judgment-card h3 { margin-top: 0; }
+.missing-information-card, .review-card { border-left: .35rem solid var(--focus); }
+.task-actions { display: flex; align-items: flex-start; flex-wrap: wrap; gap: .75rem; }
+.task-action { min-width: 15rem; padding: .5rem .75rem; border: 1px solid var(--line); border-radius: .25rem; background: var(--surface); }
+.task-action[open] { min-width: min(34rem, 100%); }
 .orientation-card, .work-card, .prerequisite-card, .unresolved-card, .attention-card { margin: 1rem 0; padding: 1rem; border: 1px solid var(--line); border-radius: .25rem; }
 .orientation-card h3, .work-card h3, .prerequisite-card h3, .unresolved-card h3, .attention-card h3 { margin-top: 0; }
 .prerequisite-card { border-left: .35rem solid var(--focus); }
@@ -71,7 +78,7 @@ dd { margin-left: 0; }
   main { padding: 1rem; }
   .search-row { flex-direction: column; }
   .workspace-header { align-items: start; flex-direction: column; gap: .5rem; }
-  .peer-lanes, .three-columns, .overview-grid, .content-grid, .orientation-grid { grid-template-columns: 1fr; }
+  .peer-lanes, .three-columns, .overview-grid, .content-grid, .orientation-grid, .information-grid, .review-list { grid-template-columns: 1fr; }
   .section-heading { align-items: start; flex-direction: column; }
   .compact-facts { grid-template-columns: 1fr; }
 }
