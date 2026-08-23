@@ -45,16 +45,20 @@ still has:
 
 A completed earlier step can populate context for the next step; it cannot satisfy the next step.
 
-### 5. Surface the earliest meaningful prerequisite
+### 5. Distinguish prerequisites, available work, and unresolved conditions
 
-When a practitioner cannot yet propose a Decision because no Value assessment is selected, route to
-the Value work. Do not enumerate every downstream Integration, Boundary, proposal, and authorization
-dependency. Once the earliest prerequisite is satisfied, reveal the next genuine task.
+Show a unique required prerequisite only when it blocks the practitioner's stated intended action.
+Otherwise show the set of independent work available now and keep unresolved absence, staleness,
+vacancy, or conflict distinct. Value and Risk are unranked peer work; neither becomes the default
+next task merely because it appears first in a pathway description. This is deterministic read
+composition, not a persisted task status, attention score, or recommendation.
 
 ### 6. Make passed controls quiet and failed controls explanatory
 
-Identity, software access, visible scope, accountability, and substantive authority remain separate
-checks. When a uniquely established check passes, bind it and summarize it. When it fails, state:
+Identity, software access, exact governed-context visibility, accountability, and substantive
+authority remain separate checks. Keep satisfied machinery quiet unless it is management-significant.
+At a consequential review or commit, still show the action, Actor/role, authority source, scope,
+limits, and conditions. When a check fails, state:
 
 1. what intended action cannot proceed;
 2. what is absent, stale, or conflicting;
@@ -82,11 +86,12 @@ priority, or recommendation is produced. Full-width work is compatible with peer
 
 Use three progressive layers:
 
-1. **Management meaning** — proposal, facts, unknowns, judgment, limits, responsible person, next
-   action.
-2. **Governance trace** — sources, history, applicability basis, accountable role, authority basis,
-   and effective/knowledge context.
-3. **Technical inspection** — full identifiers, machine timestamps, status codes, and payload.
+1. **Practitioner workspace** — proposal, facts, unknowns, judgment, limits, responsible person, and
+   available or required action; no raw identifiers or payloads.
+2. **Source, history, and governance basis** — sources, limitations, prior versions, applicability
+   basis, accountable role, authority basis, and effective/knowledge context.
+3. **Technical inspection** — full identifiers, machine timestamps, status codes, relationships,
+   command/audit references, and payload for separately authorized inspection.
 
 Opening a deeper layer must be reversible and must not replace or stretch the working page.
 
@@ -107,6 +112,9 @@ Labels must make clear whether a setup is:
 - currently operating.
 
 No visual completion state may collapse these positions.
+
+Formal governing-currentness language belongs primarily in governance trace. It must remain
+distinct from maturity/history, purpose, authorization, and operating state.
 
 ## Non-negotiable semantic constraints
 

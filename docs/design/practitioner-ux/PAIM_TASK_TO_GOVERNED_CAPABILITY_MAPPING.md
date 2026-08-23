@@ -8,8 +8,8 @@ under the current production contract.
 
 | Practitioner task/checkpoint | Known context carried forward | Practitioner must decide or supply | Governed capability/record retained underneath | Must not be inferred |
 |---|---|---|---|---|
-| Name and open the management concern | Visible Case identity and history | Concise title and management question when creating/changing a Case | Case Record and Version | ownership, authority, Configuration, or lifecycle progress |
-| Compare current process and proposed setup | Case; visible C0/C1 content | Which setup is being assessed and any material changes | Managed Configuration Versions; governing designation as a separate commit | authorization, operation, “latest wins,” or identity continuity |
+| Name and open the management concern | Visible Case identity and history | Concise, Configuration-stable title under the current production contract | Case Record and Version | a second durable management-question field, ownership, authority, Configuration, or lifecycle progress |
+| Compare manual baseline and proposed setup | Case; visible C0/C1 content | Which setup is being assessed and any material changes | Managed Configuration Versions; governing designation as a separate commit | current operation without an established basis, authorization, “latest wins,” or identity continuity |
 | Review available information | Visible Evidence and source metadata | Whether additional information must be added | Evidence Record/Version | favorable meaning or Applicability |
 | Record missing or unresolved information | Known gaps and supplied unknowns | The unresolved question and its material context | Authority Gap where semantically appropriate; Evidence remains absent/unknown as represented | a positive Evidence finding or gap resolution |
 | Decide whether information matters | Case, Configuration, source, Actor, target question | outcome, scope, conditions, limitations, rationale | Evidence Applicability Record/Version | Applicability from page placement, labels, or similarity |
@@ -30,7 +30,7 @@ intent is not a domain record. For every authoritative checkpoint it must:
 
 1. reconstruct context from persisted current state;
 2. bind exact eligible source versions without asking the practitioner to copy identifiers;
-3. show a plain-language review plus governance trace;
+3. show a plain-language review plus source, history, and governance basis;
 4. revalidate visibility, currentness, accountability, and authority at commit;
 5. invoke the existing production command without changed semantics; and
 6. report the committed record and what remains unestablished.
@@ -48,6 +48,11 @@ substitute newer records.
 | Stale or out of scope | Explain what changed or why scope is insufficient | Fail closed; preserve proposal and prior authority history |
 
 Software access is evaluated independently in every row.
+
+The current Case production contract has one persisted `title`. A separately durable management
+question is not carried here; adding one requires authorized domain work. A read-only UI may show a
+clearly non-authoritative summary derived from visible existing content, but must not present it as
+an authoritative second field.
 
 ## Before/after examples
 

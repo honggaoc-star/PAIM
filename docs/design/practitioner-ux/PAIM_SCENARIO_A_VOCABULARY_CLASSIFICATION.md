@@ -19,8 +19,8 @@ a final glossary and does not rename domain records, API contracts, or specifica
 
 | Candidate PAIM term | Class | Recommended practitioner wording or treatment |
 |---|---:|---|
-| Case | 2 | Lead with a concise Case title and full management question; explain once that the Case preserves the continuing concern across changes. |
-| Configuration | 2 | Prefer **current process**, **proposed setup**, or **setup being assessed**. Introduce Configuration in source/history trace when versioned context matters. |
+| Case | 2 | Lead with a concise, Configuration-stable Case title. Show a separate full management question only when an authoritative production field supplies it; explain once that the Case preserves the continuing concern across changes. |
+| Configuration | 2 | Prefer **manual process / comparison baseline**, **proposed setup**, or **setup being assessed**. Use **current operating process** only when separately established. Introduce Configuration in source/history trace when versioned context matters. |
 | Evidence | 1 | Use **information** or **evidence** according to professional context. Separate available material from missing/unknown evidence. |
 | Applicability | 2 | Ask **Does this information bear on this proposal and question?** Show “Applicability determination” in governance trace. |
 | Authority | 2 | Use **requirements and decision authority**; distinguish a source that governs the action from a person/role permitted to decide. |
@@ -63,7 +63,7 @@ schema status, and resolver output.
 | Integration not established | Complete the Value and Risk selections before recording the management judgment |
 | Accountable mechanism | Responsible role or governance process, resolved where uniquely established |
 | Current governing Configuration | Proposed pilot setup used for this assessment |
-| Identity and provenance | Source and history; Governance trace; Technical inspection |
+| Identity and provenance | Practitioner workspace; Source, history, and governance basis; Technical inspection |
 
 ## Review rule
 

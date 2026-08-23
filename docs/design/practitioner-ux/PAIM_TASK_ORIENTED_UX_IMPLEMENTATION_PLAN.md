@@ -10,13 +10,16 @@ out of scope.
 
 The interaction design must not answer these by convenience:
 
-1. **Case naming:** Can a concise display title and fuller management question be represented with
-   existing Case content, or would adding a durable field change the Case contract?
-2. **Configuration labels:** Can a candidate governing Configuration be described as “proposed setup
-   used for assessment” without implying current authorization or operation across every lifecycle
-   state?
-3. **C0 comparison:** Is a fallback Configuration the correct representation of a current-process
-   comparison baseline, or is a distinct relationship/purpose needed?
+1. **Case naming:** The current production Case contract persists one title and not a separate
+   durable management question. UX-1 may use a concise persisted title and a clearly
+   non-authoritative derived summary; a durable second field requires separately authorized domain
+   work.
+2. **Configuration labels:** Governing currentness, maturity/history, purpose, authorization, and
+   operating state are separate. “Proposed setup used for assessment” is permitted only as a
+   truthful read label and cannot imply authorization or operation.
+3. **C0 comparison:** Comparison-baseline wording is presentation over visible C0 content, not a new
+   Configuration purpose or relationship. It becomes “current operating process” only when that
+   operating context is separately established.
 4. **Missing evidence:** Which absences belong only in UI/read composition, which may be explicit
    unknown Evidence, and which qualify as Authority Gaps? No generic “gap” record should be invented.
 5. **Evidence presentation:** What explicit relationships may support contextual grouping without
@@ -34,8 +37,9 @@ The interaction design must not answer these by convenience:
     inputs without implying they are already Boundary clauses?
 11. **Authority binding:** May the adapter pre-bind one uniquely resolved eligible assignment/source,
     or must the current domain service expose a dedicated resolver contract for browser use?
-12. **Lifecycle attention:** Which deterministic read composition identifies the earliest meaningful
-    task without creating a new workflow status or hiding independent parallel work?
+12. **Lifecycle orientation:** Which deterministic read composition separately identifies unique
+    required prerequisites, unranked available work, and unresolved conditions without a new
+    workflow status?
 13. **Technical inspection authorization:** Which users may inspect raw payloads and audit references,
     and how is access enforced without leaking hidden context?
 14. **Temporal editing:** What is the practitioner interaction when effective-time and knowledge-time
@@ -50,14 +54,15 @@ the UI increment and return to semantic design authority.
 
 Scope:
 
-- concise Case display title derived only from existing visible content where possible;
+- concise, Configuration-stable Case title using the existing persisted title contract;
 - current-process/proposed-setup comparison;
-- plain-language current position and earliest-task routing;
+- plain-language current position with separate prerequisites, available work, and unresolved
+  conditions;
 - non-disruptive source/history and technical-inspection shells; and
 - no new write behavior.
 
-Gate: read composition is deterministic, access-filtered, non-ranking, and does not misstate
-authorization or operation.
+Gate: read composition is deterministic, access-filtered, non-ranking, does not fabricate a durable
+management question, and does not misstate governing currentness, authorization, or operation.
 
 ### UX-2 — Task-oriented “What we know” surface
 

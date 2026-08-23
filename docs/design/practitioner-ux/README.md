@@ -20,6 +20,8 @@ choices, and reveal machinery only when it helps a governance, audit, or diagnos
 
 ## Design set
 
+- [Pre-UX-1 semantic decisions](PAIM_PRE_UX1_SEMANTIC_DECISIONS.md) resolves the five presentation
+  questions that must remain bounded by the system specifications before UX-1 implementation.
 - [Scenario-A UX findings](PAIM_HARBORLIGHT_SCENARIO_A_UX_FINDINGS.md) separates observed friction
   from proposed responses.
 - [Practitioner UX principles](PAIM_TASK_ORIENTED_UX_PRINCIPLES.md) defines reusable interaction

@@ -38,8 +38,8 @@ History
 
 ### Overview
 
-Answers: What is this Case, what is being considered, where does it stand, and what is the earliest
-meaningful next action?
+Answers: What is this Case, what is being considered, where does it stand, what independent work is
+available, what prerequisite blocks an intended action, and what remains unresolved?
 
 ### Proposal setup
 
@@ -75,11 +75,12 @@ withdrawn, conflicted, and prior material without turning ordinary work into a h
 
 | Layer | Audience and task | Content | Interaction |
 |---|---|---|---|
-| Management workspace | Practitioner completing current work | Plain-language proposal, facts, unknowns, assessments, limits, decisions, and next actions | Primary pages and focused task flows |
-| Source/history/governance trace | Practitioner, reviewer, governance or audit user asking “why?” | Sources, limitations, explicit Applicability, prior versions, accountability, authority, effective/known context | Side panel or dedicated detail route; stable return to task |
-| Technical/audit/diagnostic inspection | Engineer, advanced auditor, support user troubleshooting identity or machine state | Full Record/Version IDs, raw payload, internal statuses, timestamps, relationships, command/audit references | Separate inspection route; copy/download where authorized; never inline page expansion |
+| Practitioner workspace | Practitioner completing current work | Plain-language proposal, facts, unknowns, assessments, limits, decisions, and available or required actions; no raw IDs or payloads | Primary pages and focused task flows |
+| Source, history, and governance basis | Practitioner, reviewer, governance or audit user asking “why?” | Sources, limitations, explicit Applicability, prior versions, accountability, authority, effective/known context | Side panel or dedicated detail route; stable return to task |
+| Technical inspection | Engineer, authorized auditor, support user troubleshooting identity or machine state | Full Record/Version IDs, raw payload, internal statuses, timestamps, relationships, command/audit references | Separately access-enforced inspection route; copy/download where authorized; never inline page expansion |
 
-Governance/audit information is not hidden; it is located where its meaning can be understood.
+Governance/audit information is not hidden from an authorized user; it is located where its meaning
+can be understood. Moving between layers never broadens access or exact governed-context visibility.
 
 ## Context behavior
 
@@ -102,7 +103,13 @@ silently.
 
 ## Attention and routing
 
-Attention items use management tasks:
+Orientation separates three kinds of information:
+
+- a unique **required prerequisite** that blocks the practitioner's stated intended action;
+- the set of unranked **available work** that can proceed now; and
+- an **unresolved condition** such as absence, vacancy, stale basis, or conflict.
+
+Available work may include:
 
 - Review missing or unresolved information.
 - Complete the Value assessment.
@@ -113,8 +120,10 @@ Attention items use management tasks:
 - Define operating limits.
 - Submit or review the proposal.
 
-Ordering is pathway order, not priority or severity. Show only the earliest unmet task by default;
-“See later steps” may explain the rest without repeating every dependency on every page.
+Pathway order is not priority or severity. Show Value and Risk as parallel peer work when both are
+available. Show a single prerequisite only when the exact production guards establish it as the
+unique blocker for an intended downstream act. No generic next-task status or collapsed attention
+count is persisted or inferred.
 
 ## Help and glossary
 

@@ -15,35 +15,37 @@ records remain controlling underneath, as detailed in the
 ### Header
 
 ```text
-Harborlight Assist — Small-Business Lending Pilot
+Harborlight Assist — SBL Memo Preparation
 Harborlight Community Bank
 
 Considering: an eight-week AI-assisted credit-memorandum pilot
 Current position: evidence and independent assessments are not yet complete
-Next: review what is known and unresolved
+Available work: review what is known; assess Value; assess Risk
+Unresolved: live outcome evidence and two vendor-security control questions
 ```
 
-Secondary **Case context** reveals the full management question. **Governance trace** reveals Case
-identity, C1 governing-basis details, lifecycle state, and reconstruction time. Neither is required to
-understand the header.
+Secondary **Case context** reveals the full management question when it is available from an
+authoritative production field. **Governance trace** reveals Case identity, C1 governing-basis
+details, lifecycle state, and reconstruction time. Neither is required to understand the header.
 
 ### Orientation cards
 
 ```text
-CURRENT PROCESS / COMPARISON BASELINE        PROPOSED PILOT UNDER REVIEW
+MANUAL PROCESS / COMPARISON BASELINE         PROPOSED PILOT UNDER REVIEW
 Manual organization and drafting            Harborlight Assist document organization
 Existing human review                        Two trained senior-underwriter teams
 No generative-AI processing                  Standardized digital records
                                               Eight weeks; 100% QA
                                               No automated lending action
 
-What needs attention
-1. Review available information and known gaps
-2. Assess potential Value
-3. Assess Risk, uncertainty, and controls
+Available work — no ranking implied
+- Review available information and known gaps
+- Assess potential Value
+- Assess Risk, uncertainty, and controls
 ```
 
-The proposed pilot card must not say “current,” “approved,” “authorized,” or “operating.”
+The proposed pilot card must not say “current,” “approved,” “authorized,” or “operating.” The manual
+process may be called current operating process only when that context is separately established.
 
 ## Task 1: Understand what is being considered
 
@@ -188,8 +190,9 @@ available, not automatically Applicable.
 ## Task 6: Consider Value and Risk together
 
 This task is unavailable until both lane selections are uniquely established and current. Until
-then it says only, for example, **Select the Risk assessment management will use**, with a direct
-link to that task.
+then it identifies the exact unmet prerequisites for this intended Integration action, with direct
+links. If both are missing, Value and Risk are presented as unranked peer work rather than choosing
+one as the next task.
 
 When available:
 
@@ -269,14 +272,19 @@ Next: confirm whether the assessment is sufficiently supported.
 
 This wording prevents a progress indicator from becoming a readiness or authorization claim.
 
+Successful authentication, software access, exact visibility, exact binding, and command routing
+remain enforced but are quiet in ordinary work. At the consequential authorization review, the UI
+still shows the action, Actor and responsible role, authority source, scope, limits, and conditions.
+If any check fails, the exception identifies the blocked action, missing/stale/conflicting basis,
+why it matters, and the legitimate owning action or responsible role; it never chooses a winner.
+
 ## Technical trace access
 
 Every saved checkpoint has:
 
-- **Source and history** — readable sources, limitations, author/Actor, and change history;
-- **Governance trace** — exact basis categories, accountability, authority, effective and known time;
-  and
+- **Source, history, and governance basis** — readable sources, limitations, change history, exact
+  basis categories, accountability, authority, and effective and known time; and
 - **Technical inspection** — full Record/Version identifiers and machine payload in a side panel or
-  separate route with a clear return to the originating task.
+  separate, access-enforced route with a clear return to the originating task.
 
 No raw payload expands inline inside the primary assessment surface.
