@@ -37,12 +37,15 @@ The interaction design must not answer these by convenience:
 6. **Accountability entry:** Resolved by UX-3B for Evidence Applicability, lane Fitness, and
    Acceptance/Selection. New browser finalization uses exact current accountable Role Assignments;
    arbitrary mechanism text is not an accountability source.
-7. **Assessment orchestration:** Can one interaction intent safely span the existing Input, readiness,
-   Fitness, and Selection checkpoints without creating new authoritative draft semantics?
-8. **Fitness wording:** Does “sufficiently supported for this proposed use” cover the full production
-   Fitness contract, including material Evidence basis and decision-limiting treatment?
-9. **Single eligible Selection:** Must explicit Selection always remain a separate confirmation when
-   exactly one supportable Input exists? This design says yes unless the governing contract is changed.
+7. **Assessment orchestration:** Current UX-3 preserves Input, readiness, Fitness, and Selection.
+   Issue #127 prospectively recommends one natural **Complete Value/Risk review** interaction only
+   where separate adequacy and reliance facts can commit atomically without semantic loss.
+8. **Neutral review wording:** Issue #127 rejects “sufficiently supported” as advocacy-prone for the
+   future contract and proposes neutral assessment adequacy for decision use. Legacy Fitness names
+   and semantics remain unchanged until coordinated specification and implementation gates pass.
+9. **Single eligible candidate:** Issue #127 preserves a separate authoritative reliance fact but
+   permits one confirmation to record adequacy and reliance when exactly one adequate candidate,
+   dual Responsibilities, and all fail-closed guards are established. Uniqueness never auto-selects.
 10. **Boundary prefill:** Which Configuration conditions may be presented as proposed operating-limit
     inputs without implying they are already Boundary clauses?
 11. **Authority binding:** May the adapter pre-bind one uniquely resolved eligible assignment/source,
@@ -245,14 +248,14 @@ bounded after independent review.
 Implementation status: documentation/semantic-design checkpoint. The
 [Normative Model Redesign package](../normative-model/) evaluates the smallest integrated target
 for continuing Case identity/status, Case practical-role relationships, exact Responsibility,
-derived and durable Case Work, planned/required review timing, analytical readiness, Input use
-acceptance, historical reconstruction, and legacy compatibility.
+derived and durable Case Work, planned/required review timing, analytical readiness, neutral
+assessment adequacy, exact reliance, historical reconstruction, and legacy compatibility.
 
 The proposal keeps current specifications controlling. It adds no records or runtime behavior.
 Its [Downstream Specification Plan](../normative-model/PAIM_DOWNSTREAM_SPECIFICATION_PLAN.md)
 requires separate coordinated gates for Integrity, Roles/Accountability, Case/Configuration,
-Responsibility/Case Work, continuing review/timing, and Value/Risk readiness/use acceptance before
-any domain or UI implementation.
+Responsibility/Case Work, continuing review/timing, and Value/Risk
+readiness/adequacy/reliance before any domain or UI implementation.
 
 Status: checkpoint ready for independent review; subsequent work remains paused. No specification
 revision, Responsibility/Work implementation, review scheduler, UI redesign, UX-4, M1D,

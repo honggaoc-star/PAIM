@@ -193,8 +193,11 @@ Every continuing review should ask independently:
 - whether Risk, controls, boundaries, and adverse pathways are behaving as expected.
 
 Failure to realize Value can justify review even when Risk remains within tolerance. Greater Value
-does not erase increased Risk. The review model preserves two Inputs, two Fitness/acceptance paths,
-and no combined score or automatic disposition.
+does not erase increased Risk. The review model preserves two Inputs and two independent
+adequacy/reliance paths, with no combined score or automatic disposition. A refreshed assessment
+must be reviewed neutrally for its exact bounded decision use: an unfavorable or uncertain
+conclusion can be adequate, while prior Fitness, adequacy, or reliance is provenance rather than an
+automatic current judgment.
 
 ## Learning horizons
 

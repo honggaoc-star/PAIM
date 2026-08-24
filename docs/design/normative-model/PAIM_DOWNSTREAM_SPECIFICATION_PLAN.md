@@ -100,7 +100,7 @@ Exit gate: event-before-plan, required-before-planned, missed planned review, em
 intersection, no-material-change review, focused one-lane refresh, successor Decision, and no
 automatic mutation have normative examples and test plans.
 
-### Gate 6 — Value/Risk readiness and Input use acceptance hardening
+### Gate 6 — Value/Risk readiness, assessment adequacy, and reliance hardening
 
 Revise:
 
@@ -109,14 +109,18 @@ Revise:
 - Case readiness composition; and
 - Integration current-basis guards.
 
-Define `Finish assessment` semantic transaction, exact candidate finalization/readiness history,
-successor-on-edit behavior, Input use acceptance terminology, one-candidate explicit acceptance,
-permitted atomic Fitness-plus-acceptance conditions, multiple-candidate dispositions, reuse, and
-legacy Acceptance/Selection compatibility.
+Define `Finish assessment`, exact candidate finalization/readiness history, successor-on-edit,
+neutral assessment adequacy for decision use, its exact information/Applicability basis and
+three-outcome-plus-limitations model, and exact reliance designation. Define separately accountable
+adequacy and reliance facts, the permitted atomic **Complete Value/Risk review** conditions for one
+adequate candidate, explicit choice/dispositions for multiple adequate candidates, reuse, and
+legacy Fitness and Acceptance/Selection compatibility without retroactive reinterpretation.
 
-Exit gate: Value/Risk independence, non-supportable Fitness, one/multiple candidates, separate
-Responsibilities, atomic rollback, reuse, stale context, and no automatic Selection have hard
-oracles.
+Exit gate: Value/Risk independence; favorable, unfavorable, and uncertain assessments capable of
+adequacy on neutral quality grounds; inaccurate/incomplete/overstated/hidden-uncertainty adverse
+outcomes; Applicability/adequacy separation; one/multiple candidates; separate Responsibilities;
+atomic rollback; reuse; stale context; exact freeze/history; and no automatic reliance or Selection
+have hard oracles.
 
 ### Gate 7 — Architecture and implementation-readiness review
 
@@ -143,7 +147,7 @@ Implement production capabilities in dependency order:
 3. Case continuity selectors/events;
 4. Case Work and result/return;
 5. Review timing/constraint composition;
-6. readiness/Input use acceptance commands; and
+6. readiness/assessment-adequacy/reliance commands; and
 7. access-filtered practitioner read composition.
 
 Every increment requires empty/prior-revision migration tests, hard semantic oracles, full
@@ -158,7 +162,8 @@ Only after stable production capabilities and owner acceptance may a bounded UI 
 - people, Responsibilities, and Work;
 - contextual handoffs and returns;
 - next planned/required review explanations; and
-- simplified Finish/Fitness/Input acceptance actions.
+- simplified **Finish assessment** and **Complete Value/Risk review** actions that preserve neutral
+  adequacy and exact reliance consequences.
 
 The UI must expose practitioner action and meaning, not the new machinery. UX-4, M1D, and
 organization-local deployment remain separate decisions.
@@ -174,7 +179,8 @@ organization-local deployment remain separate decisions.
 | Required review constraint | Evidence & Authority / continuing-review section | Decision/Boundary, Reassessment, Integrity, Responsibility |
 | Focused review | Reassessment | Value-Risk, Evidence/Authority, Case, Decision, Learning |
 | Readiness | Value-Risk Interface | Responsibility, Integrity, Case composition |
-| Input use acceptance | Value-Risk Interface | Responsibility, Evidence Applicability/Fitness, Integration, Integrity |
+| Assessment adequacy | Value-Risk Interface | Responsibility, Evidence Applicability, Integration, Integrity |
+| Reliance designation / competing-candidate choice | Value-Risk Interface | Responsibility, assessment adequacy, Evidence Applicability, Integration, Integrity |
 | Migration/semantic eras | Integrity and platform architecture | all changed specifications and operations |
 
 ## Required review artifacts per gate

@@ -93,13 +93,18 @@ Every current fact remains authoritative:
 - refresh, withdrawal, correction, and supersession history; and
 - independent Value and Risk selection.
 
-The proposed `Finish assessment` and `Input use acceptance` language is prospective interaction and
-contract clarification. It does not combine old events or rename stored records. A compatibility
-read can present the practitioner meaning while authorized history retains original terms.
+The proposed `Finish assessment`, neutral assessment-adequacy, and reliance-designation language is
+prospective. It does not globally rename `Fitness`, reinterpret its historical outcomes, combine
+old events, or rename stored Acceptance/Selection records. Authorized history always retains each
+legacy term, exact basis, and original semantic-era meaning; a compatibility read may explain the
+corresponding practitioner consequence without asserting that a legacy Fitness fact is a new
+adequacy determination.
 
-No existing one-candidate acceptance is considered automatic. No missing acceptance is synthesized.
-New atomic Fitness-plus-acceptance behavior, if accepted, applies only to new commands satisfying
-the future dual-Responsibility and all-or-nothing contract.
+No existing one-candidate acceptance is considered automatic and no missing adequacy or reliance
+fact is synthesized. Prospective adequacy uses its own neutral three-outcome contract and explicit
+limitations. A new atomic one-candidate review action, if accepted, applies only to new commands
+with separate exact adequacy-review and reliance Responsibilities and all-or-nothing guards. Legacy
+Fitness and Acceptance/Selection remain independently reconstructable.
 
 ## Existing Case lifecycle and Decisions
 

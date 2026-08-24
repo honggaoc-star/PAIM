@@ -22,9 +22,9 @@ revisions are separately approved.
 - [Continuing Review & Review Timing Normative Concept](PAIM_CONTINUING_REVIEW_AND_TIMING_NORMATIVE_CONCEPT.md)
   distinguishes event-driven review, planned review, required review, focused review, and
   practitioner-determined next review points.
-- [Readiness & Selection Necessity Review](PAIM_READINESS_AND_SELECTION_NECESSITY_REVIEW.md)
-  identifies which existing acts carry genuine management meaning and which system operations may
-  be absorbed into practitioner actions.
+- [Assessment Adequacy & Reliance Necessity Review](PAIM_ASSESSMENT_ADEQUACY_AND_RELIANCE_NECESSITY_REVIEW.md)
+  reframes independent assessment review neutrally, preserves exact reliance, and identifies which
+  system operations may be absorbed into natural practitioner actions.
 - [Case Continuity & Historical Reconstruction Review](PAIM_CASE_CONTINUITY_AND_RECONSTRUCTION_REVIEW.md)
   proposes a continuing Case identity/status model and preserves then-versus-now reconstruction.
 - [Migration & Compatibility Assessment](PAIM_NORMATIVE_MIGRATION_AND_COMPATIBILITY_ASSESSMENT.md)

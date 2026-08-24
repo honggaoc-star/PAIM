@@ -75,8 +75,8 @@ The taxonomy should begin with existing governed acts, not job titles. Candidate
 - assess Value;
 - assess Risk;
 - judge Evidence Applicability;
-- determine lane Fitness;
-- accept an Input for bounded use;
+- determine assessment adequacy for decision use;
+- designate an adequate Input for bounded reliance, including choosing among competing candidates;
 - integrate current Value and Risk;
 - collect or maintain information;
 - resolve an Authority question;
@@ -193,7 +193,7 @@ permitted.
 > A Work Item coordinates work; it never substitutes for the substantive governed result.
 
 Completing Work must cite the exact result produced by the owning domain command. A Work command
-cannot create or imply Evidence Applicability, Fitness, Input use acceptance, Authority,
+cannot create or imply Evidence Applicability, assessment adequacy, reliance designation, Authority,
 Decision, Intervention Completion Acceptance, Trigger Determination, Reassessment outcome, or
 Learning interpretation.
 
@@ -243,12 +243,13 @@ missing exact information judgment
   -> Work Item carries Evidence, Value Input, Configuration, purpose, requester, and return
   -> practitioner commits Evidence Applicability through its governing capability
   -> Work links the result
-  -> originating support review is recomposed
+  -> originating adequacy review is recomposed
   -> second independent information judgment remains
 ```
 
-The assignment does not decide Applicability. Work completion does not establish Fitness or accept
-the Input. The proposal does not add the assignment to the live fixture.
+The assignment does not decide Applicability. Work completion does not establish assessment
+adequacy or designate the Input for reliance. The proposal does not add the assignment to the live
+fixture.
 
 ## Explicit exclusions
 

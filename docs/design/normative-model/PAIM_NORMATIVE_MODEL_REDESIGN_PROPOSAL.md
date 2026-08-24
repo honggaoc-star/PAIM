@@ -140,8 +140,8 @@ Case Work only when that coordination fact must survive sessions or participants
 A Work Item preserves exact Case/context, obligation, Responsibility, requester and legitimate
 request basis, reason/prerequisite, optional due/expected time, coordination state, required result
 contract, result Version, return relationship, and history. Work completion only links the
-substantive governed result. It cannot create Applicability, Fitness, Input acceptance, Decision,
-Completion Acceptance, Trigger Determination, or another domain judgment.
+substantive governed result. It cannot create Applicability, assessment adequacy, reliance,
+Decision, Completion Acceptance, Trigger Determination, or another domain judgment.
 
 If authoritative context changes, commit revalidation fails closed. Work is explicitly cancelled
 or superseded and a new exact Work Version/identity is created when needed; it is never silently
@@ -180,27 +180,34 @@ Case/Decision-level timing plus bounded due/expected points on existing Learning
 sufficient initially. PAIM need not schedule every measure. Realized Value and Risk/control
 questions may mature on different horizons and remain independent.
 
-## Readiness and Selection recommendation
+## Readiness, assessment adequacy, and reliance recommendation
 
 Analytical readiness has genuine meaning: the producing Assessor states that one exact Value or
-Risk Input is complete enough for independent support/use review. Retain the attributed event, but
+Risk Input is complete enough for independent adequacy/use review. Retain the attributed event, but
 let the practitioner action be **Finish assessment**. That action can atomically finalize the exact
 candidate Version and record readiness. A material later edit creates a successor Input Version;
 the predecessor readiness remains historical and the successor is not ready until finished.
 
-Input use acceptance also remains genuine. Even one supportable candidate requires an explicit
-accountable acceptance for an exact lane, Configuration, use/purpose, and time because the act
-freezes the Input for reliance and is not equivalent to Fitness. Where one Actor holds both exact
-Fitness and acceptance Responsibilities and only one supportable candidate exists, one clear
-practitioner confirmation may atomically commit the Fitness result and Input use acceptance.
-Separate authoritative facts and accountability are still retained. With multiple supportable
+Prospectively, **assessment adequacy for decision use** replaces the advocacy-prone Fitness framing.
+The neutral accountable judgment asks whether the exact assessment is faithful, materially complete,
+proportionate, appropriate to its bounded use, and transparent about limitations and uncertainty.
+Its smallest outcome model is adequate, not adequate, or indeterminate, with explicit limitations
+and rationale. A favorable or unfavorable Value/Risk conclusion can be adequate. Evidence
+Applicability remains a distinct prerequisite and judgment.
+
+Adequacy establishes eligibility, not reliance. An exact reliance designation remains genuine
+because it identifies and freezes the lane assessment actually used for the Case and preserves the
+basis for Integration and Decision reconstruction. With one adequate candidate, **Complete Value
+review** or **Complete Risk review** may atomically record separate adequacy and reliance facts only
+when the same Actor holds both exact Responsibilities and all guards pass. With multiple adequate
 candidates, explicit choice and material candidate dispositions are mandatory. Uniqueness never
 auto-selects.
 
-Value acceptance and Risk acceptance remain independent. Fitness is not acceptance; acceptance is
-not Decision; readiness is not either. The
-[Readiness & Selection Necessity Review](PAIM_READINESS_AND_SELECTION_NECESSITY_REVIEW.md) records
-the complete evaluation.
+Value and Risk adequacy and reliance remain independent. Adequacy is not reliance; reliance is not
+Decision; readiness is neither. Legacy Fitness and Acceptance/Selection records retain their
+original names and semantics. The
+[Assessment Adequacy & Reliance Necessity Review](PAIM_ASSESSMENT_ADEQUACY_AND_RELIANCE_NECESSITY_REVIEW.md)
+records the complete evaluation.
 
 ## End-to-end composition examples
 
@@ -263,8 +270,9 @@ Value/Risk records, review acts, or authority.
 | Durable Case Work | Preserve request, handoff, result, and return | Work ID/Version, exact context, request/assignee, state, result, and return | practitioner summary and notifications | request/assignment basis; domain authority still separate | every assignment, wait, result, cancellation, and successor | workflow graph or command names |
 | Planned review point | Let the organization choose the next reconsideration point | exact Review Point Version and context | due attention | review-planning Responsibility; Decision Authority only if changing a Decision condition | every prior point, change, cancellation, supersession, and review link | scheduler mechanics |
 | Required review | Prevent a plan defeating governing time constraints | exact constraint/source/Applicability/operator/window | combined compliant/conflict view | governing source authority and Applicability | correction, supersession, withdrawal, and prior applicability | opaque winner or compliance score |
-| Analytical readiness | Finish an assessment for support review | exact Input Version and attributed readiness event | plain-language progress | producing Responsibility | predecessor readiness and successor-on-edit chain | backend `ready` transition |
-| Input use acceptance | Choose/accept exact assessment for exact use | exact lane Input use acceptance, Fitness basis, candidate dispositions, and time | one-candidate simplified confirmation | acceptance Responsibility; no Decision Authority | freeze, reuse, non-selection, withdrawal, and supersession | selection algorithms or freeze mechanics |
+| Analytical readiness | Finish an assessment for independent adequacy review | exact Input Version and attributed readiness event | plain-language progress | producing Responsibility | predecessor readiness and successor-on-edit chain | backend `ready` transition |
+| Assessment adequacy | Decide neutrally whether the exact assessment may enter the bounded management decision | exact adequacy outcome, Input/use/information basis, limitations, rationale, and time | natural adequacy explanation | adequacy-review Responsibility; no Decision Authority | every review, correction, and successor basis | legacy Fitness vocabulary or a mechanical checklist |
+| Reliance designation | Identify the exact adequate lane assessment the Case will use | exact lane reliance, adequacy basis, candidate dispositions, and time | combined one-candidate review confirmation | reliance Responsibility; no Decision Authority | freeze, reuse, non-selection, withdrawal, and supersession | Selection/freeze machinery |
 | Current management position | Understand what holds now | existing exact source records; no new master record | access-filtered exact composition | none created by presentation | all source Versions remain unchanged | a universal Case score/status |
 | Historical view | Understand what was known and decided then | existing exact records, relationships, effective/recorded time | Decision-bound reconstruction | authorized access only | exact Decision basis and later facts remain temporally separate | UUID/version machinery in ordinary view |
 

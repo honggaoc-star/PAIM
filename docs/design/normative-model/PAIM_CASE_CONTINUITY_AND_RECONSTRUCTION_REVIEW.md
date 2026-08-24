@@ -150,8 +150,9 @@ must label which facts were learned later.
 
 Focused review cites unaffected exact current Versions rather than copying them. A Version may be
 carried forward only if its family-specific currentness, Configuration, scope, Applicability,
-Fitness, authority, and conflict guards still pass for the new review/use. Historical acceptance is
-provenance, not automatic current eligibility.
+prospective assessment-adequacy, authority, and conflict guards still pass for the new review/use.
+Historical Fitness, adequacy, Acceptance/Selection, or reliance is provenance, not automatic
+current eligibility.
 
 When a material Decision condition, Boundary, operating state, or Configuration changes, the
 proper successor Decision path preserves the predecessor. Work or presentation cannot amend it.
@@ -161,7 +162,7 @@ proper successor Decision path preserves the predecessor. Work or presentation c
 The target keeps independent state and history for:
 
 - Configuration;
-- analytical Input/readiness/Fitness/use acceptance;
+- analytical Input/readiness, legacy Fitness, prospective adequacy, and exact reliance;
 - Integration and Decision;
 - Intervention and activation;
 - Learning;
