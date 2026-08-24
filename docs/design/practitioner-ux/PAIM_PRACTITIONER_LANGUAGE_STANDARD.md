@@ -182,8 +182,9 @@ meaning matters. Raise awkward fixture wording as a separately governed content 
 | `Evidence` | `information` in ordinary source review; `Evidence` where the governed evidentiary role matters. | Applicability, Fitness, confirmation, governance trace, and specifications. |
 | `Applicability` | `how this information applies` or `what this information bears on and under what limits`. | Confirmation, governance trace, history, and disputes about the exact judgment. |
 | `Authority Gap` | Lead with the unresolved requirement or authority question. | Governance trace, history, and specifications. |
-| `Fitness` | `Is this assessment sufficiently supported for this proposed use?` | Saved determination, confirmation, governance trace, and history. |
-| `Selection` | `Which assessment will management use?` or `selected assessment`. | Saved selection, confirmation, governance trace, and history. |
+| Legacy `Fitness` | Preserve `Fitness` and its original outcome wording in historical/governance trace. Do not paraphrase it as favorable support for the AI use. | Current v0.1 saved determination, confirmation, and history until a coordinated prospective cutover. |
+| Prospective assessment adequacy | `Is this assessment adequate for use in the management decision?` Explain material limitations and any reason it should not be used. | Future neutral review after the coordinated specification gate; not current runtime vocabulary. |
+| Legacy `Selection` / prospective reliance | `Which assessment will management use?` when alternatives exist; otherwise explain that completing the review designates the exact adequate assessment for Case reliance. | Saved reliance/selection, confirmation, governance trace, and history. Never imply an automatic winner. |
 
 This table is contextual guidance, not a blacklist. Review each occurrence according to audience,
 task, and consequence.

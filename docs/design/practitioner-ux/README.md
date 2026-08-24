@@ -6,10 +6,10 @@ This directory records the design checkpoint produced from the Harborlight Scena
 exercise. It is an implementation-planning layer over existing PAIM capabilities, not a system
 specification, runtime change, or empirical validation claim.
 
-Issue #123 established the accepted Practitioner Operating Model checkpoint. Issue #125 adds the
-Product Design Foundation above it for independent review. Further practitioner-UI implementation
-remains paused. The package proposes no normative, domain, persistence, deployment, or fixture
-change.
+Issue #123 established the accepted Practitioner Operating Model checkpoint, and Issue #125
+established the accepted Product Design Foundation above it. Issue #127 now records the proposed
+Normative Model Redesign checkpoint. Further practitioner-UI implementation remains paused. These
+design packages propose no domain, persistence, deployment, fixture, or UI change.
 
 The current contracts under [`docs/system/`](../../system/) remain authoritative. If a proposal here
 cannot preserve those contracts, it requires explicit semantic review before implementation.
@@ -46,6 +46,17 @@ choices, and reveal machinery only when it helps a governance, audit, or diagnos
 The Product Design Foundation is the product-level governing reference above the accepted
 Practitioner Operating Model. It does not replace the authoritative system specifications or
 authorize implementation.
+
+### Normative Model Redesign checkpoint
+
+- [Normative Model Redesign package](../normative-model/) proposes the smallest integrated target
+  for continuing Case semantics, practical roles, exact Responsibility, derived and durable Case
+  Work, review timing, optional context-bound quantitative Value/Risk, readiness, neutral
+  assessment adequacy, exact reliance, historical reconstruction, migration, and coordinated
+  downstream specification gates.
+
+The Issue #127 package is a prospective semantic design. Current system specifications remain
+controlling, and no proposed concept is implemented or silently read into an existing record.
 
 ### Practitioner Operating Model checkpoint
 
@@ -104,9 +115,9 @@ Applicability, Fitness, and Acceptance/Selection finalization. It adds no Role A
 accountable-mechanism model, UX-4 work, or M1D behavior.
 
 Issue #125 adds the Product Design Foundation above the accepted Issue #123 operating-model
-checkpoint. It establishes why PAIM exists and the continuing management lifecycle before any
-normative Responsibility/Case Work or further UI decision. Issue #123 supersedes the assumption
-that UX-4 should begin next. Its checkpoint distinguishes
+checkpoint. Issue #127 evaluates the interacting target normative concepts together before any
+specification change. Issue #123 supersedes the assumption that UX-4 should begin next. Its
+checkpoint distinguishes
 practical roles from granular responsibilities and separately governed authority, and documents why
 durable cross-practitioner work cannot be implemented as presentation-only state. No UX-4, M1D,
 Role Assignment UI, Case Work, or organization-local deployment work is authorized by these docs.
