@@ -240,4 +240,6 @@ Stop and return to product/design authority if a proposed revision would:
 
 ## Current checkpoint
 
-Issue #127 completes design only. Gate 1 does not start automatically after acceptance.
+Issues #129, #131, #133, and #135 complete Gates 1, accelerated 2/4, 3, and 5 respectively as
+prospective specification contracts. They activate no consumer cutover or implementation. Gate 6
+does not start automatically after Gate-5 acceptance.

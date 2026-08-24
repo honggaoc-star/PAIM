@@ -111,6 +111,9 @@ required result contract; it must not invent a future source identity.
 | `DETERMINE_TRIGGER` | Case; exact Trigger Version; initiating Decision Version and target Configuration Version when established; declared management question/scope | Trigger Determination Version |
 | `LEAD_REASSESSMENT` | Case; exact Reassessment Version; immutable Trigger Set Version; Decision and Configuration Versions | Reassessment result named by its governing command |
 | `COORDINATE_REASSESSMENT` | Case; exact Reassessment/Trigger Set Versions participating in the coordination question; Decision and Configuration Versions | exact coordination determination Version |
+| `PLAN_NEXT_REVIEW` | Case; exact Decision and Configuration Versions where established; review purpose/scope; exact applicable Required Review Constraint set or explicit absence | Planned Review Point Version |
+| `NORMALIZE_REQUIRED_REVIEW_CONSTRAINT` | Case; exact governing source Version; exact Applicability Version; Decision/Configuration/purpose/scope where applicable | Required Review Constraint Version |
+| `COMPLETE_CONTINUING_REVIEW` | Case; exact Review Episode Version; source Trigger and Planned Review Point/Required Review Constraint Versions; Decision and Configuration Versions | Review Episode completion Version; any Decision Confirmation, successor Decision, or next Planned Review Point remains a separately valid intended fact |
 | `PERFORM_INTERVENTION` | Case; Decision Version; target Configuration Version; exact Intervention Version/obligation | Completion Result Version where required |
 | `ACCEPT_INTERVENTION_COMPLETION` | Case; Decision Version; target Configuration Version; exact Intervention and Decision-to-Intervention Obligation Versions; Completion Result Version | Completion Acceptance Version |
 | `OBTAIN_LEARNING_EVIDENCE` | Case; Decision Version; target Configuration Version; exact Learning Item Version | Evidence Version and exact Learning link |
@@ -118,9 +121,10 @@ required result contract; it must not invent a future source identity.
 
 Decision authorization is not a Responsibility kind. It continues to require the exact Decision
 Authorization Basis. The accepted Gate-3 Case Lifecycle contract owns the meaning and exact context
-of `DETERMINE_CASE_CONTINUITY`; this contract supplies only the Responsibility mechanics. Future
-planned-review, assessment-adequacy, reliance, or quantitative Value/Risk kinds are not created
-here; Gates 5 and 6 own those semantics.
+of `DETERMINE_CASE_CONTINUITY`; this contract supplies only the Responsibility mechanics. Gate 5
+owns the meaning and exact context of its three review kinds above; this contract supplies their
+assignment, resolution, delegation, and history mechanics. Future assessment-adequacy, reliance,
+or quantitative Value/Risk kinds are not created here; Gate 6 owns those semantics.
 
 ## 6. Responsibility Assignment Basis
 
@@ -364,15 +368,18 @@ An implementation gate must prove at least:
 11. cancelled/superseded Work and all prior results remain reconstructable by effective and
     knowledge time;
 12. assignment/result-link transactions commit all intended facts or zero facts and replay exactly;
+13. planning, constraint normalization, and Review Episode completion resolve independently;
+    Case Coordinator, software permission, timing, or source authority cannot substitute for them;
     and
-13. no workflow graph, project-management state, universal score, priority, rank, strongest-state,
+14. no workflow graph, project-management state, universal score, priority, rank, strongest-state,
     semantic-similarity, or authority inference appears.
 
 ## 19. Explicit exclusions
 
-Gate 3 now defines Case continuity and supplies the exact `DETERMINE_CASE_CONTINUITY` context used
-here. This contract does not define Gate-5 continuing-review timing or Gate-6
-readiness/assessment-adequacy/reliance/quantitative Value-Risk semantics. It adds no domain code,
+Gate 3 defines Case continuity and supplies the exact `DETERMINE_CASE_CONTINUITY` context used
+here. Gate 5 now defines the review contexts consumed by its three Responsibility kinds. This
+contract does not define Gate-6 readiness/assessment-adequacy/reliance/quantitative Value-Risk
+semantics. It adds no domain code,
 persistence, schema, migration, UI, notification, chat, scheduler, organization-local deployment,
 analytics, or Harborlight mutation.
 

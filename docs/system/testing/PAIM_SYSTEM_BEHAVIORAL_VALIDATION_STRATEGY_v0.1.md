@@ -42,6 +42,11 @@ Determination families and coordinates exact Managed Configuration lineage plus
 Responsibility/Work no-retarget behavior. §9C defines those normative oracles. Gate 3 likewise
 changes no current implementation expectation before a separately accepted cutover.
 
+Gate 5 adopts the machinery for prospective Planned Review Point, Required Review Constraint, and
+Review Episode families and coordinates review attention, exact constraint intersection, focused
+review, Decision authority, and dual-time history. §9D defines those normative oracles. Gate 5
+changes no current implementation expectation before a separately accepted cutover.
+
 **Bounded v0.1 validation scope:** the human-accepted
 `../../engineering/PAIM_V0_1_RELEASE_SCOPE_DECISION_IRR_009_IRR_014_v0.1.md` establishes that
 IRR-009 and IRR-014 each remain `OPEN — SEMANTICS UNDESIGNED` while each has bounded-v0.1
@@ -723,9 +728,119 @@ Applicability, assessment, Decision, or lifecycle fact is appended or changed.
 
 ### 9C.8 Gate boundary
 
-No oracle may require a Planned Review Point, new review-timing constraint, scheduler, prospective
+No Gate-3 oracle may require a Planned Review Point, new review-timing constraint, scheduler, prospective
 assessment-adequacy/reliance result, typed quantitative Value/Risk claim, first-class Observation,
 UI, schema, or domain command. Those semantics remain separately gated.
+
+## 9D. Gate-5 Continuing Review and Review Timing hard oracles
+
+Every Gate-5 oracle uses exact Semantic Contract Version, family identity/Version, typed context,
+Responsibility and assignment basis, authority where required, effective time, knowledge cutoff,
+access context, expected-Version guards, transaction ID, and before/after semantic digest. Tests
+must distinguish authoritative points/constraints/episodes from derived attention and prove zero
+unintended mutation on every denied, stale, indeterminate, or conflicting path.
+
+### 9D.1 Origins, points, and arrival
+
+1. **Event before plan:** establish a later Planned Review Point, then establish an earlier exact
+   event Trigger. Verify the event is eligible for accountable Trigger Determination immediately;
+   it does not wait for, cancel, or change the point, and neither event metadata nor timing infers
+   materiality.
+2. **No-material planned arrival:** advance evaluation time into an eligible point window. Verify
+   derived attention only. After a practitioner establishes the exact point-sourced Trigger and an
+   accountable informational/no-substantive-follow-up determination, verify no Reassessment,
+   Decision change, Evidence-staleness judgment, operating disposition, or automatic next point.
+3. **Optional point:** an `OPEN` Case with no Planned Review Point returns explicit absence and no
+   defect. One eligible point returns itself; incompatible co-current points return explicit
+   conflict without a recency/scope winner.
+4. **Missed planned review:** evaluate after a planned window. Verify visible missed-plan attention
+   with exact source/rule/watermark but no compliance violation, Trigger, Reassessment, priority,
+   suspension, or outcome.
+
+### 9D.2 Required constraints and plan movement
+
+5. **Required earlier than planned:** establish a planned point after an applicable `BY` deadline.
+   Verify noncompliance remains visible with both exact facts; PAIM does not silently replace the
+   point, waive the requirement, infer a response, or mutate either record.
+6. **Compatible intersection:** combine `NOT_BEFORE(a)`, `BY(b)`, and compatible `WINDOW(c,d)`.
+   Verify the exact intersection is `[max(a,c), min(b,d)]`, every source Version is retained, and
+   there is no strongest/recency/authority winner.
+7. **Conflicting intersection:** make the effective lower bound later than the upper bound. Verify
+   `REQUIRED REVIEW TIMING CONFLICT — UNRESOLVED`, no invented safe date, no selected source, no
+   plan mutation, and zero domain change.
+8. **Indeterminate normalization:** remove or conflict source Version, Applicability, timezone,
+   scope, or accountable narrative normalization. Verify
+   `REQUIRED REVIEW TIMING INDETERMINATE — UNRESOLVED` and zero constraint/plan/Trigger mutation.
+9. **Move earlier/later:** an accountable planner moves a point earlier within all bounds, then
+   later within all bounds. Verify successor Versions and predecessor history. Attempt before a
+   `NOT_BEFORE` or after a `BY`/`WINDOW`; verify rejection and zero mutation.
+10. **Decision-condition block:** bind review timing as an authorized Decision/Boundary condition.
+    Attempt to move it with planning Responsibility only; verify rejection and zero mutation.
+    Supply exact Decision Authority/successor-amendment basis and verify only the declared
+    successor facts commit.
+11. **Missed required review:** evaluate after a required bound. Verify any unsatisfied-requirement
+    fact arises only under the exact source contract and retains its source/Applicability; the
+    calendar does not infer response, violation severity, Reassessment, suspension, or priority.
+
+### 9D.3 Focused review, Value/Risk, and comparison
+
+12. **Focused Value refresh:** establish a Value-affecting source with stable Risk. Verify exact
+    unchanged Risk Version carries forward only after normal guards; Value refresh Work is separate;
+    no Risk copy, combined score, Decision change, or full Reassessment is inferred.
+13. **Focused Risk refresh:** mirror the prior oracle with stable Value and independently preserved
+    Value history.
+14. **Both lanes:** establish one source affecting both lanes. Verify two independent refresh
+    contexts, Responsibilities, Inputs, Applicability, judgments, and histories; no merged lane,
+    offset, net score, strongest outcome, or shared completion.
+15. **Realized Value/Risk symmetry:** exercise unrealized Value with stable Risk and increased Risk
+    with realized Value. Each may justify review independently; high Value never erases Risk and
+    stable Risk never makes unrealized Value immaterial.
+16. **Exact comparability:** compare expected and observed claims with exact matching construct,
+    scope/population, method, period, baseline, Configuration, provenance, uncertainty, and
+    Applicability. Verify only the comparison/delta is produced; no causality, materiality,
+    priority, Decision error, or action follows.
+17. **Non-comparability:** alter each required dimension in turn, including same label/unit with a
+    different population or period. Verify the claims remain separate with exact limitation and no
+    computed delta or semantic-similarity inference.
+18. **Different Learning horizons:** retain different justified due/observation periods and one
+    Case-level next point. Verify no schedule-per-metric, automatic Trigger, priority, or
+    requirement is synthesized.
+
+### 9D.4 Completion, reconstruction, and boundaries
+
+19. **Stale point and Work:** change the exact Decision or Configuration after a point and its
+    review Work are established. Verify neither retargets; stale review/commit fails with zero
+    mutation, predecessor history remains exact, and any successor point/Work requires new exact
+    context and separately valid facts.
+20. **Decision unchanged and successor:** complete one no-change Review Episode and prove it does
+    not confirm the Decision until a separate exact Confirmation commits. In a second case, change
+    substantive judgment and prove only an authorized successor/amendment Decision changes the
+    management position; prior Decision and review history remain exact.
+21. **Atomic next point:** declare episode completion and a separately valid next point in one
+    natural confirmation. Verify both facts commit atomically. Make the next point invalid or stale
+    and verify neither fact commits. Replay returns the original identities without duplicates.
+22. **Exact reconstruction and zero mutation:** reconstruct point/constraint/intersection,
+    attention, Trigger/determination, episode, carry-forward, Work/Reassessment, Decision
+    relationship, and next point by effective time and knowledge cutoff. Add later Evidence,
+    observation, plan, constraint, role, Configuration, or Decision facts and prove they appear
+    only as later knowledge. Verify legacy scheduled-like facts are unchanged, no prospective fact
+    is synthesized, hidden data does not leak, `CLOSED`/`SUPERSEDED` initiation fails, and every
+    failed branch has an unchanged semantic digest.
+
+### 9D.5 Harborlight non-mutating illustration
+
+Using Harborlight Scenario A only as an explanatory fixture, illustrate one context-dependent next
+point, an earlier event-driven source, and an independently maturing Learning horizon. Append or
+change no Harborlight Case, Configuration, Responsibility, Work, Evidence/Authority, Value/Risk,
+Decision, Trigger/Reassessment, review, or lifecycle fact.
+
+### 9D.6 Gate boundary
+
+No Gate-5 oracle may require code/schema/UI/scheduler/notification implementation, a universal
+cadence, automatic Trigger/Reassessment/Decision, first-class Observation/telemetry conversion,
+assessment adequacy/reliance, quantitative Value/Risk payload, Gate-6 behavior, or Harborlight
+mutation. These are specification-level hard oracles for a later separately authorized
+architecture/implementation and migration gate.
 
 ## 10. Boundary-Sensitivity Tests
 
@@ -1565,10 +1680,10 @@ This substantially completes the system-specification layer required before plat
 
 ## 49. Recommended Next Step
 
-After independent Gate-3 acceptance, add Responsibility, Case Work, or continuity implementation/
-conformance tests only through a separately authorized architecture/implementation gate. Gate 5 and
-Gate 6 remain unstarted by these oracles. Do not use the common or Gate-2/4/3 oracles to imply
-review-timing, readiness/adequacy/reliance, or quantitative Value/Risk semantics.
+After independent Gate-5 acceptance, add Responsibility, Case Work, continuity, or review-timing
+implementation/conformance tests only through a separately authorized architecture/implementation
+gate. Gate 6 remains unstarted by these oracles. Do not use the common or Gate-2/4/3/5 oracles to
+imply readiness/adequacy/reliance or quantitative Value/Risk semantics.
 
 ## 50. Repository Placement
 

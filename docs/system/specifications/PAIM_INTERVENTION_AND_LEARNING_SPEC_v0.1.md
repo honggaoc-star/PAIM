@@ -888,6 +888,31 @@ Future tests should include:
 11. Fallback persists long enough to become a new management configuration question.
 12. Learning evidence is generated but not yet interpreted; decision should not silently change.
 
+## 40A. Gate-5 Learning horizons and review relationship
+
+Learning Items may retain exact target/due points, observation periods, and expected result timing
+when justified by their own Decision question and source. Different items may mature at different
+horizons. These facts are not a metric calendar, universal cadence, Planned Review Point, Required
+Review Constraint, Trigger, materiality judgment, priority, or Decision condition by inference.
+
+One Case/Decision-level Planned Review Point may cite exact Learning Versions as basis. A Learning
+due point may contribute derived attention only as its owning contract permits. A Required Review
+Constraint exists only from an independently applicable governing source normalized under the
+Reassessment specification, §38A. Completion, lateness, favorable result, unfavorable result, or
+inconclusive result does not automatically create a Trigger, Reassessment, Review Episode outcome,
+Decision Confirmation, or successor Decision.
+
+Review may compare expected and observed Learning claims only through the exact comparability
+contract in the Evidence/Authority and Reassessment specifications. It must preserve method,
+scope, period, baseline, Configuration, provenance, uncertainty, and Applicability. Later Learning
+is later knowledge and cannot rewrite the earlier Decision basis. No causal, materiality,
+Decision-error, or management-action inference follows from completion or variance.
+
+Review-related Work may coordinate evidence generation or focused follow-up but does not replace a
+Learning result, Evidence record, Trigger Determination, Reassessment, or Decision. Gate 5 creates
+no per-metric schedule, notification service, automatic escalation, or Observation/telemetry
+family.
+
 ## 41. Open Questions
 
 Deferred to later specifications/platform design:

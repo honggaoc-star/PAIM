@@ -861,6 +861,34 @@ The Management Register projects Evidence Applicability and Authority attention 
 
 Citation of the same Evidence Record or external/provider provenance by multiple Cases does not establish a Shared Dependency and never transfers Evidence Applicability. Shared identity requires the exact dependency Record ID or one eligible Equivalence Determination under the Integrity contract. Evidence source names, URLs, normalization, similarity, and co-occurrence are ineligible equivalence rules.
 
+## 36A. Gate-5 review-source, Applicability, and comparison contract
+
+A prospective Required Review Constraint under the Reassessment specification, §38A, must bind one
+exact governing source Version and one exact applicable Evidence/Authority Applicability Version.
+Source presence, a date in prose, category, apparent authority, or access cannot establish the
+source's applicability to the exact Case, Decision, Configuration, purpose, or affected scope.
+Narrative normalization requires the separately accountable
+`NORMALIZE_REQUIRED_REVIEW_CONSTRAINT` Responsibility and preserves source limitations; it does
+not broaden Authority or rewrite the source.
+
+A planned or required review date does not make Evidence stale. Evidence staleness, refresh need,
+and continued applicability remain target/use-specific judgments under §§7, 25, and 26. Review may
+carry forward an unchanged exact Evidence or Applicability Version only while its ordinary
+currentness, scope, Configuration, purpose, and conflict guards pass. Carry-forward creates no new
+Evidence, Applicability, quality, fitness, adequacy, or reliance judgment.
+
+An expectation-versus-experience comparison must retain exact versions of every compared claim and
+an eligible comparability basis covering construct/claim type, scope/population, method,
+estimate/observation period, baseline/comparator, governing Configuration, provenance,
+uncertainty, and Applicability. Same name, unit, source, or display position is insufficient. A
+target is not Evidence; an estimate is not an observation; an observation is not causal
+attribution; a threshold is not a prediction. Non-comparable claims remain separate. Comparable
+variance establishes no materiality, causality, priority, Decision error, or action.
+
+Later Evidence remains later knowledge. Effective-time and knowledge-time reconstruction must not
+place it into an earlier assessment, Decision, Review Episode, or comparability basis before it was
+recorded/known. Gate 5 creates no first-class Observation family or telemetry conversion.
+
 ## 37. Completion Impact
 
 This specification substantially advances the Evidence and Authority Management capability in the system gap map.
