@@ -217,7 +217,7 @@ notification, UX-4, or M1D implementation.
 
 ### Product Design Foundation checkpoint — Issue #125
 
-Implementation status: documentation/design foundation. The
+Implementation status: accepted documentation/design foundation. The
 [Product Design Foundation](PAIM_PRODUCT_DESIGN_FOUNDATION.md) is the product-level governing
 reference above the accepted Practitioner Operating Model. It establishes PAIM's central value as
 management continuity of an AI-related business Decision over time, the continuing Value-Risk and
@@ -239,6 +239,24 @@ Status: paused after the documentation checkpoint. No normative Responsibility/C
 redesign, UX-4, M1D, first-class Observation, analytics, organization-local deployment, or
 Harborlight Scenario B-F work is authorized. The next issue must be explicitly selected and
 bounded after independent review.
+
+### Normative Model Redesign checkpoint — Issue #127
+
+Implementation status: documentation/semantic-design checkpoint. The
+[Normative Model Redesign package](../normative-model/) evaluates the smallest integrated target
+for continuing Case identity/status, Case practical-role relationships, exact Responsibility,
+derived and durable Case Work, planned/required review timing, analytical readiness, Input use
+acceptance, historical reconstruction, and legacy compatibility.
+
+The proposal keeps current specifications controlling. It adds no records or runtime behavior.
+Its [Downstream Specification Plan](../normative-model/PAIM_DOWNSTREAM_SPECIFICATION_PLAN.md)
+requires separate coordinated gates for Integrity, Roles/Accountability, Case/Configuration,
+Responsibility/Case Work, continuing review/timing, and Value/Risk readiness/use acceptance before
+any domain or UI implementation.
+
+Status: checkpoint ready for independent review; subsequent work remains paused. No specification
+revision, Responsibility/Work implementation, review scheduler, UI redesign, UX-4, M1D,
+organization-local deployment, analytics, or Harborlight Scenario B-F work begins automatically.
 
 ### UX-4 — Management judgment and operating limits
 
