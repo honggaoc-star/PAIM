@@ -206,9 +206,10 @@ A stronger state may require reassessment even when the configuration itself has
 
 ### 5.10 Scheduled review
 
-Management may establish a periodic reassessment cadence.
-
-PAIM does not prescribe a universal calendar interval.
+Management may establish one revisable next Planned Review Point. An applicable governing source
+may separately establish a Required Review Constraint. Neither fact is a periodic Reassessment,
+universal cadence, Trigger, materiality determination, or substantive conclusion. Their
+authoritative prospective contract is §38A.
 
 ## 6. Event-Driven vs. Scheduled Reassessment
 
@@ -218,9 +219,13 @@ Triggered because something materially changed or new evidence became available.
 
 ### Scheduled
 
-Triggered because management previously chose a review interval.
+Attention arises because an eligible Planned Review Point or Required Review Constraint reaches
+its exact date/window. A practitioner must establish the exact review source and Trigger before
+the existing Trigger Determination contract can decide whether Reassessment is required.
 
-Event-driven reassessment should not wait for the next scheduled review when the trigger is material.
+An event-driven review source may arrive before a planned point. Neither origin infers
+materiality; after an accountable Trigger Determination establishes that Reassessment is required,
+the work must not wait for a later planned point.
 
 ## 7. Trigger Record
 
@@ -846,7 +851,271 @@ Each kind resolves separately. Case coordination, source authorship, queue assig
 role, access, or another Reassessment Responsibility is not a substitute. Work may carry exact
 context and return but cannot create a Trigger Determination, Reassessment, coordination
 determination, Interim Operating Disposition, confirmation, or successor Decision. This section
-does not introduce Gate-5 planned-review or review-timing semantics.
+coordinates with the Gate-5 planned-review and review-timing semantics in §38A.
+
+## 38A. Prospective Continuing Review and Review Timing Contract
+
+### 38A.1 Adoption boundary and two review origins
+
+This section is the primary substantive Gate-5 contract. It adopts the Gate-1 integrity machinery
+for prospective Planned Review Point, Required Review Constraint, and Review Episode families. It
+does not alter legacy v0.1 Trigger, Reassessment, scheduled-like, Intervention, Learning, Decision,
+or lifecycle history. Prospective behavior applies only after an explicit consumer cutover naming
+the Semantic Contract Version, population, effective and knowledge boundaries, bounded legacy
+adapter, and cross-era rule. Failure never falls back or reinterprets prose as a new fact.
+
+Continuing review has two origins:
+
+1. **event-driven** — an exact internal or external occurrence may be established as a Trigger
+   under §§7–8 before any planned point; and
+2. **time-driven** — an eligible Planned Review Point or Required Review Constraint reaches its
+   exact date/window and creates derived review attention. A practitioner then establishes a
+   Trigger with the exact point/constraint Version as source before Trigger Determination.
+
+Event category, severity, recency, similarity, planned date, required deadline, lateness, source
+authority, presentation, or software permission never infers materiality, stale Evidence, invalid
+assessment or Decision, Reassessment need, operating suspension, priority, or outcome. Event-driven
+review need not wait for time-driven attention once its accountable determination exists.
+
+### 38A.2 Planned Review Point identity and content
+
+A **Planned Review Point** is an optional authoritative record of one bounded next review point,
+not a perpetual frequency. It has a stable Record ID and immutable Version IDs under the common
+integrity contract. Every finalized Version retains:
+
+- exact owning Case and, where material and established, exact current Decision Version and
+  governing Configuration Version;
+- review purpose and bounded affected scope;
+- exactly one target instant or closed bounded review window, including timezone;
+- exact `PLAN_NEXT_REVIEW` Responsibility Version, responsible Actor or genuine governed
+  mechanism, and Responsibility Assignment Basis Version;
+- when timing is a Decision condition or Boundary clause, the exact Decision Authority and
+  Authorization Basis or authorized successor/amendment basis;
+- exact source/basis Versions, including prior Review Episode, Decision, Learning, Authority, or
+  another source where applicable;
+- rationale only when it carries substantive meaning;
+- effective interval, recorded time, and optional knowledge cutoff;
+- predecessor, correction, change, supersession, cancellation, completion/acknowledgment, and
+  reason relationships; and
+- exact later Trigger, Work, Review Episode, or Reassessment relationships when created.
+
+For one exact Case/Decision/Configuration/purpose/scope, effective time, and knowledge cutoff, the
+selector returns one eligible current point, `PLANNED REVIEW POINT NOT ESTABLISHED`, or
+`PLANNED REVIEW POINT CONFLICT — UNRESOLVED`. No Case is required to have a planned point unless a
+separate applicable contract says so. Date, recency, specificity, scope breadth, source, practical
+role, hierarchy, or software permission never selects a winner.
+
+Changing a point appends a successor Version and preserves the predecessor. It does not retarget
+the point to a successor Decision or Configuration. A planning Responsibility may choose an
+earlier point only where every applicable constraint permits; it cannot waive a `NOT_BEFORE`
+constraint or choose a later point beyond an applicable `BY`/`WINDOW` bound. When timing is itself
+a substantive Decision condition or Boundary clause, change requires the authority and exact
+successor/amendment path required by that source. Case Coordinator orientation alone is
+insufficient.
+
+For example, an uncertain pilot may validly move from a monthly next point to a quarterly point
+after stabilization and later to an annual point. Each change is a successor fact with its own
+exact context and rationale; PAIM stores no perpetual cadence that silently generates future work.
+
+### 38A.3 Required Review Constraint identity and normalization
+
+A **Required Review Constraint** is a normalized authoritative representation of an applicable
+governing timing requirement, not a stricter practitioner plan. Each stable identity and immutable
+Version retains:
+
+Eligible source families include an exact policy/Authority, contract/external requirement,
+authorized Decision condition, Integrated Operating Boundary clause, or another governed
+organizational rule. Source-family eligibility does not establish source Applicability.
+
+- exact source family, stable Record ID, immutable source Version ID, provenance, and Authority;
+- exact applicable Evidence/Authority Applicability Version and its limitations;
+- exact Case, Decision Version, Configuration Version, purpose, and affected scope;
+- one temporal operator: `BY`, `NOT_BEFORE`, or `WINDOW`;
+- exact instant or inclusive window endpoints and timezone;
+- effective interval, recorded time, and knowledge context;
+- accountable Actor, `NORMALIZE_REQUIRED_REVIEW_CONSTRAINT` Responsibility Version, assignment
+  basis, and interpretation rationale when a narrative source requires normalization; and
+- predecessor, correction, supersession, withdrawal, and history.
+
+Source presence, label, source authority, prose, date text, or access does not establish
+Applicability or normalization. Normalization creates no broader Authority than the exact source.
+Selection for an exact context returns the full eligible constraint set, explicit absence, or
+explicit applicability/normalization conflict; it does not select one constraint by recency,
+specificity, authority hierarchy, apparent strictness, or convenience.
+
+### 38A.4 Constraint intersection and plan compliance
+
+Applicable constraints are conjoined mechanically for each exact affected scope. Normalize an
+unbounded lower endpoint to negative infinity and an unbounded upper endpoint to positive
+infinity, then calculate:
+
+- `BY(t)` as upper bound `t`;
+- `NOT_BEFORE(t)` as lower bound `t`;
+- `WINDOW(a,b)` as inclusive bounds `a` and `b`;
+- effective lower bound as the maximum of all lower bounds; and
+- effective upper bound as the minimum of all upper bounds.
+
+Every exact contributing constraint Version remains in the result. A non-empty determinable
+intersection is the allowed required-review window. An empty intersection returns
+`REQUIRED REVIEW TIMING CONFLICT — UNRESOLVED`. Missing or incommensurable time, timezone, scope,
+Applicability, source identity, or accountable narrative normalization returns
+`REQUIRED REVIEW TIMING INDETERMINATE — UNRESOLVED`. PAIM never invents a safe date or chooses a
+source winner.
+
+A planned instant/window is compliant only when it is wholly within the applicable required
+intersection for the same exact scope. A `BY` requirement permits an earlier point unless another
+constraint prohibits it. Moving earlier or later creates a successor Planned Review Point Version;
+it never changes a Required Review Constraint. A noncompliant plan remains historical and visible
+and is not silently replaced.
+
+### 38A.5 Context change, arrival, and missed-review meaning
+
+When Decision, Configuration, use, purpose, or scope changes, the predecessor point and constraints
+remain bound to their original context. Current selection re-evaluates eligibility. Cancellation or
+supersession requires the exact accountable or pre-authorized rule; any successor point binds the
+new context. Constraint Applicability is independently re-evaluated, and changing a practitioner
+plan never cancels a required source.
+
+Reaching a planned or required instant/window creates an access-filtered derived attention fact
+with exact source Versions, evaluation time, rule Version, access context, and watermark. It does
+not itself create a Trigger, Work, Review Episode, Reassessment, stale-Evidence judgment,
+materiality determination, compliance conclusion, Decision change, operating disposition,
+suspension, priority, or management outcome.
+
+Missing a planned point is not automatically a violation. Missing a required timing constraint may
+create an explicit unsatisfied requirement or governing concern only as defined by the exact source
+contract; the calendar does not choose the operational response. A practitioner-started review
+establishes a Trigger sourced by the exact eligible point/constraint Version and then uses the
+normal Trigger Determination contract. No scheduler, notification, polling service, or automatic
+Trigger is specified here.
+
+### 38A.6 Focused review, carry-forward, and independent Value/Risk
+
+A continuing review identifies what changed or was learned and which exact basis may be affected.
+Unaffected current state may be carried forward only when its normal identity, currentness,
+Configuration binding, Applicability, scope, Authority, adequacy/reliance where later adopted,
+access, and conflict guards pass. Carry-forward is continued reliance on the same exact Version,
+never a copy, silent refresh, retarget, or newly favorable judgment.
+
+An accountable review determination may conclude exactly that the source is informational, needs
+monitoring, needs focused Value refresh, needs focused Risk refresh, needs independent refresh of
+both lanes, requires formal Reassessment, or requires an immediate disposition plus Reassessment
+where the existing contracts permit it. The result must retain the exact basis and rationale. It
+does not create the referenced Work, assessment, Reassessment, disposition, Confirmation, or
+Decision; those arise only through their owning commands.
+
+Focused refresh may concern Value, Risk, Evidence, Authority, Configuration, Intervention, or
+Learning. A source affecting both analytical lanes produces two independent lane contexts rather
+than one combined refresh.
+
+Realized Value and Risk are reviewed symmetrically and independently. Unrealized expected Value may
+justify review while Risk remains stable. Greater or realized Value never offsets or erases Risk.
+Stable Value never excuses unreviewed Risk. If both lanes require refresh, their Inputs, Evidence,
+Applicability, judgments, accountability, and histories remain separate. No combined score,
+ranking, strongest-state rule, priority, or automatic outcome is permitted.
+
+### 38A.7 Exact expectation-versus-experience comparison
+
+Expected and observed claims may be compared only when one exact eligible comparability basis
+establishes the same construct/claim type, scope or population, method, estimate/observation period,
+baseline/comparator, governing Configuration Version, provenance, uncertainty treatment, and
+Applicability. Shared label, unit, metric name, source, display adjacency, or numerical
+convertibility is insufficient.
+
+Targets remain distinct from Evidence, estimates from observations, observations from causal
+attribution, thresholds from predictions, and measures from management judgment. A non-comparable
+pair remains separately visible with its limitation and no delta. A comparable variance does not
+infer causality, materiality, review priority, Decision quality/error, adequacy, reliance, or
+management action. Value and Risk are never normalized onto one scale.
+
+Later observations are later knowledge. Effective-time and knowledge-time reconstruction must show
+what was reasonably available to the earlier assessment, reliance, Decision, and review, while
+labelling later facts separately. No later result rewrites the earlier basis.
+
+### 38A.8 Learning horizons and bounded due points
+
+Different Learning questions may mature at different horizons. Gate 5 creates no metric-level
+calendar or schedule-per-measure. One Case/Decision-level Planned Review Point may coexist with
+exact target/due or observation-period facts already justified by a Learning Item,
+Evidence-generation Work, Intervention, or durable Work. Those facts generate only the attention
+their owning contracts permit. They do not become a Required Review Constraint, Trigger,
+assessment outcome, Decision condition, priority, or management conclusion without a separately
+applicable exact source and owning command.
+
+### 38A.9 Review Episode completion and next-point transaction
+
+A **Review Episode** has a stable identity and immutable Versions. Its finalized completion Version
+retains exact source Planned Review Point/Required Review Constraint and Trigger Versions;
+information considered; changed-basis and carry-forward manifest; accountable review
+determination; focused Work or Reassessment links; responsible Actor and
+`COMPLETE_CONTINUING_REVIEW` Responsibility Version; assignment/authority bases; effective and
+recorded time; and exact relationship to an unchanged-Decision Confirmation or authorized
+successor/amendment Decision where either exists.
+
+Review completion itself never confirms, changes, suspends, or closes a Decision. An unchanged
+position requires the separately valid exact Decision Confirmation path. A changed position
+requires the authorized successor/amendment path. Learning completion, no-material-change review,
+focused refresh, elapsed time, or the Review Episode status alone does neither.
+
+The same natural practitioner confirmation may complete the Review Episode and establish the next
+Planned Review Point only when both facts independently pass identity, context, Responsibility,
+authority, access, expected-Version, timing-constraint, and replay validation. The command declares
+both intended facts and commits them atomically or commits zero. The next point is a separate
+authoritative fact, not a mutable completion field.
+
+### 38A.10 Continuing Case, Work, access, and history
+
+Only a prospective `OPEN` Case may initiate a new point, review Trigger, Review Episode, or
+review-related Work. `CLOSED` and `SUPERSEDED` follow the accepted Gate-3 rejection and closure
+guards. Existing eligible obligations must be completed or validly disposed before closure;
+Gate 5 does not manufacture an obligation from a calendar label.
+
+Review-related Work uses the exact Gate-2/4 Work contract. It retains source point/constraint,
+Trigger/episode, Case, Decision, Configuration, purpose/scope, Responsibility, and return context.
+It cannot substitute for a Trigger Determination, Value/Risk assessment, Reassessment,
+Confirmation, successor Decision, or next Planned Review Point and cannot retarget after context
+change.
+
+Access/non-disclosure is enforced before point/constraint selection, intersection, attention,
+episode composition, command review/commit, and reconstruction. Hidden sources, Cases, constraints,
+conflicts, counts, dates, lateness, participants, or successor identities do not leak through
+labels, timing, output shape, or explanations.
+
+Every point, constraint, attention basis, Trigger, determination, Review Episode, Work,
+Reassessment, Decision relationship, and predecessor/successor/cancellation/completion fact is
+reconstructable by effective time and knowledge cutoff. Later source correction, constraint
+withdrawal, plan change, role expiry, assessment, observation, review, Decision, or Configuration
+never rewrites history. Commands fail closed on stale or conflicting expected context and commit
+zero intended facts.
+
+### 38A.11 Legacy and explicit exclusions
+
+Legacy scheduled-review descriptions, Trigger types, Reassessment records, Decision conditions,
+Learning dates, Intervention deadlines, and lifecycle facts retain their exact original meaning.
+No Planned Review Point, Required Review Constraint, Review Episode, Responsibility, Applicability,
+Trigger, or cross-era relation is synthesized from their prose, status, date fields, UI state, or
+apparent similarity. A bounded adapter may expose an exact legacy fact only when a later accepted
+implementation/migration contract names its semantics and provenance without rewriting it.
+
+Gate 5 introduces no code, schema, migration, API, scheduler, reminder, notification, generic
+workflow, UI, organization-local deployment, analytics, first-class Observation/telemetry
+conversion, universal cadence, automatic Trigger/Reassessment/Decision, metric calendar,
+assessment-adequacy/reliance semantics, quantitative Value/Risk payload, Harborlight mutation, or
+Gate-6 implementation.
+
+### 38A.12 Accepted-change impact and later implementation handoff
+
+| Accepted change | Impacted scope and behavior | Authoritative records and history | Required tests | Migration and code impact |
+|---|---|---|---|---|
+| One next planned review | prospective `OPEN` Case/Decision/Configuration/purpose/scope; optional one/absent/conflict selection and attention-only arrival | Planned Review Point identity/Versions, exact Responsibility/basis, sources, predecessor/change/cancel/complete links | Validation §9D.1, §9D.2, §9D.4 | no current code; later persistence, selector, commands, and read composition only after per-consumer cutover; no legacy frequency/date reinterpretation |
+| Governing timing requirements | exact applicable source/scope; `BY`/`NOT_BEFORE`/`WINDOW` normalization and full-set intersection/conflict | Required Review Constraint identity/Versions, source and Applicability, accountable normalization, correction/supersession/withdrawal | Validation §9D.2 | no current code; later set selector/intersection and commands; legacy source prose remains unchanged |
+| Practitioner continuing review | exact point/constraint-sourced Trigger, focused review, carry-forward, and separate unchanged/successor Decision paths | Review Episode identity/Versions, Trigger/determination, changed basis, Work/Reassessment and Decision links, next point as a separate fact | Validation §9D.1, §9D.3, §9D.4 | no current code; later episode commands/read composition and atomic multi-fact transaction; existing Trigger/Reassessment commands remain controlling |
+| Realized Value/Risk and comparison | independent Value and Risk review; exact comparability only; no causal/materiality/priority/Decision-error inference | exact Value/Risk, Evidence/Applicability, Learning, comparability-basis and later-knowledge Versions; no combined record | Validation §9D.3, §9D.4 | no current code or Gate-6 payload; later read/comparison composition consumes exact existing/adopted sources |
+| Cross-era preservation | legacy scheduled-like facts retain original meaning; prospective facts require explicit semantic-era adoption | original legacy identities/Versions plus explicit adapters/cutover metadata where later accepted | Validation §9D.4 | no migration now; later upgrade/recovery must be non-destructive, fail closed, and never synthesize facts from prose/UI |
+
+The architecture and implementation-readiness gate must decide physical aggregates, persistence,
+indexes/constraints, command/API boundaries, access enforcement, transaction shape, migration,
+upgrade/recovery, and automated hard-oracle realization. Gate 5 itself authorizes none of them.
 
 ## 39. Open Questions
 

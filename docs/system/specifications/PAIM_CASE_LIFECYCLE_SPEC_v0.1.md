@@ -380,10 +380,25 @@ successor, status, or intended-fact set is not replay.
 
 ### 3A.14 Explicit exclusions
 
-This contract does not define planned/required review timing, scheduler behavior, assessment
+Gate 5 now owns planned/required review timing through the Reassessment specification, §38A; this
+continuity section does not redefine it. It does not define scheduler behavior, assessment
 adequacy, reliance, quantitative Value/Risk, first-class Observation, generic workflow, UI,
 notifications, persistence, schema, migration, deployment, analytics, or Harborlight mutation.
-Gate 5 and Gate 6 remain separately gated.
+Gate 6 remains separately gated.
+
+### 3A.15 Gate-5 continuing-review interaction
+
+Only an `OPEN` prospective Case may initiate a new Planned Review Point, time-driven review
+Trigger, Review Episode, or review-related Work. `CLOSED` and `SUPERSEDED` Cases reject those new
+substantive facts under the existing atomic/access rules. Reopening creates none automatically.
+
+An existing applicable required-review obligation participates in the §3A.8 closure guard and
+must be completed or validly disposed under its exact source contract. A planned point, elapsed
+date, derived attention, or missed planned review is not by itself a closure obligation or
+violation. Neither arrival nor Review Episode completion moves the Case status, closes subordinate
+work, or changes the current Decision. All point, constraint, Trigger, Work, and episode facts
+remain bound to their original exact Case/Decision/Configuration context and never retarget across
+continuity change.
 
 ## 4. State: OPEN
 

@@ -22,7 +22,8 @@ Gate 1 of the accepted Normative Model Redesign adds a prospective common integr
 semantic-era boundary to that specification and to this architecture. Accepted Gates 2/4 and 3
 define prospective Responsibility/Case Work and continuing-Case semantics, while existing v0.1
 consumers remain controlling until separately authorized implementation/migration cutover. This
-architecture does not predefine Gate-5/6 payloads, workflows, or substantive judgments.
+architecture does not predefine Gate-6 payloads, workflows, or substantive judgments; §20D now
+records the accepted Gate-5 logical architecture.
 
 ## 1. System Purpose
 
@@ -553,7 +554,7 @@ At Gate-1 acceptance, the architecture reserved integration points but did not d
 - Planned Review Point and required-review constraints (Gate 5); or
 - readiness, assessment adequacy, reliance, or quantitative Value/Risk payloads (Gate 6).
 
-Gates 2 and 4 now adopt the common mechanisms in §20B, and Gate 3 adopts them in §20C. Each
+Gates 2 and 4 adopt the common mechanisms in §20B, Gate 3 in §20C, and Gate 5 in §20D. Each
 remaining later module must adopt them explicitly and define its own context roles,
 eligibility, conflict/coexistence, authority/accountability, access, temporal, migration, and
 transaction rules. Existing v0.1 families continue unchanged until then.
@@ -675,6 +676,59 @@ There is no global cutover or automatic phase-to-status mapping. Each adopting C
 a separately accepted initialization/migration contract; legacy phase events remain exact and a
 failed prospective path never falls back. This architecture authorizes no code, schema, migration,
 UI, scheduler, notification, deployment, analytics, or Harborlight mutation.
+
+## 20D. Continuing Review and Review Timing architecture
+
+### 20D.1 Logical ownership and separation
+
+The accepted Gate-5 contract adds three prospective authoritative families:
+
+- **Planned Review Point** owns one optional bounded next review point and its revision history;
+- **Required Review Constraint** owns one normalized applicable governing timing requirement; and
+- **Review Episode** owns one bounded practitioner review and its exact completion basis.
+
+Reassessment owns their substantive contract and practitioner-started handoff into existing
+Trigger Determination/Reassessment. Evidence/Authority owns source Applicability and exact claim
+comparability. Integration/Decision owns any timing that is Decision/Boundary content and every
+unchanged/successor Decision path. Intervention/Learning owns independently justified Learning and
+action horizons. Responsibility/Work owns accountable planning, normalization, review completion,
+and coordination. Integrity owns record mechanics, selectors, intersection, atomicity,
+reconstruction, semantic era, and access.
+
+### 20D.2 Attention and orchestration boundary
+
+Event-driven and time-driven sources meet only through an exact Trigger established by a
+practitioner or later accepted governed mechanism. Reaching or missing a point/constraint creates
+an access-filtered attention composition, not a Trigger, Reassessment, stale-Evidence result,
+Decision judgment, suspension, violation, priority, or outcome. Required windows are a mechanical
+intersection of every applicable exact constraint, not a winner chosen by source hierarchy or
+strictness.
+
+Review Work is coordination and cannot substitute for its source, Trigger Determination,
+Value/Risk assessment, Reassessment, Decision Confirmation, successor Decision, or next Review
+Point. A no-change/focused review and a formal Reassessment remain distinguishable. Independent
+Value and Risk remain separate even when both are reviewed in one episode.
+
+### 20D.3 Authority, transactions, and history
+
+Planning Responsibility establishes accountable planning only. Required-constraint normalization
+requires its own Responsibility and source/Applicability. Decision timing changes, unchanged
+Confirmation, and successor Decisions retain their separate exact authority paths. No role,
+calendar, access, source authority, or software permission crosses those boundaries.
+
+The same natural confirmation may complete an episode, confirm a Decision, and establish a next
+point only as separately valid intended facts in one Gate-1 semantic transaction. Review and commit
+reconstruct exact current context and fail closed on stale/conflicting basis. Effective-at and
+known-at views preserve every point, constraint, intersection, Trigger, episode, carry-forward,
+Work/Reassessment, Decision relationship, and later knowledge without hindsight rewrite.
+
+### 20D.4 Physical and later-gate boundary
+
+This logical architecture chooses no persistence aggregate, table, endpoint, scheduler, worker,
+reminder, notification, job queue, UI, deployment, or analytics design. It performs no consumer
+cutover and synthesizes no prospective fact from legacy scheduled-like records. Gate 6 still owns
+assessment adequacy, reliance, and quantitative Value/Risk payloads. Architecture/readiness and
+implementation remain separately authorized, and Harborlight remains unmodified.
 
 ## 21. What Is Already Designed / Validated
 
@@ -802,10 +856,10 @@ platform/
 ## 27. Next Step
 
 Gate 1 establishes the common integrity and semantic-era contract; the accepted accelerated
-Gate-2/4 contract establishes prospective Responsibility and minimal Case Work; and Gate 3
-establishes continuing Case and Configuration continuity. Gate 5 (continuing-review timing) and
-Gate 6 (assessment adequacy, reliance, and quantitative Value/Risk) remain sequenced and separately
-reviewed under the accepted
+Gate-2/4 contract establishes prospective Responsibility and minimal Case Work; Gate 3 establishes
+continuing Case and Configuration continuity; and Gate 5 establishes continuing-review timing.
+Gate 6 (assessment adequacy, reliance, and quantitative Value/Risk) remains separately reviewed
+under the accepted
 [Downstream Specification Plan](../../design/normative-model/PAIM_DOWNSTREAM_SPECIFICATION_PLAN.md).
 No domain/persistence implementation or UI redesign begins from this architecture update.
 

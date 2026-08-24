@@ -19,9 +19,9 @@ The Gate-1 common-integrity additions in Section 3A are prospective controlling 
 record families whose later owning specification explicitly adopts them. Existing v0.1 record
 families and records retain their current contracts and meaning until a separately authorized
 implementation/migration cutover. Section 3B records the accepted Gate-2/4 Responsibility/Case Work
-adoption, and §5A records the accepted Gate-3 continuity adoption. Section 3A does not itself create
-those semantics, and Gate-5 Review Timing plus Gate-6 assessment adequacy/reliance/quantitative
-Value/Risk remain unresolved.
+adoption, §5A records the accepted Gate-3 continuity adoption, and §5B records the accepted Gate-5
+review-timing adoption. Section 3A does not itself create those semantics, and Gate-6 assessment
+adequacy/reliance/quantitative Value/Risk remains unresolved.
 
 ## 1. Purpose
 
@@ -1061,9 +1061,100 @@ through explanation, aggregation, output shape, ordering, or timing.
 
 ### 5A.9 Later-gate and implementation boundary
 
-This section defines no Gate-5 review timing or Gate-6 readiness, assessment-adequacy, reliance, or
-quantitative Value/Risk behavior. It authorizes no code, persistence, schema, migration, UI,
-scheduler, notification, deployment, analytics, or Harborlight mutation.
+This section does not define Gate-5 review timing; §5B records that separately adopted contract. It
+defines no Gate-6 readiness, assessment-adequacy, reliance, or quantitative Value/Risk behavior. It
+authorizes no code, persistence, schema, migration, UI, scheduler, notification, deployment,
+analytics, or Harborlight mutation.
+
+## 5B. Prospective continuing-review integrity contract
+
+### 5B.1 Adoption and authoritative families
+
+Gate 5 adopts the common integrity contract for three prospective authoritative families:
+
+- **Planned Review Point** — one optional bounded next review point;
+- **Required Review Constraint** — one normalized applicable governing timing requirement; and
+- **Review Episode** — one bounded practitioner review with exact source and completion basis.
+
+The Reassessment specification, §38A owns their substantive meaning. Each family has stable Record
+identity, immutable Versions, exact Semantic Contract Version/context set, provenance, effective
+and recorded time, current-selection/history relationships, and access classification. Derived
+review attention, required-window intersection, current management position, queue, and display are
+non-authoritative read compositions and cannot be command authority.
+
+### 5B.2 Exact contexts and selectors
+
+Planned Review Point selection uses exact Case, Decision/Configuration where established, purpose,
+affected scope, effective time, and knowledge cutoff and returns one/absent/conflict. Review Episode
+selection follows its owning identity and exact source/context. Required Review Constraint
+selection returns the complete eligible same-scope set, explicit absence, or explicit unresolved
+Applicability/normalization conflict; it does not collapse a compatible set to one winner.
+
+The required-window evaluator retains all source constraint Versions and intersects `BY`,
+`NOT_BEFORE`, and `WINDOW` bounds mechanically. It returns the exact non-empty interval,
+`REQUIRED REVIEW TIMING CONFLICT — UNRESOLVED`, or
+`REQUIRED REVIEW TIMING INDETERMINATE — UNRESOLVED`. Recency, apparent strictness, source
+hierarchy, specificity, breadth, planned date, or software priority is never a selector.
+
+### 5B.3 Responsibility, authority, and semantic transactions
+
+Planning, narrative-constraint normalization, and Review Episode completion independently resolve
+their exact Gate-2/4 Responsibilities. Access, practical role, Case coordination, source authorship,
+elapsed time, and technical permission do not satisfy them. Decision Authority remains separately
+required when timing is Decision/Boundary content, when a Review Episode confirms a Decision, or
+when a successor/amendment Decision is intended.
+
+Creating/changing/cancelling a point, normalizing/correcting/withdrawing a constraint, starting or
+completing an episode, establishing its Trigger, and linking Work/Reassessment/Decision facts are
+family-owned commands with expected-Version and exact-context guards. When one natural command
+declares episode completion plus Decision Confirmation and/or a next point, each fact must be
+separately valid and all intended facts commit atomically or zero facts commit. Replay returns the
+same identities; changed context or intended-fact set is not replay.
+
+### 5B.4 Arrival, currentness, and no automatic mutation
+
+At an exact evaluation time, arrival/missing-state composition records its eligible source
+Versions, rule Version, access context, and watermark. It creates attention only. It cannot append
+a Trigger, Work, Reassessment, Evidence-staleness result, assessment, Decision, disposition,
+suspension, violation, priority, completion, or successor point. A required source may define an
+unsatisfied requirement, but its response remains an owning-contract action.
+
+Decision/Configuration/Case/purpose/scope change re-runs current selection and constraint
+Applicability. Predecessor facts remain exact; no point, constraint, Responsibility, Work, Trigger,
+or episode silently retargets. A stale review command fails closed and preserves all current and
+historical facts.
+
+### 5B.5 Carry-forward, comparison, and dual-time reconstruction
+
+Focused review may cite an unchanged exact current Version only after its owning guards pass. This
+is continued reliance, not a new record, copied content, or favorable judgment. Independent Value
+and Risk source sets, judgments, and histories never merge. Gate 5 creates no score or ranking.
+
+Expectation-versus-experience composition requires one eligible exact comparability basis over
+claim type/construct, scope/population, method, period, baseline/comparator, Configuration,
+provenance, uncertainty, and Applicability. It retains all exact claim Versions. Otherwise it
+returns non-comparable claims and limitations without a delta or inference.
+
+Effective-at/known-at reconstruction covers points, constraints and source Applicability,
+intersections, attention, Trigger/determination, episode, carry-forward manifest, Work,
+Reassessment, Decision relationship, next point, and all predecessor/successor/cancellation/
+completion facts. Later Evidence, observations, corrections, constraints, plans, roles, episodes,
+or Decisions never enter an earlier known-at view or rewrite its basis.
+
+### 5B.6 Access, migration, recovery, and boundary
+
+Access is applied before selection, set composition, intersection, attention, conflict/vacancy
+explanation, count, command review/commit, and reconstruction. Hidden source identities, Cases,
+constraints, dates, lateness, conflicts, participants, or successors do not leak.
+
+No global cutover, date-field inference, or newer-era winner exists. Legacy scheduled-like facts
+retain original semantics. A bounded adapter requires an accepted per-consumer cutover and must not
+synthesize prospective facts from prose, UI, or history. Upgrade/recovery preserves semantic-era
+labels, identities, atomic transaction outcomes, and historical reconstruction.
+
+This integrity adoption authorizes no code, schema, migration, API, scheduler, reminder,
+notification, workflow, UI, deployment, analytics, Observation/telemetry conversion, Harborlight
+mutation, Gate-6 payload, or consumer cutover.
 
 ## 6. Decision Authorization Basis
 
@@ -1522,6 +1613,7 @@ Platform architecture may not change the observable semantics in this specificat
 | Issue #129 / Normative Redesign Gate 1 | §3A: prospective semantic-contract identity, conditional envelope, exact context sets, family-owned selection, non-authoritative read composition, dual-time reconstruction, semantic transactions, compatibility, access, and later-gate boundaries |
 | Issue #131 / Accelerated Gates 2 + 4 | §3B: adoption by practical-role, Responsibility, assignment-basis, and durable-Work families; atomic assignment/result link; exact reconstruction; stale no-retarget; access/non-disclosure |
 | Issue #133 / Normative Redesign Gate 3 | §5A: prospective three-status continuing Case, continuity determinations, exact closure/reopen/supersession transactions, Configuration/Work no-retarget, dual-time/cross-era preservation, and access |
+| Issue #135 / Normative Redesign Gate 5 | §5B: prospective Planned Review Point, Required Review Constraint set/intersection, Review Episode, attention-only arrival, atomic next-point/Decision relationships, dual-time/cross-era preservation, and access |
 
 ## 14. Repository placement
 

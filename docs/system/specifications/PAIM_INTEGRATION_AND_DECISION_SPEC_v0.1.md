@@ -823,6 +823,34 @@ Future tests should include:
 17. Reject conditional/partial Evidence as support for a broader contributing Boundary.
 18. Require an exact lane-level fitness determination for `INDETERMINATE` Evidence and exercise both supportable and blocked outcomes.
 
+## 37A. Gate-5 Decision-bound review timing and outcome boundary
+
+A Planned Review Point may bind the exact current Decision Version, governing Configuration
+Version, review purpose, and affected scope. It is a separate authoritative fact and does not
+become Decision content merely because it cites the Decision. When a review date/window is itself
+an authorized Decision condition or Integrated Operating Boundary clause, establishing or changing
+that timing requires the exact Decision Authority/Authorization Basis and successor/amendment path
+required to change the source. `PLAN_NEXT_REVIEW` Responsibility, Case Coordinator orientation,
+software permission, or an earlier/later calendar choice cannot amend it.
+
+Required Review Constraints sourced from Decision conditions or Boundary clauses retain the exact
+source Version, Applicability, scope, and temporal operator under the Reassessment specification,
+§38A. Changing a practitioner plan does not waive or modify them. A successor Decision or
+Configuration makes no predecessor-bound Review Point current by inference and creates no silent
+retargeting or constraint carry-forward.
+
+A completed no-material-change or focused Review Episode does not itself confirm the Decision.
+The current management position remains unchanged only through an exact separately valid Decision
+Confirmation. Any changed operating state, Boundary, condition, or substantive judgment requires
+an authorized successor/amendment Decision. Review timing, lateness, Learning completion,
+Reassessment completion, or favorable/unfavorable quantitative variance never supplies Decision
+Authority or infers Decision error.
+
+When one natural confirmation completes a Review Episode, confirms a Decision unchanged, and/or
+establishes the next Planned Review Point, every intended fact retains its own identity, exact
+context, Responsibility/accountability, authority, and guards and commits in one declared semantic
+transaction or not at all. No fact substitutes for another.
+
 ## 38. Open Questions
 
 Deferred to later specifications/platform design:

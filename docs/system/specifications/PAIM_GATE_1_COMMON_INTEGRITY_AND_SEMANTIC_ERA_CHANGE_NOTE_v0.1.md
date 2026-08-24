@@ -90,6 +90,11 @@ Case Continuity Determination, coordinating exact Configuration lineage and Resp
 no-retarget behavior. That Gate-3 adoption likewise activates no consumer cutover and does not begin
 Gate 5, Gate 6, or implementation.
 
+Issue #135 subsequently adopts the machinery for prospective Planned Review Point, Required Review
+Constraint, and Review Episode, coordinating attention-only arrival, constraint intersection,
+focused review, Decision authority, and dual-time reconstruction. That Gate-5 adoption activates no
+consumer cutover and does not begin Gate 6 or implementation.
+
 ## Implementation and migration boundary
 
 Gate 1 specifies behavior but makes no domain, schema, migration, code, UI, scheduler,
