@@ -22,8 +22,9 @@ Gate 1 of the accepted Normative Model Redesign adds a prospective common integr
 semantic-era boundary to that specification and to this architecture. Accepted Gates 2/4 and 3
 define prospective Responsibility/Case Work and continuing-Case semantics, while existing v0.1
 consumers remain controlling until separately authorized implementation/migration cutover. This
-architecture does not predefine Gate-6 payloads, workflows, or substantive judgments; §20D now
-records the accepted Gate-5 logical architecture.
+architecture does not predefine physical payloads, workflows, or substantive judgments; §20D
+records the accepted Gate-5 logical architecture and §20E records the accepted Gate-6 logical
+architecture.
 
 ## 1. System Purpose
 
@@ -554,10 +555,10 @@ At Gate-1 acceptance, the architecture reserved integration points but did not d
 - Planned Review Point and required-review constraints (Gate 5); or
 - readiness, assessment adequacy, reliance, or quantitative Value/Risk payloads (Gate 6).
 
-Gates 2 and 4 adopt the common mechanisms in §20B, Gate 3 in §20C, and Gate 5 in §20D. Each
-remaining later module must adopt them explicitly and define its own context roles,
-eligibility, conflict/coexistence, authority/accountability, access, temporal, migration, and
-transaction rules. Existing v0.1 families continue unchanged until then.
+Gates 2 and 4 adopt the common mechanisms in §20B, Gate 3 in §20C, Gate 5 in §20D, and Gate 6 in
+§20E. Every adopted module defines its own context roles, eligibility, conflict/coexistence,
+authority/accountability, access, temporal, migration, and transaction rules. Existing v0.1
+families continue unchanged until a separately accepted consumer cutover.
 
 ### 20A.6 Non-authoritative product projections
 
@@ -730,6 +731,60 @@ cutover and synthesizes no prospective fact from legacy scheduled-like records. 
 assessment adequacy, reliance, and quantitative Value/Risk payloads. Architecture/readiness and
 implementation remain separately authorized, and Harborlight remains unmodified.
 
+## 20E. Value/Risk assessment, adequacy, reliance, and quantitative architecture
+
+### 20E.1 Logical ownership and lane independence
+
+The accepted Gate-6 contract adds independent prospective Value and Risk Assessment/Input,
+Readiness Event, Assessment Adequacy Determination, Assessment Reliance Designation, and optional
+Quantitative Claim capabilities. Value/Risk owns their substantive meaning and selectors.
+Evidence/Authority owns exact information and Applicability. Responsibility/Work owns accountable
+production, finish, adequacy review, reliance, and coordination. Integration/Decision consumes the
+exact relied bases. Continuing Review owns refresh/carry-forward/comparison. Gate-1 integrity owns
+record mechanics, semantic transactions, dual time, access, and cross-era preservation.
+
+The lanes never share identity, completion, adequacy, reliance, quantitative claim, or outcome.
+One Actor may serve both only through separately valid Responsibilities and facts. The architecture
+contains no offset, net score, strongest-state result, universal Value/Risk/RWR/ROI/risk formula,
+ranking, or automated Decision rule.
+
+### 20E.2 Practitioner actions and authoritative facts
+
+Practitioner expression may expose **Finish Value/Risk assessment** and **Complete Value/Risk
+review** without requiring users to operate internal readiness states. Underneath, readiness,
+neutral adequacy, explicit reliance, and Decision remain separate. One natural complete-review
+confirmation may create separate adequacy/reliance facts atomically only for the exact one-candidate,
+same-Actor/two-Responsibility case. Candidate uniqueness never derives reliance.
+
+Prospective Integration readiness is a non-authoritative access-filtered composition of one exact
+eligible relied Value chain and one exact eligible relied Risk chain for the same Configuration/use.
+Review and commit revalidate each chain. Work coordinates but never creates an Assessment,
+Readiness, Adequacy, Reliance, Integration, or Decision result.
+
+### 20E.3 Optional quantitative capability
+
+Quantitative Claims preserve exact semantic type separately from representation and retain only the
+context material to interpretation: construct, value/range/distribution, unit/direction, scope,
+period, baseline, coverage, Configuration, provenance, method, uncertainty, limitations, and dual
+time as applicable. Known exact Case context may be composed without practitioner re-entry.
+
+Numbers are optional. Qualitative inability to estimate is legitimate. Targets, estimates,
+observations, thresholds, Risk estimates, and cost/resource measures remain distinct. Gate-5
+comparison consumes exact comparable claims but produces no causality, materiality, adequacy,
+reliance, priority, Decision error, acceptable Risk, or management outcome.
+
+### 20E.4 History, cutover, and physical boundary
+
+Legacy readiness, Fitness, Acceptance/Selection, freeze, Input, Integration, and Decision facts
+retain original semantic-era meaning and names. No bulk rewrite, global cutover, newer-era winner,
+or synthesized adequacy/reliance/claim exists. Each consumer needs a separately accepted cutover,
+adapter, effective/knowledge boundary, migration, and recovery contract.
+
+This logical architecture chooses no domain module, persistence aggregate, table, index, endpoint,
+workflow, UI, analytics, or deployment design and authorizes no implementation, Harborlight
+mutation, release, or tag. Gate 7 performs the coordinated architecture and implementation-
+readiness review and decides physical placement without weakening Gates 1–6.
+
 ## 21. What Is Already Designed / Validated
 
 ### Substantially developed
@@ -857,9 +912,9 @@ platform/
 
 Gate 1 establishes the common integrity and semantic-era contract; the accepted accelerated
 Gate-2/4 contract establishes prospective Responsibility and minimal Case Work; Gate 3 establishes
-continuing Case and Configuration continuity; and Gate 5 establishes continuing-review timing.
-Gate 6 (assessment adequacy, reliance, and quantitative Value/Risk) remains separately reviewed
-under the accepted
+continuing Case and Configuration continuity; Gate 5 establishes continuing-review timing; and
+Gate 6 establishes Value/Risk readiness, adequacy, reliance, and optional quantitative capability.
+Gate 7 remains separately reviewed under the accepted
 [Downstream Specification Plan](../../design/normative-model/PAIM_DOWNSTREAM_SPECIFICATION_PLAN.md).
 No domain/persistence implementation or UI redesign begins from this architecture update.
 

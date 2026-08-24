@@ -19,9 +19,9 @@ The Gate-1 common-integrity additions in Section 3A are prospective controlling 
 record families whose later owning specification explicitly adopts them. Existing v0.1 record
 families and records retain their current contracts and meaning until a separately authorized
 implementation/migration cutover. Section 3B records the accepted Gate-2/4 Responsibility/Case Work
-adoption, §5A records the accepted Gate-3 continuity adoption, and §5B records the accepted Gate-5
-review-timing adoption. Section 3A does not itself create those semantics, and Gate-6 assessment
-adequacy/reliance/quantitative Value/Risk remains unresolved.
+adoption, §5A records the accepted Gate-3 continuity adoption, §5B records the accepted Gate-5
+review-timing adoption, and §5C records the accepted Gate-6 analytical adoption. Section 3A does not
+itself create those semantics.
 
 ## 1. Purpose
 
@@ -163,7 +163,12 @@ Examples include:
 
 Finalized content is immutable. A status change after finalization does not reopen content for editing.
 
-For a Value or Risk Input, analytical readiness is not finalization. The first valid lane-specific Acceptance/Selection semantic commit atomically finalizes/freezes the exact Input Version if necessary and records its first bounded selection. Later reuse records a new use-specific Acceptance/Selection Version and never refreezes or rewrites the Input Version.
+For a legacy-contract Value or Risk Input, analytical readiness is not finalization. The first valid
+lane-specific Acceptance/Selection semantic commit atomically finalizes/freezes the exact Input
+Version if necessary and records its first bounded selection. Later reuse records a new use-specific
+Acceptance/Selection Version and never refreezes or rewrites the Input Version. A Gate-6-adopted
+consumer instead follows §5C: finish/readiness remains distinct, and the first exact Reliance
+Designation freezes the separately adequate Assessment/Input Version for its bounded use.
 
 ### 3.5 Status events vs. content versions
 
@@ -302,7 +307,17 @@ For PAIM v0.1 governing-Configuration selection is Case-scoped. Each Configurati
 
 Role-performer selection and accountability selection are distinct. Role resolution for one typed target/time may return multiple compatible performer assignments when the substantive role is additive. When a governed obligation requires accountability, selection returns exactly one eligible accountable Role Assignment or one explicitly governed accountable mechanism, explicit vacancy/not established, or explicit incompatible-accountability conflict. Broad and narrow assignments have no implicit precedence. Recency, breadth, specificity, directory hierarchy, and software permission must not select an accountability or authority winner; displacement requires explicit supersession, delegation, or a later accepted versioned policy.
 
-Value Input and Risk Input acceptance/selection are separate authoritative relationship families. For one lane, exact Configuration Version, bounded use/purpose, effective time, and optional knowledge cutoff, selection returns one eligible accepted/frozen Input Version plus its exact Acceptance/Selection Version, `INPUT SELECTION NOT ESTABLISHED`, or `INPUT SELECTION CONFLICT — UNRESOLVED`. Zero eligible Acceptance/Selection Versions returns `INPUT SELECTION NOT ESTABLISHED` regardless of how many ready candidate Inputs exist; ready candidates remain preserved alternatives and do not create authoritative selection conflict merely by being ready. Conflict arises only from two or more incompatible co-current eligible Acceptance/Selection Versions for that same explicit selection context. Ready status, newest/latest time, owner, generic role, integrator participation, mutable flag, row order, or software permission cannot select a winner. Each later reuse requires a new use-specific acceptance and accountable material-Evidence fitness judgment.
+Legacy Value Input and Risk Input acceptance/selection are separate authoritative relationship
+families. For one lane, exact Configuration Version, bounded use/purpose, effective time, and
+optional knowledge cutoff, selection returns one eligible accepted/frozen Input Version plus its
+exact Acceptance/Selection Version, `INPUT SELECTION NOT ESTABLISHED`, or
+`INPUT SELECTION CONFLICT — UNRESOLVED`. Zero eligible Acceptance/Selection Versions returns
+absence regardless of how many ready candidates exist; ready candidates do not conflict merely by
+being ready. Conflict arises only from incompatible eligible selections for the same context.
+Ready status, newest/latest time, owner, generic role, integrator participation, mutable flag, row
+order, or software permission cannot select a winner. Each legacy reuse requires a new use-specific
+acceptance and material-Evidence fitness judgment. Prospective readiness/adequacy/reliance selectors
+and reuse are separately governed by §5C and never reinterpret these facts.
 
 Evidence Applicability is a first-class authoritative many-to-many relationship. For one exact Evidence Version, target identity/version, purpose/use, assessed scope, effective time, and optional knowledge cutoff, selection returns one eligible Applicability Version, `APPLICABILITY NOT ESTABLISHED`, or `EVIDENCE APPLICABILITY CONFLICT — UNRESOLVED`. Conflict is not a stored Applicability outcome. Recency, specificity, ownership, directory hierarchy, mutable current flag, row order, or permission cannot resolve it.
 
@@ -323,8 +338,12 @@ Every finalized record must retain exact version references for the authoritativ
 - Managed Configuration version;
 - Value Input version;
 - Value Input Acceptance/Selection version and material Evidence Applicability/lane-fitness basis;
+- or, for a Gate-6-adopted consumer, exact Value Readiness, Adequacy, Reliance, material
+  information/Applicability, and Quantitative Claim Versions;
 - Risk Input version;
 - Risk Input Acceptance/Selection version and material Evidence Applicability/lane-fitness basis;
+- or, for a Gate-6-adopted consumer, exact Risk Readiness, Adequacy, Reliance, material
+  information/Applicability, and Quantitative Claim Versions;
 - material Evidence and Evidence Applicability versions relied upon;
 - Authority Records and Authority Gaps relied upon;
 - Integrated Operating Boundary Snapshot;
@@ -623,7 +642,7 @@ permission, or deployment.
 Gate 2 owns Responsibility kinds/assignment; Gate 3 owns Case continuity; Gate 4 owns Case Work;
 Gate 5 owns Review Timing; and Gate 6 owns readiness, assessment adequacy, reliance, and quantitative
 Value/Risk payloads. The accepted accelerated Gate-2/4 contract adopts this machinery in §3B and
-Gate 3 adopts it in §5A. Gates 5 and 6 remain unresolved, and current v0.1 contracts remain
+Gate 3 adopts it in §5A, Gate 5 in §5B, and Gate 6 in §5C. Current v0.1 contracts remain
 controlling for every consumer until an exact later cutover is separately accepted.
 
 ## 3B. Responsibility and Case Work adoption of Gate-1 integrity
@@ -1156,6 +1175,96 @@ This integrity adoption authorizes no code, schema, migration, API, scheduler, r
 notification, workflow, UI, deployment, analytics, Observation/telemetry conversion, Harborlight
 mutation, Gate-6 payload, or consumer cutover.
 
+## 5C. Prospective Value/Risk assessment integrity contract
+
+### 5C.1 Adoption and authoritative families
+
+Gate 6 adopts the common integrity contract for these independent prospective lane families:
+
+- Value and Risk Assessment/Input Versions under the adopted semantic contract;
+- Value and Risk Assessment Readiness Events;
+- Value and Risk Assessment Adequacy Determinations;
+- Value and Risk Assessment Reliance Designations; and
+- optional Value- or Risk-bound Quantitative Claims.
+
+The Value/Risk specification, §13A owns substantive meaning. Every family has stable identity,
+immutable Versions, exact typed context, provenance, effective/recorded/known-at time,
+predecessor/correction/supersession/withdrawal history, access classification, and owning selector.
+Value and Risk never share an identity, selector, result, or history.
+
+### 5C.2 Exact context and selector outcomes
+
+Readiness and Adequacy selection bind exact lane, Assessment/Input Version, Case, Configuration,
+bounded use/purpose/scope, effective time, and knowledge cutoff. Reliance selection additionally
+binds one eligible `ADEQUATE` Determination and exact candidate set. Each selector returns one
+eligible fact, explicit not established, or explicit incompatible conflict. Quantitative Claim
+selection follows exact claim identity/type/context and never chooses a “best” number.
+
+Readiness, favorable/unfavorable conclusion, candidate uniqueness, quantity, magnitude, recency,
+authorship, role hierarchy, specificity, score, row order, access, or software permission never
+selects adequacy or reliance. Multiple adequate candidates require an explicit accountable reliance
+choice; one adequate candidate still does not derive reliance.
+
+### 5C.3 Semantic transactions and freeze
+
+Finishing an assessment may atomically establish an immutable candidate Version and its Readiness
+Event only when each fact independently passes. A material edit creates a successor Version and new
+readiness; no prior readiness, adequacy, reliance, or freeze transfers.
+
+One natural Complete Value/Risk review may atomically establish separate Adequacy and Reliance facts
+only under Value/Risk §13A.6. The command declares both intended facts and independently validates
+the Actor's two Responsibilities, exact unique eligible candidate context, information/
+Applicability basis, outcome, access, expected Versions, and replay identity. Both commit or neither
+does. Reliance freezes the exact Assessment Version and adequacy/material-Applicability basis for
+that bounded use; it never freezes the other lane or creates a Decision.
+
+Integration, Boundary, Decision proposal, and authorization commands revalidate and retain the
+same exact relied Value and Risk chains. Any stale/missing/conflicting lane basis fails closed and
+commits zero intended facts. Replay returns original identities; changed candidate, basis, outcome,
+context, actor, or intended-fact set is not replay.
+
+### 5C.4 Quantitative identity and non-inference
+
+Each Quantitative Claim Version retains exact semantic claim type separately from representation,
+lane, Assessment/information context, construct, value/range/distribution, unit/direction where
+relevant, scope/population, period, baseline/comparator, coverage, Configuration, provenance,
+method/assumptions, uncertainty/limitations, and dual time as applicable. Missing material context
+is explicit unknown/limitation, never inferred.
+
+Target, estimate, observation, threshold, Risk estimate, and cost/resource measure remain distinct.
+No claim, calculation, or comparison creates Evidence Applicability, adequacy, reliance,
+materiality, causal attribution, Value, acceptable Risk, Decision Authority, priority, ranking,
+operating state, or management outcome. Qualitative inability to estimate is valid; no numeric
+record is fabricated.
+
+### 5C.5 Read composition, access, and reconstruction
+
+Prospective analytical handoff readiness is an access-filtered composition of both independent
+lane chains, not an authoritative Case status or combined result. It retains source manifests,
+rule Version, access context, effective/known-at basis, and watermark. Hidden candidate, basis,
+vacancy/conflict, quantity, limitation, actor, or count does not leak through outcome labels,
+ordering, timing, or output shape.
+
+Effective-at/known-at reconstruction preserves every Assessment/Input, readiness, adequacy,
+reliance, candidate disposition, quantitative claim, information/Applicability basis, Integration,
+Decision, focused refresh, and predecessor/successor relationship. Later observations, corrected
+quantities, role changes, assessments, reviews, reliance, or Decisions do not enter an earlier
+known-at view or rewrite its reasonableness.
+
+### 5C.6 Legacy, migration, recovery, and boundary
+
+Legacy readiness, Fitness, Acceptance/Selection, freeze, Input, Integration, and Decision facts
+remain under their original contracts and names. No retroactive rename, bulk rewrite, global
+cutover, newer-era winner, prose/UI inference, candidate-count derivation, or silent fallback is
+permitted. A bounded adapter requires an accepted consumer-specific cutover and exposes its source
+semantic era/provenance without creating prospective facts. Upgrade/recovery preserves all
+identities, transactions, history, and cross-era reconstruction.
+
+This integrity adoption authorizes no code, schema, migration, API, UI, scheduler/notification,
+deployment, analytics, automatic RWR/ROI/probability-times-impact calculation, scoring/ranking,
+Harborlight mutation, release/tag change, or consumer cutover. Gate 7 decides physical design and
+implementation readiness.
+
 ## 6. Decision Authorization Basis
 
 ### 6.1 Required authorization record
@@ -1614,6 +1723,7 @@ Platform architecture may not change the observable semantics in this specificat
 | Issue #131 / Accelerated Gates 2 + 4 | §3B: adoption by practical-role, Responsibility, assignment-basis, and durable-Work families; atomic assignment/result link; exact reconstruction; stale no-retarget; access/non-disclosure |
 | Issue #133 / Normative Redesign Gate 3 | §5A: prospective three-status continuing Case, continuity determinations, exact closure/reopen/supersession transactions, Configuration/Work no-retarget, dual-time/cross-era preservation, and access |
 | Issue #135 / Normative Redesign Gate 5 | §5B: prospective Planned Review Point, Required Review Constraint set/intersection, Review Episode, attention-only arrival, atomic next-point/Decision relationships, dual-time/cross-era preservation, and access |
+| Issue #137 / Normative Redesign Gate 6 | §5C: prospective independent lane readiness, neutral adequacy, explicit reliance, optional typed quantitative claims, atomic combined review, Decision-bound exact basis, dual-time/cross-era preservation, and access |
 
 ## 14. Repository placement
 

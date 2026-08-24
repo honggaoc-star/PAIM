@@ -889,6 +889,32 @@ Later Evidence remains later knowledge. Effective-time and knowledge-time recons
 place it into an earlier assessment, Decision, Review Episode, or comparability basis before it was
 recorded/known. Gate 5 creates no first-class Observation family or telemetry conversion.
 
+## 36B. Gate-6 assessment-basis and quantitative-provenance contract
+
+Each prospective Assessment Readiness Event and Assessment Adequacy Determination binds an exact
+information-basis manifest. It identifies every material Evidence/Authority source Version, exact
+target/use-specific Applicability Version, role in the assessment, scope/conditions/limitations,
+and the effective/recorded/known-at context. Evidence Applicability remains independently governed:
+readiness, adequacy, reliance, quantity, candidate uniqueness, or Decision use cannot create,
+broaden, correct, or select an Applicability result.
+
+An adequacy reviewer may judge the assessment materially inaccurate, incomplete, exaggerated,
+understated, inappropriately scoped, or opaque about uncertainty based on that exact manifest. The
+review does not reperform Applicability, declare Evidence favorable, compute evidence sufficiency,
+or infer Decision desirability. `ADEQUATE`, `NOT_ADEQUATE`, and `INDETERMINATE` remain exact
+assessment-use outcomes rather than Evidence states.
+
+Every prospective Quantitative Claim cites exact provenance/source and, where the source is
+Evidence, the applicable Evidence Version and Applicability Version. A target is not Evidence; an
+estimate is not an observation; an observation is not causal attribution; a threshold is not a
+prediction; and a measure is not management judgment. The presence of a number never establishes
+Applicability, materiality, adequacy, reliance, Value, acceptable Risk, authority, or Decision.
+
+Later Evidence or observed results remain later knowledge and cannot rewrite an earlier
+Assessment/Input, readiness basis, adequacy determination, reliance designation, Integration, or
+Decision. Correction or supersession creates prospective attention and exact successor history
+only. Gate 6 creates no Observation/telemetry family or automatic evidence conversion.
+
 ## 37. Completion Impact
 
 This specification substantially advances the Evidence and Authority Management capability in the system gap map.

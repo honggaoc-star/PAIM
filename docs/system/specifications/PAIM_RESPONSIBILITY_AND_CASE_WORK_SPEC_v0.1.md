@@ -103,10 +103,16 @@ required result contract; it must not invent a future source identity.
 | `MAINTAIN_CONFIGURATION_CONTEXT` | Case; Managed Configuration Version | Managed Configuration result named by the request |
 | `PRODUCE_VALUE_INPUT` | Case; Managed Configuration Version; bounded use/purpose | Value Input Version |
 | `PRODUCE_RISK_INPUT` | Case; Managed Configuration Version; bounded use/purpose | Risk Input Version |
+| `FINISH_VALUE_ASSESSMENT` | Case; Managed Configuration Version; exact Value Assessment/Input Version; bounded use/purpose; exact information-basis manifest | Value Assessment Readiness Event Version |
+| `FINISH_RISK_ASSESSMENT` | Case; Managed Configuration Version; exact Risk Assessment/Input Version; bounded use/purpose; exact information-basis manifest | Risk Assessment Readiness Event Version |
+| `REVIEW_VALUE_ASSESSMENT_ADEQUACY` | Case; Managed Configuration Version; exact Value Assessment/Input and Readiness Event Versions; bounded decision use/purpose; exact information/Applicability basis | Value Assessment Adequacy Determination Version |
+| `REVIEW_RISK_ASSESSMENT_ADEQUACY` | Case; Managed Configuration Version; exact Risk Assessment/Input and Readiness Event Versions; bounded decision use/purpose; exact information/Applicability basis | Risk Assessment Adequacy Determination Version |
+| `DESIGNATE_VALUE_ASSESSMENT_RELIANCE` | Case; Managed Configuration Version; exact Value Assessment/Input, Readiness, and eligible `ADEQUATE` Determination Versions; bounded decision use/purpose; exact candidate set | Value Assessment Reliance Designation Version |
+| `DESIGNATE_RISK_ASSESSMENT_RELIANCE` | Case; Managed Configuration Version; exact Risk Assessment/Input, Readiness, and eligible `ADEQUATE` Determination Versions; bounded decision use/purpose; exact candidate set | Risk Assessment Reliance Designation Version |
 | `JUDGE_EVIDENCE_APPLICABILITY` | Case; Managed Configuration Version; Evidence Version; exact target Record/Version; purpose/use; assessed scope | Evidence Applicability Version |
 | `ACCEPT_VALUE_INPUT_FOR_USE` | Case; Managed Configuration Version; Value Input Version; bounded use/purpose; exact material Applicability basis | Value Acceptance/Selection Version under the current Value/Risk contract |
 | `ACCEPT_RISK_INPUT_FOR_USE` | Case; Managed Configuration Version; Risk Input Version; bounded use/purpose; exact material Applicability basis | Risk Acceptance/Selection Version under the current Value/Risk contract |
-| `COMPLETE_VALUE_RISK_INTEGRATION` | Case; Managed Configuration Version; exact Value and Risk Input and Acceptance/Selection Versions; bounded use | Integration Version |
+| `COMPLETE_VALUE_RISK_INTEGRATION` | Case; Managed Configuration Version; exact Value and Risk Assessment/Input Versions and exact current semantic-era Acceptance/Selection or Reliance Versions; bounded use | Integration Version |
 | `RESOLVE_AUTHORITY_QUESTION` | Case; Managed Configuration Version where applicable; exact Authority/Authority Gap Version or originating question context | Authority or Authority Gap result Version |
 | `DETERMINE_TRIGGER` | Case; exact Trigger Version; initiating Decision Version and target Configuration Version when established; declared management question/scope | Trigger Determination Version |
 | `LEAD_REASSESSMENT` | Case; exact Reassessment Version; immutable Trigger Set Version; Decision and Configuration Versions | Reassessment result named by its governing command |
@@ -122,9 +128,9 @@ required result contract; it must not invent a future source identity.
 Decision authorization is not a Responsibility kind. It continues to require the exact Decision
 Authorization Basis. The accepted Gate-3 Case Lifecycle contract owns the meaning and exact context
 of `DETERMINE_CASE_CONTINUITY`; this contract supplies only the Responsibility mechanics. Gate 5
-owns the meaning and exact context of its three review kinds above; this contract supplies their
-assignment, resolution, delegation, and history mechanics. Future assessment-adequacy, reliance,
-or quantitative Value/Risk kinds are not created here; Gate 6 owns those semantics.
+owns the meaning and exact context of its three review kinds above. Gate 6 owns the meaning and
+exact context of the six prospective assessment kinds above. This contract supplies their
+assignment, resolution, delegation, and history mechanics; it does not make their judgments.
 
 ## 6. Responsibility Assignment Basis
 
@@ -272,6 +278,13 @@ imply Evidence Applicability, Input Fitness or Acceptance/Selection, Integration
 Decision, Trigger Determination, Reassessment result, Intervention Completion Acceptance,
 Activation Authorization, or Learning interpretation.
 
+For a Gate-6-adopted consumer, Work likewise cannot create Assessment/Input, Readiness Event,
+Assessment Adequacy Determination, Assessment Reliance Designation, or Quantitative Claim. One
+natural same-Actor Complete Value/Risk review interaction may invoke the Value/Risk domain command
+that atomically creates separate adequacy and reliance facts; a coordinating Work item may become
+`COMPLETED` only by linking both exact committed result Versions when both are its declared
+completion condition. If either fact fails, Work remains unchanged and links neither.
+
 Result linkage and Work completion are one declared semantic transaction when both are intended:
 all access, Responsibility, authority, context, result, and replay guards pass and all facts commit,
 or none commit. Exact replay returns the original outcome without a duplicate Work, link, result,
@@ -370,16 +383,17 @@ An implementation gate must prove at least:
 12. assignment/result-link transactions commit all intended facts or zero facts and replay exactly;
 13. planning, constraint normalization, and Review Episode completion resolve independently;
     Case Coordinator, software permission, timing, or source authority cannot substitute for them;
-    and
-14. no workflow graph, project-management state, universal score, priority, rank, strongest-state,
+14. Value/Risk production, finish, adequacy review, reliance, and Integration Responsibilities
+    resolve separately by exact lane/context; a same-Actor combined confirmation still requires
+    two eligible assignments and creates two separate governed results; and
+15. no workflow graph, project-management state, universal score, priority, rank, strongest-state,
     semantic-similarity, or authority inference appears.
 
 ## 19. Explicit exclusions
 
 Gate 3 defines Case continuity and supplies the exact `DETERMINE_CASE_CONTINUITY` context used
-here. Gate 5 now defines the review contexts consumed by its three Responsibility kinds. This
-contract does not define Gate-6 readiness/assessment-adequacy/reliance/quantitative Value-Risk
-semantics. It adds no domain code,
+here. Gate 5 defines the review contexts consumed by its three Responsibility kinds. Gate 6 now
+defines the six assessment contexts consumed here. This contract adds no domain code,
 persistence, schema, migration, UI, notification, chat, scheduler, organization-local deployment,
 analytics, or Harborlight mutation.
 
