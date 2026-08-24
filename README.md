@@ -96,6 +96,7 @@ reader guidance, current technical contracts, validation evidence, and engineeri
 | Reader intent | Start here |
 |---|---|
 | New to PAIM | This README and the [PAIM v0.1 Conceptual Guide](docs/PAIM_CONCEPTUAL_GUIDE_v0.1.md) |
+| Understand the product direction | [PAIM Product Design Foundation](docs/design/practitioner-ux/PAIM_PRODUCT_DESIGN_FOUNDATION.md), then the [Practitioner Operating Model](docs/design/practitioner-ux/PAIM_PRACTITIONER_OPERATING_MODEL.md) |
 | Want to try it | [PAIM v0.1 Quick Start](docs/operations/PAIM_QUICK_START_v0.1.md), then the [Local Operational Application](docs/operations/PAIM_LOCAL_OPERATIONAL_APPLICATION_v0.1.md) |
 | Follow practitioner workflows | [PAIM v0.1 Practitioner Pathways](docs/operations/PAIM_V0_1_PRACTITIONER_PATHWAYS_v0.1.md) |
 | Exercise and challenge PAIM concepts | [PAIM Reference Cases](docs/reference-cases/) |

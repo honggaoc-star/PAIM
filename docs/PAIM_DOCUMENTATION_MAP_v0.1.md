@@ -9,6 +9,7 @@ semantics.
 | Reader intent | Start here | Then continue to |
 |---|---|---|
 | New to PAIM / conceptual understanding | [Repository README](../README.md) | [PAIM v0.1 Conceptual Guide](PAIM_CONCEPTUAL_GUIDE_v0.1.md) |
+| Understand PAIM's product direction | [PAIM Product Design Foundation](design/practitioner-ux/PAIM_PRODUCT_DESIGN_FOUNDATION.md) | [Practitioner Operating Model](design/practitioner-ux/PAIM_PRACTITIONER_OPERATING_MODEL.md) and its bounded companion documents |
 | Want to try PAIM | [PAIM v0.1 Quick Start](operations/PAIM_QUICK_START_v0.1.md) | [Local Operational Application](operations/PAIM_LOCAL_OPERATIONAL_APPLICATION_v0.1.md) for full operation and recovery |
 | Follow the practitioner pathways | [PAIM v0.1 Practitioner Pathways](operations/PAIM_V0_1_PRACTITIONER_PATHWAYS_v0.1.md) | Validation evidence for the three pathways below |
 | Exercise and challenge PAIM concepts | [PAIM Reference Cases](reference-cases/) | [Small-Business Lending exercise protocol](reference-cases/PAIM_REFERENCE_CASE_EXERCISE_PROTOCOL.md) |
@@ -35,6 +36,18 @@ The three current operational guides serve different purposes:
 - [PAIM Local Operational Application](operations/PAIM_LOCAL_OPERATIONAL_APPLICATION_v0.1.md)
   covers local configuration, bootstrap, authentication and access, intake, exports,
   notifications, backup/restore, health, and explicit unsupported boundaries.
+
+## Product design and operating model
+
+The [PAIM Product Design Foundation](design/practitioner-ux/PAIM_PRODUCT_DESIGN_FOUNDATION.md) is
+the product-level governing design reference for why PAIM exists, the value of continuing
+management, product principles, learning, and scope. The accepted
+[Practitioner Operating Model](design/practitioner-ux/PAIM_PRACTITIONER_OPERATING_MODEL.md) sits
+below it and defines how participants, practical roles, granular responsibilities, separate
+authority, and bounded Case Work should support that purpose.
+
+These are non-normative product-design references. They guide separately authorized normative and
+UI work but do not amend the exact contracts under `docs/system/` or authorize implementation.
 
 ## Current architecture and technical contracts
 
@@ -113,8 +126,9 @@ read it as evidence of that checkpoint rather than as the current product status
   hypotheses do not amend product semantics or constitute validation evidence.
 - `docs/reference-cases/**` contains illustrative exercise designs and source reconstructions. They
   do not amend product semantics or constitute empirical evidence.
-- `docs/design/**` contains non-normative practitioner-experience and interaction proposals. System
-  contracts control, and a design document does not itself authorize implementation.
+- `docs/design/**` contains non-normative product, practitioner-operating-model, experience, and
+  interaction references or proposals. System contracts control, and a design document does not
+  itself authorize implementation.
 - `docs/engineering/**` contains design rationale, implementation decisions, assessments, and
   development/release history unless a document explicitly declares a controlling role.
 - Testing and release artifacts remain evidence. They do not silently amend PAIM architecture,
