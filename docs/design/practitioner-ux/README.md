@@ -44,8 +44,9 @@ UX-1 is the implemented read-only orientation and vocabulary increment. UX-2 is 
 task-oriented `What we know` workspace: it separates available information, deterministically
 explicit unavailable information, requirements/authority sources, and unresolved review work while
 retaining the existing governed records and commands. Issue #115 establishes the cross-cutting
-practitioner-language standard required before UX-3. It does not itself authorize UX-3, M1D, or any
-domain-semantic extension.
+practitioner-language standard. UX-3 is the implemented independent Value/Risk workflow over the
+unchanged Input, readiness, Applicability, Fitness, and Acceptance/Selection capabilities. It does
+not authorize UX-4, M1D, or any domain-semantic extension.
 
 ## Exercise boundary
 

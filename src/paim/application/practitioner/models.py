@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from enum import StrEnum
 from typing import Any
@@ -127,6 +127,29 @@ class GovernedRecordView:
 
 
 @dataclass(frozen=True, slots=True)
+class AnalyticalAssessmentView:
+    """One visible analytical Input with only its exact governed relations."""
+
+    input: GovernedRecordView
+    statuses: tuple[str, ...]
+    applicability: tuple[GovernedRecordView, ...]
+    fitness: tuple[GovernedRecordView, ...]
+    selections: tuple[GovernedRecordView, ...]
+
+    @property
+    def ready(self) -> bool:
+        return "ready" in self.statuses or "frozen" in self.statuses
+
+    @property
+    def frozen(self) -> bool:
+        return "frozen" in self.statuses
+
+    @property
+    def actionable(self) -> bool:
+        return not {"withdrawn", "superseded", "refresh_required"}.intersection(self.statuses)
+
+
+@dataclass(frozen=True, slots=True)
 class AnalyticalLaneView:
     lane: str
     candidates: tuple[GovernedRecordView, ...]
@@ -134,6 +157,9 @@ class AnalyticalLaneView:
     selections: tuple[GovernedRecordView, ...]
     selection_state: ReadState
     explanation: ExplanationView
+    assessments: tuple[AnalyticalAssessmentView, ...] = ()
+    task_stage: str = "DEVELOP"
+    action_access: Mapping[str, bool] = field(default_factory=dict)
 
 
 @dataclass(frozen=True, slots=True)

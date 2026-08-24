@@ -6,6 +6,7 @@ from paim.application.practitioner.integration_basis import (
 )
 from paim.application.practitioner.models import (
     ActorContext,
+    AnalyticalAssessmentView,
     AnalyticalLaneView,
     CaseListView,
     CaseOrientationView,
@@ -25,6 +26,7 @@ from paim.application.practitioner.service import PractitionerQueryService
 
 __all__ = [
     "ActorContext",
+    "AnalyticalAssessmentView",
     "AnalyticalLaneView",
     "CaseListView",
     "CaseOrientationView",

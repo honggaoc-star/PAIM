@@ -47,6 +47,19 @@ button { padding: .55rem .9rem; border: 1px solid var(--accent); border-radius: 
 .record-card > .state { float: right; }
 .peer-lanes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
 .lane { padding: 1rem; border: 1px solid var(--line); }
+.peer-summary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; margin: 1.25rem 0 2rem; }
+.lane-summary, .assessment-card { padding: 1rem; border: 1px solid var(--line); border-radius: .25rem; }
+.lane-summary h3, .assessment-card h4 { margin-top: 0; }
+.lane-work { margin: 2.5rem 0; padding-top: 1rem; border-top: 2px solid var(--line); }
+.assessment-card { margin: 1rem 0 1.5rem; }
+.assessment-card > header { display: flex; align-items: start; justify-content: space-between; gap: 1rem; }
+.assessment-content { display: grid; grid-template-columns: minmax(10rem, 14rem) 1fr; column-gap: 1rem; }
+.stage-form, .stage-actions, .assessment-action, .lane-history { margin-top: 1rem; }
+.stage-form { padding: 1rem; border-left: .35rem solid var(--accent); background: var(--surface); }
+.selection-form { border-left-color: var(--focus); }
+.known-context { display: flex; flex-direction: column; gap: .2rem; margin: 1rem 0; padding: .75rem 1rem; background: var(--surface); }
+.field-help { color: var(--muted); font-size: .92rem; }
+.consequence-note { padding: .75rem; border: 1px solid var(--focus); background: white; }
 .three-columns { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
 .overview-grid, .content-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
 .orientation-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
@@ -78,7 +91,9 @@ dd { margin-left: 0; }
   main { padding: 1rem; }
   .search-row { flex-direction: column; }
   .workspace-header { align-items: start; flex-direction: column; gap: .5rem; }
-  .peer-lanes, .three-columns, .overview-grid, .content-grid, .orientation-grid, .information-grid, .review-list { grid-template-columns: 1fr; }
+  .peer-lanes, .peer-summary, .three-columns, .overview-grid, .content-grid, .orientation-grid, .information-grid, .review-list { grid-template-columns: 1fr; }
+  .assessment-card > header { flex-direction: column; }
+  .assessment-content { grid-template-columns: 1fr; }
   .section-heading { align-items: start; flex-direction: column; }
   .compact-facts { grid-template-columns: 1fr; }
 }
