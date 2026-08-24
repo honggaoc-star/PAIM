@@ -18,6 +18,12 @@ It does not prescribe database schemas, UI implementation, APIs, or software tec
 
 **Normative cross-cutting contract:** `PAIM_SYSTEM_RECORD_AND_DECISION_INTEGRITY_SPEC_v0.1.md` governs stable Configuration identity vs. immutable version identity, draft/finalization boundaries, status events, recorded/effective time, correction/amendment/supersession/withdrawal, authoritative current selection, conflict behavior, and exact historical retrieval.
 
+**Prospective Case-continuity contract:** `PAIM_CASE_LIFECYCLE_SPEC_v0.1.md`, §3A governs whether a
+successor Configuration remains within the same bounded Case or requires a new Case. This
+specification continues to own Configuration identity, Versions, materiality, governing selection,
+and exact relationships. Existing v0.1 records and selectors remain unchanged until an explicit
+consumer cutover.
+
 ## 1. Purpose
 
 The Managed Configuration is the bounded AI-enabled system of work to which PAIM evidence, analytical findings, management judgments, interventions, and reassessment apply.
@@ -458,6 +464,84 @@ Factors favoring a new identity include:
 - prior and new configurations should be independently interpretable.
 
 The same-identity/new-identity outcome is an accountable determination governed by §7. It must preserve the exact prior and proposed Configuration versions, outcome, rationale, accountable assignment/mechanism, effective time, recorded time, and determination history. Technical comparison may inform the judgment but must not make it implicitly.
+
+## 12A. Prospective Configuration continuity within a continuing Case
+
+### 12A.1 Two independent identity questions
+
+Configuration identity and Case identity are related but not interchangeable:
+
+1. this specification determines whether changed content is a successor Version of the same
+   Configuration or a new Configuration identity; and
+2. Case Lifecycle §3A determines whether that successor remains within the same bounded management
+   subject or requires a new Case.
+
+A new Configuration identity does not automatically require a new Case, and a successor Version of
+the same Configuration identity cannot preserve the same Case when the business use/management
+subject has materially changed. Provider, model, title, inventory identifier, owner, or shared
+information cannot answer either question by itself.
+
+### 12A.2 Exact Case-continuity basis
+
+When Case continuity is not mechanically fixed by an accepted exact rule, a Case Continuity
+Determination with kind `SAME_OR_NEW_CASE` binds:
+
+- the exact owning Case and current continuity Status Version;
+- prior and proposed/successor Configuration IDs and Versions;
+- every exact material changed-basis Version;
+- the bounded business use/management question before and after change;
+- outcome `SAME_CASE` or `NEW_CASE_REQUIRED` and rationale;
+- the exact `DETERMINE_CASE_CONTINUITY` Responsibility/Actor and assignment/authority basis; and
+- effective time, recorded time, knowledge cutoff, and history.
+
+The existing Configuration materiality and same/new-Configuration determinations remain distinct
+facts. Neither substitutes for the Case Continuity Determination or silently dictates its outcome.
+
+### 12A.3 Same-Case successor
+
+When `SAME_CASE` is established, a successor Configuration Version or new Configuration identity
+may retain the exact owning Case relationship. It still requires its own governing-currentness
+designation and all family-specific applicability/currentness review. The prior Configuration and
+all records bound to it remain historical.
+
+No Evidence Applicability, Value/Risk Input or Acceptance/Selection, Integration, Boundary,
+Decision, Authority, Responsibility, Work, Intervention, Trigger/Reassessment, Learning, control,
+satisfaction, or operating relationship transfers merely because the Case remains the same. Each
+prospective use cites exact source Versions and passes its owning guards.
+
+### 12A.4 New-Case routing
+
+When `NEW_CASE_REQUIRED` is established, the successor Configuration is owned by the new Case and
+cannot become a second governing Configuration in the predecessor. Any Case relationship is
+explicit and descriptive unless an owning contract grants one exact effect. It transfers no
+access, Responsibility, authority, applicability, Decision, Work, closure, or subordinate status.
+
+The predecessor remains `OPEN`, `CLOSED`, or becomes `SUPERSEDED` only through its separate exact
+Case-continuity command. Creating a new Case does not close or supersede the predecessor by
+inference.
+
+### 12A.5 Stale context and historical reconstruction
+
+Configuration review and commit revalidate the exact Case continuity status, owning Case,
+governing Configuration selection, expected predecessor Version, materiality/identity
+determinations, access, Responsibility, and time basis. A `SUPERSEDED` predecessor Case rejects a
+new Configuration write. A stale proposal or Work Item cannot retarget to a successor
+Configuration or Case.
+
+Decision-bound and known-at history always returns the exact Configuration Version originally
+bound. Later Configuration/Case successors, corrections, or currentness designations remain later
+facts and never rewrite the historical Decision basis.
+
+### 12A.6 Legacy and gate boundary
+
+Legacy Configuration records, owning-Case relationships, currentness results, materiality and
+identity determinations, and v0.1 lifecycle relationships retain their original Semantic Contract
+and meaning. No migration infers `SAME_CASE` from shared Case ID or `NEW_CASE_REQUIRED` from a
+Configuration identity change. Prospective adoption requires the explicit cutover contract in Case
+Lifecycle §3A.1.
+
+This section defines no continuing-review schedule, assessment adequacy, reliance, quantitative
+Value/Risk, schema, code, UI, or migration.
 
 ## 13. Evidence Applicability
 

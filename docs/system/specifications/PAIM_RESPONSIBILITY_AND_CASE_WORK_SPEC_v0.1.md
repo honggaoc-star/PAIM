@@ -99,6 +99,7 @@ required result contract; it must not invent a future source identity.
 | Obligation kind | Required exact context roles | Required result family |
 |---|---|---|
 | `COORDINATE_CASE` | Case | coordination only; no substantive result implied |
+| `DETERMINE_CASE_CONTINUITY` | exact Case and current continuity Status Version; controlled discriminator (`SAME_OR_NEW_CASE`, `CASE_CLOSURE`, `CASE_REOPENING`, or `CASE_SUPERSESSION`); exact changed-basis/guard context required by the Case Lifecycle contract; candidate/successor Case and Configuration context where applicable | Case Continuity Determination Version and, only through its owning atomic command, the permitted status/relationship facts |
 | `MAINTAIN_CONFIGURATION_CONTEXT` | Case; Managed Configuration Version | Managed Configuration result named by the request |
 | `PRODUCE_VALUE_INPUT` | Case; Managed Configuration Version; bounded use/purpose | Value Input Version |
 | `PRODUCE_RISK_INPUT` | Case; Managed Configuration Version; bounded use/purpose | Risk Input Version |
@@ -116,8 +117,10 @@ required result contract; it must not invent a future source identity.
 | `DETERMINE_SHARED_DEPENDENCY_EQUIVALENCE` | exact Candidate Set Version and every constituent owning Case/context permitted by the Management Register contract | Shared Dependency Equivalence Determination Version |
 
 Decision authorization is not a Responsibility kind. It continues to require the exact Decision
-Authorization Basis. Future Case-continuity, planned-review, assessment-adequacy, reliance, or
-quantitative Value/Risk kinds are not created here; Gates 3, 5, and 6 own those semantics.
+Authorization Basis. The accepted Gate-3 Case Lifecycle contract owns the meaning and exact context
+of `DETERMINE_CASE_CONTINUITY`; this contract supplies only the Responsibility mechanics. Future
+planned-review, assessment-adequacy, reliance, or quantitative Value/Risk kinds are not created
+here; Gates 5 and 6 own those semantics.
 
 ## 6. Responsibility Assignment Basis
 
@@ -300,6 +303,10 @@ eligible:
 
 Stale review, assignment, result-link, or return failure leaves every authoritative fact unchanged.
 No silent retarget, status copying, auto-completion, or notification-driven mutation is allowed.
+A `SUPERSEDED` Case is terminal for new Work and Responsibility writes from the supersession
+effective time. A `CLOSED` Case accepts only the exact continuity, correction, audit, retention, or
+historical operations permitted by the Case Lifecycle contract; reopening does not revive or
+retarget prior Work or Responsibility.
 
 ## 16. Access and non-disclosure
 
@@ -363,7 +370,8 @@ An implementation gate must prove at least:
 
 ## 19. Explicit exclusions
 
-This contract does not define Gate-3 Case continuity, Gate-5 continuing-review timing, or Gate-6
+Gate 3 now defines Case continuity and supplies the exact `DETERMINE_CASE_CONTINUITY` context used
+here. This contract does not define Gate-5 continuing-review timing or Gate-6
 readiness/assessment-adequacy/reliance/quantitative Value-Risk semantics. It adds no domain code,
 persistence, schema, migration, UI, notification, chat, scheduler, organization-local deployment,
 analytics, or Harborlight mutation.

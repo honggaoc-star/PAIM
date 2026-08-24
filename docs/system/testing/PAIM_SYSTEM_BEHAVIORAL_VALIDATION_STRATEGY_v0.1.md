@@ -37,6 +37,11 @@ Relationship, Responsibility, Responsibility Assignment Basis, and durable Work 
 defines their normative oracles. This adoption changes no current v0.1 implementation expectation
 until a separately accepted implementation/migration contract declares an exact consumer cutover.
 
+Gate 3 adopts the same machinery for prospective Case Continuity Status/Event and Case Continuity
+Determination families and coordinates exact Managed Configuration lineage plus
+Responsibility/Work no-retarget behavior. §9C defines those normative oracles. Gate 3 likewise
+changes no current implementation expectation before a separately accepted cutover.
+
 **Bounded v0.1 validation scope:** the human-accepted
 `../../engineering/PAIM_V0_1_RELEASE_SCOPE_DECISION_IRR_009_IRR_014_v0.1.md` establishes that
 IRR-009 and IRR-014 each remain `OPEN — SEMANTICS UNDESIGNED` while each has bounded-v0.1
@@ -605,6 +610,122 @@ The assignment makes no Applicability judgment, Work creates no result, and neit
 Authority. Repeat with conflicting co-current Responsibilities, invalid assignment basis, stale
 Configuration/Evidence/Input, inaccessible source, cancelled/superseded Work, and failure on the
 second intended write; each failure preserves all prior facts and produces no partial mutation.
+
+## 9C. Gate-3 continuing Case and Configuration continuity hard oracles
+
+These implementation-independent oracles govern the prospective contract in Case Lifecycle §3A,
+Managed Configuration §12A, and Integrity §5A. They authorize no implementation or live Harborlight
+mutation.
+
+### 9C.1 Minimal status and concurrent-subordinate-state oracles
+
+1. Initial consideration creates an `OPEN` Case. Configuration, Value/Risk, Integration, an
+   authorized Decision, operation, and an exact existing review/Reassessment may follow while the
+   Case remains `OPEN`; none creates a universal phase transition.
+2. One `OPEN` Case simultaneously contains operation, Learning, an action/Intervention, focused
+   Value work, focused Risk work, and Reassessment. Every source retains its independent state and
+   history, and read composition explains all without collision, strongest-state logic, or one
+   subordinate state hiding another.
+3. `OPEN` never implies active Work, operation, approval, readiness, undecided status, or missing
+   Decision. `CLOSED` and `SUPERSEDED` never imply that every subordinate item succeeded.
+4. Current management position is reproducible from its exact access-filtered source/rule/time/
+   watermark manifest and cannot be used as command authority or mutated as a master record.
+
+### 9C.2 Same/new Case and Configuration continuity oracles
+
+1. Provider, model, title, inventory identity, owner, shared information, and semantic similarity
+   cannot produce a same/new Case outcome.
+2. A materially different business use produces a new stable Case identity with its own `OPEN`
+   status. Any predecessor/related/successor relationship transfers no access, Responsibility,
+   authority, applicability, Decision, closure, or subordinate state.
+3. Ambiguous material coherence requires one exact eligible `SAME_OR_NEW_CASE` Continuity
+   Determination. Vacancy, conflict, inaccessible basis, or missing context blocks routing; no
+   heuristic winner appears.
+4. A successor Configuration Version and a new Configuration identity can each remain within the
+   same Case only with the exact Configuration identity/materiality facts and Case-continuity basis
+   required by their owning contracts.
+5. The same-Case successor preserves every prior Evidence Applicability, independent Value/Risk
+   Input/selection, Integration, Boundary, Decision, Authority, Responsibility, Work,
+   Intervention, Reassessment, and Learning binding. No prior result becomes current for the
+   successor without its own exact reuse/currentness guards.
+6. `NEW_CASE_REQUIRED` cannot insert the successor Configuration as a second governing
+   Configuration in the predecessor. Creating the new Case does not close/supersede the predecessor
+   without its separate valid transaction.
+
+### 9C.3 Closure and reopening oracles
+
+1. Discontinued operation with an outstanding required retirement/action, Completion Acceptance,
+   Learning/outcome evidence, Trigger coverage/Reassessment, Authority/existing review obligation,
+   durable Work, or blocking Responsibility vacancy/conflict remains `OPEN`.
+2. True closure succeeds only when the exact `CASE_CLOSURE/CLOSE` determination, current no-
+   operation fact, every closure guard/disposition, final Decision/Configuration relationship,
+   retention/successor treatment, Responsibility/authority/access, expected Version, and replay
+   guard pass together.
+3. Failure of any closure guard appends no `CLOSED` status and no partial disposition, relationship,
+   audit, or subordinate mutation. Stopping use, queue emptiness, inactivity, elapsed time, or a
+   completed Decision alone never closes the Case.
+4. A `CLOSED` Case reopens only through exact `CASE_REOPENING/REOPEN_SAME_CASE`; prior closure stays
+   historical, new status is `OPEN`, and no Configuration, Decision, Work, Trigger, or review result
+   is fabricated or revived.
+5. A materially different need returns `NEW_CASE_REQUIRED` and leaves the old Case `CLOSED`.
+   `REOPENED` never appears as a long-lived prospective status.
+
+### 9C.4 Supersession and no-new-work oracles
+
+1. Supersession requires one exact named successor plus eligible
+   `CASE_SUPERSESSION/SUPERSEDE_WITH_SUCCESSOR`, status, and relationship facts in one transaction.
+2. From its effective time, a `SUPERSEDED` predecessor rejects new Configuration, Responsibility,
+   Work, Decision, Intervention, Learning, Trigger/Reassessment, and other substantive commands
+   with zero mutation; only explicitly permitted correction/audit/retention/history operations
+   proceed.
+3. A superseded Case cannot reopen. The successor starts with independent Case identity, status,
+   Responsibility, authority, access, Configuration currentness, and subordinate facts.
+
+### 9C.5 Responsibility, Work, stale-context, and atomicity oracles
+
+1. Each continuity determination resolves `DETERMINE_CASE_CONTINUITY` for its exact discriminator,
+   Case Status Version, changed-basis/guard set, candidate/successor context, and time. Case
+   Coordinator role, ownership, access, activity, or software permission is insufficient.
+2. Change the governing Configuration, Case Status Version, candidate/successor Case, or another
+   controlling context after review. Continuity, Responsibility, Work, and result-link commits fail
+   closed and leave all prior facts unchanged.
+3. Old Responsibility/Work remains bound to its original Case/Configuration. Closing,
+   superseding, reopening, or routing to a new Case cannot retarget, copy, revive, satisfy, or
+   complete it. Replacement requires an explicit new/successor identity.
+4. Each same/new, close, reopen, or supersede transaction commits every declared determination,
+   status, relationship, and audit fact or zero. Exact replay returns original identities without
+   duplication; changed context/outcome/successor/intended facts are not replay.
+
+### 9C.6 Dual-time, Decision-bound, legacy, and access oracles
+
+1. Exact Decision-bound reconstruction always returns the Configuration, Value/Risk,
+   Integration, Boundary, Authority/Gap, Authorization Basis, and other Versions originally bound,
+   even after later Configuration, Decision, status, or Case successors.
+2. Effective-at with current knowledge and known-at by a historical cutoff remain distinct. Later
+   closure, reopening, supersession, information/observation, Learning, correction, or knowledge
+   cannot enter the earlier known-at view or rewrite earlier Case meaning.
+3. Every legacy lifecycle Transition Event and v0.1 phase remains exact under its original semantic
+   era. No phase is bulk relabelled as `OPEN`/`CLOSED`; no timestamp or newer contract wins.
+4. A cutover requires an explicit per-Case/population initialization rule and recovery evidence.
+   Legacy `SUPERSEDED` supports an initialized relationship only through its exact named successor
+   and accepted migration rule; the original event remains unchanged.
+5. Access is enforced before status/determination selection, guard composition, routing, command,
+   current-position composition, and history. Hidden Cases, sources, obligations, conflicts,
+   candidates, successors, and counts do not leak through explanations, ordering, timing, or shape.
+
+### 9C.7 Harborlight non-mutating illustration
+
+Using Scenario A only as a specification fixture, demonstrate that the current bounded lending use
+remains one `OPEN` Case while information Applicability Work and independent Value/Risk work coexist.
+A hypothetical materially different lending use routes through `SAME_OR_NEW_CASE` rather than
+provider/model/name similarity. No live Harborlight Case, Configuration, Responsibility, Work,
+Applicability, assessment, Decision, or lifecycle fact is appended or changed.
+
+### 9C.8 Gate boundary
+
+No oracle may require a Planned Review Point, new review-timing constraint, scheduler, prospective
+assessment-adequacy/reliance result, typed quantitative Value/Risk claim, first-class Observation,
+UI, schema, or domain command. Those semantics remain separately gated.
 
 ## 10. Boundary-Sensitivity Tests
 
@@ -1444,10 +1565,10 @@ This substantially completes the system-specification layer required before plat
 
 ## 49. Recommended Next Step
 
-After independent Gate-2/4 acceptance, add Responsibility or Case Work implementation/conformance
-tests only through a separately authorized architecture/implementation gate. Gate 3, Gate 5, and
-Gate 6 remain unstarted by these oracles. Do not use the common or Gate-2/4 oracles to imply their
-Case-continuity, review-timing, readiness/adequacy/reliance, or quantitative Value/Risk semantics.
+After independent Gate-3 acceptance, add Responsibility, Case Work, or continuity implementation/
+conformance tests only through a separately authorized architecture/implementation gate. Gate 5 and
+Gate 6 remain unstarted by these oracles. Do not use the common or Gate-2/4/3 oracles to imply
+review-timing, readiness/adequacy/reliance, or quantitative Value/Risk semantics.
 
 ## 50. Repository Placement
 

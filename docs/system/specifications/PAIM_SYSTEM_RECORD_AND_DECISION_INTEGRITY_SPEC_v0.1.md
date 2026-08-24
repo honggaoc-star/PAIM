@@ -2,7 +2,10 @@
 
 ## Status
 
-Implementation-independent cross-cutting system specification for authoritative-record history, current-record selection, Integrated Operating Boundary integrity, PAIM case transitions, decision authorization, and interim operating disposition during reassessment.
+Implementation-independent cross-cutting system specification for authoritative-record history,
+current-record selection, Integrated Operating Boundary integrity, legacy PAIM case transitions,
+prospective Case continuity, decision authorization, and interim operating disposition during
+reassessment.
 
 This specification resolves the blocking findings IRR-001 through IRR-005 and CON-001 in `PAIM_CODEX_IMPLEMENTATION_READINESS_REVIEW_v0.1.md`.
 
@@ -14,9 +17,11 @@ This specification does not prescribe a database, event store, programming langu
 
 The Gate-1 common-integrity additions in Section 3A are prospective controlling machinery for
 record families whose later owning specification explicitly adopts them. Existing v0.1 record
-families and records retain their current contracts and meaning until their separately authorized
-Gate 2–6 revisions are accepted. Section 3A does not itself create Responsibility, Case continuity,
-Case Work, Review Timing, assessment adequacy/reliance, or quantitative Value/Risk semantics.
+families and records retain their current contracts and meaning until a separately authorized
+implementation/migration cutover. Section 3B records the accepted Gate-2/4 Responsibility/Case Work
+adoption, and §5A records the accepted Gate-3 continuity adoption. Section 3A does not itself create
+those semantics, and Gate-5 Review Timing plus Gate-6 assessment adequacy/reliance/quantitative
+Value/Risk remain unresolved.
 
 ## 1. Purpose
 
@@ -40,6 +45,8 @@ The system must be able to answer, deterministically and historically:
 The common record-history contract applies to authoritative PAIM records, including:
 
 - Case;
+- Case Continuity Status/Event and Case Continuity Determination when explicitly adopted under
+  `PAIM_CASE_LIFECYCLE_SPEC_v0.1.md`, §3A;
 - Managed Configuration;
 - governing Configuration designation/currentness relationship;
 - Configuration materiality and same-identity/new-identity determination;
@@ -65,6 +72,8 @@ The common record-history contract applies to authoritative PAIM records, includ
 - Reassessment;
 - Interim Operating Disposition;
 - Role Assignment and delegation;
+- Case Practical Role Relationship, Responsibility, Responsibility Assignment Basis, and durable
+  Work Item when explicitly adopted under `PAIM_RESPONSIBILITY_AND_CASE_WORK_SPEC_v0.1.md`;
 - accountable assignment/designation or explicitly governed accountable mechanism where represented separately;
 - any durable confirmation, correction, amendment, or supersession record affecting the above.
 
@@ -613,9 +622,9 @@ permission, or deployment.
 
 Gate 2 owns Responsibility kinds/assignment; Gate 3 owns Case continuity; Gate 4 owns Case Work;
 Gate 5 owns Review Timing; and Gate 6 owns readiness, assessment adequacy, reliance, and quantitative
-Value/Risk payloads. The accepted accelerated Gate-2/4 contract adopts this machinery in §3B.
-Gates 3, 5, and 6 remain unresolved, and current v0.1 contracts remain controlling for every
-consumer until an exact later cutover is separately accepted.
+Value/Risk payloads. The accepted accelerated Gate-2/4 contract adopts this machinery in §3B and
+Gate 3 adopts it in §5A. Gates 5 and 6 remain unresolved, and current v0.1 contracts remain
+controlling for every consumer until an exact later cutover is separately accepted.
 
 ## 3B. Responsibility and Case Work adoption of Gate-1 integrity
 
@@ -934,6 +943,127 @@ Opening reassessment neither silently extends permission nor automatically suspe
 Closure does not delete history and does not by itself revoke or create authority outside the closure Decision.
 
 A closed Case may reopen only when continuity of the management object remains meaningful and the transition table guard is met. Reopening creates a new Reassessment/transition chain and never edits the closure record. A superseded Case is not reopened; work continues through its named successor.
+
+## 5A. Prospective continuing-Case integrity contract
+
+### 5A.1 Adoption and relationship to legacy lifecycle
+
+`PAIM_CASE_LIFECYCLE_SPEC_v0.1.md`, §3A is the owning substantive contract for prospective Case
+Continuity Status/Event and Case Continuity Determination families. Those families adopt §3A common
+integrity and the Responsibility/Case Work adoption in §3B.
+
+The phase transitions in §5 remain exact v0.1 behavior before an explicit Case consumer cutover and
+remain immutable historical events afterward. They are not translated into prospective statuses by
+this specification. After cutover, Case-level continuity uses only `OPEN`, `CLOSED`, and
+`SUPERSEDED`; subordinate phase meanings remain in their owning domain records/read compositions.
+
+### 5A.2 Authoritative families and exact contexts
+
+The prospective families are:
+
+- **Case Continuity Status/Event**, bound to exact Case, prior/new status, Continuity Determination
+  where required, Responsibility/Actor/basis, effective/recorded time, and successor relation; and
+- **Case Continuity Determination**, bound to controlled kind/outcome, exact source Case and status,
+  immutable changed-basis/guard context, candidate Configuration/Case where applicable,
+  Responsibility/Actor/basis, dual time, rationale, and history.
+
+The Case contract owns allowed kinds/outcomes, coherence, closure guards, reopening, terminal
+supersession, and one-status semantics. The common layer preserves identity, canonical context,
+history, selection mechanics, atomicity, replay, access, and reconstruction without inferring an
+outcome.
+
+### 5A.3 Current status and coexistence
+
+For one exact Case/effective time/knowledge cutoff, the family selector returns exactly one eligible
+continuity Status Version or explicit `CASE CONTINUITY STATUS CONFLICT — UNRESOLVED`. Absence after
+initialization and conflict fail closed. No legacy phase, subordinate status, operation, activity,
+timestamp, title, ownership, or presentation supplies a winner.
+
+An `OPEN` Case may concurrently contain independent operation, Intervention/action, Learning,
+Value/Risk refresh, information work, Trigger/Reassessment, and durable Work states. The continuity
+selector neither composes nor flattens them. The current management position is a §3A.6
+non-authoritative read composition with exact sources, rule Version, time/access basis, and
+watermark; it is never command authority or a master record.
+
+### 5A.4 Continuity command transactions
+
+Each same/new, closure, reopening, or supersession command declares its exact determination,
+status, relationship, audit, and other intended facts in one semantic-transaction manifest.
+Review and commit revalidate:
+
+- exact current Case Status Version and every expected Case/Configuration/source Version;
+- the complete changed-basis or closure-guard context;
+- `DETERMINE_CASE_CONTINUITY` Responsibility and exact assignment/authority basis;
+- access/non-disclosure;
+- named successor and relationship where applicable;
+- terminal/allowed source-status rule; and
+- command/replay identity.
+
+Every guard passes and all intended facts commit, or zero facts commit. Exact replay returns the
+original identities without duplicate determination, status, relationship, audit, Work, Trigger,
+or notification fact. Any changed source, context, outcome, successor, status, or intended-fact set
+is not replay.
+
+### 5A.5 Closure and terminal supersession enforcement
+
+`OPEN -> CLOSED` is allowed only with an eligible `CASE_CLOSURE/CLOSE` determination and the exact
+complete closure-guard manifest required by Case Lifecycle §3A.8. Discontinued operation alone is
+insufficient. Any current operation, unresolved required action/Learning/Trigger coverage/
+Reassessment/Authority/existing review obligation, required Work, or blocking Responsibility
+vacancy/conflict fails closed.
+
+`CLOSED -> OPEN` is allowed only with an eligible `CASE_REOPENING/REOPEN_SAME_CASE` determination.
+It appends a new status Version and never edits the closure or revives subordinate records.
+`OPEN -> SUPERSEDED` requires `CASE_SUPERSESSION/SUPERSEDE_WITH_SUCCESSOR`, one exact named
+successor, and the Case relationship in the same transaction.
+
+From supersession effective time, the predecessor rejects new substantive Case, Configuration,
+Responsibility, Work, Decision, Intervention, Learning, Trigger/Reassessment, and other domain
+writes. Only owning-contract correction, audit, retention, or historical relationship operations
+explicitly valid for a terminal Case may proceed. `SUPERSEDED` cannot reopen.
+
+### 5A.6 Configuration, Responsibility, and Work no-retarget rule
+
+Every successor Configuration remains bound to its exact owning Case and Case Continuity
+Determination where required. Historical Decisions and their Configuration/Value/Risk/Boundary/
+Authority bases remain exact. Case/Configuration successors cannot supply a current source to an
+old result merely through lineage.
+
+Responsibility and Work review/commit revalidate the exact Case status and Configuration context.
+Closing or superseding a Case, changing its governing Configuration, or routing to a new Case never
+retargets, copies, or completes old Responsibility/Work. The old facts remain historical; explicit
+cancellation/supersession and replacement use new or linked successor identities.
+
+### 5A.7 Dual-time, Decision-bound, and cross-era reconstruction
+
+Effective-at and known-at reconstruction returns the exact continuity Status/Event,
+Determination, legacy phase, governing Configuration, Responsibility/Work, subordinate facts, and
+relationships valid and knowable at the query boundary. Decision-bound reconstruction starts from
+the exact immutable Decision basis and cannot substitute later current sources.
+
+Later closure, reopening, supersession, changed Configuration, Decision, observation/information,
+Learning, correction, or knowledge is labelled as later fact. It cannot rewrite historical Case
+meaning, enter an earlier known-at view, or change a Decision's exact relied-upon basis.
+
+### 5A.8 Cutover, adapter, recovery, and access
+
+There is no global era switch or `newer era wins`. A separately accepted migration contract names
+each adopting Case/population, initialization rule, effective/knowledge boundary, supported
+Semantic Contract Version, adapter, coexistence/conflict treatment, rollback, and recovery proof.
+Initialization cannot infer `OPEN` or `CLOSED` from a legacy phase. Legacy `SUPERSEDED` may support
+an explicit initialized relationship only when its named successor and terminal meaning pass the
+accepted migration rule; the legacy event remains unchanged.
+
+Access is enforced before status/determination selection, changed-basis and closure-guard
+composition, same/new routing, command use, current-position composition, and historical reads.
+Hidden sources, obligations, Cases, candidates, successors, conflicts, and counts do not leak
+through explanation, aggregation, output shape, ordering, or timing.
+
+### 5A.9 Later-gate and implementation boundary
+
+This section defines no Gate-5 review timing or Gate-6 readiness, assessment-adequacy, reliance, or
+quantitative Value/Risk behavior. It authorizes no code, persistence, schema, migration, UI,
+scheduler, notification, deployment, analytics, or Harborlight mutation.
 
 ## 6. Decision Authorization Basis
 
@@ -1391,6 +1521,7 @@ Platform architecture may not change the observable semantics in this specificat
 | IRR-013 / CON-002 | §§2.1, 3.11–3.13, 6, and 8–10: typed/conditional scope conformance, compatible plural performers, one/absence/conflict accountability, no implicit scope precedence, and unchanged Decision Authorization Basis |
 | Issue #129 / Normative Redesign Gate 1 | §3A: prospective semantic-contract identity, conditional envelope, exact context sets, family-owned selection, non-authoritative read composition, dual-time reconstruction, semantic transactions, compatibility, access, and later-gate boundaries |
 | Issue #131 / Accelerated Gates 2 + 4 | §3B: adoption by practical-role, Responsibility, assignment-basis, and durable-Work families; atomic assignment/result link; exact reconstruction; stale no-retarget; access/non-disclosure |
+| Issue #133 / Normative Redesign Gate 3 | §5A: prospective three-status continuing Case, continuity determinations, exact closure/reopen/supersession transactions, Configuration/Work no-retarget, dual-time/cross-era preservation, and access |
 
 ## 14. Repository placement
 
