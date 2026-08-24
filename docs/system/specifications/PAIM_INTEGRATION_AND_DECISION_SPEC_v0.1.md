@@ -145,6 +145,15 @@ Material-Evidence handoff behavior is:
 
 PAIM may check these records mechanically but must not compute a universal evidence-sufficiency/confidence score. General management-level Accepted versus Decision-Limiting Uncertainty classification remains an Integration judgment under §10.
 
+### 5.1 Prospective Integration Responsibility
+
+After explicit cutover, `COMPLETE_VALUE_RISK_INTEGRATION` binds the exact owning Case, governing
+Configuration Version, bounded use, and current Value and Risk Input plus Acceptance/Selection
+Versions. The same Responsibility may be held by a Case Coordinator or Assessor only through its
+own valid assignment basis. It permits no stale lane substitution and does not create Integration,
+Boundary, proposal, Decision Authority, or authorization. Contextual Work completes only by linking
+the exact Integration Version created through this specification.
+
 ## 6. Frozen Input Display
 
 The system should display the contributing conclusions without rewriting them.
@@ -541,6 +550,15 @@ Decision authorization, Completion Acceptance, and Activation Authorization are 
 Where a Decision pre-authorizes an activation mechanism, the Decision Authorization Basis must identify a genuine governed organizational authority mechanism and retain its exact rule/version, scope, authority source, limits, and effective period. A software checklist, workflow transition, technical rule, Case Owner, Intervention Owner, administrator permission, or technical principal is not an organizational activation mechanism and cannot self-authorize operation.
 
 When another authority question remains unresolved, only an established Decision Authority whose own scope covers the exact narrower Decision and the bounded-proceed determination may authorize proceeding. The requirements in `PAIM_SYSTEM_RECORD_AND_DECISION_INTEGRITY_SPEC_v0.1.md`, §6.4 apply; the Authority Gap remains unresolved and visible.
+
+### 23.1 Responsibility remains outside Decision Authority
+
+Prospective Responsibility and Case Work do not replace, infer, delegate, or satisfy Decision
+Authority. A participant may coordinate Integration, prepare a proposal, or receive contextual Work
+without authority to authorize it. Authorization continues to require the exact complete Decision
+Authorization Basis and exact current Integration/Boundary/proposal chain. Assignment or Work
+completion creates no Decision and grants no authority.
+
 
 ## 24. Decision Status
 

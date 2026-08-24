@@ -372,6 +372,27 @@ Withdrawal, correction, supersession, staleness, or Evidence change after a hist
 4. A selected Input withdrawn before Integration readiness becomes ineligible. The same withdrawal after a historical Decision preserves the historical basis and creates only prospective attention/reassessment where material.
 5. An accountable acceptance assignment valid only for unrelated Configuration B cannot accept an Input for Configuration A. Applicable broad and narrow competing accountable assignments produce conflict absent explicit supersession or delegation.
 
+### 13.9 Prospective Value/Risk Responsibilities
+
+After an explicit consumer cutover under `PAIM_RESPONSIBILITY_AND_CASE_WORK_SPEC_v0.1.md`, the
+existing substantive Value/Risk acts use these independent Responsibility kinds:
+
+- `PRODUCE_VALUE_INPUT` and `PRODUCE_RISK_INPUT` for exact lane production; and
+- `ACCEPT_VALUE_INPUT_FOR_USE` and `ACCEPT_RISK_INPUT_FOR_USE` for each exact current
+  Acceptance/Selection act defined by this specification.
+
+Each acceptance signature binds its exact Case, governing Configuration Version, lane Input
+Version, bounded use/purpose, and material Evidence Applicability basis. Value and Risk resolve
+separately even when the same Actor holds both Responsibilities. Responsibility does not declare
+readiness, determine fitness, accept/select an Input, merge lanes, or grant Decision Authority.
+Durable Work may carry a handoff but completes only by linking the exact result Version created by
+this specification's governing command.
+
+This section does not introduce assessment adequacy, reliance, candidate-finalization, or
+quantitative Value/Risk semantics; those remain Gate-6 work. Before an individual consumer's
+cutover, its existing Role Assignment/accountable-mechanism rules remain controlling and historical
+results retain their original meaning.
+
 ## 14. Frozen-Implication Fidelity
 
 IET 004 exposed paraphrase drift during integration.

@@ -8,7 +8,13 @@ This specification derives from the PAIM system architecture and the system spec
 
 It defines what accountability relationships PAIM must preserve. It does not prescribe organizational titles, staffing models, identity systems, or software permissions.
 
-**Normative cross-cutting contract:** `PAIM_SYSTEM_RECORD_AND_DECISION_INTEGRITY_SPEC_v0.1.md` governs authoritative Role Assignment/delegation history and current selection, Decision Authorization Basis, authorization scope/time validation, Decision Authority Gap as an Authority Gap classification, and bounded-proceed authorization. This specification continues to define role responsibilities and separation principles.
+**Normative cross-cutting contracts:** `PAIM_SYSTEM_RECORD_AND_DECISION_INTEGRITY_SPEC_v0.1.md`
+governs authoritative history/current selection, semantic eras, Decision Authorization Basis,
+authorization scope/time validation, Decision Authority Gap, and bounded-proceed authorization.
+`PAIM_RESPONSIBILITY_AND_CASE_WORK_SPEC_v0.1.md` governs prospective practical-role,
+Responsibility, assignment-basis, and Case Work semantics. Existing v0.1 Role Assignment behavior
+below remains controlling for consumers before their explicit cutover and remains immutable history
+after cutover.
 
 ## 1. Purpose
 
@@ -869,6 +875,65 @@ Future tests should include:
 14. Broad and narrow assignments overlap and neither wins without explicit supersession, delegation, or accepted policy.
 15. A Decision Authority role holder with software permission but no complete Decision Authorization Basis cannot authorize a Decision.
 
+## 40A. Prospective Responsibility and simple practitioner-role contract
+
+### 40A.1 Adoption boundary
+
+This section adopts `PAIM_RESPONSIBILITY_AND_CASE_WORK_SPEC_v0.1.md` as the controlling contract for
+prospective granular obligation accountability. It does not reinterpret or disable any current
+Role Assignment consumer. Each consumer cuts over only through an accepted implementation/migration
+contract that binds the exact semantic contract, obligation kind, effective/knowledge boundary,
+legacy adapter, and cross-era coexistence rule.
+
+Before such cutover, §§2–40 continue to control current v0.1 Role Assignment behavior. After
+cutover, new granular-obligation writes use Responsibility; historical Role Assignment Versions
+and historically valid acts retain their original meaning. A failed Responsibility path never
+falls back to a Role Assignment path.
+
+### 40A.2 Ordinary Case staffing
+
+Ordinary Case orientation consists of:
+
+- `CASE_COORDINATOR`;
+- `ASSESSOR`; and
+- `REVIEWER` only where independent or second-line review is actually required.
+
+These values are Case Practical Role Relationships, not permission or obligation bundles.
+Administrator remains outside ordinary Case staffing. Subject-matter expertise is contextual
+participation/Work. There is no prospective standing `Applicability Owner`, `Decision Maker`, or
+`Implementation Owner` Case role.
+
+Case Coordinator orientation does not authorize assignment. Assessor orientation does not establish
+every analytical or information Responsibility. Reviewer orientation does not grant mutation,
+acceptance, or Decision authority. One Actor may hold several practical roles and independent
+Responsibilities, including Value and Risk, while all records remain separately attributable.
+
+### 40A.3 Prospective accountability resolution
+
+Every adopting governed obligation declares one controlled Responsibility kind and its exact
+context schema. It resolves at effective and knowledge time to one eligible Responsibility Version,
+`RESPONSIBILITY NOT ESTABLISHED`, or `RESPONSIBILITY CONFLICT — UNRESOLVED`. Free-form role,
+compatibility key, one broad target, practical role, access, recency, specificity, hierarchy, and
+software permission do not encode or resolve a prospective obligation.
+
+Assignment, delegation, reassignment, withdrawal, and supersession require the exact valid
+Responsibility Assignment Basis defined in the Case Work contract. Assignment makes no substantive
+judgment and grants no unrelated authority. Decision Authority remains governed solely by its
+complete Decision Authorization Basis; Completion Acceptance and activation authority remain
+separate facts under their owning contracts.
+
+### 40A.4 Legacy compatibility
+
+All Role Assignment IDs/Versions, typed targets, compatibility keys, accountable flags, delegation,
+intervals, and historical results remain exact. PAIM never bulk-renames or synthesizes them as
+Responsibilities. A named legacy adapter may support only its declared pre-cutover action, retains
+the exact legacy Version as provenance, and exposes missing context or ambiguity as vacancy/conflict.
+
+The `Applicability Owner` label is retired prospectively. It may remain only in the bounded legacy
+Evidence Applicability adapter until that consumer's accepted cutover; new Applicability obligations
+use `JUDGE_EVIDENCE_APPLICABILITY` with exact Evidence, target, Configuration, purpose/use, assessed
+scope, Case, and time context.
+
 ## 41. Open Questions
 
 Deferred to platform/organizational design:
@@ -924,6 +989,7 @@ It should formalize:
         ├── PAIM_INTERVENTION_AND_LEARNING_SPEC_v0.1.md
         ├── PAIM_REASSESSMENT_SPEC_v0.1.md
         ├── PAIM_MANAGEMENT_REGISTER_SPEC_v0.1.md
+        ├── PAIM_RESPONSIBILITY_AND_CASE_WORK_SPEC_v0.1.md
         └── PAIM_ROLES_AND_ACCOUNTABILITY_SPEC_v0.1.md
 ```
 

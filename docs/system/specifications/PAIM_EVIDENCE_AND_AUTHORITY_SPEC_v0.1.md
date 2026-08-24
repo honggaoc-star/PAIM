@@ -307,6 +307,21 @@ The platform may enforce references, time, scope, status, and conflict. It may n
 4. An assignment accountable only for unrelated Configuration B cannot finalize Applicability for Configuration A. Applicable broad and narrow competing accountable assignments remain conflict absent explicit supersession/delegation.
 5. `INDETERMINATE` Evidence can support or block only through the separate exact lane-level fitness determination; it has no global default.
 
+### 7.9 Prospective Evidence Applicability Responsibility
+
+For an Evidence Applicability consumer that has explicitly cut over under
+`PAIM_RESPONSIBILITY_AND_CASE_WORK_SPEC_v0.1.md`, accountability resolves only through
+`JUDGE_EVIDENCE_APPLICABILITY`. The obligation signature binds the exact owning Case, governing
+Configuration Version, Evidence Version, target Record/Version, purpose/use, assessed scope,
+effective time, and knowledge cutoff. One eligible Responsibility permits the responsible Actor to
+attempt the governing Applicability command; vacancy or conflict blocks it. Responsibility does not
+select the outcome, and Work completion cannot create the Applicability Version.
+
+Before that consumer's cutover, §§7.1–7.8 retain their current Role Assignment behavior. After
+cutover, `Applicability Owner` is not a new role or write path. Any bounded legacy adapter remains
+source-labelled, cites the exact legacy Role Assignment Version, and never fills missing context or
+silently receives a failed prospective write.
+
 ## 8. Evidence Versioning and Supersession
 
 Evidence may be updated, corrected, replaced, or superseded.
@@ -541,6 +556,15 @@ Record:
 - governing resolution if obtained.
 
 Until resolved, use `AUTHORITY UNRESOLVED` where the conflict is material to the decision.
+
+### 18.1 Prospective Authority-question Responsibility
+
+For an explicitly adopted consumer, `RESOLVE_AUTHORITY_QUESTION` binds the exact Authority or
+Authority Gap Version—or exact originating question context—the owning Case, governing
+Configuration Version where applicable, declared scope, purpose, and time. The Responsibility
+identifies who must perform the separately governed Authority act; it neither resolves the question
+nor manufactures authority. Decision Authority remains separately governed and cannot be obtained
+through this Responsibility or associated Work.
 
 ## 19. Evidence-to-Finding Relationship
 

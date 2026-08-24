@@ -376,6 +376,18 @@ A required-after Obligation without that exact Decision permission or required t
 
 Incomplete `OPTIONAL` never blocks activation. Neither category resolves Reassessment, Interim Operating Disposition, Observation, Register, or operating-state-ranking semantics.
 
+### 11.10 Prospective Intervention Responsibilities
+
+After explicit cutover, `PERFORM_INTERVENTION` binds the exact owning Case, Decision Version,
+target Configuration Version, Intervention Version, and Decision-to-Intervention Obligation
+Version. `ACCEPT_INTERVENTION_COMPLETION` additionally binds the exact Completion Result Version.
+The two Responsibilities resolve independently. Intervention performance, authorship, ownership,
+Work assignment, access, or practical role does not establish Completion Acceptance accountability.
+
+Work may coordinate performance or acceptance but cannot create a Completion Result or Completion
+Acceptance. Assignment creates neither, and it grants no Decision or Activation Authority. Existing
+Role Assignment behavior remains controlling for each consumer until its explicit cutover.
+
 ## 12. Intervention Dependencies
 
 An intervention may depend on:
@@ -647,6 +659,14 @@ A Learning Item may complete as:
 - reveals new authority question.
 
 The system should not force every completed learning activity into a favorable result.
+
+### 28.1 Prospective Learning Responsibility
+
+After explicit cutover, `OBTAIN_LEARNING_EVIDENCE` binds the exact owning Case, Decision Version,
+target Configuration Version, Learning Item Version, required Evidence/result contract, and time.
+The Responsibility and any Work coordinate acquisition; only the Evidence and Learning commands
+create their governed results. Completion does not interpret Learning, change a Decision, establish
+causality, or complete an independent prerequisite.
 
 ## 29. Intervention and Learning Interaction
 
