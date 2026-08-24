@@ -50,7 +50,10 @@ not authorize UX-4, M1D, or any domain-semantic extension. UX-3A is the implemen
 refinement that carries an exact ready assessment's explicitly linked information into independent
 Applicability review tasks and translates shared confirmations around practitioner actions and
 consequences. It adds no persisted workflow/progress state and makes no Applicability, Fitness, or
-Selection judgment.
+Selection judgment. UX-3B resolves covered judgment accountability from authoritative Role
+Assignments, presents vacancy/conflict explicitly, and removes arbitrary accountability text from
+Applicability, Fitness, and Acceptance/Selection finalization. It adds no Role Assignment,
+accountable-mechanism model, UX-4 work, or M1D behavior.
 
 ## Exercise boundary
 

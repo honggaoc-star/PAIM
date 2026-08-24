@@ -164,7 +164,7 @@ meaning matters. Raise awkward fixture wording as a separately governed content 
 | `bounded` | State the actual scope, users, duration, controls, and exclusions. | Formal scope statement or confirmation after the concrete boundary is visible. |
 | `governing` | `setup used for this assessment` or `setup for this Decision`. | Configuration designation trace and formal history. Never use it to imply authorization or operation. |
 | `owning` | Name the task or responsible role directly. | Organizational responsibility or capability routing when ownership is itself the subject. |
-| `accountable mechanism` | `responsible role` or `governance process`. Resolve it when the system can do so safely. | Consequential confirmation, accountability conflict, governance trace, and audit. |
+| `accountable mechanism` | `Responsible for this judgment`. Show the established actor and function, or state that accountability is not established/conflicting. Never invite free text as a substitute. | Consequential confirmation, accountability conflict, governance trace, and audit. |
 | `substantive authority` | `authority to make this Decision` or the specific governed act. | Explaining why identity, visibility, role label, or software permission is insufficient. |
 | `authoritative evidence` | Name the source and what it supports; use `required source` only when the authority is established. | Source-discipline or audit discussion. Do not imply truth, sufficiency, or Applicability. |
 | `substantive answer` | State the actual question and whether an answer is established. | Design or audit discussion distinguishing real content from placeholder/transport state. |
@@ -243,6 +243,11 @@ task, and consequence.
   authorized record detail. Practitioner-friendly copy never replaces server-side revalidation.
 - Preserve exact identity, effective time, known time, and append-only history underneath.
 - Keep prior/non-selected records available in authorized history without crowding ordinary work.
+- Distinguish `You / assessor` from `Responsible for this judgment`. The same person may appear in
+  both only when a separately current applicable Role Assignment establishes accountability.
+- For vacancy, say `Accountability for this judgment has not been established.` For incompatible
+  plurality, say `More than one accountability assignment applies and the conflict must be
+  resolved.` Neither state may offer an unrestricted text field as a way through the control.
 
 ## Before-and-after examples from UX-1 and UX-2 review
 

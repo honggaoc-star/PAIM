@@ -31,9 +31,9 @@ The interaction design must not answer these by convenience:
    unknown Evidence, and which qualify as Authority Gaps? No generic “gap” record should be invented.
 5. **Evidence presentation:** What explicit relationships may support contextual grouping without
    implying Applicability? Neutral source grouping must be distinguished from recommendation.
-6. **Accountability entry:** Existing browser forms accept free-text accountable mechanisms. When may
-   the UI resolve an established mechanism/assignment, and when must the practitioner supply or route
-   to a governance action?
+6. **Accountability entry:** Resolved by UX-3B for Evidence Applicability, lane Fitness, and
+   Acceptance/Selection. New browser finalization uses exact current accountable Role Assignments;
+   arbitrary mechanism text is not an accountability source.
 7. **Assessment orchestration:** Can one interaction intent safely span the existing Input, readiness,
    Fitness, and Selection checkpoints without creating new authoritative draft semantics?
 8. **Fitness wording:** Does “sufficiently supported for this proposed use” cover the full production
@@ -169,6 +169,31 @@ and unchanged Value/Risk/Fitness/Selection boundaries have focused integration a
 UX-3A does not solve the long dual-form page, replace the browser-native multi-select control, or
 redesign the analytical role of linked information. Those observed issues remain deferred. It does
 not implement UX-4, M1D, or a domain/schema change.
+
+### UX-3B — Accountability before finalizing practitioner judgments
+
+Implementation status: implemented by Issue #121. Evidence Applicability resolves only the current
+explicit `Applicability Owner` function over the exact Configuration and its owning Case. Value and
+Risk Fitness and Acceptance/Selection resolve their respective accountable evaluator functions
+independently. One assignment is carried into practitioner-readable confirmation and revalidated at
+commit. Vacancy, broad/narrow overlap, plural current assignments, revocation, supersession, stale
+identity, or client-carried alternatives fail closed with zero judgment mutation.
+
+The authenticated assessor remains separately attributable. Identity, software access, authorship,
+Evidence ownership, Case ownership, and role labels do not create accountability. The ordinary form
+therefore contains no free-text accountability escape hatch and cannot create a Role Assignment.
+
+The persistence contract still permits legacy `accountable_mechanism` strings, but PAIM has no
+general authoritative accountable-mechanism identity/version/current-selection model for these
+covered obligations. UX-3B does not pretend otherwise: new browser finalization uses Role
+Assignments only. Supporting another governed function for Applicability, or a genuine governed
+mechanism, requires separate domain work that can represent its exact obligation, purpose/scope,
+effective interval, and currentness. Existing historical mechanism-backed records remain history.
+
+Gate: exact-one, vacancy, incompatible overlap, unrelated-function, tampered identity, and
+review-to-commit change have hard-oracle coverage; the two analytical lanes remain independent; the
+preserved Harborlight exercise receives no invented assignment. UX-3B does not implement UX-4,
+M1D, Role Assignment administration, or a new schema concept.
 
 ### UX-4 — Management judgment and operating limits
 

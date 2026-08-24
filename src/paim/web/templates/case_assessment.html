@@ -65,7 +65,7 @@
     <label>Does this limit a later management decision?<select name="decision_limiting" required><option value="FALSE">No</option><option value="TRUE">Yes</option></select></label>
     <label>How should an indeterminate matter be treated?<textarea name="indeterminate_treatment"></textarea></label>
     <label>Role this information plays<input name="evidence_role" required></label><label>Is this information required support?<select name="required_support" required><option value="TRUE">Yes</option><option value="FALSE">No</option></select></label>
-    <label>Scope supported by this judgment<input name="claimed_scope" required></label><label>Rationale<textarea name="rationale" required></textarea></label><label>Responsible governance process<input name="accountable_mechanism" required></label>
+    <label>Scope supported by this judgment<input name="claimed_scope" required></label><label>Rationale<textarea name="rationale" required></textarea></label><div class="known-context"><strong>Responsible for this judgment</strong><span>PAIM will resolve the established accountable assignment for this assessment, use, purpose, scope, and time when you review it.</span></div>
     <p class="field-help">PAIM checks the recorded references and conflicts. It does not calculate evidence sufficiency or confidence for you.</p><button type="submit">Review support judgment</button>
   </form>
 </details>
@@ -75,7 +75,7 @@
 <form action="/cases/{{ view.case.case_id }}/{{ slug }}/selection/review" method="post" class="stage-form selection-form">
   <input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="configuration_id" value="{{ governing_configuration.configuration_id }}"><input type="hidden" name="configuration_version_id" value="{{ governing_configuration.version_id }}"><input type="hidden" name="input_version_id" value="{{ assessment.input.version_id }}"><input type="hidden" name="fitness_version_id" value="{{ fitness.version_id }}"><input type="hidden" name="use_context" value="{{ fitness.content.get('use_context', '') }}"><input type="hidden" name="purpose" value="{{ fitness.content.get('purpose', '') }}">{% for basis in fitness.content.get('material_evidence', []) %}<input type="hidden" name="material_applicability_version_ids" value="{{ basis.get('applicability_version_id') }}">{% endfor %}<input type="hidden" name="effective_at" value="{{ view.effective_at.isoformat() }}">
   <h5>Use this {{ lane.lane.title() }} assessment for {{ fitness.content.get('use_context', 'the stated use') }}?</h5><p>{{ assessment.input.label }} has a supportable judgment for this purpose. PAIM will not choose it automatically.</p>
-  <label>Why should management use this assessment?<textarea name="rationale" required></textarea></label><label>Responsible governance process<input name="accountable_mechanism" required></label>
+  <label>Why should management use this assessment?<textarea name="rationale" required></textarea></label><div class="known-context"><strong>Responsible for this judgment</strong><span>PAIM will resolve the established accountable assignment for this lane, setup, use, purpose, and time when you review it.</span></div>
   <div class="consequence-note"><strong>Consequential effect:</strong> confirming accepts this specific assessment for the stated use and may finalize that retained version. It does not authorize a Decision or operation.</div><button type="submit">Review use of this assessment</button>
 </form>
 {%- endmacro %}

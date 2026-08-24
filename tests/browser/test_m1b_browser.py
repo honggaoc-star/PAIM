@@ -5,7 +5,7 @@ from playwright.sync_api import Browser, Page
 
 from paim.operational import Permission, ScopeType
 from tests.browser.test_m1a_browser import live_server
-from tests.web_support import TOKEN, WebFixture, grant
+from tests.web_support import TOKEN, WebFixture, establish_m1b_accountability, grant
 
 
 def _grant_browser_path(fixture: WebFixture) -> None:
@@ -30,6 +30,7 @@ def _grant_browser_path(fixture: WebFixture) -> None:
             ScopeType.CASE,
             fixture.visible_case_id,
         )
+    establish_m1b_accountability(fixture)
 
 
 def _confirm(page: Page) -> None:
@@ -194,9 +195,8 @@ def test_m1b_browser_exact_evidence_and_independent_lane_path(
                 "exact governed Configuration"
             )
             applicability.get_by_label("Why", exact=True).fill(f"Exact {lane_name} basis")
-            applicability.get_by_label("Responsible governance process").fill(
-                "governed:m1b-browser-applicability"
-            )
+            assert applicability.get_by_text("Responsible for this judgment").is_visible()
+            assert applicability.get_by_label("Responsible governance process").count() == 0
             applicability.get_by_role("button", name="Review this information judgment").click()
             assert page.get_by_role(
                 "heading", name="Confirm how this information applies"
@@ -235,9 +235,8 @@ def test_m1b_browser_exact_evidence_and_independent_lane_path(
                 "exact governed Configuration"
             )
             fitness_form.get_by_label("Rationale").fill("Exact material support is supportable")
-            fitness_form.get_by_label("Responsible governance process").fill(
-                f"governed:m1b-browser-{slug}-fitness"
-            )
+            assert fitness_form.get_by_text("Responsible for this judgment").is_visible()
+            assert fitness_form.get_by_label("Responsible governance process").count() == 0
             fitness_form.get_by_role("button", name="Review support judgment").click()
             assert page.get_by_role(
                 "heading",
@@ -264,9 +263,8 @@ def test_m1b_browser_exact_evidence_and_independent_lane_path(
             selection.get_by_label("Why should management use this assessment?").fill(
                 f"Exact {lane_name} selection"
             )
-            selection.get_by_label("Responsible governance process").fill(
-                f"governed:m1b-browser-{slug}-acceptance"
-            )
+            assert selection.get_by_text("Responsible for this judgment").is_visible()
+            assert selection.get_by_label("Responsible governance process").count() == 0
             selection.get_by_role("button", name="Review use of this assessment").click()
             assert page.get_by_role(
                 "heading", name=f"Confirm use of this {lane_name} assessment"

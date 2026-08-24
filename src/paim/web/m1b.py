@@ -37,6 +37,11 @@ from paim.operational import OperationalApplication
 from paim.operational.models import AccessDenied
 from paim.web.sessions import ActionIntent, BrowserSession, SessionRegistry
 from paim.web.ux3a import applicability_task_context, confirmation_presentation
+from paim.web.ux3b import (
+    AccountabilityUnavailable,
+    covered_accountability_action,
+    resolve_payload_accountability,
+)
 
 Render = Callable[[Request, str, dict[str, object], int], Response]
 RequireSession = Callable[[Request], BrowserSession | Response]
@@ -360,7 +365,7 @@ _REQUIRED: dict[str, tuple[str, ...]] = {
         "assessed_scope",
         "outcome",
         "rationale",
-        "accountable_mechanism",
+        "accountable_assignment_version_id",
         "effective_at",
     ),
     "value-input.create": (
@@ -394,7 +399,7 @@ _REQUIRED: dict[str, tuple[str, ...]] = {
         "outcome",
         "decision_limiting",
         "rationale",
-        "accountable_mechanism",
+        "accountable_assignment_version_id",
         "evidence_version_id",
         "applicability_version_id",
         "evidence_role",
@@ -411,7 +416,7 @@ _REQUIRED: dict[str, tuple[str, ...]] = {
         "outcome",
         "decision_limiting",
         "rationale",
-        "accountable_mechanism",
+        "accountable_assignment_version_id",
         "evidence_version_id",
         "applicability_version_id",
         "evidence_role",
@@ -428,7 +433,7 @@ _REQUIRED: dict[str, tuple[str, ...]] = {
         "use_context",
         "purpose",
         "rationale",
-        "accountable_mechanism",
+        "accountable_assignment_version_id",
         "material_applicability_version_ids",
         "effective_at",
     ),
@@ -441,7 +446,7 @@ _REQUIRED: dict[str, tuple[str, ...]] = {
         "use_context",
         "purpose",
         "rationale",
-        "accountable_mechanism",
+        "accountable_assignment_version_id",
         "material_applicability_version_ids",
         "effective_at",
     ),
@@ -681,8 +686,8 @@ def _execute(
                     _lines(data.get("limitations", "")),
                     data["rationale"],
                     actor_id,
+                    RecordVersionId.parse(data["accountable_assignment_version_id"]),
                     None,
-                    data["accountable_mechanism"],
                     effective,
                 ),
             ),
@@ -746,8 +751,8 @@ def _execute(
                     data["rationale"],
                     data.get("indeterminate_treatment") or None,
                     _boolean(data["decision_limiting"]),
+                    RecordVersionId.parse(data["accountable_assignment_version_id"]),
                     None,
-                    data["accountable_mechanism"],
                     (basis,),
                     effective,
                 ),
@@ -775,8 +780,8 @@ def _execute(
                     data["use_context"],
                     data["purpose"],
                     data["rationale"],
+                    RecordVersionId.parse(data["accountable_assignment_version_id"]),
                     None,
-                    data["accountable_mechanism"],
                     RecordVersionId.parse(data["fitness_version_id"]),
                     _version_ids(data["material_applicability_version_ids"]),
                     effective,
@@ -867,6 +872,49 @@ def register_m1b_routes(
                 if view is None:
                     raise ValueError("Case workspace is no longer visible")
                 _bind_visible_choices(action, payload, view)
+                accountability_inputs_complete = not _required(
+                    payload,
+                    tuple(
+                        name
+                        for name in _REQUIRED[action]
+                        if name != "accountable_assignment_version_id"
+                    ),
+                )
+                if covered_accountability_action(action) and accountability_inputs_complete:
+                    resolve_payload_accountability(
+                        gateway,
+                        session.authentication,
+                        action=action,
+                        case_id=case_id,
+                        payload=payload,
+                        effective_at=_timestamp(payload["effective_at"]),
+                    )
+            except AccountabilityUnavailable as error:
+                title = (
+                    "Accountability for this judgment has not been established"
+                    if error.state == "NOT_ESTABLISHED"
+                    else "Accountability conflict must be resolved"
+                )
+                return render(
+                    request,
+                    "action_error.html",
+                    {
+                        "view": None,
+                        "csrf_token": session.csrf_secret,
+                        "title": title,
+                        "message": str(error),
+                        "details": (
+                            "Who is responsible must be established before this judgment "
+                            "can be recorded.",
+                            "Software access, sign-in identity, authorship, ownership, and "
+                            "role labels do not establish that responsibility.",
+                            "Use the governed Role Assignment action outside this form; "
+                            "this form cannot invent or repair accountability.",
+                        ),
+                        "return_path": action_return_path(action, case_id_text),
+                    },
+                    409,
+                )
             except (AccessDenied, ValueError) as error:
                 return render(
                     request,
@@ -989,6 +1037,22 @@ def register_m1b_routes(
                     _bind_visible_choices(action, intent.payload, view)
                 except ValueError as error:
                     raise StalePrecondition(str(error)) from error
+                if covered_accountability_action(action):
+                    expected_assignment = intent.payload.get("accountable_assignment_version_id")
+                    if not expected_assignment:
+                        raise StalePrecondition("the reviewed accountability basis is unavailable")
+                    try:
+                        resolve_payload_accountability(
+                            gateway,
+                            session.authentication,
+                            action=action,
+                            case_id=case_id,
+                            payload=intent.payload,
+                            effective_at=_timestamp(intent.payload["effective_at"]),
+                            expected_assignment_version_id=expected_assignment,
+                        )
+                    except AccountabilityUnavailable as error:
+                        raise StalePrecondition(str(error)) from error
             outcome = _execute(gateway, session, intent, case_id)
         except AccessDenied:
             title, status = "Software access or exact visibility denied", 403

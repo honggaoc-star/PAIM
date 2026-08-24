@@ -389,6 +389,19 @@ environment source must remain available for the existing configuration prefligh
 credentials are entered at sign-in and are never read from that environment variable, persisted,
 placed in a cookie, or rendered back to the browser.
 
+UX-3B removes arbitrary accountability entry from browser Evidence Applicability, Value/Risk
+Fitness, and Acceptance/Selection. After the practitioner supplies the substantive purpose/scope,
+review resolves a current accountable Role Assignment for the exact visible Case/Configuration
+context. Confirmation names the responsible actor and function; commit resolves the same basis
+again. Vacancy or conflict returns an explicit non-mutating stop. Software permission, the signed-in
+assessor, ownership, authorship, and role labels alone do not satisfy the check.
+
+The current browser does not provide Role Assignment administration and must not invent an
+assignment to unblock a form. Operators establish legitimate assignments through the existing
+production administrative/domain path. The legacy string `accountable_mechanism` persistence field
+is not an authoritative mechanism identity/version model, so new covered browser judgments cannot
+use typed text to satisfy it. A future governed-mechanism model requires separate domain work.
+
 ```powershell
 uv run --locked paim-web --config C:\secure\paim-local.json
 ```
