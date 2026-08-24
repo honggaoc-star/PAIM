@@ -2,10 +2,13 @@
 
 ## Status
 
-This is the bounded implementation sequence. UX-1 is implemented as a read-only orientation and
-vocabulary shell, and UX-2 is implemented as the task-oriented `What we know` workspace. Every
-later increment still requires its own issue, branch, tests, practitioner review, and independent
-semantic acceptance. M1D remains out of scope.
+This was the bounded task-oriented implementation sequence through UX-3B. Issue #123 now pauses all
+further practitioner-UI implementation pending independent owner review of the
+[Practitioner Operating Model](PAIM_PRACTITIONER_OPERATING_MODEL.md) package. UX-4 is not the
+automatic next increment. Any normative Responsibility/Case Work changes identified by that review
+must be designed, accepted, and implemented through separate gates before dependent UI work.
+
+UX-1 through UX-3B remain implemented historical increments. M1D remains out of scope.
 
 Issue #115 establishes the durable
 [practitioner-language standard](PAIM_PRACTITIONER_LANGUAGE_STANDARD.md). UX-3 and every later
@@ -195,7 +198,28 @@ review-to-commit change have hard-oracle coverage; the two analytical lanes rema
 preserved Harborlight exercise receives no invented assignment. UX-3B does not implement UX-4,
 M1D, Role Assignment administration, or a new schema concept.
 
+### Practitioner Operating Model checkpoint — Issue #123
+
+Implementation status: documentation/design checkpoint ready for owner review. The package defines
+organization-controlled `local`, separates Participant, practical Role, Responsibility, and
+Authority, limits standing Case roles to Case Coordinator and Assessor plus optional Reviewer,
+proposes bounded contextual Case Work/handoffs, and assesses current architecture honestly.
+
+The checkpoint finds that current read composition can explain some ready/waiting work, while
+durable responsibility assignment and cross-practitioner handoff require normative/domain/
+persistence work. Organization-local concurrent use requires a separate deployment architecture.
+`Applicability Owner` is not adopted as a practical role, and the Harborlight live vacancy is not
+repaired.
+
+Gate: owner acceptance of the operating model and explicit selection of the next bounded issue.
+This section authorizes no UI, specification, schema, networking, Role Assignment, Work Item,
+notification, UX-4, or M1D implementation.
+
 ### UX-4 — Management judgment and operating limits
+
+Status: paused. Re-evaluate scope and sequencing only after the Practitioner Operating Model gate
+and any required Responsibility/Case Work contracts are accepted. The earlier outline below is
+retained as historical planning, not current authorization.
 
 Scope:
 
