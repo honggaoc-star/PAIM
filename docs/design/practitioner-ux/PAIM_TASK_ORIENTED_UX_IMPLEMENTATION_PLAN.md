@@ -202,8 +202,8 @@ M1D, Role Assignment administration, or a new schema concept.
 
 Implementation status: documentation/design checkpoint ready for owner review. The package defines
 organization-controlled `local`, separates Participant, practical Role, Responsibility, and
-Authority, consolidates practitioner-facing roles, proposes bounded contextual Case Work/handoffs,
-and assesses current architecture honestly.
+Authority, limits standing Case roles to Case Coordinator and Assessor plus optional Reviewer,
+proposes bounded contextual Case Work/handoffs, and assesses current architecture honestly.
 
 The checkpoint finds that current read composition can explain some ready/waiting work, while
 durable responsibility assignment and cross-practitioner handoff require normative/domain/

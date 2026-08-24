@@ -71,7 +71,9 @@ Regardless of navigation, the opening view should test these concepts:
 3. **Waiting on others** — exact work, responsible participant/vacancy/conflict, and prerequisite;
    never a notification count without meaning.
 4. **People involved** — participant names, compact practical relationships, and current relevant
-   responsibilities; no implication that access or labels create authority.
+   responsibilities. Standing Case roles are limited to Case Coordinator, Assessor, and optional
+   Reviewer; Decision Authority, action responsibilities, and technical administration remain
+   separate. Access or labels create no authority.
 5. **Unresolved conditions** — missing information, responsibility, authority, conflict, stale
    context, or other explicit blockers, each with a legitimate resolution route.
 

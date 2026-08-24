@@ -55,7 +55,7 @@ Value and Risk never share a record, score, Fitness, Selection, or acceptance sh
 - Priya — Assessor responsible for Value
 - Luis — Assessor responsible for Risk
 - Sam — security specialist participant for a contextual vendor-security review
-- Dana — expected Decision Maker with separately governed Decision Authority
+- Dana — participant expected to decide, with separately governed Decision Authority
 
 ### Experience
 

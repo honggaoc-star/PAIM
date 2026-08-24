@@ -27,10 +27,11 @@ choices, and reveal machinery only when it helps a governance, audit, or diagnos
 ### Practitioner Operating Model checkpoint
 
 - [Practitioner Operating Model](PAIM_PRACTITIONER_OPERATING_MODEL.md) defines the target audience,
-  meaning of local, participant/practical-role/responsibility/authority separation, compact role
-  direction, and product operating principles.
+  meaning of local, participant/practical-role/responsibility/authority separation, the two primary
+  standing Case roles plus optional Reviewer, and product operating principles.
 - [Role Consolidation Map](PAIM_ROLE_CONSOLIDATION_MAP.md) evaluates current named functions as
-  practical roles, responsibilities, authority, technical roles, or consolidation candidates.
+  the two primary standing Case roles, optional Reviewer, granular responsibilities, separate
+  authority, organization-level technical functions, or consolidation candidates.
 - [Case Work & Handoff Model](PAIM_CASE_WORK_AND_HANDOFF_MODEL.md) defines derived versus durable
   work, prerequisites, contextual handoffs, completion/return, communication, and notifications.
 - [Architecture Feasibility & Gap Assessment](PAIM_PRACTITIONER_OPERATING_MODEL_ARCHITECTURE_GAP_ASSESSMENT.md)

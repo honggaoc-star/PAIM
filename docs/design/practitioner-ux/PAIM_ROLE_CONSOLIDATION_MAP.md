@@ -22,13 +22,13 @@ governed obligation. `Authority` remains separately established.
 | Value Evaluator | Convert to assignable responsibility under Assessor | **Assess Value** | Value remains an independent record/judgment. It need not be a standing organizational role or different person from Risk. |
 | Risk Evaluator | Convert to assignable responsibility under Assessor | **Assess Risk and controls** | Risk remains independent and separately attributable. No shared score, overwrite, or combined acceptance. |
 | Subject-Matter Contributor | Participant attribute plus contextual responsibility | **Provide security/legal/operations/etc. input** | Expertise is needed for particular work, not necessarily as a permanent Case persona. Contribution does not decide Applicability or authorize action. |
-| Decision Authority | Preserve as authority concept | **Decision Maker** only as orientation; show `authority established/not established/conflicting` at the act | The participant label never substitutes for the exact Authorization Basis. Committee/delegated authority remains possible. |
-| Intervention Owner | Consolidate into practical role | **Implementation Owner** for an exact Intervention | Implementation does not change the Decision or establish Completion Acceptance. Multiple interventions may have different owners. |
+| Decision Authority | Preserve only as separately governed authority; do not create a standing `Decision Maker` Case role | **Who is expected and authorized to make this decision?** Show `authority established/not established/conflicting` at the act. | The exact Authorization Basis controls. Committee/delegated authority remains possible; a broad participant label must not masquerade as authority. |
+| Intervention Owner | Convert to a specific post-decision action/Intervention responsibility; do not create a standing `Implementation Owner` Case role | **Carry out this action** / **Responsible for this Intervention** | A Decision may create multiple actions with different participants. Assignment does not imply ownership of the AI system, authority to change the Decision, or Completion Acceptance. |
 | Intervention Completion Acceptor | Preserve as exact responsibility | **Review whether this implementation result satisfies the requirement** | Separate from implementation authorship/ownership. Same participant is allowed only through independently established accountability. |
 | Evidence Owner | Usually convert to responsibility; retain source stewardship only where useful | **Collect/maintain this information** | Ownership does not determine Applicability, Fitness, Value, Risk, or authority. Avoid presenting every evidence producer as a standing Case role. |
 | Authority Owner | Convert to responsibility, optionally under Reviewer/specialist participation | **Resolve or maintain this requirement/authority question** | Does not create Decision Authority. Exact authority source and scope remain governed. |
 | Reviewer/Auditor | Optional practical role | **Reviewer** | Appropriate for independent/second-line review. Review findings do not silently mutate authoritative records. |
-| System Administrator | Preserve as technical role outside ordinary Case staffing | **Administrator** | Manages access, continuity, and support. Technical privilege never grants substantive responsibility or authority. |
+| System Administrator | Preserve as an application/organization-level technical function outside Case staffing | Show only in administration, access, deployment, and continuity surfaces | Technical privilege never grants a Case responsibility or substantive authority. |
 | Integration Facilitator | Convert to Case coordination responsibility | **Coordinate Value/Risk integration** | The work may be done by the Case Coordinator or an Assessor. It does not create a Decision or Decision Authority. |
 | Trigger Determiner | Convert to exact responsibility | **Decide whether this occurrence requires reassessment** | Source authorship, severity, ownership, notification, and software access do not satisfy accountability. |
 | Reassessment Owner | Convert to exact responsibility, often coordinated by Case Coordinator or Assessor | **Lead this reassessment** | Owns one exact Reassessment and Trigger Set; does not create Interim Disposition or Decision Authority. |
@@ -39,22 +39,24 @@ governed obligation. `Authority` remains separately established.
 | Configuration owner/designated owner | Usually Case coordination responsibility | **Maintain this assessment setup** | Must not collapse setup currentness, Decision authorization, or operating state. |
 | `Applicability Owner` implementation label | Retire as practitioner role; do not normalize it into the operating model | **Who is responsible for this information judgment?** | UX-3B uses the label conservatively because the current resolver lacks an obligation discriminator. The future model must resolve an exact Applicability responsibility across Evidence, target, purpose, assessed scope, and time. |
 
-## Proposed practical role set
+## Proposed standing Case role set
 
-The ordinary participant directory should need no more than:
+The ordinary Case should need only two primary standing roles, plus an optional Reviewer:
 
 | Practical role | Broad relationship | Typical responsibilities that may be assigned separately |
 |---|---|---|
 | Case Coordinator | Coordinates one Case | maintain Case/setup, request work, route prerequisites, coordinate integration, prevent orphaned work |
 | Assessor | Performs analytical or information work | Value, Risk, information Applicability, Fitness, Selection, Trigger Determination, Reassessment analysis |
-| Decision Maker | Expected participant in a decision act | propose or authorize only where the exact governing responsibility/authority separately permits it |
-| Implementation Owner | Performs approved implementation | Intervention planning/execution/result reporting |
 | Reviewer | Optional independent review | completion acceptance, process review, authority review, exception review where assigned |
-| Administrator | Technical operation | participants/access, configuration, backup/restore, availability |
 
 These are not permission bundles and do not imply universal separation. The same participant may be
 Case Coordinator and Assessor, or may assess both Value and Risk. PAIM must show that combination
 without making the person impersonate different users.
+
+The participant who later makes or authorizes a management Decision is identified through Decision
+Authority, not a standing practical role. Intervention/action execution is assigned directly as one
+or more exact responsibilities. Technical administration is configured outside ordinary Case
+staffing. Subject-matter expertise remains a participant attribute or contextual responsibility.
 
 ## What must remain separate underneath
 

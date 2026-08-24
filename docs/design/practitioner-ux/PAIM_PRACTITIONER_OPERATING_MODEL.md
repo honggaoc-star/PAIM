@@ -80,30 +80,32 @@ The application must not use `role` as shorthand for all four. A participant may
 practical roles and responsibilities. One responsibility may move between participants through an
 explicit, historical handoff. Authority is evaluated independently at the consequential act.
 
-## Compact practitioner-facing role set
+## Minimal standing Case role model
 
-The proposed ordinary Case vocabulary is:
+PAIM should need only two primary standing Case roles, plus one optional role:
 
 1. **Case Coordinator** — keeps the Case coherent, routes work, and makes missing responsibility
    visible. `Case Owner` may remain the formal trace label during transition.
 2. **Assessor** — performs one or more explicitly assigned analytical or information-review
    responsibilities. Value and Risk remain separate responsibilities and records, not mandatory
    separate job roles.
-3. **Decision Maker** — practitioner-facing description of a participant expected to perform a
-   later decision task. The actual act still requires separately valid Decision Authority.
-4. **Implementation Owner** — performs an assigned intervention or implementation responsibility;
-   this does not authorize changing the Decision or accepting completion.
-5. **Reviewer** — optional independent or second-line review where required.
-6. **Administrator** — technical setup, access, continuity, and support only; never substantive
-   management authority by virtue of administration.
+3. **Reviewer** — optional practical role only where independent or second-line review is actually
+   needed.
 
 Subject-matter expertise is normally a participant attribute or assigned responsibility, not a
-standing Case role. Fine-grained functions such as Trigger Determination or Completion Acceptance
-remain rigorously distinguished obligations underneath, but should appear to practitioners as
-specific work rather than a permanent organizational persona.
+standing Case role. The person expected or authorized to decide is presented through the separate
+Decision Authority relationship, not a `Decision Maker` role. Post-decision actions and
+Interventions are assigned directly as specific responsibilities and may have different responsible
+participants; there is no broad `Implementation Owner` Case role. Technical administration remains
+an organization/application function outside Case staffing.
 
-This compact set is a proposed practitioner model. It does not rename or retire normative roles by
-itself; the required reconciliation is recorded in the
+Fine-grained functions such as Value, Risk, information Applicability, Fitness, Selection,
+Authority-question resolution, Trigger Determination, Reassessment, intervention execution, and
+Completion Acceptance remain rigorously distinguished obligations underneath, but appear as
+specific work rather than permanent organizational personas.
+
+This minimal standing-role model is a proposed practitioner model. It does not rename or retire
+normative roles by itself; the required reconciliation is recorded in the
 [Role Consolidation Map](PAIM_ROLE_CONSOLIDATION_MAP.md).
 
 ## Responsibility model
@@ -168,9 +170,9 @@ Assigning work does not grant authority. In particular:
 
 - Case coordination does not create Decision Authority;
 - an Assessor assignment does not authorize a Decision;
-- an Implementation Owner cannot self-accept completion unless separately accountable for that
-  obligation;
-- a Decision Maker label is not an Authorization Basis; and
+- a participant assigned an implementation action cannot self-accept completion unless separately
+  accountable for that exact obligation;
+- identifying who is expected to decide is not an Authorization Basis; and
 - technical administration remains separate from every substantive act.
 
 The UI should ask ordinary questions such as `Who will assess Risk?` or `Who is responsible for
@@ -198,7 +200,8 @@ This checkpoint recommends:
 
 - organization-controlled local as the long-term product meaning, with current support honestly
   limited to the single-workstation topology;
-- aggressive practical-role consolidation with rigorous responsibility separation;
+- two primary standing Case roles (Case Coordinator and Assessor), optional Reviewer only where
+  needed, and rigorous responsibility separation;
 - a bounded, context-carrying Case Work concept where coordination must be durable;
 - work-centered handoffs and secondary notifications; and
 - a normative responsibility/work design before any Role Assignment or multi-practitioner UI.
