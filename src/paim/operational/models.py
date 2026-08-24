@@ -129,6 +129,27 @@ class AuthenticatedSession:
 
 
 @dataclass(frozen=True, slots=True)
+class AccountableAssignmentView:
+    """One exact current accountable Role Assignment safe for practitioner display."""
+
+    assignment_version_id: str
+    actor_name: str
+    function: str
+
+    @property
+    def practitioner_label(self) -> str:
+        return f"{self.actor_name} — {self.function}"
+
+
+@dataclass(frozen=True, slots=True)
+class AccountabilityCheck:
+    """Authoritative browser-facing resolution without an inferred winner."""
+
+    state: str
+    assignments: tuple[AccountableAssignmentView, ...]
+
+
+@dataclass(frozen=True, slots=True)
 class AccessGrantInput:
     permission: Permission
     action: str

@@ -15,6 +15,9 @@ from paim.domain import (
     ConfigurationMaturity,
     ConfigurationPurpose,
     ConfigurationVersionInput,
+    DelegationEffect,
+    RoleAssignmentVersionInput,
+    RoleTargetType,
 )
 from paim.integrity import EffectiveInterval, FixedClock, RecordId, RecordVersionId
 from paim.operational import (
@@ -86,6 +89,48 @@ def grant(
         principal_id="principal:web-practitioner",
         grant=allow(permission, action, scope_type, scope_id, effect),
     )
+
+
+def establish_m1b_accountability(fixture: WebFixture) -> None:
+    """Establish separate exact functions used by browser judgment oracles."""
+    grant(
+        fixture,
+        Permission.COMMAND,
+        "role-assignment.create",
+        ScopeType.CASE,
+        fixture.visible_case_id,
+    )
+    for role, key in (
+        ("Applicability Owner", "evidence-applicability"),
+        ("Value Evaluator", "value-governed-judgments"),
+        ("Risk Evaluator", "risk-governed-judgments"),
+    ):
+        fixture.operational.run_command(
+            fixture.admin_session,
+            action="role-assignment.create",
+            idempotency_key=f"web-{key}",
+            case_id=fixture.visible_case_id,
+            configuration_id=fixture.visible_configuration_id,
+            operation=lambda service, meta, function=role, compatibility=key: (
+                service.commit_role_assignment(
+                    meta,
+                    RoleAssignmentVersionInput(
+                        RecordId.new(),
+                        RecordVersionId.new(),
+                        fixture.actor_id,
+                        function,
+                        RoleTargetType.CONFIGURATION,
+                        str(fixture.visible_configuration_id),
+                        fixture.visible_case_id,
+                        True,
+                        compatibility,
+                        DelegationEffect.NONE,
+                        None,
+                        EFFECTIVE,
+                    ),
+                )
+            ),
+        )
 
 
 def csrf_from(response_text: str) -> str:

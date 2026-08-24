@@ -241,7 +241,7 @@ def confirmation_presentation(action: str, payload: Mapping[str, str]) -> Confir
                     ("conditions", "Conditions"),
                     ("limitations", "Limitations"),
                     ("rationale", "Why"),
-                    ("accountable_mechanism", "Responsible governance process"),
+                    ("accountability_label", "Responsible for this judgment"),
                 ),
             ),
         )
@@ -266,7 +266,7 @@ def confirmation_presentation(action: str, payload: Mapping[str, str]) -> Confir
                     ("decision_limiting", "Does this limit a later management decision?"),
                     ("indeterminate_treatment", "Treatment of an indeterminate matter"),
                     ("rationale", "Rationale"),
-                    ("accountable_mechanism", "Responsible governance process"),
+                    ("accountability_label", "Responsible for this judgment"),
                 ),
             ),
         )
@@ -288,7 +288,7 @@ def confirmation_presentation(action: str, payload: Mapping[str, str]) -> Confir
                     ("fitness_label", "Recorded support judgment"),
                     ("material_applicability_labels", "Information-review basis"),
                     ("rationale", "Why management should use this assessment"),
-                    ("accountable_mechanism", "Responsible governance process"),
+                    ("accountability_label", "Responsible for this judgment"),
                 ),
             ),
         )

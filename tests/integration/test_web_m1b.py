@@ -1,11 +1,26 @@
 from __future__ import annotations
 
+import sqlite3
 from typing import Any
 
 from fastapi.testclient import TestClient
 
+from paim.domain import (
+    DelegationEffect,
+    RoleAssignmentVersionInput,
+    RoleTargetType,
+)
+from paim.integrity import RecordId, RecordVersionId
 from paim.operational import AccessEffect, Permission, ScopeType
-from tests.web_support import ORIGIN, WebFixture, csrf_from, grant, login
+from tests.web_support import (
+    EFFECTIVE,
+    ORIGIN,
+    WebFixture,
+    csrf_from,
+    establish_m1b_accountability,
+    grant,
+    login,
+)
 
 
 def _grant_m1b(fixture: WebFixture) -> None:
@@ -33,6 +48,7 @@ def _grant_m1b(fixture: WebFixture) -> None:
             ScopeType.CASE,
             fixture.visible_case_id,
         )
+    establish_m1b_accountability(fixture)
 
 
 def _review_commit(client: TestClient, path: str, data: dict[str, str]) -> tuple[Any, Any, Any]:
@@ -54,6 +70,220 @@ def _review_commit(client: TestClient, path: str, data: dict[str, str]) -> tuple
         follow_redirects=False,
     )
     return reviewed, confirmation, committed
+
+
+def _persisted_accountability(
+    fixture: WebFixture, table: str, version_id: str
+) -> tuple[str | None, str | None]:
+    with sqlite3.connect(fixture.config.database_path) as connection:
+        row = connection.execute(
+            f"SELECT accountable_assignment_version_id, accountable_mechanism "
+            f"FROM {table} WHERE version_id = ?",
+            (version_id,),
+        ).fetchone()
+    assert row is not None
+    return row[0], row[1]
+
+
+def _role_assignment(
+    fixture: WebFixture,
+    *,
+    role: str,
+    target_type: RoleTargetType,
+    target_id: RecordId,
+    key: str,
+    assignment_id: RecordId | None = None,
+    expected_version_id: RecordVersionId | None = None,
+    accountable: bool = True,
+) -> tuple[RecordId, RecordVersionId]:
+    identity = assignment_id or RecordId.new()
+    version_id = RecordVersionId.new()
+    fixture.operational.run_command(
+        fixture.admin_session,
+        action="role-assignment.create",
+        idempotency_key=f"ux3b-{key}-{version_id}",
+        case_id=fixture.visible_case_id,
+        configuration_id=fixture.visible_configuration_id,
+        operation=lambda service, meta: service.commit_role_assignment(
+            meta,
+            RoleAssignmentVersionInput(
+                identity,
+                version_id,
+                fixture.actor_id,
+                role,
+                target_type,
+                str(target_id),
+                fixture.visible_case_id,
+                accountable,
+                key,
+                DelegationEffect.NONE,
+                None,
+                EFFECTIVE,
+                expected_version_id,
+                "UX-3B accountability successor" if expected_version_id else None,
+            ),
+        ),
+    )
+    return identity, version_id
+
+
+def test_ux3b_applicability_accountability_is_authoritative_and_fail_closed(
+    web_fixture: WebFixture,
+) -> None:
+    grant(web_fixture, Permission.CONFIGURATION_READ, "read")
+    for action in ("evidence.create", "evidence.applicability", "role-assignment.create"):
+        grant(
+            web_fixture,
+            Permission.COMMAND,
+            action,
+            ScopeType.CASE,
+            web_fixture.visible_case_id,
+        )
+    assert login(web_fixture.client)[1].status_code == 303
+    case_id = str(web_fixture.visible_case_id)
+    base = f"/cases/{case_id}"
+    workspace = web_fixture.operational.practitioner_workspace(
+        web_fixture.admin_session, web_fixture.visible_case_id
+    )
+    assert workspace is not None
+    configuration = workspace.configurations[0]
+    _, _, evidence_commit = _review_commit(
+        web_fixture.client,
+        f"{base}/evidence/review",
+        {
+            "configuration_id": configuration.configuration_id,
+            "configuration_version_id": configuration.version_id,
+            "classification": "observed",
+            "source": "ux3b-accountability-oracle",
+            "provenance": "focused authoritative resolution test",
+            "statement": "One exact source is available for judgment.",
+            "attention": "current",
+            "effective_at": workspace.effective_at.isoformat(),
+        },
+    )
+    assert evidence_commit.status_code == 303
+    current = web_fixture.operational.practitioner_workspace(
+        web_fixture.admin_session, web_fixture.visible_case_id
+    )
+    assert current is not None
+    evidence = current.evidence[0]
+    review_data = {
+        "configuration_id": configuration.configuration_id,
+        "configuration_version_id": configuration.version_id,
+        "evidence_choice": evidence.version_id,
+        "target_choice": configuration.version_id,
+        "purpose": "accountability-resolution",
+        "assessed_scope": "one exact Configuration",
+        "outcome": "APPLICABLE",
+        "rationale": "The exact source bears on the exact setup.",
+        "accountable_mechanism": "typed text must not establish responsibility",
+        "accountable_assignment_version_id": str(RecordVersionId.new()),
+        "effective_at": workspace.effective_at.isoformat(),
+    }
+    before = web_fixture.operational.domain_store.count_rows("evidence_applicability_versions")
+    vacancy = web_fixture.client.post(
+        f"{base}/applicability/review",
+        data={**review_data, "csrf_token": csrf_from(web_fixture.client.get(base).text)},
+        headers={"Origin": ORIGIN},
+    )
+    assert vacancy.status_code == 409
+    assert "Accountability for this judgment has not been established" in vacancy.text
+    assert "free text" not in vacancy.text
+    assert (
+        web_fixture.operational.domain_store.count_rows("evidence_applicability_versions") == before
+    )
+
+    for role in ("Case Owner", "Evidence Owner", "Value Evaluator"):
+        _role_assignment(
+            web_fixture,
+            role=role,
+            target_type=RoleTargetType.CONFIGURATION,
+            target_id=web_fixture.visible_configuration_id,
+            key=f"unrelated-{role.casefold().replace(' ', '-')}",
+        )
+    still_vacant = web_fixture.client.post(
+        f"{base}/applicability/review",
+        data={**review_data, "csrf_token": csrf_from(web_fixture.client.get(base).text)},
+        headers={"Origin": ORIGIN},
+    )
+    assert still_vacant.status_code == 409
+    assert "Accountability for this judgment has not been established" in still_vacant.text
+
+    exact_assignment, exact_version = _role_assignment(
+        web_fixture,
+        role="Applicability Owner",
+        target_type=RoleTargetType.CONFIGURATION,
+        target_id=web_fixture.visible_configuration_id,
+        key="exact-applicability",
+    )
+    reviewed = web_fixture.client.post(
+        f"{base}/applicability/review",
+        data={**review_data, "csrf_token": csrf_from(web_fixture.client.get(base).text)},
+        headers={"Origin": ORIGIN},
+        follow_redirects=False,
+    )
+    assert reviewed.status_code == 303
+    confirmation = web_fixture.client.get(reviewed.headers["location"])
+    assert confirmation.status_code == 200
+    assert "Responsible for this judgment" in confirmation.text
+    assert "M1A Practitioner — Applicability Owner" in confirmation.text
+    assert "typed text must not establish responsibility" not in confirmation.text
+
+    _role_assignment(
+        web_fixture,
+        role="Applicability Owner",
+        target_type=RoleTargetType.CONFIGURATION,
+        target_id=web_fixture.visible_configuration_id,
+        key="revoked-applicability",
+        assignment_id=exact_assignment,
+        expected_version_id=exact_version,
+        accountable=False,
+    )
+    revoked = web_fixture.client.post(
+        confirmation.request.url.path.replace("/confirm/", "/commit/"),
+        data={"csrf_token": csrf_from(confirmation.text)},
+        headers={"Origin": ORIGIN},
+    )
+    assert revoked.status_code == 409
+    assert "Accountability for this judgment has not been established" in revoked.text
+    assert (
+        web_fixture.operational.domain_store.count_rows("evidence_applicability_versions") == before
+    )
+
+    _, replacement_version = _role_assignment(
+        web_fixture,
+        role="Applicability Owner",
+        target_type=RoleTargetType.CONFIGURATION,
+        target_id=web_fixture.visible_configuration_id,
+        key="replacement-applicability",
+    )
+    reviewed_again = web_fixture.client.post(
+        f"{base}/applicability/review",
+        data={**review_data, "csrf_token": csrf_from(web_fixture.client.get(base).text)},
+        headers={"Origin": ORIGIN},
+        follow_redirects=False,
+    )
+    assert reviewed_again.status_code == 303
+    confirmation = web_fixture.client.get(reviewed_again.headers["location"])
+
+    _role_assignment(
+        web_fixture,
+        role="Applicability Owner",
+        target_type=RoleTargetType.CASE,
+        target_id=web_fixture.visible_case_id,
+        key="broad-applicability",
+    )
+    conflicted = web_fixture.client.post(
+        confirmation.request.url.path.replace("/confirm/", "/commit/"),
+        data={"csrf_token": csrf_from(confirmation.text)},
+        headers={"Origin": ORIGIN},
+    )
+    assert conflicted.status_code == 409
+    assert "More than one accountability assignment applies" in conflicted.text
+    assert str(replacement_version) not in conflicted.text
+    assert (
+        web_fixture.operational.domain_store.count_rows("evidence_applicability_versions") == before
+    )
 
 
 def test_m1b_workspace_exact_configuration_and_independent_value_risk_path(
@@ -214,6 +444,8 @@ def test_m1b_workspace_exact_configuration_and_independent_value_risk_path(
             for item in current.applicability
             if item.content["target_version_id"] == candidate.version_id
         )
+        RecordVersionId.parse(applicability.content["accountable_assignment_version_id"])
+        assert applicability.content["accountable_mechanism"] is None
 
         readiness_data = {
             "input_version_id": candidate.version_id,
@@ -310,6 +542,12 @@ def test_m1b_workspace_exact_configuration_and_independent_value_risk_path(
         )
         assert lane_view.task_stage == "CHOOSE_FOR_USE"
         assert fitness.content["decision_limiting"] is False
+        fitness_assignment, fitness_mechanism = _persisted_accountability(
+            web_fixture, "lane_fitness_versions", fitness.version_id
+        )
+        assert fitness_assignment is not None
+        RecordVersionId.parse(fitness_assignment)
+        assert fitness_mechanism is None
         assert fitness.content["material_evidence"][0]["required_support"] is True
         if lane == "RISK":
             blocked_data = {
@@ -399,6 +637,13 @@ def test_m1b_workspace_exact_configuration_and_independent_value_risk_path(
         selected_lane = selected_view.value if lane == "VALUE" else selected_view.risk
         assert selected_lane.task_stage == "SELECTED"
         assert selected_lane.assessments[0].frozen
+        selection = selected_lane.selections[0]
+        selection_assignment, selection_mechanism = _persisted_accountability(
+            web_fixture, "input_acceptance_versions", selection.version_id
+        )
+        assert selection_assignment is not None
+        RecordVersionId.parse(selection_assignment)
+        assert selection_mechanism is None
 
     completed = web_fixture.operational.practitioner_workspace(
         web_fixture.admin_session, web_fixture.visible_case_id

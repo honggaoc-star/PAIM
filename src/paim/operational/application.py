@@ -32,6 +32,8 @@ from paim.application.practitioner import (
 )
 from paim.audit import ActorResolution
 from paim.domain import (
+    AccountabilityConflict,
+    AccountabilityFound,
     CommandMeta,
     ProjectionConsistency,
     RegisterAction,
@@ -41,13 +43,23 @@ from paim.domain import (
     RegisterManifest,
     RegisterQuery,
     RegisterView,
+    RoleTargetType,
 )
-from paim.integrity import Clock, CommandId, RecordId, SystemClock, to_epoch_microseconds
+from paim.integrity import (
+    Clock,
+    CommandId,
+    RecordId,
+    RecordVersionId,
+    SystemClock,
+    to_epoch_microseconds,
+)
 from paim.integrity.records import JsonValue
 from paim.operational.models import (
     UNSUPPORTED_CAPABILITIES,
     AccessDenied,
     AccessGrantInput,
+    AccountabilityCheck,
+    AccountableAssignmentView,
     AdapterType,
     AuthenticatedSession,
     AuthenticationFailed,
@@ -390,6 +402,81 @@ class OperationalApplication:
             effective_at=effective_at,
             known_at=known_at,
         )
+
+    def resolve_judgment_accountability(
+        self,
+        session: AuthenticatedSession,
+        *,
+        case_id: RecordId,
+        configuration_id: RecordId,
+        eligible_functions: tuple[str, ...],
+        effective_at: datetime,
+    ) -> AccountabilityCheck:
+        """Resolve exact current Role Assignment accountability for one browser judgment.
+
+        The caller supplies a closed, action-specific function set. Resolution uses the
+        production Role Assignment selector for the exact Configuration and its owning Case.
+        Results across functions are combined without specificity, recency, role, actor, or
+        display-order precedence.
+        """
+        self._validate_session(session, "judgment.accountability.resolve")
+        self._require(session, Permission.CASE_READ, "read", ScopeType.CASE, case_id)
+        owning_case = self.operational_store.configuration_case(configuration_id)
+        if owning_case != case_id:
+            self._deny(
+                session,
+                "judgment.accountability.resolve",
+                "CONFIGURATION_SCOPE_NOT_ESTABLISHED",
+                case_id,
+            )
+        self._require(
+            session,
+            Permission.CONFIGURATION_READ,
+            "read",
+            ScopeType.CONFIGURATION,
+            configuration_id,
+        )
+        known_at = self.clock.now()
+        assignment_ids: set[RecordVersionId] = set()
+        conflict = False
+        for function in eligible_functions:
+            result = self._service.resolve_accountability(
+                role=function,
+                target_type=RoleTargetType.CONFIGURATION,
+                target_id=str(configuration_id),
+                effective_at=effective_at,
+                known_at=known_at,
+            )
+            if isinstance(result, AccountabilityFound):
+                if result.assignment_version_id is not None:
+                    assignment_ids.add(result.assignment_version_id)
+            elif isinstance(result, AccountabilityConflict):
+                conflict = True
+                assignment_ids.update(result.assignment_version_ids)
+
+        assignments: list[AccountableAssignmentView] = []
+        for version_id in sorted(assignment_ids, key=str):
+            version = self.domain_store.get_version(version_id)
+            actor_value = version.content.get("paim_actor_id") if version is not None else None
+            function_value = version.content.get("role") if version is not None else None
+            if not isinstance(actor_value, str) or not isinstance(function_value, str):
+                raise RuntimeError("accountable Role Assignment detail is unavailable")
+            actor = self._practitioner_queries.actor_context(
+                principal_id=session.principal_id,
+                actor_id=RecordId.parse(actor_value),
+                effective_at=effective_at,
+                known_at=known_at,
+            )
+            assignments.append(
+                AccountableAssignmentView(str(version_id), actor.display_name, function_value)
+            )
+        if conflict or len(assignments) > 1:
+            state = "CONFLICT"
+        elif assignments:
+            state = "ESTABLISHED"
+        else:
+            state = "NOT_ESTABLISHED"
+        return AccountabilityCheck(state, tuple(assignments))
 
     def _practitioner_context(
         self, session: AuthenticatedSession
