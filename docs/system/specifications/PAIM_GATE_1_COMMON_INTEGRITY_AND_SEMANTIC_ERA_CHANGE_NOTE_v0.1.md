@@ -85,6 +85,11 @@ Role Relationship, Responsibility Assignment Basis, and durable Work through
 Architecture, domain-accountability, and Validation revisions. That bounded Gate-2/4 adoption does
 not alter what Gate 1 established, activate a consumer cutover, or begin Gate 3, 5, or 6.
 
+Issue #133 subsequently adopts the same machinery for prospective Case Continuity Status/Event and
+Case Continuity Determination, coordinating exact Configuration lineage and Responsibility/Work
+no-retarget behavior. That Gate-3 adoption likewise activates no consumer cutover and does not begin
+Gate 5, Gate 6, or implementation.
+
 ## Implementation and migration boundary
 
 Gate 1 specifies behavior but makes no domain, schema, migration, code, UI, scheduler,

@@ -13,7 +13,13 @@ This specification derives from:
 
 It defines **what lifecycle behavior the PAIM system must support**. It does not prescribe software implementation.
 
-**Normative cross-cutting contract:** `PAIM_SYSTEM_RECORD_AND_DECISION_INTEGRITY_SPEC_v0.1.md` governs authoritative record identity/version/currentness, the complete allowed lifecycle transition table and guards, Decision Authorization Basis, operation during intervention/reassessment, and Interim Operating Disposition. This specification continues to govern the substantive meaning of each case state.
+**Normative cross-cutting contracts:** `PAIM_SYSTEM_RECORD_AND_DECISION_INTEGRITY_SPEC_v0.1.md`
+governs authoritative record identity/version/currentness, semantic-era interpretation, Decision
+Authorization Basis, operation during intervention/reassessment, and Interim Operating Disposition.
+`PAIM_RESPONSIBILITY_AND_CASE_WORK_SPEC_v0.1.md` governs exact Responsibility and Work context.
+§3A of this specification governs prospective continuing-Case status and continuity determinations.
+The v0.1 phase states and Transition Events in §3 and §§4–25 retain their original meaning before
+cutover and remain immutable historical facts after cutover; §3A is the prospective contract.
 
 ## 1. Purpose
 
@@ -127,6 +133,257 @@ CLOSED / SUPERSEDED
 ```
 
 Cases may use only the source-to-target transitions and explicit skips defined in `PAIM_SYSTEM_RECORD_AND_DECISION_INTEGRITY_SPEC_v0.1.md`, §5.3. A platform may compress presentation or complete adjacent transitions at the same recorded time, but it must preserve a distinct valid Transition Event and every mandatory guard for each transition.
+
+## 3A. Prospective continuing-Case and continuity contract
+
+### 3A.1 Adoption and legacy boundary
+
+This section is the controlling substantive contract for prospective Case continuity. It adopts the
+Gate-1 common envelope, Semantic Contract ID/Version, exact typed context set, family-owned
+selection, dual-time reconstruction, semantic transaction, compatibility, and access rules.
+
+There is no global cutover. A Case uses this contract only after a separately accepted
+implementation/migration contract declares the exact supported Semantic Contract Version, Case or
+population, effective/knowledge boundary, initialization rule, legacy adapter, rollback behavior,
+and cross-era selection. Before cutover, the canonical v0.1 phase model in §§3–25 and Integrity §5
+continues to control runtime behavior.
+
+After cutover, the three-status continuity contract controls Case-level continuity. Legacy
+`CONFIGURATION_DEFINED`, `EVIDENCE_ANALYSIS`, `READY_FOR_INTEGRATION`, `DECISION_PENDING`,
+`DECIDED`, `INTERVENTION_IN_PROGRESS`, `OPERATING_OBSERVING`, `REASSESSMENT_DUE`, and `REOPENED`
+events remain exact historical phase facts but are not prospective Case continuity statuses. A
+failed prospective command never retries as a legacy transition, and no legacy event is rewritten,
+relabeled, or selected merely because its era is older or newer.
+
+### 3A.2 Durable Case identity
+
+A Case is one bounded continuing management subject:
+
+- one materially coherent AI-related business use or management question;
+- its exact Managed Configuration lineage;
+- independent Value and Risk histories;
+- authorized Decisions, Boundaries, and operating relationships;
+- actions/Interventions, outcomes, information, Learning, Triggers, and Reassessments; and
+- the organizational need to preserve continuity among those facts.
+
+The Case is neither an AI inventory entry nor a universal workflow container. Provider, model,
+product, title, owner, organizational unit, source information, technical deployment, or semantic
+similarity alone does not establish identity. One system may support several Cases, and one Case
+may contain multiple AI and non-AI components within its bounded subject.
+
+### 3A.3 Continuity status vocabulary and selector
+
+The only prospective Case continuity statuses are:
+
+- `OPEN`: the same bounded management subject remains eligible for continuing PAIM management;
+- `CLOSED`: an accountable determination establishes that there is no current operation and no
+  remaining required PAIM management obligation under this Case identity; and
+- `SUPERSEDED`: one named successor Case prospectively carries the management subject, and the
+  predecessor is terminal for new Work or substantive Case acts.
+
+`OPEN` does not mean active Work, active operation, approval, readiness, undecided status, or a
+missing Decision. There is no universal `ACTIVE` or `COMPLETED` Case status. `REOPENED` is an
+explicit continuity event/determination that appends a new `OPEN` status; it is not a long-lived
+status.
+
+For one exact Case, effective time, and knowledge cutoff, continuity selection returns exactly one
+eligible status Version or explicit `CASE CONTINUITY STATUS CONFLICT — UNRESOLVED`. A Case must have
+one eligible status after initialization. Recency, storage order, legacy phase, subordinate state,
+operation, Work, title, or UI presentation cannot choose or derive a status.
+
+### 3A.4 Case continuity status/event minimum record
+
+Every prospective status change preserves:
+
+- exact Case ID and immutable continuity Status/Event Version ID;
+- this exact Semantic Contract ID/Version;
+- prior and new continuity status;
+- exact Case Continuity Determination Version and changed-basis context where required;
+- exact responsible Actor or governed mechanism and eligible Responsibility Version;
+- separately valid authority/assignment basis required for the act;
+- rationale and reason;
+- effective time, recorded time, and knowledge cutoff used by the command;
+- exact predecessor/successor status relationship; and
+- successor Case relationship when status is `SUPERSEDED`.
+
+Initial Case creation under this contract appends `OPEN`; it does not create any subordinate
+Decision, Configuration, Work, operation, or review fact.
+
+### 3A.5 Case Continuity Determination
+
+A Case Continuity Determination is a stable authoritative Record with immutable Versions. It
+preserves:
+
+- Determination ID and Version ID and Semantic Contract ID/Version;
+- controlled determination kind;
+- exact source Case and current continuity Status Version;
+- candidate same-Case, changed-Configuration, or successor-Case context as applicable;
+- an immutable typed context set containing every exact changed source/basis Version;
+- controlled outcome;
+- rationale and identified material continuity/discontinuity factors;
+- responsible Actor or genuine governed mechanism;
+- exact `DETERMINE_CASE_CONTINUITY` Responsibility Version and assignment/authority basis;
+- effective time, recorded time, and knowledge cutoff;
+- predecessor/correction/supersession/withdrawal history; and
+- exact successor Case relationship where required.
+
+The controlled kinds and outcomes are:
+
+| Determination kind | Permitted outcomes | Required additional context |
+|---|---|---|
+| `SAME_OR_NEW_CASE` | `SAME_CASE`, `NEW_CASE_REQUIRED` | exact changed basis, candidate business use/question and Configuration context |
+| `CASE_CLOSURE` | `CLOSE`, `REMAIN_OPEN` | exact closure-guard manifest and final Decision/operation relationship |
+| `CASE_REOPENING` | `REOPEN_SAME_CASE`, `REMAIN_CLOSED`, `NEW_CASE_REQUIRED` | exact prior closure Version and new management need/source |
+| `CASE_SUPERSESSION` | `SUPERSEDE_WITH_SUCCESSOR`, `DO_NOT_SUPERSEDE` | exact named successor Case and relationship basis |
+
+Absence, vacancy, inaccessible basis, or conflict blocks the requested routing/status command.
+Similarity, provider/model equality, shared information, title, ownership, recency, majority,
+configuration version number, or software inference cannot produce an outcome.
+
+### 3A.6 Same Case versus new Case
+
+The same Case is appropriate when the bounded management subject remains materially coherent and
+the new activity is reconsideration, changed information, changed operating conditions, a successor
+Configuration within the same use, or a later Decision about that same use.
+
+A new Case is required when independent interpretation is materially necessary, including a
+materially different business purpose/management question, use/population/workflow with no
+defensible continuity, concurrent independently governed Configuration, information that cannot
+reasonably carry across the claimed subject, or a successor requiring independent Responsibilities,
+authority, Decisions, and review.
+
+A purely structural correction whose identity effect is already fixed by its owning contract need
+not invent a continuity judgment. Whenever material coherence is not mechanically established by
+an exact accepted rule, `SAME_OR_NEW_CASE` requires the accountable determination above. A new Case
+receives a new stable Case ID and its own `OPEN` status. Any predecessor/successor or related-Case
+relationship is explicit and does not transfer authority, Responsibility, access, applicability,
+Decision effect, closure, or subordinate state.
+
+### 3A.7 Configuration continuity within a Case
+
+A successor Configuration Version or new Configuration identity may remain within the same Case
+only when the exact Configuration change contract and, where required, a `SAME_CASE` continuity
+determination establish that the bounded management subject remains coherent. Materially different
+business use requires a new Case even when provider, model, technical system, or information is
+shared.
+
+Every historical Evidence Applicability, Value/Risk Input and selection, Integration, Boundary,
+Decision, Responsibility, Work, Intervention, Trigger/Reassessment, and Learning fact remains bound
+to its original exact Case and Configuration Version. A successor Configuration creates no silent
+carry-forward, retarget, currentness, applicability, satisfaction, or authority. Each owning
+contract must revalidate any prospective reuse.
+
+### 3A.8 Closure guards
+
+Stopping or discontinuing AI-enabled use is a Decision/operating result and does not automatically
+close the Case. A `CLOSE` determination and `OPEN -> CLOSED` status transaction may commit only when
+the exact effective-time/knowledge-time guard manifest establishes all of the following:
+
+1. the exact current Case status is `OPEN` and no conflicting status exists;
+2. no current operation continues under an authorized Decision/Configuration for this identity;
+3. required Intervention, retirement, data/control disposition, Completion Acceptance, or other
+   action obligation is completed, explicitly transferred through a valid owning contract, or not
+   required;
+4. required Learning/outcome-evidence obligations are completed or validly disposed;
+5. no Trigger requiring Reassessment lacks exact completed coverage, and no active/conflicting
+   Reassessment or Interim Operating Disposition requires management;
+6. required Authority, contractual, retention, or existing review obligation is completed or
+   validly disposed without inventing Gate-5 timing semantics;
+7. no required durable Work remains `READY` or `WAITING`, and no Responsibility vacancy/conflict
+   blocks a required obligation;
+8. the final Decision/operation, governing Configuration, unresolved-item treatment, retention,
+   and any successor relationship are exact; and
+9. the responsible Actor/mechanism, `DETERMINE_CASE_CONTINUITY` Responsibility, assignment/authority
+   basis, access, expected Versions, and command replay basis are valid.
+
+Closure deletes nothing, changes no prior effective interval outside the status event, terminates no
+external authority by inference, and does not declare every subordinate item successful. A failed
+guard yields `REMAIN_OPEN`/blocked explanation as the owning command permits and commits no `CLOSED`
+status or partial disposition.
+
+### 3A.9 Reopening and supersession
+
+A `CLOSED` Case may return to `OPEN` only through `CASE_REOPENING` with outcome
+`REOPEN_SAME_CASE`, exact prior closure, a new exact management need, and a valid continuity
+Responsibility/basis. The closure remains historical. Reopening creates no Work, Configuration,
+Decision, Trigger, or review result; each required subordinate fact follows its own command.
+
+If the new need is a materially different subject, outcome is `NEW_CASE_REQUIRED` and the old Case
+remains `CLOSED`. A `SUPERSEDED` Case never reopens. `CASE_SUPERSESSION` requires one exact named
+successor Case and atomically appends the predecessor `SUPERSEDED` status plus Case relationship.
+From its effective time, the predecessor rejects new Responsibility, Work, Configuration,
+Decision, Intervention, Learning, Trigger/Reassessment, or other substantive writes except
+explicitly authorized correction, audit, retention, or historical relationship operations.
+
+### 3A.10 Concurrent subordinate states and current position
+
+An `OPEN` Case may simultaneously have operation under an exact Decision, in-progress or waiting
+Interventions, Learning, Value refresh, Risk refresh, information work, Trigger/Reassessment, and
+other exact Work. Their independent statuses coexist and cannot collide because they are not Case
+continuity phases. Completion or change in one does not move, complete, hide, or waive another.
+
+`Current management position` is an access-filtered Gate-1 read composition, not an authoritative
+master record or status. It may compose the current Case status, governing Configuration,
+Decision/Boundary/operation, independent Value/Risk positions, Responsibilities/Work, actions,
+Learning, Triggers/Reassessments, unresolved information/authority/uncertainty, and exact existing
+attention conditions. It retains source Versions, rule Version, effective/known-at basis, access
+context, and watermark. Cache, label, order, count, notification, or view state creates no
+continuity, priority, authority, or closure.
+
+### 3A.11 Responsibility and Work interaction
+
+Gate-2/4 Responsibility and Work remain bound to their original exact Case and Configuration
+context. Prospective Case continuity uses controlled obligation kind
+`DETERMINE_CASE_CONTINUITY`, with a discriminator for `SAME_OR_NEW_CASE`, `CASE_CLOSURE`,
+`CASE_REOPENING`, or `CASE_SUPERSESSION`, and the exact determination context above.
+
+Case or Configuration change triggers review/commit revalidation under the Work contract. A stale
+Responsibility or Work Item cannot retarget to a successor Case/Configuration, satisfy a closure
+guard, or commit a result. It remains historical and may be explicitly cancelled/superseded; any
+replacement receives a new or linked successor identity and exact context. Case Coordinator
+practical role, access, ownership, operation, or software permission does not establish continuity
+Responsibility or authority.
+
+Continuity Responsibility establishes who is accountable to perform the exact determination; it
+does not choose the outcome or supply any separate organizational authority required to close,
+reopen, supersede, transfer, or end operation. The command retains both bases where both are
+required.
+
+### 3A.12 Historical reconstruction
+
+Every authorized Decision remains reconstructable from its exact bound Configuration, Integration,
+Value/Risk Inputs and selections, Boundary, Authority/Gap, Decision Authorization Basis, and other
+explicit sources. Case reconstruction supports:
+
+1. the exact Decision-bound basis;
+2. state effective at a requested time using knowledge now available;
+3. state actually known by the requested cutoff; and
+4. later facts labelled as later knowledge.
+
+Successor Configuration, Decision, Case status, correction, closure, reopening, supersession,
+Responsibility, Work, action, information, or Learning never rewrites the earlier basis or enters a
+known-at view before its recorded time. Historical legacy phase and prospective continuity facts
+retain their source contract labels; there is no cross-era `newer wins` rule.
+
+### 3A.13 Access, atomicity, and zero mutation
+
+Access/non-disclosure is checked before status/determination selection, changed-basis composition,
+closure-guard composition, same/new routing, command review/commit, current-position composition,
+and historical reconstruction. Hidden Cases, sources, candidates, obligations, conflicts, counts,
+or successor identities do not leak through explanations, output shape, ordering, or timing.
+
+Continuity determination plus status/relationship facts declared by one natural command form one
+Gate-1 semantic transaction. Every expected Version, Responsibility, assignment/authority, access,
+guard, context, and replay check passes and all intended facts commit, or zero facts commit. Exact
+replay returns the original identities without duplicates. A changed context, determination,
+successor, status, or intended-fact set is not replay.
+
+### 3A.14 Explicit exclusions
+
+This contract does not define planned/required review timing, scheduler behavior, assessment
+adequacy, reliance, quantitative Value/Risk, first-class Observation, generic workflow, UI,
+notifications, persistence, schema, migration, deployment, analytics, or Harborlight mutation.
+Gate 5 and Gate 6 remain separately gated.
 
 ## 4. State: OPEN
 

@@ -19,9 +19,10 @@ This document does not prescribe a database, programming language, UI framework,
 Cross-cutting authoritative-record, boundary, lifecycle-transition, decision-authorization, and interim-reassessment integrity semantics are governed by `../specifications/PAIM_SYSTEM_RECORD_AND_DECISION_INTEGRITY_SPEC_v0.1.md`. That specification hardens this architecture without changing its analytical or practitioner meaning.
 
 Gate 1 of the accepted Normative Model Redesign adds a prospective common integrity and
-semantic-era boundary to that specification and to this architecture. Existing v0.1 record-family
-semantics remain controlling until their separately authorized Gate 2–6 revisions. This
-architecture does not predefine those later payloads, workflows, or substantive judgments.
+semantic-era boundary to that specification and to this architecture. Accepted Gates 2/4 and 3
+define prospective Responsibility/Case Work and continuing-Case semantics, while existing v0.1
+consumers remain controlling until separately authorized implementation/migration cutover. This
+architecture does not predefine Gate-5/6 payloads, workflows, or substantive judgments.
 
 ## 1. System Purpose
 
@@ -230,35 +231,27 @@ The implementation should preserve relationships and history rather than overwri
 
 ## 6. Case Lifecycle
 
-Representative lifecycle:
+The prospective Case-level continuity vocabulary is:
 
 ```text
-OPEN
+OPEN <---- explicit accountable reopening ---- CLOSED
   |
-CONFIGURATION DEFINED
-  |
-EVIDENCE / ANALYSIS
-  |
-READY FOR INTEGRATION
-  |
-DECISION PENDING
-  |
-DECIDED
-  |
-INTERVENTION IN PROGRESS
-  |
-OPERATING / OBSERVING
-  |
-REASSESSMENT DUE
-  |
-REOPENED
-  |
-CLOSED / SUPERSEDED
+  +---- exact named successor ----> SUPERSEDED (terminal predecessor)
 ```
 
-**Case lifecycle state** and **AI operating state** are different constructs and must remain distinct.
+`OPEN` is continuing eligibility for management, not a universal active-work or operating phase.
+`CLOSED` requires no current operation and no remaining required PAIM management obligation.
+`SUPERSEDED` routes prospective management to one named successor. An explicit reopening event
+returns the same coherent subject from `CLOSED` to `OPEN`; `REOPENED` is not a long-lived status.
 
-The exhaustive allowed source-to-target transitions, guards, transition actors/mechanisms, and coexistence of operation with intervention/reassessment are defined in `PAIM_SYSTEM_RECORD_AND_DECISION_INTEGRITY_SPEC_v0.1.md`, §5.
+Decision, operation, Intervention/action, Learning, Value/Risk refresh, Trigger/Reassessment, and
+Work states coexist independently. Current management position is a non-authoritative composition;
+no subordinate condition becomes a universal Case phase.
+
+The owning substantive rules are in `PAIM_CASE_LIFECYCLE_SPEC_v0.1.md`, §3A and the common
+integrity/transaction rules are in
+`PAIM_SYSTEM_RECORD_AND_DECISION_INTEGRITY_SPEC_v0.1.md`, §5A. The legacy v0.1 phase model and its
+Transition Events remain controlling before explicit cutover and immutable history afterward.
 
 ## 7. Decision Boundary Model
 
@@ -560,8 +553,8 @@ At Gate-1 acceptance, the architecture reserved integration points but did not d
 - Planned Review Point and required-review constraints (Gate 5); or
 - readiness, assessment adequacy, reliance, or quantitative Value/Risk payloads (Gate 6).
 
-Gate 2 and Gate 4 now adopt the common mechanisms in §20B. Each remaining later module must adopt
-them explicitly and define its own context roles,
+Gates 2 and 4 now adopt the common mechanisms in §20B, and Gate 3 adopts them in §20C. Each
+remaining later module must adopt them explicitly and define its own context roles,
 eligibility, conflict/coexistence, authority/accountability, access, temporal, migration, and
 transaction rules. Existing v0.1 families continue unchanged until then.
 
@@ -620,6 +613,68 @@ prospective path never falls back.
 
 This architecture section authorizes no module, schema, migration, persistence, UI, notification,
 or Harborlight mutation. Physical design remains a later implementation-readiness decision.
+
+## 20C. Continuing Case and Configuration continuity architecture
+
+### 20C.1 Logical ownership
+
+The accepted Gate-3 contract adds two prospective authoritative families:
+
+- **Case Continuity Status/Event** owns exact `OPEN`, `CLOSED`, or `SUPERSEDED` continuity for one
+  Case and time; and
+- **Case Continuity Determination** owns accountable same/new Case, closure, reopening, and
+  supersession judgments with exact changed basis and context.
+
+Case Lifecycle owns status meaning, determination kinds/outcomes, closure guards, reopening, and
+terminal supersession. Managed Configuration owns Configuration identity, materiality, lineage,
+governing selection, and exact owning-Case relationships. Gate-1 integrity supplies semantic-era,
+context, selector, transaction, access, and reconstruction mechanics. Gate-2/4 Responsibility/Work
+supplies exact accountability and no-retarget behavior.
+
+### 20C.2 No universal workflow phase
+
+An `OPEN` Case may simultaneously operate under a Decision, execute actions/Interventions, obtain
+Learning, refresh independent Value and Risk, handle information, and undergo Reassessment. Those
+states remain in their owning records and compose into practitioner explanation. They do not
+advance one universal lifecycle, overwrite each other, or become a master management-position
+record.
+
+`Current management position` is an access-filtered non-authoritative composition of exact sources,
+rule Version, effective/known-at basis, and watermark. It creates no continuity, priority,
+authority, closure, or command basis.
+
+### 20C.3 Same/new Case and Configuration lineage
+
+Case identity is the bounded materially coherent business use/management subject, not provider,
+model, title, inventory identity, ownership, or shared information. Where exact accepted rules do
+not mechanically establish continuity, a Case Continuity Determination supplies the accountable
+same/new outcome. A materially different business use requires a new Case.
+
+A successor Configuration Version or identity may remain within the same Case only when its
+bounded subject remains coherent. No successor silently retargets historical Evidence,
+Value/Risk, Decision, Responsibility, Work, Intervention, Reassessment, or Learning. A new Case and
+any predecessor/successor relationship transfer none of those facts by inference.
+
+### 20C.4 Closure, reopening, and terminal behavior
+
+Stopping operation does not close a Case while required action/retirement, acceptance, Learning,
+Trigger coverage/Reassessment, Authority/existing review, Work, or another management obligation
+remains. Closure is an atomic accountable determination/status command over an exact guard manifest.
+
+Reopening is an explicit accountable continuity event that appends `OPEN` and preserves closure;
+it revives no subordinate record. Supersession atomically names one successor and makes the
+predecessor terminal for new substantive work. All failures commit zero intended facts.
+
+### 20C.5 History, cutover, and implementation boundary
+
+Decision-bound reconstruction always starts from the Decision's exact Configuration, inputs,
+Integration, Boundary, and Authorization Basis. Effective-at/known-at views preserve Case status,
+legacy phase, Configurations, Responsibility/Work, and subordinate facts without hindsight rewrite.
+
+There is no global cutover or automatic phase-to-status mapping. Each adopting Case/population needs
+a separately accepted initialization/migration contract; legacy phase events remain exact and a
+failed prospective path never falls back. This architecture authorizes no code, schema, migration,
+UI, scheduler, notification, deployment, analytics, or Harborlight mutation.
 
 ## 21. What Is Already Designed / Validated
 
@@ -746,10 +801,11 @@ platform/
 
 ## 27. Next Step
 
-Gate 1 establishes the common integrity and semantic-era contract, and the accepted accelerated
-Gate-2/4 contract establishes prospective Responsibility and minimal Case Work semantics. Gate 3
-(Case continuity), Gate 5 (continuing-review timing), and Gate 6 (assessment adequacy, reliance,
-and quantitative Value/Risk) remain sequenced and separately reviewed under the accepted
+Gate 1 establishes the common integrity and semantic-era contract; the accepted accelerated
+Gate-2/4 contract establishes prospective Responsibility and minimal Case Work; and Gate 3
+establishes continuing Case and Configuration continuity. Gate 5 (continuing-review timing) and
+Gate 6 (assessment adequacy, reliance, and quantitative Value/Risk) remain sequenced and separately
+reviewed under the accepted
 [Downstream Specification Plan](../../design/normative-model/PAIM_DOWNSTREAM_SPECIFICATION_PLAN.md).
 No domain/persistence implementation or UI redesign begins from this architecture update.
 
