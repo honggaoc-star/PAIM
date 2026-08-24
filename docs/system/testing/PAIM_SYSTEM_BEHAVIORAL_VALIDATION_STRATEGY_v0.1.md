@@ -17,6 +17,7 @@ This strategy derives from:
 - `PAIM_REASSESSMENT_SPEC_v0.1.md`
 - `PAIM_MANAGEMENT_REGISTER_SPEC_v0.1.md`
 - `PAIM_ROLES_AND_ACCOUNTABILITY_SPEC_v0.1.md`
+- `PAIM_RESPONSIBILITY_AND_CASE_WORK_SPEC_v0.1.md`
 - Phase II validation findings from IET 001–004.
 
 It defines how PAIM should be tested as an integrated management system through controlled inputs, observable outputs, state transitions, invariants, and human-facing behavior.
@@ -30,6 +31,11 @@ context sets, selector outcomes, non-authoritative read composition, dual-time r
 semantic transactions, migration/compatibility, and access/non-disclosure. Those oracles apply to a
 later record family only when its separately accepted Gate 2–6 contract adopts them. They do not
 change current v0.1 expected behavior or define later substantive payloads.
+
+The accelerated Gate-2/4 contract now adopts that machinery for prospective Case Practical Role
+Relationship, Responsibility, Responsibility Assignment Basis, and durable Work families. §9B
+defines their normative oracles. This adoption changes no current v0.1 implementation expectation
+until a separately accepted implementation/migration contract declares an exact consumer cutover.
 
 **Bounded v0.1 validation scope:** the human-accepted
 `../../engineering/PAIM_V0_1_RELEASE_SCOPE_DECISION_IRR_009_IRR_014_v0.1.md` establishes that
@@ -499,6 +505,106 @@ No Gate-1 mechanism may be used as an oracle for:
 
 Any test expecting one of those outcomes belongs to Gate 2–6 and remains invalid until its owning
 specification is accepted.
+
+## 9B. Accelerated Gate-2/4 Responsibility and Case Work hard oracles
+
+These are implementation-independent oracles for the contract in
+`PAIM_RESPONSIBILITY_AND_CASE_WORK_SPEC_v0.1.md`. They authorize no implementation or fixture
+mutation.
+
+### 9B.1 Responsibility identity, context, and resolution
+
+1. Canonically identical obligation signatures with differently ordered context inputs resolve to
+   the same exact signature; a changed Evidence, target, Configuration, purpose/use, scope, Case,
+   semantic-contract Version, or other required member resolves a different obligation.
+2. One eligible Responsibility Version returns that Version. Zero returns `RESPONSIBILITY NOT
+   ESTABLISHED`. Two incompatible co-current Versions return `RESPONSIBILITY CONFLICT —
+   UNRESOLVED` with no winner by specificity, breadth, recency, practical role, hierarchy, access,
+   software permission, workload, or row order.
+3. One Actor may hold Case coordination, Value, Risk, and information-review Responsibilities;
+   every Responsibility and Value/Risk/result Version remains independent and exactly attributable.
+4. Case Coordinator, Assessor, Reviewer, participant, author, owner, administrator, and visible user
+   labels create no Responsibility or substantive authority.
+
+### 9B.2 Assignment-basis and history oracles
+
+1. Establishment succeeds only with an exact effective in-scope Responsibility Assignment Basis.
+   Practical role or software permission alone fails with zero mutation.
+2. Delegation preserves the full exact chain and does not broaden scope. Missing, expired, revoked,
+   unrelated, incomplete, or conflicting links fail closed.
+3. Reassignment, withdrawal, and supersession append exact history; expiry without successor creates
+   vacancy. Effective-at/known-at reads preserve the prior historically valid holder.
+4. A multi-fact assignment transaction commits Responsibility, relationships, audit, and intended
+   events all or none. Exact replay returns the original identities; a changed context or intended
+   fact is not replay.
+
+### 9B.3 Legacy and semantic-era oracles
+
+1. Every legacy Role Assignment Version and historically valid result remains byte-/field-exact and
+   is interpreted under its original contract.
+2. Before a consumer's declared cutover, its current legacy selector controls. After cutover, new
+   writes require Responsibility; a prospective failure never retries through legacy behavior.
+3. No adapter synthesizes Responsibility or missing context. Cross-era incompatible eligible
+   candidates produce conflict absent an explicit valid displacement/supersession relation.
+4. `Applicability Owner` is accepted only by the named bounded pre-cutover adapter; no prospective
+   practical role or obligation kind with that name exists.
+
+### 9B.4 Derived-versus-durable Work and result separation
+
+1. A waiting act whose request/assignment/handoff/due/result-return history need not persist is
+   derived without Work ID, assignee, due time, or completion state.
+2. A cross-person request requiring persisted handoff and return creates one durable Work identity
+   with the exact Responsibility, context packet, requester/basis, required result contract, and
+   return.
+3. Work cannot create Evidence Applicability, Value/Risk acceptance, Integration, Authority,
+   Decision, Trigger Determination, Reassessment result, Intervention Completion Acceptance,
+   Activation Authorization, or Learning interpretation. `COMPLETED` requires the exact eligible
+   result Version already created by the owning domain command.
+4. Cancelled/superseded Work retains its full history and result links. No percentage, inferred
+   priority, rank, strongest-state, semantic similarity, generic task tree, workflow graph, or
+   authoritative chat appears.
+
+### 9B.5 Handoff, return, independence, and staleness
+
+1. Same-Actor and different-Actor handoffs carry the same exact visible Case, Configuration,
+   information/assessment, purpose/scope, prerequisite, Responsibility, required result, and return
+   context. The receiver need not reconstruct already-governed context.
+2. Linking one exact result recomposes the origin. It makes only its own prerequisite satisfied;
+   another independent prerequisite remains independently visible and outstanding.
+3. If a context Version, Responsibility, access fact, or required authority changes after review,
+   commit fails with zero mutation. Old Work remains bound to old context; no silent retarget,
+   status copy, or auto-completion occurs.
+4. Result-link/completion commits all intended facts or none. Exact replay creates no duplicate
+   result link, Work Version/status event, audit fact, or delivery intent.
+
+### 9B.6 Access and non-disclosure
+
+1. Access is evaluated before candidate selection, queue/participant composition, assignment,
+   handoff, result link, and return.
+2. A hidden Case, Actor, source, candidate, vacancy/conflict fact, global count, or context cannot be
+   inferred from labels, explanations, ordering, timing, counts, or aggregates.
+3. Responsibility does not grant access and access does not create Responsibility. A responsible
+   but unauthorized Actor receives a safe denial and no access grant or domain mutation.
+
+### 9B.7 Harborlight Scenario-A end-to-end oracle
+
+Starting from the preserved stopping point and without mutating the live Case:
+
+```text
+two independent Value-review Applicability prerequisites
+  -> first exact Responsibility is vacant
+  -> authorized exact JUDGE_EVIDENCE_APPLICABILITY assignment
+  -> durable contextual Work to same or different Actor
+  -> owning Evidence command creates exact Applicability Version
+  -> atomic Work result link and return
+  -> originating Value review recomposes
+  -> second Applicability prerequisite remains outstanding
+```
+
+The assignment makes no Applicability judgment, Work creates no result, and neither grants Decision
+Authority. Repeat with conflicting co-current Responsibilities, invalid assignment basis, stale
+Configuration/Evidence/Input, inaccessible source, cancelled/superseded Work, and failure on the
+second intended write; each failure preserves all prior facts and produces no partial mutation.
 
 ## 10. Boundary-Sensitivity Tests
 
@@ -1338,10 +1444,10 @@ This substantially completes the system-specification layer required before plat
 
 ## 49. Recommended Next Step
 
-After independent Gate-1 acceptance, add Gate-1 implementation or conformance tests only through a
-separately authorized architecture/implementation gate. The next substantive normative work may be
-Gate 2 (Responsibility) only through its own bounded issue. Do not use these common oracles to start,
-test, or imply Gate 2–6 semantics before their owning contracts are accepted.
+After independent Gate-2/4 acceptance, add Responsibility or Case Work implementation/conformance
+tests only through a separately authorized architecture/implementation gate. Gate 3, Gate 5, and
+Gate 6 remain unstarted by these oracles. Do not use the common or Gate-2/4 oracles to imply their
+Case-continuity, review-timing, readiness/adequacy/reliance, or quantitative Value/Risk semantics.
 
 ## 50. Repository Placement
 

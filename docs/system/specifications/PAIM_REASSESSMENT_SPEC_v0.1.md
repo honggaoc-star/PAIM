@@ -831,6 +831,23 @@ Later correction, withdrawal, role expiry, supersession, cancellation, or succes
 - **IRR-012:** accepted Management Register projection may surface exact Trigger, Reassessment, and Interim Operating Disposition facts and Shared Dependency groups, but it never substitutes for Case-scoped selection, coverage, coordination, completion, authority, or outcome and never creates Register-driven workflow.
 - **IRR-014:** exact operating-state values may be retained and compared only for identity and exact authorized applicability. No stronger, broader, more-restrictive, escalation-rank, automatic-target-state, priority, materiality, or grouping inference is permitted.
 
+### 38.12 Prospective Trigger and Reassessment Responsibilities
+
+After explicit consumer cutover under `PAIM_RESPONSIBILITY_AND_CASE_WORK_SPEC_v0.1.md`:
+
+- `DETERMINE_TRIGGER` binds the exact Trigger Version, owning Case, initiating Decision and target
+  Configuration Versions when established, and declared management question/scope;
+- `LEAD_REASSESSMENT` binds the exact Reassessment Version, immutable Trigger Set Version,
+  Decision Version, Configuration Version, and declared scope; and
+- `COORDINATE_REASSESSMENT` binds every exact Reassessment/Trigger Set Version participating in
+  the grouping, duplicate, coexistence, overlap, cancellation, supersession, or coverage question.
+
+Each kind resolves separately. Case coordination, source authorship, queue assignment, practical
+role, access, or another Reassessment Responsibility is not a substitute. Work may carry exact
+context and return but cannot create a Trigger Determination, Reassessment, coordination
+determination, Interim Operating Disposition, confirmation, or successor Decision. This section
+does not introduce Gate-5 planned-review or review-timing semantics.
+
 ## 39. Open Questions
 
 Deferred to later specifications/platform design:

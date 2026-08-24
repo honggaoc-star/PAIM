@@ -613,8 +613,70 @@ permission, or deployment.
 
 Gate 2 owns Responsibility kinds/assignment; Gate 3 owns Case continuity; Gate 4 owns Case Work;
 Gate 5 owns Review Timing; and Gate 6 owns readiness, assessment adequacy, reliance, and quantitative
-Value/Risk payloads. Until each gate is accepted, those semantics remain unresolved and current
-v0.1 contracts remain controlling.
+Value/Risk payloads. The accepted accelerated Gate-2/4 contract adopts this machinery in §3B.
+Gates 3, 5, and 6 remain unresolved, and current v0.1 contracts remain controlling for every
+consumer until an exact later cutover is separately accepted.
+
+## 3B. Responsibility and Case Work adoption of Gate-1 integrity
+
+### 3B.1 Adopting contract and authoritative families
+
+`PAIM_RESPONSIBILITY_AND_CASE_WORK_SPEC_v0.1.md` is the owning contract for prospective:
+
+- Case Practical Role Relationship;
+- Responsibility;
+- Responsibility Assignment Basis; and
+- durable Work Item.
+
+Each adopting Version/event binds that contract's exact Semantic Contract ID/Version and uses the
+common envelope, immutable typed context set, effective/recorded time, history, selector,
+transaction, replay, access, and reconstruction rules in §3A. This adoption creates no record,
+schema, migration, or implicit cutover.
+
+### 3B.2 Family-owned identity and selectors
+
+The common layer preserves IDs and canonical context; the Responsibility/Case Work contract owns
+obligation signatures, allowed context roles, assignment-basis validity, one/vacancy/conflict,
+Work state, result eligibility, and return meaning. It also owns whether a legacy candidate is
+compatible, conflicting, or explicitly displaced for one adopted consumer. The integrity layer
+must not infer any of those meanings from a practical role, access, compatibility key, timestamp,
+specificity, source family, or presentation.
+
+Derived work remains a non-authoritative access-filtered composition under §3A.6. It receives no
+stable Work identity merely because a practitioner surface displays it. A durable Work Item uses
+the authoritative envelope only when the owning contract's coordination-history boundary is met.
+
+### 3B.3 Atomic responsibility and result-link operations
+
+When one command intends multiple facts—such as a Responsibility plus its audit/relationship facts,
+or a Work result link plus completion Version/status event—the semantic-transaction manifest names
+all intended facts. Access, exact context, assignment basis, Responsibility, substantive authority,
+result eligibility, stale/current, and replay checks occur before commit. Any failure commits zero
+facts and leaves prior state unchanged.
+
+Assignment and result creation are separate substantive operations unless an owning contract
+explicitly declares one bounded transaction; atomicity never allows Work to manufacture a domain
+result. Exact replay returns the original transaction identity and facts. A changed Responsibility,
+context Version, result Version, return, or intended-fact set is not replay.
+
+### 3B.4 Dual-time, stale context, and no retargeting
+
+Effective-at/known-at reconstruction must reproduce the exact practical role, Responsibility,
+assignment basis, Work Version/state, context packet, result link, return, legacy adapter, and
+access-valid explanation knowable at the query cutoff. Later reassignment, cancellation,
+supersession, result, or knowledge cannot contaminate that view.
+
+If any controlling context changes, the old Work remains bound to its original exact context. It
+cannot select a successor by `current`, silently retarget, copy status, or complete from a merely
+similar result. Cancellation/supersession and replacement Work are explicit prospective facts.
+
+### 3B.5 Access ordering and non-disclosure
+
+Access is checked before Responsibility selection, Work composition, assignment review/commit,
+result-link review/commit, and return composition. A filtered view may state only a safe
+non-disclosing outcome; it cannot reveal hidden Case, Actor, source, candidate, conflict, count, or
+context through explanations or aggregates. Access creates no Responsibility, and Responsibility
+implicitly grants no access.
 
 ## 4. Integrated Operating Boundary contract
 
@@ -1328,6 +1390,7 @@ Platform architecture may not change the observable semantics in this specificat
 | IRR-007 | §§2.1, 3.11–3.13, 5.4, and 8–10: one owning Case, one/absence/conflict governing Configuration selection, orthogonal non-governing purpose, linked-Case concurrency, accountable materiality/identity history |
 | IRR-013 / CON-002 | §§2.1, 3.11–3.13, 6, and 8–10: typed/conditional scope conformance, compatible plural performers, one/absence/conflict accountability, no implicit scope precedence, and unchanged Decision Authorization Basis |
 | Issue #129 / Normative Redesign Gate 1 | §3A: prospective semantic-contract identity, conditional envelope, exact context sets, family-owned selection, non-authoritative read composition, dual-time reconstruction, semantic transactions, compatibility, access, and later-gate boundaries |
+| Issue #131 / Accelerated Gates 2 + 4 | §3B: adoption by practical-role, Responsibility, assignment-basis, and durable-Work families; atomic assignment/result link; exact reconstruction; stale no-retarget; access/non-disclosure |
 
 ## 14. Repository placement
 

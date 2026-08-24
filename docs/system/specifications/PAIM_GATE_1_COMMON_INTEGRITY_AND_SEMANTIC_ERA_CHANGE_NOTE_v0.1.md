@@ -66,7 +66,7 @@ Context membership never creates Applicability, responsibility, authority, adequ
 materiality, causality, comparability, priority, or Decision. The integrity layer identifies and
 protects a fact; it does not make the substantive judgment.
 
-## Later gates remain unresolved
+## Gates unresolved at Gate-1 acceptance
 
 - Gate 2: Responsibility kinds and assignment semantics;
 - Gate 3: Case continuity statuses and determinations;
@@ -76,6 +76,14 @@ protects a fact; it does not make the substantive judgment.
 
 None begins automatically after Gate 1. Gates 1–6 remain one coordinated redesign delivered in
 bounded, independently reviewed increments.
+
+## Subsequent gate status
+
+Issue #131 subsequently adopts the Gate-1 machinery for prospective Responsibility, Case Practical
+Role Relationship, Responsibility Assignment Basis, and durable Work through
+`PAIM_RESPONSIBILITY_AND_CASE_WORK_SPEC_v0.1.md` and the coordinated Roles, Integrity,
+Architecture, domain-accountability, and Validation revisions. That bounded Gate-2/4 adoption does
+not alter what Gate 1 established, activate a consumer cutover, or begin Gate 3, 5, or 6.
 
 ## Implementation and migration boundary
 

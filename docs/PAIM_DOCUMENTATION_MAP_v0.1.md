@@ -15,7 +15,7 @@ semantics.
 | Follow the practitioner pathways | [PAIM v0.1 Practitioner Pathways](operations/PAIM_V0_1_PRACTITIONER_PATHWAYS_v0.1.md) | Validation evidence for the three pathways below |
 | Exercise and challenge PAIM concepts | [PAIM Reference Cases](reference-cases/) | [Small-Business Lending exercise protocol](reference-cases/PAIM_REFERENCE_CASE_EXERCISE_PROTOCOL.md) |
 | Operate or administer a local instance | [Local Operational Application](operations/PAIM_LOCAL_OPERATIONAL_APPLICATION_v0.1.md) | Runtime decisions and recovery evidence under engineering documentation if deeper rationale is needed |
-| Implement or review PAIM contracts | [System Architecture](system/architecture/PAIM_SYSTEM_ARCHITECTURE_v0.1.md) | [Current system specifications](system/specifications/), [Gate-1 common-integrity change note](system/specifications/PAIM_GATE_1_COMMON_INTEGRITY_AND_SEMANTIC_ERA_CHANGE_NOTE_v0.1.md), and [behavioral validation strategy](system/testing/PAIM_SYSTEM_BEHAVIORAL_VALIDATION_STRATEGY_v0.1.md) |
+| Implement or review PAIM contracts | [System Architecture](system/architecture/PAIM_SYSTEM_ARCHITECTURE_v0.1.md) | [Current system specifications](system/specifications/), [Responsibility and Case Work](system/specifications/PAIM_RESPONSIBILITY_AND_CASE_WORK_SPEC_v0.1.md), [Gate-1 common-integrity change note](system/specifications/PAIM_GATE_1_COMMON_INTEGRITY_AND_SEMANTIC_ERA_CHANGE_NOTE_v0.1.md), and [behavioral validation strategy](system/testing/PAIM_SYSTEM_BEHAVIORAL_VALIDATION_STRATEGY_v0.1.md) |
 | Plan or review the bounded practitioner browser experience | [Practitioner Experience Architecture M1](design/PAIM_PRACTITIONER_EXPERIENCE_ARCHITECTURE_M1_v0.1.md) | Current system architecture and specifications remain controlling implementation contracts |
 | Review the task-oriented practitioner UX checkpoint | [Task-Oriented Practitioner UX](design/practitioner-ux/) | [Pre-UX-1 semantic decisions](design/practitioner-ux/PAIM_PRE_UX1_SEMANTIC_DECISIONS.md), [Harborlight Scenario-A task flow](design/practitioner-ux/PAIM_HARBORLIGHT_SCENARIO_A_TASK_FLOW.md), and gated implementation decomposition |
 | Review the selected M1 browser implementation architecture | [UI M1 Implementation Architecture Decision](engineering/PAIM_UI_M1_IMPLEMENTATION_ARCHITECTURE_DECISION_v0.1.md) | Practitioner Experience Architecture M1 defines the required experience; implementation remains separately gated |
@@ -64,8 +64,8 @@ Use these documents when implementing, reviewing, or testing PAIM behavior:
   implementation-architecture decision for the released platform;
 - [system specifications](system/specifications/), including Case Lifecycle, Managed
   Configuration, Evidence and Authority, Value/Risk Interface, Integration and Decision,
-  Intervention and Learning, Reassessment, Management Register, Roles and Accountability, and
-  System Record and Decision Integrity;
+  Intervention and Learning, Reassessment, Management Register, Roles and Accountability,
+  Responsibility and Case Work, and System Record and Decision Integrity;
 - [Gate-1 Common Integrity & Semantic-Era Change Note](system/specifications/PAIM_GATE_1_COMMON_INTEGRITY_AND_SEMANTIC_ERA_CHANGE_NOTE_v0.1.md),
   the concise old-versus-prospective compatibility and later-gate boundary; and
 - [PAIM System Behavioral Validation Strategy](system/testing/PAIM_SYSTEM_BEHAVIORAL_VALIDATION_STRATEGY_v0.1.md).

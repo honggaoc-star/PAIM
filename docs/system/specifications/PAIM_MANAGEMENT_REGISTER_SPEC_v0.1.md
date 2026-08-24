@@ -730,6 +730,16 @@ A descriptive exposure count or set is not risk, severity, materiality, priority
 
 Shared Dependency Determiner accountability and typed targets are governed by the Roles specification. Vacancy or incompatible plurality produces the named not-established/conflict result; dashboard ownership, Case/source ownership, report authorship, administration, and software permission never substitute.
 
+For a consumer explicitly cut over under
+`PAIM_RESPONSIBILITY_AND_CASE_WORK_SPEC_v0.1.md`,
+`DETERMINE_SHARED_DEPENDENCY_EQUIVALENCE` binds the exact immutable Candidate Set Version, every
+constituent owning Case/context permitted by this specification, equivalence scope/purpose, and
+time. Responsibility permits the accountable Actor to attempt the existing Equivalence
+Determination command; it does not establish equivalence, grouping, concentration, priority,
+authority, or any constituent result. Before cutover, the current Shared Dependency Determiner
+Role Assignment/mechanism rule remains controlling. Register-derived work remains non-authoritative
+unless the Case Work contract's durable coordination boundary is independently met.
+
 Safe presentation sorting uses exact source facts such as due date, effective/recorded date, age, stable identity, exact lifecycle/blocker category, and explicit authoritative materiality/priority labels. Sorting changes no substantive priority or source state. Stable-ID tie-breaking is presentation only. No cross-family worst-state logic, weighted score, enum order, operating-state rank, color, queue position, drag/drop order, or notification frequency creates substantive priority. Any future substantive prioritization beyond exact source facts requires a separate accepted authority/policy contract.
 
 `CONFLICT`, `NOT ESTABLISHED`, `INDETERMINATE`, `STALE`, and `PROJECTION INCONSISTENCY` remain visible. Conflict may be counted or grouped descriptively, but a field requiring one winner remains unset/conflicted. Projection inconsistency is quarantined/rebuilt or handled equivalently fail closed; it neither repairs source conflict nor authorizes a command.

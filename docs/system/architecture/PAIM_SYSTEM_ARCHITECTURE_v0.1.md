@@ -550,9 +550,9 @@ not leak through counts, conflict/blocker labels, participant/work lists, timing
 shape. Technical/audit detail requires explicit authorization. Gate 1 changes neither identity nor
 session/deployment architecture.
 
-### 20A.5 Unresolved later modules
+### 20A.5 Modules deferred by Gate 1
 
-The architecture reserves integration points but does not define:
+At Gate-1 acceptance, the architecture reserved integration points but did not define:
 
 - Responsibility taxonomy, assignment, or authority (Gate 2);
 - Case continuity states/determinations (Gate 3);
@@ -560,7 +560,8 @@ The architecture reserves integration points but does not define:
 - Planned Review Point and required-review constraints (Gate 5); or
 - readiness, assessment adequacy, reliance, or quantitative Value/Risk payloads (Gate 6).
 
-Each later module must adopt the common mechanisms explicitly and define its own context roles,
+Gate 2 and Gate 4 now adopt the common mechanisms in §20B. Each remaining later module must adopt
+them explicitly and define its own context roles,
 eligibility, conflict/coexistence, authority/accountability, access, temporal, migration, and
 transaction rules. Existing v0.1 families continue unchanged until then.
 
@@ -571,6 +572,54 @@ stood” experiences use the read-composition boundary. Their source manifests, 
 watermarks, and access context make them reproducible. Cache, export, label, notification, queue
 position, or display order creates no priority, completion, responsibility, authority, currentness,
 or substantive fact. A command reconstructs its own exact authoritative basis.
+
+## 20B. Responsibility and Case Work architecture
+
+### 20B.1 Logical capabilities
+
+The accepted Gate-2/4 normative contract resolves two previously deferred logical capabilities:
+
+- **Responsibility and practical-role governance** owns controlled obligation signatures, exact
+  assignment bases, delegation/reassignment/supersession, and one/vacancy/conflict resolution;
+- **Case Work coordination** owns the derived-versus-durable boundary, exact handoff context,
+  bounded coordination state, governed-result link, and return relationship.
+
+They depend on Gate-1 semantic-contract identity, exact context sets, family selectors,
+transactions, reconstruction, and access ordering. Substantive domain capabilities continue to own
+their results. Decision Authorization, Completion Acceptance, and activation authority remain
+separate authority paths.
+
+### 20B.2 Practitioner and authority boundary
+
+Ordinary Case staffing presents Case Coordinator, Assessor, and optional Reviewer. Those practical
+roles are orientation metadata, not permission or obligation bundles. Administrator remains outside
+ordinary Case staffing; subject-matter expertise is contextual participation/Work. The architecture
+does not create standing Applicability Owner, Decision Maker, or Implementation Owner roles.
+
+The same Actor may occupy multiple roles and Responsibilities, including Value and Risk, while
+each obligation and result remains independently attributable. Assignment requires a separately
+valid Responsibility Assignment Basis; Case Coordinator orientation alone is insufficient.
+
+### 20B.3 Work is coordination, not workflow authority
+
+Most available/waiting work remains an access-filtered read composition. A durable Work Item exists
+only when request, cross-person assignment, handoff, due/expected point, waiting history, result
+link, or return must survive. It is not a generic workflow engine and does not create a substantive
+result, authority, priority, percentage complete, task tree, or authoritative chat.
+
+Review and commit revalidate exact context. A stale Work Item fails closed and remains historical;
+it cannot retarget to a current Version. Result linking returns to the originating context and
+recomposes independent prerequisites independently.
+
+### 20B.4 Semantic-era and implementation boundary
+
+There is no global cutover. Each adopting consumer requires a separately accepted implementation
+and migration contract naming the semantic contract, obligation kind, cutover boundary, bounded
+legacy adapter, and cross-era rule. Legacy Role Assignment history is never rewritten. A failed
+prospective path never falls back.
+
+This architecture section authorizes no module, schema, migration, persistence, UI, notification,
+or Harborlight mutation. Physical design remains a later implementation-readiness decision.
 
 ## 21. What Is Already Designed / Validated
 
@@ -697,9 +746,10 @@ platform/
 
 ## 27. Next Step
 
-Gate 1 establishes only the common integrity and semantic-era contract. After independent Gate-1
-acceptance, Gate 2 (Responsibility) may begin only through a separately authorized bounded issue.
-Gates 3–6 remain sequenced and separately reviewed under the accepted
+Gate 1 establishes the common integrity and semantic-era contract, and the accepted accelerated
+Gate-2/4 contract establishes prospective Responsibility and minimal Case Work semantics. Gate 3
+(Case continuity), Gate 5 (continuing-review timing), and Gate 6 (assessment adequacy, reliance,
+and quantitative Value/Risk) remain sequenced and separately reviewed under the accepted
 [Downstream Specification Plan](../../design/normative-model/PAIM_DOWNSTREAM_SPECIFICATION_PLAN.md).
 No domain/persistence implementation or UI redesign begins from this architecture update.
 
