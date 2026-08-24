@@ -4180,6 +4180,22 @@ class SQLiteIntegrityStore:
         with self.engine.connect() as connection:
             return SQLiteIntegrityTransaction(connection).count_rows(table_name)
 
+    def version_statuses(
+        self,
+        *,
+        version_id: RecordVersionId,
+        effective_at: datetime,
+        known_at: datetime,
+    ) -> tuple[str, ...]:
+        """Read attributed status events for one exact Version at two times."""
+
+        with self.engine.connect() as connection:
+            return SQLiteIntegrityTransaction(connection).version_statuses(
+                version_id=version_id,
+                effective_at=effective_at,
+                known_at=known_at,
+            )
+
     def m1b_versions(
         self,
         *,

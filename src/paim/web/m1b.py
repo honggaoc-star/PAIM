@@ -186,6 +186,20 @@ def _bind_visible_choices(action: str, payload: dict[str, str], view: CaseWorksp
             payload.get("applicability_version_id", ""),
             "Applicability determination",
         )
+        expected_target_type = (
+            ApplicabilityTargetType.VALUE_INPUT_VERSION.value
+            if action.startswith("value")
+            else ApplicabilityTargetType.RISK_INPUT_VERSION.value
+        )
+        if (
+            fitness_applicability.content.get("evidence_version_id") != fitness_evidence.version_id
+            or fitness_applicability.content.get("target_type") != expected_target_type
+            or fitness_applicability.content.get("target_id") != selected_input.record_id
+            or fitness_applicability.content.get("target_version_id") != selected_input.version_id
+        ):
+            raise ValueError(
+                "selected Applicability does not bind the chosen information to this assessment"
+            )
         payload["input_label"] = selected_input.label
         payload["evidence_label"] = fitness_evidence.label
         payload["applicability_label"] = fitness_applicability.label
@@ -200,11 +214,31 @@ def _bind_visible_choices(action: str, payload: dict[str, str], view: CaseWorksp
         )
         if fitness.state != FitnessOutcome.SUPPORTABLE.value:
             raise ValueError("selected fitness determination is not SUPPORTABLE")
+        if (
+            fitness.content.get("input_version_id") != selected_input.version_id
+            or fitness.content.get("configuration_version_id")
+            != payload.get("configuration_version_id")
+            or fitness.content.get("use_context") != payload.get("use_context")
+            or fitness.content.get("purpose") != payload.get("purpose")
+            or bool(fitness.content.get("decision_limiting"))
+        ):
+            raise ValueError(
+                "selected support review no longer binds this assessment and intended use"
+            )
         applicability_ids = _lines(payload.get("material_applicability_version_ids", ""))
         selected_applicability = tuple(
             _record_by_version(view.applicability, value, "Applicability determination")
             for value in applicability_ids
         )
+        expected_applicability_ids = {
+            str(item.get("applicability_version_id"))
+            for item in fitness.content.get("material_evidence", ())
+            if isinstance(item, dict) and item.get("applicability_version_id")
+        }
+        if set(applicability_ids) != expected_applicability_ids:
+            raise ValueError(
+                "selected assessment must retain the support review's exact Applicability basis"
+            )
         payload["input_id"] = selected_input.record_id
         payload["input_label"] = selected_input.label
         payload["fitness_label"] = f"{fitness.state}: {fitness.label}"

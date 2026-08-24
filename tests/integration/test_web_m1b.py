@@ -183,6 +183,8 @@ def test_m1b_workspace_exact_configuration_and_independent_value_risk_path(
         assert current is not None
         lane_view = current.value if lane == "VALUE" else current.risk
         candidate = lane_view.candidates[0]
+        assert lane_view.task_stage == "READY_FOR_REVIEW"
+        assert current.risk.task_stage == "DEVELOP" if lane == "VALUE" else True
 
         _, applicability_confirmation, applicability_commit = _review_commit(
             web_fixture.client,
@@ -257,6 +259,20 @@ def test_m1b_workspace_exact_configuration_and_independent_value_risk_path(
                 )[2].status_code
                 == 303
             )
+        ready_view = web_fixture.operational.practitioner_workspace(
+            web_fixture.admin_session, web_fixture.visible_case_id
+        )
+        assert ready_view is not None
+        ready_lane = ready_view.value if lane == "VALUE" else ready_view.risk
+        assert ready_lane.task_stage == "REVIEW_SUPPORT"
+        assert ready_lane.assessments[0].ready
+        assert web_fixture.operational.domain_store.count_rows("lane_fitness_versions") == (
+            0 if lane == "VALUE" else 1
+        )
+        assert web_fixture.operational.domain_store.count_rows("input_acceptance_versions") == (
+            0 if lane == "VALUE" else 1
+        )
+        assert web_fixture.operational.domain_store.count_rows("integration_versions") == 0
         fitness_data = {
             "configuration_id": configuration.configuration_id,
             "configuration_version_id": configuration.version_id,
@@ -292,6 +308,7 @@ def test_m1b_workspace_exact_configuration_and_independent_value_risk_path(
         fitness = next(
             item for item in lane_view.fitness if item.content["outcome"] == "SUPPORTABLE"
         )
+        assert lane_view.task_stage == "CHOOSE_FOR_USE"
         assert fitness.content["decision_limiting"] is False
         assert fitness.content["material_evidence"][0]["required_support"] is True
         if lane == "RISK":
@@ -325,12 +342,8 @@ def test_m1b_workspace_exact_configuration_and_independent_value_risk_path(
             )
             assert blocked.content["material_evidence"][0]["required_support"] is False
             assessment = web_fixture.client.get(f"{base}/assessment")
-            fitness_choices = "".join(
-                part.split("</select>", maxsplit=1)[0]
-                for part in assessment.text.split('<select name="fitness_version_id"')[1:]
-            )
-            assert f'value="{fitness.version_id}"' in fitness_choices
-            assert f'value="{blocked.version_id}"' not in fitness_choices
+            assert f'name="fitness_version_id" value="{fitness.version_id}"' in assessment.text
+            assert f'name="fitness_version_id" value="{blocked.version_id}"' not in assessment.text
             overview_before_selection = web_fixture.client.get(base)
             assert "Assess Risk" in overview_before_selection.text
             assert "Required for the action you chose" not in overview_before_selection.text
@@ -379,6 +392,13 @@ def test_m1b_workspace_exact_configuration_and_independent_value_risk_path(
             )[2].status_code
             == 303
         )
+        selected_view = web_fixture.operational.practitioner_workspace(
+            web_fixture.admin_session, web_fixture.visible_case_id
+        )
+        assert selected_view is not None
+        selected_lane = selected_view.value if lane == "VALUE" else selected_view.risk
+        assert selected_lane.task_stage == "SELECTED"
+        assert selected_lane.assessments[0].frozen
 
     completed = web_fixture.operational.practitioner_workspace(
         web_fixture.admin_session, web_fixture.visible_case_id
@@ -386,6 +406,8 @@ def test_m1b_workspace_exact_configuration_and_independent_value_risk_path(
     assert completed is not None
     assert completed.value.selection_state.value == "ESTABLISHED"
     assert completed.risk.selection_state.value == "ESTABLISHED"
+    assert completed.value.assessments[0].input.content["finding"] == ("Independent Value finding")
+    assert completed.risk.assessments[0].input.content["finding"] == ("Independent Risk finding")
     assert {item.content["outcome"] for item in completed.value.fitness} == {"SUPPORTABLE"}
     assert {item.content["outcome"] for item in completed.risk.fitness} == {
         "SUPPORTABLE",
@@ -428,7 +450,8 @@ def test_m1b_workspace_exact_configuration_and_independent_value_risk_path(
     for label in applicability_labels:
         assert label in evidence_page.text
         assert label in history_page.text
-        assert label in page.text
+        if "analysis:" in label:
+            assert label in page.text
     for label in (
         "Value fitness — Supportable — Independent Value finding",
         "Risk fitness — Supportable — Independent Risk finding",
@@ -438,7 +461,7 @@ def test_m1b_workspace_exact_configuration_and_independent_value_risk_path(
     ):
         assert label in history_page.text
     assert "shared score" in page.text
-    assert "It does not integrate them" in page.text
+    assert "Integration and management judgment remain separate" in page.text
     assert "M1C" not in page.text and "future milestone" not in page.text
     overview = web_fixture.client.get(base)
     assert "Risk assessment blocked for a recorded use" not in overview.text
@@ -504,6 +527,95 @@ def test_m1b_stale_configuration_successor_stops_and_duplicate_intent_is_idempot
     assert (
         web_fixture.operational.domain_store.count_rows("managed_configuration_versions") == count
     )
+
+
+def test_ux3_multiple_ready_value_candidates_have_no_automatic_winner_or_conflict(
+    web_fixture: WebFixture,
+) -> None:
+    _grant_m1b(web_fixture)
+    assert login(web_fixture.client)[1].status_code == 303
+    case_id = str(web_fixture.visible_case_id)
+    base = f"/cases/{case_id}"
+    initial = web_fixture.operational.practitioner_workspace(
+        web_fixture.admin_session, web_fixture.visible_case_id
+    )
+    assert initial is not None
+    configuration = initial.configurations[0]
+    assert (
+        _review_commit(
+            web_fixture.client,
+            f"{base}/configuration/designation/review",
+            {
+                "configuration_id": configuration.configuration_id,
+                "configuration_version_id": configuration.version_id,
+                "accountable_mechanism": "governed:ux3-configuration",
+                "effective_at": initial.effective_at.isoformat(),
+            },
+        )[2].status_code
+        == 303
+    )
+
+    for index in (1, 2):
+        assert (
+            _review_commit(
+                web_fixture.client,
+                f"{base}/value/input/review",
+                {
+                    "configuration_id": configuration.configuration_id,
+                    "configuration_version_id": configuration.version_id,
+                    "purpose": "owner-review",
+                    "finding": f"Independent Value candidate {index}",
+                    "boundary": "current proposed use",
+                    "uncertainties": f"Candidate {index} uncertainty",
+                    "implication": "Review independently",
+                    "provenance": f"value-method:{index}",
+                    "effective_at": initial.effective_at.isoformat(),
+                },
+            )[2].status_code
+            == 303
+        )
+        current = web_fixture.operational.practitioner_workspace(
+            web_fixture.admin_session, web_fixture.visible_case_id
+        )
+        assert current is not None
+        candidate = next(
+            item
+            for item in current.value.candidates
+            if item.content["finding"] == f"Independent Value candidate {index}"
+        )
+        assert (
+            _review_commit(
+                web_fixture.client,
+                f"{base}/value/readiness/review",
+                {
+                    "input_version_id": candidate.version_id,
+                    "rationale": f"Candidate {index} is complete enough for review",
+                    "effective_at": initial.effective_at.isoformat(),
+                },
+            )[2].status_code
+            == 303
+        )
+
+    ready = web_fixture.operational.practitioner_workspace(
+        web_fixture.admin_session, web_fixture.visible_case_id
+    )
+    assert ready is not None
+    assert ready.value.selection_state.value == "ABSENT"
+    assert ready.value.task_stage == "REVIEW_SUPPORT"
+    assert len(ready.value.assessments) == 2
+    assert all(assessment.statuses == ("ready",) for assessment in ready.value.assessments)
+    assert ready.risk.task_stage == "DEVELOP"
+    assert web_fixture.operational.domain_store.count_rows("lane_fitness_versions") == 0
+    assert web_fixture.operational.domain_store.count_rows("input_acceptance_versions") == 0
+    assert web_fixture.operational.domain_store.count_rows("integration_versions") == 0
+
+    page = web_fixture.client.get(f"{base}/assessment")
+    assert page.status_code == 200
+    assert "Independent Value candidate 1" in page.text
+    assert "Independent Value candidate 2" in page.text
+    assert "Choice needs resolution" not in page.text
+    assert "PAIM will not choose it automatically" not in page.text
+    assert 'class="selection-form"' not in page.text
 
 
 def test_m1b_case_authority_gap_and_access_error_boundaries(web_fixture: WebFixture) -> None:

@@ -84,6 +84,14 @@ class IntegrityStore(Protocol):
 
     def count_rows(self, table_name: str) -> int: ...
 
+    def version_statuses(
+        self,
+        *,
+        version_id: RecordVersionId,
+        effective_at: datetime,
+        known_at: datetime,
+    ) -> tuple[str, ...]: ...
+
     def m1b_versions(
         self,
         *,

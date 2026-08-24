@@ -342,6 +342,16 @@ remain neutral, and repository silence creates no inferred gap. Applicability an
 questions remain explicit governed judgments; displaying a source establishes no Value/Risk
 relevance, sufficiency, accountability, substantive authority, or Decision support.
 
+UX-3 changes the `Value & Risk` browser organization without changing the production analytical
+commands. Each lane presents four separate practitioner acts: develop an assessment, confirm it is
+ready for review, judge whether it is sufficiently supported for an intended use, and explicitly
+choose a supportable assessment for that use. The page reconstructs those stages from authoritative
+status events and exact relations; it creates no persisted task or progress state. Value and Risk
+remain independent peers, can be at different stages, and are never combined into a score or
+automatic choice. Selecting information for an assessment does not create Applicability; an
+Applicability judgment does not create Fitness; Fitness does not select an assessment; and selection
+does not create Integration or a Decision.
+
 The workspace is divided into Overview, Proposal setup, What we know, Value & Risk, Management
 judgment, and Source & history. Governing assessment basis remains distinct from authorization and
 operation. Routine pages use practitioner language; raw identifiers and payloads are omitted because
@@ -349,9 +359,10 @@ the browser does not yet have a separately enforceable Technical inspection perm
 operators retain the production CLI and audit paths for exact inspection and reconstruction.
 
 The browser still stops before Intervention, Completion, Activation, Trigger/Reassessment, and
-Management Register work. UX-2 does not redesign Value/Risk analysis, Fitness or Selection,
-Integration/management judgment, Boundary/operating limits, proposal or authorization, or the
-broader Source & history narrative. M1D and UX-3 onward remain future bounded implementation gates.
+Management Register work. UX-3 does not redesign `What we know` beyond contextual reuse,
+Integration/management judgment, Boundary/operating limits, proposal or authorization, the broader
+Source & history narrative, reference-case fixture content, or M1D. UX-4 and later work remain
+separate bounded implementation gates.
 
 Use the same validated configuration and database as `paim-local`. The configured credential
 environment source must remain available for the existing configuration preflight, but browser

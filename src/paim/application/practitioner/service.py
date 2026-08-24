@@ -9,6 +9,7 @@ from datetime import datetime
 from paim.application.practitioner.integration_basis import exact_current_integration_basis
 from paim.application.practitioner.models import (
     ActorContext,
+    AnalyticalAssessmentView,
     AnalyticalLaneView,
     CaseListView,
     CaseOrientationView,
@@ -34,6 +35,7 @@ from paim.domain import (
 from paim.integrity import (
     FinalizedRecordVersion,
     RecordId,
+    RecordVersionId,
     SelectionAbsent,
     SelectionConflict,
     SelectionFound,
@@ -279,10 +281,24 @@ class PractitionerQueryService:
             visible_versions,
         )
         value = self._lane_view(
-            "VALUE", by_family, action_access, effective_at, known_at, visible_versions
+            "VALUE",
+            by_family,
+            applicability,
+            governing_ids,
+            action_access,
+            effective_at,
+            known_at,
+            visible_versions,
         )
         risk = self._lane_view(
-            "RISK", by_family, action_access, effective_at, known_at, visible_versions
+            "RISK",
+            by_family,
+            applicability,
+            governing_ids,
+            action_access,
+            effective_at,
+            known_at,
+            visible_versions,
         )
         decision = self._decision_workspace(
             by_family=by_family,
@@ -1168,6 +1184,8 @@ class PractitionerQueryService:
         self,
         lane: str,
         by_family: Mapping[str, list[FinalizedRecordVersion]],
+        applicability: tuple[GovernedRecordView, ...],
+        governing_configuration_version_ids: tuple[str, ...],
         action_access: Mapping[str, bool],
         effective_at: datetime,
         known_at: datetime,
@@ -1199,19 +1217,115 @@ class PractitionerQueryService:
             )
             if item.content.get("lane") == lane
         )
+        ineligible_selection_statuses = {"withdrawn", "rejected_for_use", "superseded"}
+        eligible_selections = tuple(
+            item
+            for item in selections
+            if not ineligible_selection_statuses.intersection(
+                self._store.version_statuses(
+                    version_id=RecordVersionId.parse(item.version_id),
+                    effective_at=effective_at,
+                    known_at=known_at,
+                )
+            )
+        )
+        current_context_selections = tuple(
+            item
+            for item in eligible_selections
+            if len(governing_configuration_version_ids) != 1
+            or item.content.get("configuration_version_id")
+            == governing_configuration_version_ids[0]
+        )
+        expected_target_type = f"{lane.casefold()}_input_version"
+        ineligible_input_statuses = {"withdrawn", "superseded", "refresh_required"}
+        assessments: list[AnalyticalAssessmentView] = []
+        for candidate in candidates:
+            if (
+                len(governing_configuration_version_ids) == 1
+                and candidate.content.get("configuration_version_id")
+                != governing_configuration_version_ids[0]
+            ):
+                continue
+            candidate_statuses = self._store.version_statuses(
+                version_id=RecordVersionId.parse(candidate.version_id),
+                effective_at=effective_at,
+                known_at=known_at,
+            )
+            related_applicability = tuple(
+                item
+                for item in applicability
+                if item.content.get("target_type") == expected_target_type
+                and item.content.get("target_id") == candidate.record_id
+                and item.content.get("target_version_id") == candidate.version_id
+            )
+            related_fitness = tuple(
+                item
+                for item in fitness
+                if item.content.get("input_version_id") == candidate.version_id
+                and item.content.get("configuration_version_id")
+                == candidate.content.get("configuration_version_id")
+                and not ineligible_input_statuses.intersection(candidate_statuses)
+            )
+            related_selections = tuple(
+                item
+                for item in current_context_selections
+                if item.content.get("input_id") == candidate.record_id
+                and item.content.get("input_version_id") == candidate.version_id
+                and item.content.get("configuration_version_id")
+                == candidate.content.get("configuration_version_id")
+                and not ineligible_input_statuses.intersection(candidate_statuses)
+            )
+            assessments.append(
+                AnalyticalAssessmentView(
+                    candidate,
+                    candidate_statuses,
+                    related_applicability,
+                    related_fitness,
+                    related_selections,
+                )
+            )
+        visible_context_selections = tuple(
+            selection for assessment in assessments for selection in assessment.selections
+        )
+        selection_contexts: dict[tuple[object, object, object], int] = {}
+        for item in visible_context_selections:
+            context = (
+                item.content.get("configuration_version_id"),
+                item.content.get("use_context"),
+                item.content.get("purpose"),
+            )
+            selection_contexts[context] = selection_contexts.get(context, 0) + 1
         state = (
-            ReadState.ABSENT
-            if not selections
+            ReadState.CONFLICT
+            if any(count > 1 for count in selection_contexts.values())
             else ReadState.ESTABLISHED
-            if len(selections) == 1
-            else ReadState.CONFLICT
+            if visible_context_selections
+            else ReadState.ABSENT
         )
         reason = (
             f"{lane.title()} Input selection is not established."
             if state is ReadState.ABSENT
-            else f"One exact {lane.title()} Input selection is established."
+            else f"An explicit {lane.title()} Input selection is established for each recorded use."
             if state is ReadState.ESTABLISHED
             else f"Multiple incompatible {lane.title()} selections remain explicit."
+        )
+        supportable = any(
+            item.state == "SUPPORTABLE" and not bool(item.content.get("decision_limiting"))
+            for assessment in assessments
+            for item in assessment.fitness
+        )
+        task_stage = (
+            "SELECTION_CONFLICT"
+            if state is ReadState.CONFLICT
+            else "SELECTED"
+            if state is ReadState.ESTABLISHED
+            else "CHOOSE_FOR_USE"
+            if supportable
+            else "REVIEW_SUPPORT"
+            if any(item.ready and item.actionable for item in assessments)
+            else "READY_FOR_REVIEW"
+            if any(item.actionable for item in assessments)
+            else "DEVELOP"
         )
         return AnalyticalLaneView(
             lane,
@@ -1228,8 +1342,19 @@ class PractitionerQueryService:
                 True,
                 "Lane-specific accountability must be established",
                 "Software permission does not establish substantive authority",
-                tuple(item.version_id for item in selections),
+                tuple(item.version_id for item in visible_context_selections),
             ),
+            tuple(assessments),
+            task_stage,
+            {
+                action: action_access.get(action, False)
+                for action in (
+                    f"{lane.casefold()}-input.create",
+                    f"{lane.casefold()}-input.ready",
+                    f"{lane.casefold()}-fitness.create",
+                    f"{lane.casefold()}-input.select",
+                )
+            },
         )
 
     def _case_summary(

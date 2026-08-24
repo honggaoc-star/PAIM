@@ -103,23 +103,47 @@ def test_m1b_browser_exact_evidence_and_independent_lane_path(
         assert workspace is not None
         evidence = workspace.evidence[0]
 
+        page.get_by_role("link", name="Value & Risk", exact=True).click()
+        assert page.locator(".peer-summary .lane-summary").count() == 2
+        assert page.locator("section.lane-work").count() == 2
+        assert page.locator(".peer-lanes").count() == 0
+        assert page.locator("section.lane-work").first.bounding_box()["width"] > 800  # type: ignore[index]
+        assert page.evaluate(
+            "document.documentElement.scrollWidth <= document.documentElement.clientWidth"
+        )
+
         for lane_name, slug in (("Value", "value"), ("Risk", "risk")):
             page.get_by_role("link", name="Value & Risk", exact=True).click()
-            lane = page.locator("section.lane").filter(
+            lane = page.locator("section.lane-work").filter(
                 has=page.get_by_role("heading", name=lane_name)
             )
-            create = lane.locator("details").filter(has_text=f"Add {lane_name} analysis")
-            create.locator("summary").click()
-            create.get_by_label("Purpose").fill("bounded-management")
-            create.get_by_label("Finding").fill(f"Independent {lane_name} finding")
-            create.get_by_label("Boundary of analysis").fill("exact governed Configuration")
-            create.get_by_label("Uncertainties, one per line").fill(
+            create = lane.locator("details").filter(has_text=f"Develop the {lane_name} assessment")
+            create.get_by_label("Purpose of this assessment").fill("bounded-management")
+            finding_question = (
+                "What potential Value is supported?"
+                if lane_name == "Value"
+                else "What Risks or adverse pathways are supported?"
+            )
+            boundary_question = (
+                "Where would that Value apply?"
+                if lane_name == "Value"
+                else "Where do these Risk conclusions apply?"
+            )
+            create.get_by_label(finding_question).fill(f"Independent {lane_name} finding")
+            create.get_by_label(boundary_question).fill("exact governed Configuration")
+            create.get_by_label("What remains uncertain?").fill(
                 f"{lane_name} uncertainty remains explicit"
             )
-            create.get_by_label("Management implication").fill(f"Retain exact {lane_name} basis")
-            create.get_by_label("Provenance source").fill(f"{slug}-browser-analysis:v1")
-            create.get_by_label("Supporting Evidence (optional)").select_option(evidence.version_id)
-            create.get_by_role("button", name=f"Review {lane_name} analysis").click()
+            create.get_by_label(
+                f"What action does this {lane_name} assessment alone support?"
+            ).fill(f"Retain exact {lane_name} basis")
+            create.get_by_label("How was this assessment produced?").fill(
+                f"{slug}-browser-analysis:v1"
+            )
+            create.get_by_label(
+                "Which available information supports this assessment?"
+            ).select_option(evidence.version_id)
+            create.get_by_role("button", name=f"Review {lane_name} assessment").click()
             _confirm(page)
             workspace = web_fixture.operational.practitioner_workspace(
                 web_fixture.admin_session, web_fixture.visible_case_id
@@ -127,6 +151,15 @@ def test_m1b_browser_exact_evidence_and_independent_lane_path(
             assert workspace is not None
             lane_view = workspace.value if slug == "value" else workspace.risk
             candidate = lane_view.candidates[0]
+            assert candidate.version_id not in page.locator("body").inner_text()
+            if lane_name == "Value":
+                assert (
+                    page.locator(".lane-summary")
+                    .filter(has_text="Risk assessment")
+                    .filter(has_text="Develop assessment")
+                    .count()
+                    == 1
+                )
 
             page.get_by_role("link", name="What we know", exact=True).click()
             applicability = page.locator("details").filter(
@@ -164,45 +197,40 @@ def test_m1b_browser_exact_evidence_and_independent_lane_path(
             )
 
             page.get_by_role("link", name="Value & Risk", exact=True).click()
-            lane = page.locator("section.lane").filter(
+            lane = page.locator("section.lane-work").filter(
                 has=page.get_by_role("heading", name=lane_name)
             )
-            candidate_card = lane.locator("article.record-card").filter(
+            candidate_card = lane.locator("article.assessment-card").filter(
                 has_text=f"Independent {lane_name} finding"
             )
-            candidate_card.get_by_label("Basis for readiness").fill(
+            candidate_card.get_by_label("Why is it ready for review?").fill(
                 f"Exact {lane_name} review complete"
             )
-            candidate_card.get_by_role("button", name="Review readiness determination").click()
+            candidate_card.get_by_role("button", name="Review readiness confirmation").click()
             _confirm(page)
-            lane = page.locator("section.lane").filter(
+            lane = page.locator("section.lane-work").filter(
                 has=page.get_by_role("heading", name=lane_name)
             )
             fitness_form = lane.locator("details").filter(
-                has_text="Determine fitness for a bounded use"
+                has_text="Is this assessment sufficiently supported for this proposed use?"
             )
+            assert lane.locator("form.selection-form").count() == 0
             fitness_form.locator("summary").click()
-            fitness_form.locator('select[name="input_version_id"]').select_option(
-                candidate.version_id
-            )
             fitness_form.get_by_label("Use context").fill("bounded-operation")
-            fitness_form.get_by_label("Purpose").fill("bounded-management")
-            fitness_form.get_by_label("Fitness outcome").select_option("SUPPORTABLE")
-            fitness_form.get_by_label("Decision-limiting").select_option("FALSE")
-            fitness_form.locator('select[name="evidence_version_id"]').select_option(
-                evidence.version_id
+            fitness_form.get_by_label("Your support judgment").select_option("SUPPORTABLE")
+            fitness_form.get_by_label("Does this limit a later management decision?").select_option(
+                "FALSE"
             )
-            fitness_form.locator('select[name="applicability_version_id"]').select_option(
-                applicability_view.version_id
+            fitness_form.get_by_label("Role this information plays").fill("material support")
+            fitness_form.get_by_label("Is this information required support?").select_option("TRUE")
+            fitness_form.get_by_label("Scope supported by this judgment").fill(
+                "exact governed Configuration"
             )
-            fitness_form.get_by_label("Material-evidence role").fill("material support")
-            fitness_form.get_by_label("Required support").select_option("TRUE")
-            fitness_form.get_by_label("Claimed scope").fill("exact governed Configuration")
             fitness_form.get_by_label("Rationale").fill("Exact material support is supportable")
-            fitness_form.get_by_label("Accountable mechanism").fill(
+            fitness_form.get_by_label("Responsible governance process").fill(
                 f"governed:m1b-browser-{slug}-fitness"
             )
-            fitness_form.get_by_role("button", name="Review fitness determination").click()
+            fitness_form.get_by_role("button", name="Review support judgment").click()
             assert page.get_by_text("SUPPORTABLE", exact=True).is_visible()
             assert page.get_by_text("material support", exact=True).is_visible()
             _confirm(page)
@@ -211,27 +239,22 @@ def test_m1b_browser_exact_evidence_and_independent_lane_path(
             )
             assert workspace is not None
             lane_view = workspace.value if slug == "value" else workspace.risk
-            fitness = lane_view.fitness[0]
+            assert lane_view.fitness[0].state == "SUPPORTABLE"
 
-            lane = page.locator("section.lane").filter(
+            lane = page.locator("section.lane-work").filter(
                 has=page.get_by_role("heading", name=lane_name)
             )
-            selection = lane.locator("details").filter(
-                has_text="Select an assessment for bounded use"
+            selection = lane.locator("form.selection-form").filter(
+                has_text=f"Use this {lane_name} assessment"
             )
-            selection.locator("summary").click()
-            selection.locator('select[name="input_version_id"]').select_option(candidate.version_id)
-            selection.get_by_label("Fitness determination").select_option(fitness.version_id)
-            selection.get_by_label("Use context").fill("bounded-operation")
-            selection.get_by_label("Purpose").fill("bounded-management")
-            selection.get_by_label("Material Applicability determinations").select_option(
-                applicability_view.version_id
+            assert selection.count() == 1
+            selection.get_by_label("Why should management use this assessment?").fill(
+                f"Exact {lane_name} selection"
             )
-            selection.get_by_label("Rationale").fill(f"Exact {lane_name} selection")
-            selection.get_by_label("Accountable mechanism").fill(
+            selection.get_by_label("Responsible governance process").fill(
                 f"governed:m1b-browser-{slug}-acceptance"
             )
-            selection.get_by_role("button", name="Review assessment selection").click()
+            selection.get_by_role("button", name="Review use of this assessment").click()
             _confirm(page)
 
         final = web_fixture.operational.practitioner_workspace(
@@ -244,7 +267,7 @@ def test_m1b_browser_exact_evidence_and_independent_lane_path(
             final.value.selections[0].content["input_version_id"]
             != final.risk.selections[0].content["input_version_id"]
         )
-        assert "It does not integrate them" in page.content()
+        assert "Integration and management judgment remain separate" in page.content()
         assert "M1C" not in page.content()
         page.get_by_role("link", name="Source & history", exact=True).click()
         assert page.get_by_text(

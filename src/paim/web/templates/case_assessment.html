@@ -1,18 +1,116 @@
 {% extends "base.html" %}
 {% from "case_workspace_macros.html" import workspace_header, why, exact_basis %}
-{% macro lane_panel(lane, slug, governing_configuration, view, csrf_token) -%}
-<section class="lane" id="{{ slug }}" aria-labelledby="{{ slug }}-heading"><h3 id="{{ slug }}-heading">{{ lane.lane.title() }}</h3>
-  <div class="status-panel"><strong>{% if lane.selection_state.value == 'ESTABLISHED' %}{{ lane.lane.title() }} assessment selected{% elif lane.selection_state.value == 'CONFLICT' %}{{ lane.lane.title() }} assessment selection conflict{% else %}{{ lane.lane.title() }} assessment not yet selected{% endif %}</strong><span>{{ lane.explanation.reason }}</span></div>{{ why(lane.explanation, lane.selection_state.value != 'ESTABLISHED') }}
-  <h4>Recorded analysis</h4>{% for item in lane.candidates %}<article class="record-card"><strong>Analysis recorded</strong><p>{{ item.label }}</p>{{ exact_basis(item) }}<form action="/cases/{{ view.case.case_id }}/{{ slug }}/readiness/review" method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="input_version_id" value="{{ item.version_id }}"><input type="hidden" name="effective_at" value="{{ view.effective_at.isoformat() }}"><p><strong>Management question:</strong> Is this exact {{ lane.lane.title() }} analysis complete enough to enter the bounded acceptance pathway?</p><label>Basis for readiness<input name="rationale" required></label><button type="submit">Review readiness determination</button></form></article>{% else %}<p class="empty-state">No {{ lane.lane.title() }} analysis is recorded.</p>{% endfor %}
-  {% if governing_configuration %}<details><summary>Add {{ lane.lane.title() }} analysis</summary><form action="/cases/{{ view.case.case_id }}/{{ slug }}/input/review" method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="configuration_id" value="{{ governing_configuration.configuration_id }}"><input type="hidden" name="configuration_version_id" value="{{ governing_configuration.version_id }}"><input type="hidden" name="effective_at" value="{{ view.effective_at.isoformat() }}"><label>Purpose<input name="purpose" required></label><label>Finding<textarea name="finding" required></textarea></label><label>Boundary of analysis<textarea name="boundary" required></textarea></label><label>Uncertainties, one per line<textarea name="uncertainties"></textarea></label><label>Management implication<textarea name="implication" required></textarea></label><label>Provenance source<input name="provenance" required></label><label>Supporting Evidence (optional)<select name="evidence_version_ids" multiple size="4">{% for item in view.evidence %}<option value="{{ item.version_id }}">{{ item.label }}</option>{% endfor %}</select></label><button type="submit">Review {{ lane.lane.title() }} analysis</button></form></details>
-  <details><summary>Determine fitness for a bounded use</summary><form action="/cases/{{ view.case.case_id }}/{{ slug }}/fitness/review" method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="configuration_id" value="{{ governing_configuration.configuration_id }}"><input type="hidden" name="configuration_version_id" value="{{ governing_configuration.version_id }}"><input type="hidden" name="effective_at" value="{{ view.effective_at.isoformat() }}"><p><strong>Management question:</strong> Does the selected evidence basis support this exact {{ lane.lane.title() }} analysis for the stated use, or is it blocked?</p><label>{{ lane.lane.title() }} analysis<select name="input_version_id" required><option value="">Choose recorded analysis</option>{% for item in lane.candidates %}<option value="{{ item.version_id }}">{{ item.label }}</option>{% endfor %}</select></label><label>Use context<input name="use_context" required></label><label>Purpose<input name="purpose" required></label><label>Fitness outcome<select name="outcome" required><option value="SUPPORTABLE">Supportable</option><option value="BLOCKED">Blocked</option></select></label><label>Decision-limiting<select name="decision_limiting" required><option value="FALSE">No</option><option value="TRUE">Yes</option></select></label><label>Indeterminate treatment (leave empty only when none)<textarea name="indeterminate_treatment"></textarea></label><label>Evidence<select name="evidence_version_id" required><option value="">Choose visible Evidence</option>{% for item in view.evidence %}<option value="{{ item.version_id }}">{{ item.label }}</option>{% endfor %}</select></label><label>Applicability determination<select name="applicability_version_id" required><option value="">Choose visible Applicability</option>{% for item in view.applicability %}<option value="{{ item.version_id }}">{{ item.label }} — {{ item.state.replace('_', ' ').title() }}</option>{% endfor %}</select></label><label>Material-evidence role<input name="evidence_role" required></label><label>Required support<select name="required_support" required><option value="TRUE">Yes</option><option value="FALSE">No</option></select></label><label>Claimed scope<input name="claimed_scope" required></label><label>Rationale<textarea name="rationale" required></textarea></label><label>Accountable mechanism<input name="accountable_mechanism" required></label><button type="submit">Review fitness determination</button></form></details>
-  <details><summary>Select an assessment for bounded use</summary><form action="/cases/{{ view.case.case_id }}/{{ slug }}/selection/review" method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="configuration_id" value="{{ governing_configuration.configuration_id }}"><input type="hidden" name="configuration_version_id" value="{{ governing_configuration.version_id }}"><input type="hidden" name="effective_at" value="{{ view.effective_at.isoformat() }}"><p><strong>Management question:</strong> Which exact supportable {{ lane.lane.title() }} analysis is accepted for this stated use?</p><label>{{ lane.lane.title() }} analysis<select name="input_version_id" required><option value="">Choose recorded analysis</option>{% for item in lane.candidates %}<option value="{{ item.version_id }}">{{ item.label }}</option>{% endfor %}</select></label><label>Fitness determination<select name="fitness_version_id" required><option value="">Choose supportable fitness</option>{% for item in lane.fitness %}{% if item.state == 'SUPPORTABLE' %}<option value="{{ item.version_id }}">Supportable — {{ item.label }}</option>{% endif %}{% endfor %}</select></label><label>Use context<input name="use_context" required></label><label>Purpose<input name="purpose" required></label><label>Material Applicability determinations<select name="material_applicability_version_ids" multiple required size="4">{% for item in view.applicability %}<option value="{{ item.version_id }}">{{ item.label }} — {{ item.state.replace('_', ' ').title() }}</option>{% endfor %}</select></label><label>Rationale<textarea name="rationale" required></textarea></label><label>Accountable mechanism<input name="accountable_mechanism" required></label><button type="submit">Review assessment selection</button></form></details>{% endif %}
-  <h4>Fitness and selection record</h4>{% for item in lane.fitness %}<article class="record-card"><strong>{% if item.state == 'SUPPORTABLE' %}Supportable for the stated use{% elif item.state == 'BLOCKED' %}Blocked for the stated use{% else %}Fitness determination recorded{% endif %}</strong><p>{{ item.label }}</p>{{ exact_basis(item) }}</article>{% endfor %}{% for item in lane.selections %}<article class="record-card"><strong>{{ lane.lane.title() }} assessment selected</strong>{{ exact_basis(item) }}</article>{% endfor %}
+
+{% macro stage_name(stage) -%}
+  {%- if stage == 'DEVELOP' -%}Develop assessment
+  {%- elif stage == 'READY_FOR_REVIEW' -%}Finish for review
+  {%- elif stage == 'REVIEW_SUPPORT' -%}Review support
+  {%- elif stage == 'CHOOSE_FOR_USE' -%}Choose for use
+  {%- elif stage == 'SELECTED' -%}Assessment chosen
+  {%- else -%}Choice needs resolution
+  {%- endif -%}
+{%- endmacro %}
+
+{% macro peer_summary(lane, slug) -%}
+<article class="lane-summary">
+  <p class="eyebrow">{{ lane.lane.title() }} assessment</p><h3>{{ stage_name(lane.task_stage) }}</h3>
+  <p>{% if lane.task_stage == 'DEVELOP' %}No assessment has been recorded for the current setup.
+     {% elif lane.task_stage == 'READY_FOR_REVIEW' %}An assessment is being developed and still needs a readiness confirmation.
+     {% elif lane.task_stage == 'REVIEW_SUPPORT' %}A ready assessment now needs a separate support judgment for its intended use.
+     {% elif lane.task_stage == 'CHOOSE_FOR_USE' %}At least one assessment is supportable; management has not yet chosen one for this use.
+     {% elif lane.task_stage == 'SELECTED' %}One assessment has been explicitly chosen for the recorded use.
+     {% else %}More than one incompatible choice remains explicit; PAIM has not selected a winner.{% endif %}</p>
+  <a href="#{{ slug }}-work">Continue {{ lane.lane.title() }} work</a>
+</article>
+{%- endmacro %}
+
+{% macro develop_form(lane, slug, governing_configuration, view, csrf_token) -%}
+{% if lane.action_access.get(slug ~ '-input.create') %}
+<details class="task-action assessment-action"{% if not lane.assessments %} open{% endif %}>
+  <summary>{% if lane.assessments %}Develop another {{ lane.lane.title() }} assessment{% else %}Develop the {{ lane.lane.title() }} assessment{% endif %}</summary>
+  <form action="/cases/{{ view.case.case_id }}/{{ slug }}/input/review" method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="configuration_id" value="{{ governing_configuration.configuration_id }}"><input type="hidden" name="configuration_version_id" value="{{ governing_configuration.version_id }}"><input type="hidden" name="effective_at" value="{{ view.effective_at.isoformat() }}">
+    <div class="known-context"><strong>Proposed use</strong><span>{{ governing_configuration.content.get('intended_use', 'No intended use is recorded in the current setup.') }}</span></div>
+    <label>Purpose of this assessment<input name="purpose" required></label>
+    <label>{% if slug == 'value' %}What potential Value is supported?{% else %}What Risks or adverse pathways are supported?{% endif %}<textarea name="finding" required></textarea></label>
+    <label>{% if slug == 'value' %}Where would that Value apply?{% else %}Where do these Risk conclusions apply?{% endif %}<textarea name="boundary" required></textarea></label>
+    <label>What remains uncertain?<textarea name="uncertainties"></textarea></label>
+    <label>What action does this {{ lane.lane.title() }} assessment alone support?<textarea name="implication" required></textarea></label>
+    <label>How was this assessment produced?<input name="provenance" required></label>
+    <label>Which available information supports this assessment?<select name="evidence_version_ids" multiple size="5">{% for item in view.evidence %}{% if item.content.get('configuration_version_id') == governing_configuration.version_id %}<option value="{{ item.version_id }}">{{ item.content.get('statement', item.label) }}</option>{% endif %}{% endfor %}</select></label>
+    <p class="field-help">Choosing information here records analytical support only. It does not decide that the information applies or is sufficient.</p>
+    <button type="submit">Review {{ lane.lane.title() }} assessment</button>
+  </form>
+</details>
+{% else %}<p class="prerequisite-card">Your current software access does not allow a new {{ lane.lane.title() }} assessment to be submitted. Access does not establish authorship, accountability, or authority.</p>{% endif %}
+{%- endmacro %}
+
+{% macro readiness(assessment, lane, slug, view, csrf_token) -%}
+{% if lane.action_access.get(slug ~ '-input.ready') %}
+<form action="/cases/{{ view.case.case_id }}/{{ slug }}/readiness/review" method="post" class="stage-form">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="input_version_id" value="{{ assessment.input.version_id }}"><input type="hidden" name="effective_at" value="{{ view.effective_at.isoformat() }}">
+  <h5>Ready for review?</h5><p>Confirm that this assessment is complete enough to be reviewed for the proposed use.</p>
+  <label>Why is it ready for review?<textarea name="rationale" required></textarea></label><button type="submit">Review readiness confirmation</button>
+</form>
+{% else %}<p class="prerequisite-card">Readiness cannot be recorded with your current software access.</p>{% endif %}
+{%- endmacro %}
+
+{% macro support_review(assessment, applicability, lane, slug, governing_configuration, view, csrf_token) -%}
+<details class="task-action assessment-action"><summary>Is this assessment sufficiently supported for this proposed use?</summary>
+  <form action="/cases/{{ view.case.case_id }}/{{ slug }}/fitness/review" method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="configuration_id" value="{{ governing_configuration.configuration_id }}"><input type="hidden" name="configuration_version_id" value="{{ governing_configuration.version_id }}"><input type="hidden" name="input_version_id" value="{{ assessment.input.version_id }}"><input type="hidden" name="evidence_version_id" value="{{ applicability.content.get('evidence_version_id') }}"><input type="hidden" name="applicability_version_id" value="{{ applicability.version_id }}"><input type="hidden" name="purpose" value="{{ assessment.input.content.get('purpose', '') }}"><input type="hidden" name="effective_at" value="{{ view.effective_at.isoformat() }}">
+    <dl class="compact-facts"><dt>Assessment</dt><dd>{{ assessment.input.label }}</dd><dt>Proposed use</dt><dd>{{ governing_configuration.content.get('intended_use', 'Not recorded') }}</dd><dt>Information and applicability judgment</dt><dd>{{ applicability.label }}</dd><dt>Known limitations</dt><dd>{{ applicability.content.get('limitations', []) | join('; ') or 'None recorded' }}</dd></dl>
+    <label>Use context<input name="use_context" value="{{ governing_configuration.content.get('intended_use', '') }}" required></label>
+    <label>Your support judgment<select name="outcome" required><option value="SUPPORTABLE">Sufficiently supported for this use</option><option value="BLOCKED">Not sufficiently supported for this use</option></select></label>
+    <label>Does this limit a later management decision?<select name="decision_limiting" required><option value="FALSE">No</option><option value="TRUE">Yes</option></select></label>
+    <label>How should an indeterminate matter be treated?<textarea name="indeterminate_treatment"></textarea></label>
+    <label>Role this information plays<input name="evidence_role" required></label><label>Is this information required support?<select name="required_support" required><option value="TRUE">Yes</option><option value="FALSE">No</option></select></label>
+    <label>Scope supported by this judgment<input name="claimed_scope" required></label><label>Rationale<textarea name="rationale" required></textarea></label><label>Responsible governance process<input name="accountable_mechanism" required></label>
+    <p class="field-help">PAIM checks the recorded references and conflicts. It does not calculate evidence sufficiency or confidence for you.</p><button type="submit">Review support judgment</button>
+  </form>
+</details>
+{%- endmacro %}
+
+{% macro choose_for_use(assessment, fitness, lane, slug, governing_configuration, view, csrf_token) -%}
+<form action="/cases/{{ view.case.case_id }}/{{ slug }}/selection/review" method="post" class="stage-form selection-form">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="configuration_id" value="{{ governing_configuration.configuration_id }}"><input type="hidden" name="configuration_version_id" value="{{ governing_configuration.version_id }}"><input type="hidden" name="input_version_id" value="{{ assessment.input.version_id }}"><input type="hidden" name="fitness_version_id" value="{{ fitness.version_id }}"><input type="hidden" name="use_context" value="{{ fitness.content.get('use_context', '') }}"><input type="hidden" name="purpose" value="{{ fitness.content.get('purpose', '') }}">{% for basis in fitness.content.get('material_evidence', []) %}<input type="hidden" name="material_applicability_version_ids" value="{{ basis.get('applicability_version_id') }}">{% endfor %}<input type="hidden" name="effective_at" value="{{ view.effective_at.isoformat() }}">
+  <h5>Use this {{ lane.lane.title() }} assessment for {{ fitness.content.get('use_context', 'the stated use') }}?</h5><p>{{ assessment.input.label }} has a supportable judgment for this purpose. PAIM will not choose it automatically.</p>
+  <label>Why should management use this assessment?<textarea name="rationale" required></textarea></label><label>Responsible governance process<input name="accountable_mechanism" required></label>
+  <div class="consequence-note"><strong>Consequential effect:</strong> confirming accepts this specific assessment for the stated use and may finalize that retained version. It does not authorize a Decision or operation.</div><button type="submit">Review use of this assessment</button>
+</form>
+{%- endmacro %}
+
+{% macro assessment_card(assessment, lane, slug, governing_configuration, view, csrf_token) -%}
+<article class="assessment-card"><header><div><p class="eyebrow">{{ lane.lane.title() }} candidate</p><h4>{{ assessment.input.label }}</h4></div><span class="state">{% if not assessment.actionable %}Historical or needs refresh{% elif assessment.frozen %}Chosen and finalized{% elif assessment.ready %}Ready for support review{% else %}In development{% endif %}</span></header>
+  <dl class="assessment-content"><dt>Finding</dt><dd>{{ assessment.input.content.get('finding', 'Not recorded') }}</dd><dt>Where it applies</dt><dd>{{ assessment.input.content.get('boundary', 'Not recorded') }}</dd><dt>What remains uncertain</dt><dd>{{ assessment.input.content.get('uncertainties', []) | join('; ') or 'None recorded' }}</dd><dt>What this assessment alone supports</dt><dd>{{ assessment.input.content.get('implication', 'Not recorded') }}</dd></dl>
+  {% if not assessment.actionable %}<p class="prerequisite-card">This assessment is retained as history and is not available for a new readiness, support, or use decision.</p>
+  {% elif not assessment.ready %}{{ readiness(assessment, lane, slug, view, csrf_token) }}{% else %}
+    {% if not assessment.applicability %}<div class="prerequisite-card"><strong>Support review needs an applicability judgment.</strong><p>Review in <a href="/cases/{{ view.case.case_id }}/evidence">What we know</a> whether practitioner-selected information applies to this assessment. Information is not treated as relevant or sufficient merely because it exists.</p></div>
+    {% elif lane.action_access.get(slug ~ '-fitness.create') %}<div class="stage-actions"><h5>Review support for the intended use</h5>{% for applicability in assessment.applicability %}{{ support_review(assessment, applicability, lane, slug, governing_configuration, view, csrf_token) }}{% endfor %}</div>
+    {% else %}<p class="prerequisite-card">A support judgment cannot be submitted with your current software access. That access would not establish accountability for the judgment.</p>{% endif %}
+  {% endif %}
+  {% if lane.action_access.get(slug ~ '-input.select') %}{% for fitness in assessment.fitness %}{% if fitness.state == 'SUPPORTABLE' and not fitness.content.get('decision_limiting') and not assessment.selections %}{{ choose_for_use(assessment, fitness, lane, slug, governing_configuration, view, csrf_token) }}{% endif %}{% endfor %}{% endif %}
+  {% if assessment.selections %}<div class="status-panel"><strong>Chosen for management use</strong><span>This specific assessment was explicitly accepted for its recorded use. Integration and Decision remain separate.</span></div>{% endif %}
+  {% if assessment.fitness %}<details class="assessment-history"><summary>Support judgment history</summary>{% for item in assessment.fitness %}<article class="record-card"><strong>{% if item.state == 'SUPPORTABLE' %}Sufficiently supported for the stated use{% else %}Not sufficiently supported for the stated use{% endif %}</strong><p>{{ item.label }}</p><p>{{ item.content.get('rationale', '') }}</p>{{ exact_basis(item) }}</article>{% endfor %}</details>{% endif %}
+</article>
+{%- endmacro %}
+
+{% macro lane_work(lane, slug, governing_configuration, view, csrf_token) -%}
+<section class="lane-work" id="{{ slug }}-work" aria-labelledby="{{ slug }}-heading"><div class="section-heading"><div><p class="eyebrow">Independent analytical lane</p><h3 id="{{ slug }}-heading">{{ lane.lane.title() }}</h3><p>{{ stage_name(lane.task_stage) }}</p></div><a href="#assessment-heading">Back to both assessments</a></div>
+  {% if lane.selection_state.value == 'CONFLICT' %}<div class="unresolved-card"><strong>More than one incompatible assessment choice remains.</strong><p>PAIM has not chosen by recency, display order, author, or convenience. Use the governing lane-resolution action before downstream Integration.</p>{{ why(lane.explanation, true) }}</div>{% endif %}
+  {% for assessment in lane.assessments %}{{ assessment_card(assessment, lane, slug, governing_configuration, view, csrf_token) }}{% endfor %}
+  {{ develop_form(lane, slug, governing_configuration, view, csrf_token) }}
+  {% if lane.candidates or lane.fitness or lane.selections %}<details class="lane-history"><summary>Other candidates and governance trace</summary><p>Prior, non-selected, blocked, dissenting, superseded, withdrawn, and refresh-required records remain governed history where established.</p>{% for item in lane.candidates + lane.fitness + lane.selections %}<article class="record-card"><strong>{{ item.family.replace('-', ' ').title() }}</strong><p>{{ item.label }}</p>{{ exact_basis(item) }}</article>{% endfor %}</details>{% endif %}
 </section>
 {%- endmacro %}
+
 {% block title %}Value & Risk — {{ view.case.title }}{% endblock %}
 {% block content %}
 {{ workspace_header(view, active_area) }}
 {% set governing = namespace(value=none) %}{% for configuration in view.configurations %}{% if configuration.is_governing %}{% set governing.value = configuration %}{% endif %}{% endfor %}
-<section aria-labelledby="assessment-heading"><h2 id="assessment-heading">Value &amp; Risk</h2><p>Value and Risk are equal peer assessments. PAIM creates no shared score, automatic consensus, or presentation-derived priority.</p><div class="peer-lanes">{{ lane_panel(view.value, 'value', governing.value, view, csrf_token) }}{{ lane_panel(view.risk, 'risk', governing.value, view, csrf_token) }}</div><div class="boundary-note"><strong>Management boundary:</strong> this workspace records and selects independent analytical Inputs. It does not integrate them, establish an operating Boundary, or propose or authorize a Decision.</div></section>
+<section aria-labelledby="assessment-heading"><h2 id="assessment-heading">Value &amp; Risk</h2><p>Develop Value and Risk independently for the proposed use. Each can progress at its own pace; neither is ranked, scored, or combined here.</p>
+  {% if governing.value %}<div class="known-context"><strong>Current assessment setup</strong><span>{{ governing.value.content.get('system', 'Current setup') }} — {{ governing.value.content.get('intended_use', 'No intended use recorded') }}</span></div><div class="peer-summary">{{ peer_summary(view.value, 'value') }}{{ peer_summary(view.risk, 'risk') }}</div>{{ lane_work(view.value, 'value', governing.value, view, csrf_token) }}{{ lane_work(view.risk, 'risk', governing.value, view, csrf_token) }}
+  {% else %}<div class="prerequisite-card"><strong>Choose one setup before developing assessments.</strong><p>Value and Risk work must retain the current Case and setup context. PAIM cannot choose among an absent, conflicted, or inaccessible setup.</p><a href="/cases/{{ view.case.case_id }}/configuration">Review proposal setup</a></div>{% endif %}
+  <div class="boundary-note"><strong>What happens later:</strong> Integration and management judgment remain separate. This page creates no shared score, automatic consensus, operating limit, proposal, authorization, or operating state.</div>
+</section>
 {% endblock %}

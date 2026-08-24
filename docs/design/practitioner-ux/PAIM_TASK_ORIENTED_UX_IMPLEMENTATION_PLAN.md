@@ -119,23 +119,32 @@ does not implement UX-3+, M1D, or a new missing-information status.
 
 ### UX-3 — Independent Value and Risk work surfaces
 
-Implementation prerequisite: the Issue #115 practitioner-language standard is governing editorial
-guidance for this increment. UX-3 must lead with the Value/Risk management questions, concrete
-scope, and useful actions; introduce Evidence, Applicability, Fitness, Selection, accountability,
-and authority terminology only where each distinction becomes consequential; and pass the standard's
-PR checklist. Meeting this language gate does not authorize UX-3 implementation by itself.
+Implementation status: implemented by Issue #117. The browser derives presentation stages from
+authoritative Input status events and exact Input-to-Applicability, Fitness, and Acceptance/Selection
+relations. Those stages are not persisted workflow state. Compact peer summaries preserve parity;
+substantive lane work uses full-width forms and lets Value and Risk progress independently.
+
+The interaction leads with the analytical and management questions and introduces formal
+Applicability, Fitness, Acceptance/Selection, accountability, and identity detail only where each
+becomes consequential. The Issue #115 practitioner-language standard remains governing editorial
+guidance.
 
 Scope:
 
 - separate full-width lane workflows;
 - natural-language analytical prompts;
 - contextual source material limited to explicit visible relationships;
-- three explicit checkpoints for Input, Fitness, and Selection; and
+- four explicit checkpoints for Input development, readiness, Fitness, and Selection; and
 - persisted interaction intents that are not authoritative records.
 
 Gate: lane independence, non-favorable outcomes, stale/tampered context, material evidence basis, and
 non-selected history have hard-oracle tests; practitioner copy passes the Issue #115 language
 standard without concealing any formal checkpoint or semantic boundary.
+
+UX-3 does not redesign `What we know` beyond contextual reuse, Integration or management judgment,
+Boundary/operating limits, proposal or authorization, the global Source & history narrative,
+reference-case fixture content, or M1D. It adds no universal score, inferred relevance/sufficiency,
+combined lane state, automatic choice, or new domain command.
 
 ### UX-4 — Management judgment and operating limits
 
