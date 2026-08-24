@@ -2,13 +2,15 @@
 
 ## Status and decision boundary
 
-This document is the product operating-model checkpoint required by Issue #123. It is a design
-proposal for owner review, not a system specification, domain change, deployment claim, or
-authorization to implement further UI work. The contracts under [`docs/system/`](../../system/)
-remain authoritative.
+This document is the accepted product operating-model checkpoint established by Issue #123. It is
+a governing design reference, not a system specification, domain change, deployment claim, or
+authorization to implement further UI work. The contracts under
+[`docs/system/`](../../system/) remain authoritative.
 
-Further practitioner-UI redesign is paused until this package is accepted and any required
-normative changes are separately approved.
+Further practitioner-UI redesign remains paused. The
+[Product Design Foundation](PAIM_PRODUCT_DESIGN_FOUNDATION.md) now provides the product-level
+reference above this operating model; any required normative changes still require separate
+approval.
 
 The assessment basis includes the governing
 [Roles and Accountability Specification](../../system/specifications/PAIM_ROLES_AND_ACCOUNTABILITY_SPEC_v0.1.md),

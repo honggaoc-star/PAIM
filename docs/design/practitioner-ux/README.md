@@ -6,9 +6,10 @@ This directory records the design checkpoint produced from the Harborlight Scena
 exercise. It is an implementation-planning layer over existing PAIM capabilities, not a system
 specification, runtime change, or empirical validation claim.
 
-Issue #123 establishes a Practitioner Operating Model checkpoint. Further practitioner-UI
-implementation is paused until this design package is independently owner-reviewed and accepted.
-The package proposes no normative, domain, persistence, deployment, or fixture change.
+Issue #123 established the accepted Practitioner Operating Model checkpoint. Issue #125 adds the
+Product Design Foundation above it for independent review. Further practitioner-UI implementation
+remains paused. The package proposes no normative, domain, persistence, deployment, or fixture
+change.
 
 The current contracts under [`docs/system/`](../../system/) remain authoritative. If a proposal here
 cannot preserve those contracts, it requires explicit semantic review before implementation.
@@ -23,6 +24,28 @@ Value/Risk semantics underneath. The interaction layer should carry known contex
 choices, and reveal machinery only when it helps a governance, audit, or diagnostic task.
 
 ## Design set
+
+### Product Design Foundation
+
+- [PAIM Product Design Foundation](PAIM_PRODUCT_DESIGN_FOUNDATION.md) defines the product purpose,
+  central value of management continuity, practitioner-centered principles, product concepts,
+  attention hierarchy, and relationship between product, operating-model, specification, UI, and
+  engineering layers.
+- [Continuing Value-Risk & Decision Lifecycle](PAIM_CONTINUING_VALUE_RISK_DECISION_LIFECYCLE.md)
+  defines the continuing practitioner cycle, focused review, event- and time-driven attention,
+  symmetric treatment of realized Value and Risk, and current-position composition boundary.
+- [Decision Record, Audit & Learning Model](PAIM_DECISION_RECORD_AUDIT_AND_LEARNING_MODEL.md)
+  distinguishes decision quality from outcome quality and defines Case, Decision, and
+  organizational learning without turning history into authority.
+- [Product Scope Boundary](PAIM_PRODUCT_SCOPE_BOUNDARY.md) identifies what PAIM owns, what it
+  should integrate with, and the explicit anti-sprawl constraints.
+- [Harborlight Product Journey](PAIM_HARBORLIGHT_PRODUCT_JOURNEY.md) illustrates continuing
+  management using authoritative Scenario-A facts and clearly labeled constructed PAIM product
+  extensions without mutating the reference Case.
+
+The Product Design Foundation is the product-level governing reference above the accepted
+Practitioner Operating Model. It does not replace the authoritative system specifications or
+authorize implementation.
 
 ### Practitioner Operating Model checkpoint
 
@@ -80,7 +103,10 @@ Assignments, presents vacancy/conflict explicitly, and removes arbitrary account
 Applicability, Fitness, and Acceptance/Selection finalization. It adds no Role Assignment,
 accountable-mechanism model, UX-4 work, or M1D behavior.
 
-Issue #123 supersedes the assumption that UX-4 should begin next. Its checkpoint distinguishes
+Issue #125 adds the Product Design Foundation above the accepted Issue #123 operating-model
+checkpoint. It establishes why PAIM exists and the continuing management lifecycle before any
+normative Responsibility/Case Work or further UI decision. Issue #123 supersedes the assumption
+that UX-4 should begin next. Its checkpoint distinguishes
 practical roles from granular responsibilities and separately governed authority, and documents why
 durable cross-practitioner work cannot be implemented as presentation-only state. No UX-4, M1D,
 Role Assignment UI, Case Work, or organization-local deployment work is authorized by these docs.

@@ -200,7 +200,7 @@ M1D, Role Assignment administration, or a new schema concept.
 
 ### Practitioner Operating Model checkpoint — Issue #123
 
-Implementation status: documentation/design checkpoint ready for owner review. The package defines
+Implementation status: accepted documentation/design checkpoint. The package defines
 organization-controlled `local`, separates Participant, practical Role, Responsibility, and
 Authority, limits standing Case roles to Case Coordinator and Assessor plus optional Reviewer,
 proposes bounded contextual Case Work/handoffs, and assesses current architecture honestly.
@@ -214,6 +214,31 @@ repaired.
 Gate: owner acceptance of the operating model and explicit selection of the next bounded issue.
 This section authorizes no UI, specification, schema, networking, Role Assignment, Work Item,
 notification, UX-4, or M1D implementation.
+
+### Product Design Foundation checkpoint — Issue #125
+
+Implementation status: documentation/design foundation. The
+[Product Design Foundation](PAIM_PRODUCT_DESIGN_FOUNDATION.md) is the product-level governing
+reference above the accepted Practitioner Operating Model. It establishes PAIM's central value as
+management continuity of an AI-related business Decision over time, the continuing Value-Risk and
+Decision lifecycle, reconstructable Decision and learning model, practitioner-centered product
+principles, product scope boundary, and illustrative Harborlight journey.
+
+The hierarchy for follow-on work is:
+
+1. Product Design Foundation — why PAIM exists, what value it creates, and what it owns;
+2. Practitioner Operating Model — how participants, roles, granular responsibilities, separate
+   authority, Case Work, and deployment direction support that value;
+3. normative Responsibility and Case Work specifications — exact contracts, only after a separate
+   accepted issue;
+4. practitioner UI design and implementation — expression of accepted product and normative
+   decisions; and
+5. engineering machinery — persistence, security, reconstruction, deployment, and verification.
+
+Status: paused after the documentation checkpoint. No normative Responsibility/Case Work work, UI
+redesign, UX-4, M1D, first-class Observation, analytics, organization-local deployment, or
+Harborlight Scenario B-F work is authorized. The next issue must be explicitly selected and
+bounded after independent review.
 
 ### UX-4 — Management judgment and operating limits
 
