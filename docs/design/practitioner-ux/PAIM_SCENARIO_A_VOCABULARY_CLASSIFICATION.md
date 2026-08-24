@@ -5,6 +5,10 @@
 This revises the provisional vocabulary in response to one Scenario-A usability checkpoint. It is not
 a final glossary and does not rename domain records, API contracts, or specifications.
 
+The later [PAIM Practitioner-Language Standard](PAIM_PRACTITIONER_LANGUAGE_STANDARD.md) is the
+durable cross-cutting editorial standard. This Scenario-A classification remains source context and
+concrete vocabulary input; use the durable standard as the UX-3 and PR-handoff gate.
+
 ## Classification key
 
 1. **Ordinary practitioner UI term** — usable as a primary label when phrased in context.

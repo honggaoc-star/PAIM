@@ -7,6 +7,12 @@ vocabulary shell, and UX-2 is implemented as the task-oriented `What we know` wo
 later increment still requires its own issue, branch, tests, practitioner review, and independent
 semantic acceptance. M1D remains out of scope.
 
+Issue #115 establishes the durable
+[practitioner-language standard](PAIM_PRACTITIONER_LANGUAGE_STANDARD.md). UX-3 and every later
+practitioner-facing increment must apply its audience layers, vocabulary treatment, safeguard rules,
+reference-content guidance, and PR checklist. The standard improves communication; it does not
+authorize a workflow or semantic change.
+
 ## Questions requiring semantic or domain review
 
 The interaction design must not answer these by convenience:
@@ -113,6 +119,12 @@ does not implement UX-3+, M1D, or a new missing-information status.
 
 ### UX-3 — Independent Value and Risk work surfaces
 
+Implementation prerequisite: the Issue #115 practitioner-language standard is governing editorial
+guidance for this increment. UX-3 must lead with the Value/Risk management questions, concrete
+scope, and useful actions; introduce Evidence, Applicability, Fitness, Selection, accountability,
+and authority terminology only where each distinction becomes consequential; and pass the standard's
+PR checklist. Meeting this language gate does not authorize UX-3 implementation by itself.
+
 Scope:
 
 - separate full-width lane workflows;
@@ -122,7 +134,8 @@ Scope:
 - persisted interaction intents that are not authoritative records.
 
 Gate: lane independence, non-favorable outcomes, stale/tampered context, material evidence basis, and
-non-selected history have hard-oracle tests.
+non-selected history have hard-oracle tests; practitioner copy passes the Issue #115 language
+standard without concealing any formal checkpoint or semantic boundary.
 
 ### UX-4 — Management judgment and operating limits
 
@@ -169,7 +182,9 @@ semantic blocker is appropriate. It does not automatically authorize M1D.
 - vacancy/conflict/stale/tampered hard oracles with zero mutation;
 - append-only history and effective/knowledge-time reconstruction;
 - keyboard, focus, responsive layout, and reversible-detail checks;
-- practitioner-visible wording reviewed against the provisional classification; and
+- practitioner-visible wording reviewed against the provisional classification;
+- practitioner-visible and reference/example wording reviewed against the practitioner-language
+  standard and its PR checklist; and
 - a documented statement of what the increment does not implement.
 
 ## Explicit exclusions

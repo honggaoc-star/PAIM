@@ -5,6 +5,10 @@
 Help a competent practitioner complete the management task without prior PAIM ontology training,
 while the application continues to preserve every governing distinction required by PAIM.
 
+Apply these interaction principles together with the
+[PAIM Practitioner-Language Standard](PAIM_PRACTITIONER_LANGUAGE_STANDARD.md), which governs
+audience layers, vocabulary treatment, safeguard copy, example content, and the editorial PR gate.
+
 ## Interaction principles
 
 ### 1. Start with the task

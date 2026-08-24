@@ -154,7 +154,8 @@ def test_ux1_orientation_keeps_proposed_governing_setup_separate_from_operation(
     assert available == {"review-known", "value-assessment", "risk-assessment"}
     assert view.required_prerequisite is None
     assert "Assess Value" in page.text and "Assess Risk" in page.text
-    assert "not a ranking" in page.text
+    assert "Choose the task that fits the work you are doing now." in page.text
+    assert "display order is not a ranking" not in page.text
     assert "Authorized setup" not in page.text
     assert "Operating setup" not in page.text
     assert "Current operating process" not in page.text
@@ -170,6 +171,10 @@ def test_ux1_orientation_keeps_proposed_governing_setup_separate_from_operation(
     )
     assert "attention" not in view.__dataclass_fields__
     assert "next_task" not in view.__dataclass_fields__
+
+    history = web_fixture.client.get(f"/cases/{web_fixture.visible_case_id}/history")
+    assert "what was recorded, when it applied, and what was known at the time" in history.text
+    assert "machine identifiers or raw payloads" not in history.text
 
 
 def test_ux1_passive_orientation_keeps_lone_incomplete_lane_as_available_work(

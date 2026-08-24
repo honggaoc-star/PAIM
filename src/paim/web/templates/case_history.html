@@ -3,10 +3,10 @@
 {% block title %}Source and history — {{ view.case.title }}{% endblock %}
 {% block content %}
 {{ workspace_header(view, active_area) }}
-<section aria-labelledby="history-heading"><h2 id="history-heading">Source, history, and governance basis</h2><p>This view explains what material was recorded and the time context used to reconstruct it. It does not expose machine identifiers or raw payloads.</p>
+<section aria-labelledby="history-heading"><h2 id="history-heading">Source, history, and governance basis</h2><p>This page shows what was recorded, when it applied, and what was known at the time.</p>
   <details open><summary>Case reconstruction context</summary><dl><dt>Case</dt><dd>{{ view.case.title }}</dd><dt>Applies at</dt><dd>{{ view.effective_at.isoformat() }}</dd><dt>Known at</dt><dd>{{ view.known_at.isoformat() }}</dd></dl></details>
   <h3>Setup history</h3>{% for item in view.configurations %}<article class="record-card"><p class="eyebrow">{{ item.practitioner_label }}</p><strong>{{ item.content.get('system', 'Setup') }}</strong><p>{{ item.context_summary }}</p><details class="history-basis"><summary>Source, history, and governance basis</summary><dl><dt>Maturity</dt><dd>{{ item.maturity.replace('_', ' ').title() }}</dd><dt>Purpose</dt><dd>{{ item.purpose.replace('_', ' ').title() }}</dd><dt>Applies at</dt><dd>{{ item.basis.effective_at.isoformat() }}</dd><dt>Known at</dt><dd>{{ item.basis.known_at.isoformat() }}</dd></dl></details></article>{% endfor %}
   <h3>Information, authority, assessments, and Decision basis</h3><div class="content-grid">{% for item in view.evidence + view.authority + view.authority_gaps + view.applicability + view.value.candidates + view.value.fitness + view.value.selections + view.risk.candidates + view.risk.fitness + view.risk.selections + view.decision.history %}<article class="record-card"><strong>{{ item.family.replace('-', ' ').title() }}</strong><p>{{ item.label }}</p>{{ history_basis(item) }}</article>{% endfor %}</div>
-  <div class="boundary-note">Historical reconstruction still uses exact identity and dual-time selection underneath. Browser technical inspection is deferred until a separately enforceable inspection permission exists; authorized operators retain the production CLI and audit paths.</div>
+  <div class="boundary-note">Authorized operators can use the production CLI and audit paths when a governance or audit task requires full technical inspection.</div>
 </section>
 {% endblock %}
