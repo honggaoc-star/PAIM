@@ -46,7 +46,11 @@ explicit unavailable information, requirements/authority sources, and unresolved
 retaining the existing governed records and commands. Issue #115 establishes the cross-cutting
 practitioner-language standard. UX-3 is the implemented independent Value/Risk workflow over the
 unchanged Input, readiness, Applicability, Fitness, and Acceptance/Selection capabilities. It does
-not authorize UX-4, M1D, or any domain-semantic extension.
+not authorize UX-4, M1D, or any domain-semantic extension. UX-3A is the implemented cross-cutting
+refinement that carries an exact ready assessment's explicitly linked information into independent
+Applicability review tasks and translates shared confirmations around practitioner actions and
+consequences. It adds no persisted workflow/progress state and makes no Applicability, Fitness, or
+Selection judgment.
 
 ## Exercise boundary
 

@@ -1,23 +1,22 @@
 {% extends "base.html" %}
-{% block title %}Confirm exact action — PAIM{% endblock %}
+{% block title %}{{ confirmation.title }} — PAIM{% endblock %}
 {% block content %}
 <section class="narrow" aria-labelledby="confirm-heading">
-  <h1 id="confirm-heading">Confirm exact action</h1>
-  <p><strong>{{ intent.action }}</strong></p>
-  <p>The server will revalidate identity, software access, exact visibility, accountability,
-     substantive authority, and every bound Version when you confirm.</p>
-  <h2>Practitioner review</h2><dl>
-  {% for key, value in intent.payload.items() %}
-    {% if key not in ['provenance'] and not key.endswith('_id') and not key.endswith('_ids') and key not in ['effective_at', 'configuration_choice', 'target_choice', 'evidence_choice'] %}<dt>{{ key.replace('_', ' ').title() }}</dt><dd>{{ value if value else 'None recorded' }}</dd>{% endif %}
-  {% endfor %}
+  <h1 id="confirm-heading">{{ confirmation.title }}</h1>
+  <p>{{ confirmation.introduction }}</p>
+  <h2>What you are recording</h2><dl>
+  {% for field in confirmation.fields %}<dt>{{ field.label }}</dt><dd>{{ field.value }}</dd>{% endfor %}
   </dl>
-  <details><summary>Exact identity and Version basis</summary>
+  <div class="consequence-note"><strong>What this does:</strong> {{ confirmation.consequence }}</div>
+  <details><summary>Record details</summary>
+    <p>The current governed context and permission, accountability, and authority prerequisites will be checked again before anything is recorded.</p>
+    <dl><dt>Technical action</dt><dd class="mono">{{ intent.action }}</dd></dl>
     <dl>{% for key, value in intent.payload.items() %}{% if (key.endswith('_id') or key.endswith('_ids')) and value %}<dt>{{ key.replace('_', ' ').title() }}</dt><dd class="mono">{{ value }}</dd>{% endif %}{% endfor %}</dl>
-    {% if intent.expected_version_ids %}<ul>{% for value in intent.expected_version_ids %}<li class="mono">{{ value }}</li>{% endfor %}</ul>{% else %}<p>The owning command expects a new identity.</p>{% endif %}
+    {% if not intent.expected_version_ids %}<p>A new governed record will be created.</p>{% endif %}
   </details>
   <form action="{{ commit_path }}" method="post" data-submit-lock>
     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-    <button type="submit">Confirm and revalidate</button>
+    <button type="submit">{{ confirmation.button }}</button>
   </form>
   <p><a href="{{ return_path }}">Cancel without changing PAIM</a></p>
 </section>

@@ -32,6 +32,7 @@ from paim.integrity import EffectiveInterval, EventId, RecordId, RecordVersionId
 from paim.operational import OperationalApplication
 from paim.operational.models import AccessDenied
 from paim.web.sessions import ActionIntent, BrowserSession, SessionRegistry
+from paim.web.ux3a import confirmation_presentation
 
 Render = Callable[[Request, str, dict[str, object], int], Response]
 RequireSession = Callable[[Request], BrowserSession | Response]
@@ -612,6 +613,7 @@ def register_m1c_routes(
                 "view": None,
                 "csrf_token": session.csrf_secret,
                 "intent": intent,
+                "confirmation": confirmation_presentation(action, intent.payload),
                 "commit_path": f"/cases/{case_id}/{action.replace('.', '-')}/commit/{intent_id}",
                 "return_path": f"/cases/{case_id}/decision",
             },

@@ -33,7 +33,7 @@ def _grant_browser_path(fixture: WebFixture) -> None:
 
 
 def _confirm(page: Page) -> None:
-    page.get_by_role("button", name="Confirm and revalidate").click()
+    page.locator("form[data-submit-lock] button").click()
     page.wait_for_load_state("domcontentloaded")
 
 
@@ -95,7 +95,7 @@ def test_m1b_browser_exact_evidence_and_independent_lane_path(
         evidence_form.get_by_label("Where this came from").fill("bounded browser capture")
         evidence_form.get_by_label("What was recorded").fill("The exact control was observed.")
         evidence_form.get_by_role("button", name="Review information").click()
-        assert page.get_by_role("heading", name="Confirm exact action").is_visible()
+        assert page.get_by_role("heading", name="Review and confirm this action").is_visible()
         _confirm(page)
         workspace = web_fixture.operational.practitioner_workspace(
             web_fixture.admin_session, web_fixture.visible_case_id
@@ -141,9 +141,12 @@ def test_m1b_browser_exact_evidence_and_independent_lane_path(
                 f"{slug}-browser-analysis:v1"
             )
             create.get_by_label(
-                "Which available information supports this assessment?"
+                "Which available information is used in this assessment?"
             ).select_option(evidence.version_id)
             create.get_by_role("button", name=f"Review {lane_name} assessment").click()
+            assert page.get_by_role(
+                "heading", name=f"Review and record {lane_name} assessment"
+            ).is_visible()
             _confirm(page)
             workspace = web_fixture.operational.practitioner_workspace(
                 web_fixture.admin_session, web_fixture.visible_case_id
@@ -161,18 +164,32 @@ def test_m1b_browser_exact_evidence_and_independent_lane_path(
                     == 1
                 )
 
-            page.get_by_role("link", name="What we know", exact=True).click()
-            applicability = page.locator("details").filter(
-                has_text="Review how information applies"
+            lane = page.locator("section.lane-work").filter(
+                has=page.get_by_role("heading", name=lane_name)
             )
-            applicability.locator("summary").click()
-            applicability.locator('select[name="evidence_choice"]').select_option(
-                evidence.version_id
+            candidate_card = lane.locator("article.assessment-card").filter(
+                has_text=f"Independent {lane_name} finding"
             )
-            applicability.locator('select[name="target_choice"]').select_option(
-                candidate.version_id
+            candidate_card.get_by_label("Why is it ready for review?").fill(
+                f"Exact {lane_name} review complete"
             )
-            applicability.get_by_label("Purpose for this review").fill("bounded-management")
+            candidate_card.get_by_role("button", name="Review readiness").click()
+            assert page.get_by_role(
+                "heading", name=f"Confirm {lane_name} assessment is ready for review"
+            ).is_visible()
+            _confirm(page)
+            candidate_card = page.locator("article.assessment-card").filter(
+                has_text=f"Independent {lane_name} finding"
+            )
+            assert candidate_card.get_by_text("0 of 1 information items reviewed").is_visible()
+            candidate_card.get_by_role("link", name="Continue information review").click()
+            assert page.get_by_role(
+                "heading",
+                name=f"Review how the information used in this {lane_name} assessment applies",
+            ).is_visible()
+            assert page.locator('select[name="evidence_choice"]').count() == 0
+            assert page.locator('select[name="target_choice"]').count() == 0
+            applicability = page.locator("form.contextual-review-form")
             applicability.get_by_label("Scope of this judgment").fill(
                 "exact governed Configuration"
             )
@@ -180,7 +197,11 @@ def test_m1b_browser_exact_evidence_and_independent_lane_path(
             applicability.get_by_label("Responsible governance process").fill(
                 "governed:m1b-browser-applicability"
             )
-            applicability.get_by_role("button", name="Review applicability judgment").click()
+            applicability.get_by_role("button", name="Review this information judgment").click()
+            assert page.get_by_role(
+                "heading", name="Confirm how this information applies"
+            ).is_visible()
+            assert not page.get_by_text("evidence.applicability", exact=True).is_visible()
             _confirm(page)
             workspace = web_fixture.operational.practitioner_workspace(
                 web_fixture.admin_session, web_fixture.visible_case_id
@@ -195,19 +216,6 @@ def test_m1b_browser_exact_evidence_and_independent_lane_path(
                 f"Applicable — browser-observation:v1 → {lane_name} analysis: "
                 f"Independent {lane_name} finding"
             )
-
-            page.get_by_role("link", name="Value & Risk", exact=True).click()
-            lane = page.locator("section.lane-work").filter(
-                has=page.get_by_role("heading", name=lane_name)
-            )
-            candidate_card = lane.locator("article.assessment-card").filter(
-                has_text=f"Independent {lane_name} finding"
-            )
-            candidate_card.get_by_label("Why is it ready for review?").fill(
-                f"Exact {lane_name} review complete"
-            )
-            candidate_card.get_by_role("button", name="Review readiness confirmation").click()
-            _confirm(page)
             lane = page.locator("section.lane-work").filter(
                 has=page.get_by_role("heading", name=lane_name)
             )
@@ -231,8 +239,13 @@ def test_m1b_browser_exact_evidence_and_independent_lane_path(
                 f"governed:m1b-browser-{slug}-fitness"
             )
             fitness_form.get_by_role("button", name="Review support judgment").click()
-            assert page.get_by_text("SUPPORTABLE", exact=True).is_visible()
+            assert page.get_by_role(
+                "heading",
+                name=f"Confirm whether the {lane_name} assessment is sufficiently supported",
+            ).is_visible()
+            assert page.get_by_text("Sufficiently supported for this use", exact=True).is_visible()
             assert page.get_by_text("material support", exact=True).is_visible()
+            assert page.get_by_role("button", name="Record support judgment").is_visible()
             _confirm(page)
             workspace = web_fixture.operational.practitioner_workspace(
                 web_fixture.admin_session, web_fixture.visible_case_id
@@ -255,6 +268,13 @@ def test_m1b_browser_exact_evidence_and_independent_lane_path(
                 f"governed:m1b-browser-{slug}-acceptance"
             )
             selection.get_by_role("button", name="Review use of this assessment").click()
+            assert page.get_by_role(
+                "heading", name=f"Confirm use of this {lane_name} assessment"
+            ).is_visible()
+            assert page.get_by_role("button", name=f"Choose {lane_name} assessment").is_visible()
+            assert page.get_by_text(
+                "It does not authorize a Decision or operation.", exact=False
+            ).is_visible()
             _confirm(page)
 
         final = web_fixture.operational.practitioner_workspace(

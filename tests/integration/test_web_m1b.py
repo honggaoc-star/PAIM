@@ -297,9 +297,9 @@ def test_m1b_workspace_exact_configuration_and_independent_value_risk_path(
             fitness_data,
         )
         assert fitness_commit.status_code == 303
-        assert "SUPPORTABLE" in fitness_confirmation.text
-        assert "Required Support" in fitness_confirmation.text
-        assert "TRUE" in fitness_confirmation.text
+        assert "Sufficiently supported for this use" in fitness_confirmation.text
+        assert "Is this information required support?" in fitness_confirmation.text
+        assert ">Yes<" in fitness_confirmation.text
         current = web_fixture.operational.practitioner_workspace(
             web_fixture.admin_session, web_fixture.visible_case_id
         )
@@ -326,7 +326,7 @@ def test_m1b_workspace_exact_configuration_and_independent_value_risk_path(
                 blocked_data,
             )
             assert blocked_commit.status_code == 303
-            assert "BLOCKED" in blocked_confirmation.text
+            assert "Not sufficiently supported for this use" in blocked_confirmation.text
             assert "Escalate unresolved lane evidence" in blocked_confirmation.text
             current = web_fixture.operational.practitioner_workspace(
                 web_fixture.admin_session, web_fixture.visible_case_id
@@ -527,6 +527,224 @@ def test_m1b_stale_configuration_successor_stops_and_duplicate_intent_is_idempot
     assert (
         web_fixture.operational.domain_store.count_rows("managed_configuration_versions") == count
     )
+
+
+def test_ux3a_contextual_applicability_is_exact_independent_and_returns_to_lane(
+    web_fixture: WebFixture,
+) -> None:
+    _grant_m1b(web_fixture)
+    assert login(web_fixture.client)[1].status_code == 303
+    case_id = str(web_fixture.visible_case_id)
+    base = f"/cases/{case_id}"
+    initial = web_fixture.operational.practitioner_workspace(
+        web_fixture.admin_session, web_fixture.visible_case_id
+    )
+    assert initial is not None
+    configuration = initial.configurations[0]
+    assert (
+        _review_commit(
+            web_fixture.client,
+            f"{base}/configuration/designation/review",
+            {
+                "configuration_id": configuration.configuration_id,
+                "configuration_version_id": configuration.version_id,
+                "accountable_mechanism": "governed:ux3a-configuration",
+                "effective_at": initial.effective_at.isoformat(),
+            },
+        )[2].status_code
+        == 303
+    )
+    statements = (
+        "Materially complete source linkage was observed in 46 of 50 packages.",
+        "Document-sorting time may fall by an estimated 20-35 percent.",
+    )
+    for index, statement in enumerate(statements, start=1):
+        assert (
+            _review_commit(
+                web_fixture.client,
+                f"{base}/evidence/review",
+                {
+                    "configuration_id": configuration.configuration_id,
+                    "configuration_version_id": configuration.version_id,
+                    "classification": "observed" if index == 1 else "estimate",
+                    "source": f"harborlight-owner-review:{index}",
+                    "provenance": "bounded UX-3A oracle",
+                    "statement": statement,
+                    "attention": "current",
+                    "effective_at": initial.effective_at.isoformat(),
+                },
+            )[2].status_code
+            == 303
+        )
+    unlinked_statement = "A nearby but unlinked source mentions application processing."
+    assert (
+        _review_commit(
+            web_fixture.client,
+            f"{base}/evidence/review",
+            {
+                "configuration_id": configuration.configuration_id,
+                "configuration_version_id": configuration.version_id,
+                "classification": "observed",
+                "source": "unlinked-similar-source",
+                "provenance": "bounded non-inference oracle",
+                "statement": unlinked_statement,
+                "attention": "current",
+                "effective_at": initial.effective_at.isoformat(),
+            },
+        )[2].status_code
+        == 303
+    )
+    with_evidence = web_fixture.operational.practitioner_workspace(
+        web_fixture.admin_session, web_fixture.visible_case_id
+    )
+    assert with_evidence is not None
+    evidence = tuple(
+        item
+        for statement in statements
+        for item in with_evidence.evidence
+        if item.content.get("statement") == statement
+    )
+    assert len(evidence) == 2
+    assert (
+        _review_commit(
+            web_fixture.client,
+            f"{base}/value/input/review",
+            {
+                "configuration_id": configuration.configuration_id,
+                "configuration_version_id": configuration.version_id,
+                "purpose": "small-business lending review",
+                "finding": "Potential processing Value under the bounded proposal.",
+                "boundary": "Harborlight Scenario A",
+                "uncertainties": "Transfer to live applications remains uncertain.",
+                "implication": "Proceed to independent support review only.",
+                "provenance": "owner analysis",
+                "evidence_version_ids": "\n".join(item.version_id for item in evidence),
+                "effective_at": initial.effective_at.isoformat(),
+            },
+        )[2].status_code
+        == 303
+    )
+    developed = web_fixture.operational.practitioner_workspace(
+        web_fixture.admin_session, web_fixture.visible_case_id
+    )
+    assert developed is not None
+    assessment = developed.value.assessments[0]
+    assert (
+        _review_commit(
+            web_fixture.client,
+            f"{base}/value/readiness/review",
+            {
+                "input_version_id": assessment.input.version_id,
+                "rationale": "The assessment is complete enough for support review.",
+                "effective_at": initial.effective_at.isoformat(),
+            },
+        )[2].status_code
+        == 303
+    )
+
+    general = web_fixture.client.get(f"{base}/evidence")
+    assert general.status_code == 200
+    assert "Required before Value support review" not in general.text
+    assessment_page = web_fixture.client.get(f"{base}/assessment")
+    assert "0 of 2 information items reviewed" in assessment_page.text
+    assert all(statement in assessment_page.text for statement in statements)
+    first_url = (
+        f"{base}/evidence?task=assessment-support&lane=VALUE"
+        f"&input_version_id={assessment.input.version_id}"
+        f"&evidence_version_id={evidence[0].version_id}"
+    )
+    first = web_fixture.client.get(first_url)
+    assert first.status_code == 200
+    assert "Review how the information used in this Value assessment applies" in first.text
+    assert all(statement in first.text for statement in statements)
+    assert unlinked_statement not in first.text
+    assert '<select name="evidence_choice"' not in first.text
+    assert '<select name="target_choice"' not in first.text
+    assert "0 of 2 information items reviewed" in first.text
+
+    before = web_fixture.operational.domain_store.count_rows("evidence_applicability_versions")
+    tampered = web_fixture.client.post(
+        f"{base}/applicability/review",
+        data={
+            "csrf_token": csrf_from(first.text),
+            "task_origin": "assessment-support",
+            "origin_lane": "VALUE",
+            "origin_input_version_id": assessment.input.version_id,
+            "origin_evidence_version_id": evidence[0].version_id,
+            "evidence_choice": evidence[0].version_id,
+            "target_choice": configuration.version_id,
+            "assessed_scope": "Scenario A applications",
+            "outcome": "APPLICABLE",
+            "rationale": "Must not commit after target tampering.",
+            "accountable_mechanism": "governed:ux3a-applicability",
+        },
+        headers={"Origin": ORIGIN},
+    )
+    assert tampered.status_code == 409
+    assert "carried information-review context was changed" in tampered.text
+    assert (
+        web_fixture.operational.domain_store.count_rows("evidence_applicability_versions") == before
+    )
+
+    def complete_item(item: Any, page_text: str) -> Any:
+        reviewed = web_fixture.client.post(
+            f"{base}/applicability/review",
+            data={
+                "csrf_token": csrf_from(page_text),
+                "task_origin": "assessment-support",
+                "origin_lane": "VALUE",
+                "origin_input_version_id": assessment.input.version_id,
+                "origin_evidence_version_id": item.version_id,
+                "evidence_choice": item.version_id,
+                "target_choice": assessment.input.version_id,
+                "purpose": "small-business lending review",
+                "assessed_scope": "Scenario A applications",
+                "outcome": "CONDITIONALLY_APPLICABLE",
+                "conditions": "Only for the stated synthetic package context.",
+                "limitations": "No live-portfolio inference.",
+                "rationale": "Independent bounded information judgment.",
+                "accountable_mechanism": "governed:ux3a-applicability",
+                "effective_at": initial.effective_at.isoformat(),
+            },
+            headers={"Origin": ORIGIN},
+            follow_redirects=False,
+        )
+        assert reviewed.status_code == 303
+        confirmation = web_fixture.client.get(reviewed.headers["location"])
+        assert confirmation.status_code == 200
+        assert "Confirm how this information applies" in confirmation.text
+        assert "Record information review" in confirmation.text
+        assert "does not determine whether the assessment is sufficiently supported" in (
+            confirmation.text
+        )
+        assert "<summary>Record details</summary>" in confirmation.text
+        return web_fixture.client.post(
+            confirmation.request.url.path.replace("/confirm/", "/commit/"),
+            data={"csrf_token": csrf_from(confirmation.text)},
+            headers={"Origin": ORIGIN},
+            follow_redirects=False,
+        )
+
+    first_commit = complete_item(evidence[0], first.text)
+    assert first_commit.status_code == 303
+    assert "evidence_version_id=" + evidence[1].version_id in first_commit.headers["location"]
+    assert (
+        web_fixture.operational.domain_store.count_rows("evidence_applicability_versions")
+        == before + 1
+    )
+    second = web_fixture.client.get(first_commit.headers["location"])
+    assert "1 of 2 information items reviewed" in second.text
+    second_commit = complete_item(evidence[1], second.text)
+    assert second_commit.status_code == 303
+    assert second_commit.headers["location"] == f"{base}/assessment#value-work"
+    assert (
+        web_fixture.operational.domain_store.count_rows("evidence_applicability_versions")
+        == before + 2
+    )
+    assert web_fixture.operational.domain_store.count_rows("lane_fitness_versions") == 0
+    assert web_fixture.operational.domain_store.count_rows("input_acceptance_versions") == 0
+    resumed = web_fixture.client.get(second_commit.headers["location"])
+    assert "Review support for the intended use" in resumed.text
 
 
 def test_ux3_multiple_ready_value_candidates_have_no_automatic_winner_or_conflict(
