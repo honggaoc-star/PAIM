@@ -8,8 +8,9 @@ specification, runtime change, or empirical validation claim.
 
 Issue #123 established the accepted Practitioner Operating Model checkpoint, and Issue #125
 established the accepted Product Design Foundation above it. Issue #127 now records the proposed
-Normative Model Redesign checkpoint. Further practitioner-UI implementation remains paused. These
-design packages propose no domain, persistence, deployment, fixture, or UI change.
+Normative Model Redesign checkpoint. Issue #139 validates the completed Gates 1–6 contracts through
+a non-mutating Harborlight normative simulation. Further practitioner-UI implementation remains
+paused. These design packages propose no domain, persistence, deployment, fixture, or UI change.
 
 The current contracts under [`docs/system/`](../../system/) remain authoritative. If a proposal here
 cannot preserve those contracts, it requires explicit semantic review before implementation.
@@ -57,6 +58,20 @@ authorize implementation.
 
 The Issue #127 package is a prospective semantic design. Current system specifications remain
 controlling, and no proposed concept is implemented or silently read into an existing record.
+
+### Gates 1–6 Harborlight validation
+
+- [Harborlight Gates 1–6 Normative Simulation](PAIM_HARBORLIGHT_GATES_1_6_NORMATIVE_SIMULATION.md)
+  maps one complete ordinary-language journey to the exact authoritative records and guards below
+  it without mutating Harborlight state.
+- [Practitioner Burden & Leakage Review](PAIM_HARBORLIGHT_PRACTITIONER_BURDEN_AND_LEAKAGE_REVIEW.md)
+  classifies every practitioner action and identifies which system operations must remain absorbed.
+- [Gate-7 Readiness Recommendation](PAIM_GATE_7_READINESS_RECOMMENDATION.md) records **PASS WITH
+  SPECIFIC PRODUCT ADJUSTMENTS** and the acceptance criteria a separately authorized Gate-7 issue
+  must preserve.
+
+This validation is a design checkpoint, not runtime evidence, Gate-7 authorization, or a change to
+the Harborlight fixture.
 
 ### Practitioner Operating Model checkpoint
 
