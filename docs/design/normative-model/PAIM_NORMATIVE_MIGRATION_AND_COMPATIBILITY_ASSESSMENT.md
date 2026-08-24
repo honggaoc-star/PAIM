@@ -106,6 +106,25 @@ limitations. A new atomic one-candidate review action, if accepted, applies only
 with separate exact adequacy-review and reliance Responsibilities and all-or-nothing guards. Legacy
 Fitness and Acceptance/Selection remain independently reconstructable.
 
+## Existing quantitative and qualitative Value/Risk content
+
+Existing Input content, Evidence, Learning, measures, estimates, assumptions, and provenance retain
+their current representation and meaning. Migration must not parse prose or numeric-looking values
+into new typed quantitative claims, infer units/periods/baselines, convert qualitative conclusions
+to ratings, or synthesize observations, targets, thresholds, causality, ROI, or Risk scores.
+
+After a coordinated cutover, new typed claims may be created prospectively through governed
+production paths. A legacy fact may be cited as exact provenance and, only through an explicit
+accountable new act, represented in the new contract with its original source, limitations, and
+semantic-era relationship intact. The original record is never rewritten. Absence of a legacy
+number does not become an inadequacy finding, and presence of a number does not establish
+Applicability, adequacy, materiality, comparability, or authority.
+
+Compatibility reads label legacy content as legacy rather than pretending it satisfies the new
+context contract. Expected/target values and later observations remain temporally separate. No
+upgrade calculates a universal Value score, Risk score, net score, ROI, ranking, causal conclusion,
+or Decision-quality judgment.
+
 ## Existing Case lifecycle and Decisions
 
 Legacy Case lifecycle Transition Events remain valid and current runtime selection continues until
@@ -197,6 +216,8 @@ Hard-oracle coverage must prove:
 - `Applicability Owner` is accepted only on the bounded legacy path;
 - no practical role is inferred from access or old role strings;
 - no legacy readiness/Fitness/Selection fact is combined, invented, or reordered;
+- no legacy numeric/prose content is parsed into a typed claim, inferred unit/context, score,
+  causal conclusion, or retrospective inadequacy;
 - old scheduled Triggers remain reconstructable and are not auto-converted;
 - new Review Point arrival creates no Trigger/domain mutation;
 - legacy lifecycle and target continuity views both reconstruct without hindsight contamination;

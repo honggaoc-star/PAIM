@@ -199,6 +199,26 @@ must be reviewed neutrally for its exact bounded decision use: an unfavorable or
 conclusion can be adequate, while prior Fitness, adequacy, or reliance is provenance rather than an
 automatic current judgment.
 
+## Quantitative expectation-versus-experience review
+
+Where quantification is meaningful and exact comparability is established, review may compare
+expected with realized Value, expected Risk/control behavior with observed experience, estimated
+with observed cost/resource use, and targets or thresholds with observations. The comparison must
+retain exact claim types and check construct, scope/population, method, observation/estimate period,
+baseline/comparator, Configuration, provenance, uncertainty, and Applicability. A shared label or
+unit alone does not establish comparability.
+
+Targets remain distinct from Evidence, estimates from observations, observations from causal
+attribution, thresholds from predictions, and measures from management judgment. PAIM neither
+normalizes Value and Risk onto one scale nor infers materiality, review priority, or an action from
+variance. When contexts differ, review presents the claims separately or records the limitation;
+it does not calculate a misleading delta.
+
+Estimate error is not automatically Decision error. Later observations remain later knowledge and
+cannot rewrite whether an estimate, assessment, reliance, or Decision was reasonable on the exact
+information available when made. The optional quantitative contract is detailed in the
+[Quantitative Value & Risk Normative Concept](PAIM_QUANTITATIVE_VALUE_AND_RISK_NORMATIVE_CONCEPT.md).
+
 ## Learning horizons
 
 Different questions mature at different times. Task efficiency might be interpretable after 30

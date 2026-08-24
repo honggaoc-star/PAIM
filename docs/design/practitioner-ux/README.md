@@ -51,8 +51,9 @@ authorize implementation.
 
 - [Normative Model Redesign package](../normative-model/) proposes the smallest integrated target
   for continuing Case semantics, practical roles, exact Responsibility, derived and durable Case
-  Work, review timing, readiness, neutral assessment adequacy, exact reliance, historical
-  reconstruction, migration, and coordinated downstream specification gates.
+  Work, review timing, optional context-bound quantitative Value/Risk, readiness, neutral
+  assessment adequacy, exact reliance, historical reconstruction, migration, and coordinated
+  downstream specification gates.
 
 The Issue #127 package is a prospective semantic design. Current system specifications remain
 controlling, and no proposed concept is implemented or silently read into an existing record.

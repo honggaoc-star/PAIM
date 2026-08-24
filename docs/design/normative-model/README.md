@@ -25,6 +25,9 @@ revisions are separately approved.
 - [Assessment Adequacy & Reliance Necessity Review](PAIM_ASSESSMENT_ADEQUACY_AND_RELIANCE_NECESSITY_REVIEW.md)
   reframes independent assessment review neutrally, preserves exact reliance, and identifies which
   system operations may be absorbed into natural practitioner actions.
+- [Quantitative Value & Risk Normative Concept](PAIM_QUANTITATIVE_VALUE_AND_RISK_NORMATIVE_CONCEPT.md)
+  supports meaningful context-bound quantities without forced quantification, false precision,
+  common scoring, causal inference, or automated management judgment.
 - [Case Continuity & Historical Reconstruction Review](PAIM_CASE_CONTINUITY_AND_RECONSTRUCTION_REVIEW.md)
   proposes a continuing Case identity/status model and preserves then-versus-now reconstruction.
 - [Migration & Compatibility Assessment](PAIM_NORMATIVE_MIGRATION_AND_COMPATIBILITY_ASSESSMENT.md)

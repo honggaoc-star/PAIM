@@ -118,7 +118,8 @@ should include, subject to access:
 - independent current Value and Risk acceptances;
 - current actions, Work, Interventions, and conditions;
 - unresolved Evidence, Authority, Responsibility, conflict, or uncertainty;
-- current Learning and realized Value/Risk information;
+- current Learning and realized Value/Risk information, including bounded quantitative claims and
+  their context where present;
 - planned and required review timing; and
 - exact attention conditions.
 
@@ -146,6 +147,20 @@ Later corrections can change today's best account of what was effective then, bu
 enter the `known_at` Decision-time view or rewrite the exact basis used. Then-versus-now comparison
 must label which facts were learned later.
 
+### Decision-time quantities and later observations
+
+Reconstruction preserves every estimate/expectation, target, threshold, Risk estimate, and
+cost/resource measure exactly as bound or known at Decision time. Later observed results remain
+separate Information/Learning facts with their own scope, period, method, Configuration,
+provenance, Applicability, and dual time. They may be compared only when those contexts are
+legitimately comparable.
+
+An observation does not overwrite an estimate or prove causality. Estimate error, target variance,
+or later harm/benefit does not by itself prove that the earlier Decision was unreasonable. The
+historical view must distinguish the then-known quantitative basis, later knowledge, and any later
+accountable interpretation without computing a universal Value, Risk, net, quality, or hindsight
+score.
+
 ## Carry-forward through review
 
 Focused review cites unaffected exact current Versions rather than copying them. A Version may be
@@ -162,7 +177,8 @@ proper successor Decision path preserves the predecessor. Work or presentation c
 The target keeps independent state and history for:
 
 - Configuration;
-- analytical Input/readiness, legacy Fitness, prospective adequacy, and exact reliance;
+- analytical Input/readiness, optional quantitative claims, legacy Fitness, prospective adequacy,
+  and exact reliance;
 - Integration and Decision;
 - Intervention and activation;
 - Learning;

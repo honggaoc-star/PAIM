@@ -94,17 +94,23 @@ Define Planned Review Point, required-review constraint, exact source/Applicabil
 temporal operators, constraint intersection/conflict, planning Responsibility and authority
 boundary, Decision/Configuration change, arrival-as-attention, practitioner-started Review Point
 Trigger, focused refresh, realized Value/Risk symmetry, next-point establishment, and legacy
-scheduled-Trigger treatment.
+scheduled-Trigger treatment. Define expectation-versus-experience comparison only for exact
+comparable constructs, scopes, methods, periods, baselines, Configurations, provenance, and
+Applicability; preserve estimate/target/observation/threshold distinctions, later knowledge, and no
+automatic causality, materiality, priority, or Decision-error inference.
 
 Exit gate: event-before-plan, required-before-planned, missed planned review, empty required-window
 intersection, no-material-change review, focused one-lane refresh, successor Decision, and no
-automatic mutation have normative examples and test plans.
+automatic mutation; comparable and non-comparable expected/observed claims; different measure
+horizons; and no hindsight rewrite have normative examples and test plans.
 
 ### Gate 6 — Value/Risk readiness, assessment adequacy, and reliance hardening
 
 Revise:
 
 - `PAIM_VALUE_RISK_INTERFACE_SPEC_v0.1.md`;
+- `PAIM_EVIDENCE_AND_AUTHORITY_SPEC_v0.1.md` and
+  `PAIM_INTERVENTION_AND_LEARNING_SPEC_v0.1.md` for quantitative source/observation context;
 - relevant Roles/Responsibility and Integrity sections;
 - Case readiness composition; and
 - Integration current-basis guards.
@@ -116,11 +122,23 @@ adequacy and reliance facts, the permitted atomic **Complete Value/Risk review**
 adequate candidate, explicit choice/dispositions for multiple adequate candidates, reuse, and
 legacy Fitness and Acceptance/Selection compatibility without retroactive reinterpretation.
 
+Define optional typed quantitative Value/Risk claims for estimate/expectation, target/objective,
+observed result, threshold/constraint, bounded Risk estimate, and cost/resource measure. Specify the
+smallest context-sensitive contract for construct, representation/range/distribution, unit,
+direction, scope/population, period, comparator/baseline, coverage, provenance,
+uncertainty/limitations, and method/assumptions. Preserve claim-type identity, exact lane,
+Configuration, relationships, dual time, qualitative legitimacy, and explicit inability to
+estimate. Do not force every context field when immaterial or create a mandatory UI questionnaire.
+
 Exit gate: Value/Risk independence; favorable, unfavorable, and uncertain assessments capable of
 adequacy on neutral quality grounds; inaccurate/incomplete/overstated/hidden-uncertainty adverse
 outcomes; Applicability/adequacy separation; one/multiple candidates; separate Responsibilities;
 atomic rollback; reuse; stale context; exact freeze/history; and no automatic reliance or Selection
-have hard oracles.
+have hard oracles. Quantitative oracles cover meaningful quantitative and legitimate qualitative
+Inputs; missing material context and false precision; target/Evidence, estimate/observation,
+observation/causality, threshold/prediction, and measure/judgment separation; independent Value/Risk
+measures; cost/benefit separation; no universal ROI, probability × impact, score, ranking, or
+automated Decision; and later observations that do not rewrite Decision-time knowledge.
 
 ### Gate 7 — Architecture and implementation-readiness review
 
@@ -136,7 +154,9 @@ Only after Gates 1-6 are accepted, revise:
 Decide module ownership, commands, semantic transactions, persistence constraints/indexes,
 selectors, read adapters, audit/provenance, concurrency behavior, migrations from every supported
 revision, and failure recovery. This gate may split implementation into bounded increments but may
-not weaken the coordinated semantics.
+not weaken the coordinated semantics. It must decide whether typed quantitative content is an
+embedded versioned component or a related stable Record family based on identity/reuse/history
+needs; it may not introduce one mandatory measure schema or top-level score.
 
 ### Gate 8 — Domain/persistence implementation
 
@@ -147,8 +167,9 @@ Implement production capabilities in dependency order:
 3. Case continuity selectors/events;
 4. Case Work and result/return;
 5. Review timing/constraint composition;
-6. readiness/assessment-adequacy/reliance commands; and
-7. access-filtered practitioner read composition.
+6. optional typed quantitative-claim/context capability;
+7. readiness/assessment-adequacy/reliance commands; and
+8. access-filtered practitioner read composition.
 
 Every increment requires empty/prior-revision migration tests, hard semantic oracles, full
 regression, dual-time reconstruction, zero-mutation failures, and compatibility evidence. No broad
@@ -162,6 +183,8 @@ Only after stable production capabilities and owner acceptance may a bounded UI 
 - people, Responsibilities, and Work;
 - contextual handoffs and returns;
 - next planned/required review explanations; and
+- natural optional quantitative capture and comparable expectation-versus-experience explanation
+  without a mandatory long form or false precision; and
 - simplified **Finish assessment** and **Complete Value/Risk review** actions that preserve neutral
   adequacy and exact reliance consequences.
 
@@ -179,6 +202,8 @@ organization-local deployment remain separate decisions.
 | Required review constraint | Evidence & Authority / continuing-review section | Decision/Boundary, Reassessment, Integrity, Responsibility |
 | Focused review | Reassessment | Value-Risk, Evidence/Authority, Case, Decision, Learning |
 | Readiness | Value-Risk Interface | Responsibility, Integrity, Case composition |
+| Optional typed quantitative Value/Risk claims | Value-Risk Interface | Evidence & Authority, Intervention & Learning, Integration/Decision, Reassessment, Integrity, Responsibility |
+| Exact expectation-versus-experience comparison | Continuing review/Reassessment | Value-Risk, Evidence/Authority, Learning, Decision, Integrity |
 | Assessment adequacy | Value-Risk Interface | Responsibility, Evidence Applicability, Integration, Integrity |
 | Reliance designation / competing-candidate choice | Value-Risk Interface | Responsibility, assessment adequacy, Evidence Applicability, Integration, Integrity |
 | Migration/semantic eras | Integrity and platform architecture | all changed specifications and operations |
@@ -207,6 +232,8 @@ Stop and return to product/design authority if a proposed revision would:
 - make Work a substitute for governed results;
 - turn review timing into automatic materiality or Decision;
 - infer Selection from uniqueness;
+- force quantification, infer missing quantitative context, or introduce a universal Value, Risk,
+  net, ROI, ranking, causal, priority, or Decision-quality score;
 - require rewriting v0.1.0 or Harborlight history;
 - introduce a universal workflow, cadence, score, or priority; or
 - require UI state to fill a missing normative fact.

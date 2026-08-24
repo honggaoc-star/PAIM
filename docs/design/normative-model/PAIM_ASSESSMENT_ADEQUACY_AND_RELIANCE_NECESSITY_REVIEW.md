@@ -93,6 +93,27 @@ Applicability.
 Adequacy also does not select an assessment, freeze it for reliance, grant authority, compare
 Value with Risk, or establish the management Decision.
 
+## Quantitative content in adequacy review
+
+Quantitative claims receive the same neutral quality-and-boundedness review as the rest of the
+assessment. Where a number is material, the reviewer considers whether its construct, value/range
+or distribution, unit, direction, scope/population, period, comparator/baseline, coverage,
+provenance, uncertainty, and method/assumptions are sufficiently explicit and faithful for the
+stated decision use. These considerations remain contextual rather than a mechanical checklist.
+
+An assessment may be `NOT_ADEQUATE_FOR_DECISION_USE` where a material quantity is unsupported,
+falsely precise, exaggerated or understated, inappropriately generalized, missing a necessary
+comparator/period/scope, or hides material uncertainty. An assessment is not inadequate merely
+because it is qualitative or states that no defensible quantitative estimate is currently
+available. The reviewer must not manufacture a number, force Value into ROI, require a universal
+Risk formula, or treat quantification as support for the proposed AI use.
+
+Estimate, target, observation, threshold, Risk estimate, and cost/resource measure remain distinct
+claim types. Adequacy cannot turn a target into Evidence, an observation into causal attribution, a
+threshold into a prediction, or any measure into management judgment. The detailed context and
+comparison boundaries are defined in the
+[Quantitative Value & Risk Normative Concept](PAIM_QUANTITATIVE_VALUE_AND_RISK_NORMATIVE_CONCEPT.md).
+
 ## What existing Fitness guarantees remain necessary
 
 The prospective concept retains the existing requirements for exact Input and use binding,

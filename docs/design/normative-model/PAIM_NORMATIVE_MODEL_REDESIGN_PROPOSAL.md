@@ -42,6 +42,11 @@ authoritative continuity cannot be derived safely:
 4. **Review Timing** — a planned next review point and exact required-review constraints, each with
    source, applicability, time, and history.
 
+Quantitative Value/Risk is a capability within existing analytical, Information, Learning, and
+review contexts rather than a universal Case score or mandatory new top-level object. A separately
+bounded specification gate will decide the smallest persistence shape for typed claims without
+forcing every assessment to contain one.
+
 No separate Participant record is required: the existing PAIM Actor remains the attributable
 person/mechanism identity. No current-management-position record is required: it remains an
 access-filtered read composition. No universal lifecycle, priority, score, automatic Selection, or
@@ -65,6 +70,7 @@ Actor
   |
 Case (continuing bounded management identity)
   |-- Configurations / Information / independent Value and Risk
+  |       `-- optional typed estimates, targets, observations, thresholds, and cost/resource measures
   |-- Decisions and Authorization Bases
   |-- Actions / Interventions / Learning
   |-- event occurrences and planned/required review timing
@@ -209,6 +215,40 @@ original names and semantics. The
 [Assessment Adequacy & Reliance Necessity Review](PAIM_ASSESSMENT_ADEQUACY_AND_RELIANCE_NECESSITY_REVIEW.md)
 records the complete evaluation.
 
+## Quantifiable Value and Risk where meaningful
+
+The target explicitly supports quantitative Value and Risk claims when their information and method
+make quantification defensible. It never requires every assessment to produce a number, rating,
+probability, monetary amount, or common scale. A qualitative assessment or an explicit conclusion
+that no defensible estimate is available remains legitimate.
+
+Typed claims distinguish estimate/expectation, target/objective, observed result,
+threshold/constraint, bounded Risk estimate, and cost/resource measure. They retain the material
+construct, representation and unit, scope/population, period, comparator/baseline, coverage,
+source, uncertainty, method/assumptions, Configuration, dual time, and exact relationships as
+applicable. Not every field is mechanically mandatory; missing material context remains unknown or
+a limitation rather than being inferred.
+
+Value may preserve expected and realized time, cost, capacity, throughput, revenue, quality/error,
+customer, or other business outcomes without being forced into money or ROI. Risk may preserve
+defensible frequency/likelihood, impact/exposure, affected population, loss range, control
+performance, or incident rate without probability × impact or another universal formula. Material
+cost/resource measures remain separate enough for Value judgment; PAIM does not calculate a
+universal ROI.
+
+A target is not Evidence; an estimate is not an observed result; an observation does not establish
+causality; a threshold is not a prediction; and a measure is not management judgment. A number
+never creates Applicability, adequacy, materiality, acceptable Risk, authority, Decision, or review
+priority. Adequacy may fail for unsupported or falsely precise quantities, but absence of a number
+is not adverse when quantification is not reasonably supportable.
+
+Continuing review may compare expected and observed Value, Risk/control behavior, cost/resource
+use, and targets/thresholds only when exact construct, scope, method, period, baseline,
+Configuration, provenance, and Applicability make them legitimately comparable. Later error or
+outcome does not rewrite the reasonableness of the estimate or Decision at its knowledge time. The
+[Quantitative Value & Risk Normative Concept](PAIM_QUANTITATIVE_VALUE_AND_RISK_NORMATIVE_CONCEPT.md)
+defines the complete recommendation.
+
 ## End-to-end composition examples
 
 ### Harborlight current stopping point
@@ -271,6 +311,7 @@ Value/Risk records, review acts, or authority.
 | Planned review point | Let the organization choose the next reconsideration point | exact Review Point Version and context | due attention | review-planning Responsibility; Decision Authority only if changing a Decision condition | every prior point, change, cancellation, supersession, and review link | scheduler mechanics |
 | Required review | Prevent a plan defeating governing time constraints | exact constraint/source/Applicability/operator/window | combined compliant/conflict view | governing source authority and Applicability | correction, supersession, withdrawal, and prior applicability | opaque winner or compliance score |
 | Analytical readiness | Finish an assessment for independent adequacy review | exact Input Version and attributed readiness event | plain-language progress | producing Responsibility | predecessor readiness and successor-on-edit chain | backend `ready` transition |
+| Quantitative Value/Risk claim | Preserve a meaningful estimate, target, observation, threshold, Risk quantity, or cost/resource measure without forced quantification | typed claim, exact lane/context, representation/unit, scope/period/baseline/source, uncertainty/method as applicable, and dual time | natural claim and limitation summary; exact comparison only when comparable | source analytical/Information/threshold authority remains distinct; no authority from a number | original estimate/target and later observation remain separate | universal score, false precision, automatic ROI, probability × impact, or causal inference |
 | Assessment adequacy | Decide neutrally whether the exact assessment may enter the bounded management decision | exact adequacy outcome, Input/use/information basis, limitations, rationale, and time | natural adequacy explanation | adequacy-review Responsibility; no Decision Authority | every review, correction, and successor basis | legacy Fitness vocabulary or a mechanical checklist |
 | Reliance designation | Identify the exact adequate lane assessment the Case will use | exact lane reliance, adequacy basis, candidate dispositions, and time | combined one-candidate review confirmation | reliance Responsibility; no Decision Authority | freeze, reuse, non-selection, withdrawal, and supersession | Selection/freeze machinery |
 | Current management position | Understand what holds now | existing exact source records; no new master record | access-filtered exact composition | none created by presentation | all source Versions remain unchanged | a universal Case score/status |
@@ -283,6 +324,8 @@ Value/Risk records, review acts, or authority.
 - Work never substitutes for its result or silently completes another prerequisite.
 - Review timing creates attention, never a conclusion.
 - Carry-forward means continued reliance on exact still-eligible state, not copying or presumption.
+- Quantification is optional and context-bound; it never creates a common Value/Risk scale,
+  universal score, ranking, causality, or automated Decision.
 - Historical experience is information requiring current Applicability/relevance judgment.
 - Current management position remains a rebuildable composition.
 - No universal Case lifecycle, review frequency, score, priority, Selection, or automated Decision.

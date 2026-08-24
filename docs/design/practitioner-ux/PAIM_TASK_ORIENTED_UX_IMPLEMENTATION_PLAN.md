@@ -248,8 +248,9 @@ bounded after independent review.
 Implementation status: documentation/semantic-design checkpoint. The
 [Normative Model Redesign package](../normative-model/) evaluates the smallest integrated target
 for continuing Case identity/status, Case practical-role relationships, exact Responsibility,
-derived and durable Case Work, planned/required review timing, analytical readiness, neutral
-assessment adequacy, exact reliance, historical reconstruction, and legacy compatibility.
+derived and durable Case Work, planned/required review timing, optional rigorous quantitative
+Value/Risk, analytical readiness, neutral assessment adequacy, exact reliance, historical
+reconstruction, and legacy compatibility.
 
 The proposal keeps current specifications controlling. It adds no records or runtime behavior.
 Its [Downstream Specification Plan](../normative-model/PAIM_DOWNSTREAM_SPECIFICATION_PLAN.md)
