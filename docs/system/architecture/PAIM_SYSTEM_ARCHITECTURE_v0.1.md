@@ -18,6 +18,11 @@ This document does not prescribe a database, programming language, UI framework,
 
 Cross-cutting authoritative-record, boundary, lifecycle-transition, decision-authorization, and interim-reassessment integrity semantics are governed by `../specifications/PAIM_SYSTEM_RECORD_AND_DECISION_INTEGRITY_SPEC_v0.1.md`. That specification hardens this architecture without changing its analytical or practitioner meaning.
 
+Gate 1 of the accepted Normative Model Redesign adds a prospective common integrity and
+semantic-era boundary to that specification and to this architecture. Existing v0.1 record-family
+semantics remain controlling until their separately authorized Gate 2–6 revisions. This
+architecture does not predefine those later payloads, workflows, or substantive judgments.
+
 ## 1. System Purpose
 
 PAIM is an integrated management system for making, implementing, observing, and revisiting decisions about bounded AI-enabled configurations.
@@ -212,6 +217,13 @@ AI Management Case
     +-- Reassessment Trigger(s)
     +-- Interim Operating Disposition(s)
     +-- Reassessment / Successor Decision
+
+All authoritative families
+    +-- immutable Record/Version identity and semantic-contract identity
+    +-- exact context sets where adopted by the owning contract
+    +-- dual-time history and exact relationships
+    +-- family-owned selection yielding one / absent / conflict
+    +-- access-filtered, non-authoritative read composition
 ```
 
 The implementation should preserve relationships and history rather than overwrite prior decisions.
@@ -459,6 +471,12 @@ The eventual implementation should preserve:
 - provenance of practitioner-designed actions;
 - boundary visibility;
 - reassessment linkage;
+- per-Version semantic-contract identity for explicitly adopting prospective families;
+- immutable typed exact context sets without inferred substantive meaning;
+- access-filtered, deterministic, non-authoritative read composition;
+- dual-time and exact Decision-bound cross-era reconstruction;
+- all-or-nothing semantic transactions with exact replay/idempotency;
+- explicit legacy adapters and no silent prospective-to-legacy fallback;
 - deterministic scope/time current-record selection and explicit conflict;
 - immutable Integrated Operating Boundary Snapshots;
 - auditable Decision Authorization Basis;
@@ -466,6 +484,93 @@ The eventual implementation should preserve:
 - completed-Reassessment confirmation-or-successor outcome.
 
 Detailed technical controls are deferred to platform architecture.
+
+## 20A. Gate-1 common integrity and semantic-era architecture
+
+### 20A.1 Logical placement
+
+The common integrity layer sits below substantive record-family contracts and above persistence or
+transport implementation:
+
+```text
+Practitioner actions and read experiences
+                 |
+                 v
+Later substantive contracts (Gates 2–6)
+  Responsibility | Case continuity | Case Work | Review Timing |
+  assessment adequacy/reliance | quantitative Value/Risk
+                 |
+                 v
+Common integrity and semantic-era contract
+  semantic identity | authoritative envelope | exact context set |
+  selector outcome | dual-time reconstruction | semantic transaction |
+  compatibility/access/read-composition boundaries
+                 |
+                 v
+Platform persistence, audit, access enforcement, APIs, and projections
+```
+
+This is logical ownership, not a prescribed service topology. A platform may implement the
+mechanisms in one module or several components only if observable semantics remain identical.
+
+### 20A.2 Semantic-contract boundary
+
+Every adopting prospective Version/event binds an exact Semantic Contract ID/Version. The logical
+semantic-contract catalog records its normative owner, supported record families, adapters, and
+allowed successor transitions. Historical readers interpret each fact under its bound contract.
+No deployment version, timestamp, or “latest” rule changes meaning or chooses a winner.
+
+Legacy compatibility adapters form an explicit boundary. They are versioned, source-labelled,
+read-safe, and non-authoritative unless a later substantive contract grants one exact effect. A
+failed prospective path cannot fall back to a legacy path.
+
+### 20A.3 Shared integrity mechanisms
+
+- **Authoritative envelope:** conditional common identity, semantic contract, time, attribution,
+  provenance, relationship, checksum, access, and eligibility vocabulary. The owning family uses
+  only what it semantically needs.
+- **Exact context set:** immutable typed references to exact Record Versions; unordered by default,
+  canonically represented, access-filtered, and never a source of implied substantive meaning.
+- **Selector framework:** a family-supplied scope, eligibility predicate, temporal basis, and
+  authority/coordination relations produce exactly one, explicit absence, explicit conflict, or an
+  explicitly permitted compatible set. The common layer supplies no winner.
+- **Temporal reconstruction:** effective-at and known-at queries plus exact Decision-bound
+  reconstruction preserve later corrections/observations as later knowledge.
+- **Semantic transaction boundary:** one natural action may atomically commit several separately
+  identified facts with one exact guard basis, idempotency, audit linkage, and zero partial mutation.
+- **Read composition boundary:** current-position, attention, participant, derived-work, and
+  historical views are deterministic access-filtered compositions with exact source traceability,
+  not master records or command authority.
+
+### 20A.4 Access ordering
+
+Access/non-disclosure is enforced before context construction, selection visible to a caller,
+counting/grouping, read composition, historical reconstruction, or command use. Hidden records do
+not leak through counts, conflict/blocker labels, participant/work lists, timing hints, or output
+shape. Technical/audit detail requires explicit authorization. Gate 1 changes neither identity nor
+session/deployment architecture.
+
+### 20A.5 Unresolved later modules
+
+The architecture reserves integration points but does not define:
+
+- Responsibility taxonomy, assignment, or authority (Gate 2);
+- Case continuity states/determinations (Gate 3);
+- Case Work payload, coordination states, result, or return (Gate 4);
+- Planned Review Point and required-review constraints (Gate 5); or
+- readiness, assessment adequacy, reliance, or quantitative Value/Risk payloads (Gate 6).
+
+Each later module must adopt the common mechanisms explicitly and define its own context roles,
+eligibility, conflict/coexistence, authority/accountability, access, temporal, migration, and
+transaction rules. Existing v0.1 families continue unchanged until then.
+
+### 20A.6 Non-authoritative product projections
+
+Future `current management position`, `What needs me?`, participant, derived work, and “Case as it
+stood” experiences use the read-composition boundary. Their source manifests, query/rule Versions,
+watermarks, and access context make them reproducible. Cache, export, label, notification, queue
+position, or display order creates no priority, completion, responsibility, authority, currentness,
+or substantive fact. A command reconstructs its own exact authoritative basis.
 
 ## 21. What Is Already Designed / Validated
 
@@ -592,18 +697,11 @@ platform/
 
 ## 27. Next Step
 
-Review and freeze `PAIM_SYSTEM_ARCHITECTURE_v0.1.md`.
-
-Then create a **PAIM System Completion Baseline / Gap Map** mapping every architecture capability to:
-
-- existing artifact/evidence;
-- design status;
-- validation status;
-- remaining specification work;
-- platform dependency;
-- human-validation dependency.
-
-That gap map should become the basis for a new defensible overall project-completion percentage.
+Gate 1 establishes only the common integrity and semantic-era contract. After independent Gate-1
+acceptance, Gate 2 (Responsibility) may begin only through a separately authorized bounded issue.
+Gates 3–6 remain sequenced and separately reviewed under the accepted
+[Downstream Specification Plan](../../design/normative-model/PAIM_DOWNSTREAM_SPECIFICATION_PLAN.md).
+No domain/persistence implementation or UI redesign begins from this architecture update.
 
 ## 28. Overall Conclusion
 

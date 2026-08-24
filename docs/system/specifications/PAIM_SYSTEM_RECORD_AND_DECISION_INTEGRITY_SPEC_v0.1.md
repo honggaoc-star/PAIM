@@ -12,6 +12,12 @@ It governs the cross-cutting semantics defined here across the PAIM v0.1 system 
 
 This specification does not prescribe a database, event store, programming language, workflow engine, identity provider, signature technology, API, or user interface.
 
+The Gate-1 common-integrity additions in Section 3A are prospective controlling machinery for
+record families whose later owning specification explicitly adopts them. Existing v0.1 record
+families and records retain their current contracts and meaning until their separately authorized
+Gate 2–6 revisions are accepted. Section 3A does not itself create Responsibility, Case continuity,
+Case Work, Review Timing, assessment adequacy/reliance, or quantitative Value/Risk semantics.
+
 ## 1. Purpose
 
 PAIM requires a platform to preserve and enforce management history without inventing management behavior.
@@ -336,6 +342,279 @@ Every Configuration materiality or same-identity/new-identity determination must
 - affected Case, evidence, inputs, authority, controls, Decision, and routing references required by the substantive specification.
 
 Every accountable assignment/designation or mechanism relied upon by a governed record or judgment must remain exactly reconstructable for the effective and recorded time at which it applied. Technical principal identity, software permission, edit access, or participation must not be substituted for the accountable relationship. Absence and incompatible plurality remain explicit historical outcomes.
+
+## 3A. Prospective common integrity and semantic-era contract
+
+### 3A.1 Adoption boundary and semantic contract identity
+
+Every prospective authoritative Record Version, status event, relationship Version, or
+determination that adopts this section must identify the exact semantic contract under which it was
+created and must be interpreted. The logical identity contains:
+
+- a stable **Semantic Contract ID** naming one owned contract/family;
+- an immutable **Semantic Contract Version** naming the exact rules in force; and
+- the owning specification/version or other accepted normative source.
+
+Semantic contract identity is bound per immutable Version or event, not merely inferred from table,
+deployment date, current software, Record ID, UI route, or latest specification. A stable Record may
+span semantic contract Versions only when its owning substantive contract permits continuity and an
+explicit cross-era successor relationship preserves the transition. Historical interpretation
+always uses the contract bound to the historical fact.
+
+A versioned semantic-contract catalog or equivalent must make each supported contract identity,
+owner, interpretation source, allowed record families, compatibility adapters, and supported
+successor transitions discoverable to authorized system operation. The catalog is integrity
+metadata, not substantive authority and not a universal schema registry.
+
+No contract or adapter may infer `newer semantic era wins`. Cross-era co-current facts may coexist.
+The later owning substantive specification must define the exact eligibility, displacement,
+compatibility, conflict, or coexistence rule for its scope. Without such a rule, incompatible
+eligible facts return explicit conflict.
+
+### 3A.2 Legacy interpretation and no silent fallback
+
+Legacy v0.1 facts retain their original names, outcomes, scope, and semantics. In particular,
+Fitness, Acceptance/Selection, Role Assignment, Case lifecycle, Trigger/Reassessment, and other
+legacy records are not prospectively renamed or reinterpreted by a reader.
+
+Where a legacy Version predates an explicit semantic-contract field, a catalog/adapter may map its
+exact record family and supported persistence/specification revision to the original legacy
+contract for interpretation. That immutable external mapping does not mutate the Version, assert
+that the Version was created under the prospective envelope, or supply missing substantive facts.
+
+An explicit bounded adapter may:
+
+- read a named legacy contract through its original rules;
+- produce a source-labelled compatibility representation for an authorized consumer; and
+- retain the exact legacy Version and adapter contract/version as provenance.
+
+An adapter does not create a prospective fact, fill a missing prospective field, establish
+eligibility, or become write authority unless the later owning specification explicitly grants one
+bounded effect. A failed prospective command or selector must not retry through legacy semantics,
+another adapter, a UI label, or a permissive default. It returns the prospective failure unchanged.
+
+### 3A.3 Prospective authoritative envelope
+
+The common envelope is integrity vocabulary, not one giant mandatory record schema. An adopting
+owning contract must use only the fields that carry meaning for its family and must define any
+additional payload and guards. The envelope supports, as applicable:
+
+- stable Record ID and immutable Record Version/event/relationship ID;
+- record family/type and exact Semantic Contract ID/Version;
+- owning Case ID where the family is Case-bound;
+- immutable exact context set under Section 3A.4;
+- effective time or half-open effective interval and recorded time;
+- an explicit recorded-knowledge cutoff only where the owning contract makes it authoritative;
+- attributable Actor or governed mechanism and the separately valid accountability/authority basis
+  where required;
+- typed predecessor, correction, amendment, supersession, withdrawal, cancellation, delegation, or
+  other owning-contract relationship;
+- exact source/provenance links;
+- canonical payload representation/checksum where content equality, replay, transport, or audit
+  requires it;
+- access scope/policy reference; and
+- family-owned eligibility metadata only where the owning contract defines its meaning.
+
+Presence in the envelope does not establish the substantive validity of a payload, relationship,
+Actor, source, or eligibility. Omitted inapplicable fields are not gaps. Missing required fields fail
+the owning command without mutation.
+
+### 3A.4 Exact context-set contract
+
+An **Exact Context Set** binds a fact, judgment, action, query, or semantic transaction to the exact
+basis it concerns. Every member contains:
+
+- a controlled member role/purpose defined by the owning contract;
+- record family/type;
+- exact Record ID and Record Version ID; and
+- semantic ordering information only when the owning contract declares order to carry meaning.
+
+Membership is an unordered set by default. Storage, input, or display order has no meaning. When
+order is substantive, the contract must define the ordered role and ordinal constraints; ordering
+must not be inferred from timestamps or identifiers.
+
+Exact duplicate members are invalid at commit rather than silently counted twice. Two Versions of
+the same Record, incompatible typed roles, or contradictory members are rejected or returned as
+explicit conflict unless the owning contract expressly permits them and defines their distinct
+roles. The common layer does not decide Case/Configuration coherence; an adopting contract must
+state those guards where required.
+
+A persisted context set is immutable and canonically representable. Canonicalization must be
+independent of storage/input order and include the member role, family, Record ID, Version ID, and
+declared ordinal where applicable. If a checksum or independent Context Set ID is persisted, it is
+computed from that canonical representation. The default is an embedded immutable component. A
+separately identified Context Set Record is justified only when reuse, independent provenance,
+authorization, or lifecycle/history is itself required by an accepted owning contract.
+
+Access checks occur before a context set is composed, disclosed, or used to validate a command. An
+inaccessible member cannot be used merely because a hidden relation exists. Ordinary output must
+not leak its identity, count, type, conflict contribution, or existence. Authorized audit may expose
+the exact set under its separate access basis.
+
+Context membership never implies Applicability, responsibility, accountability, authority,
+adequacy, reliance, materiality, priority, causality, comparability, or Decision. Those meanings
+require their separately governed facts.
+
+### 3A.5 Common selector framework
+
+Every adopting record family that requires current selection must define in its owning contract:
+
+1. the exact selection scope/key;
+2. the eligibility predicate and required finalized/authorized state;
+3. effective-time and optional recorded-knowledge-cutoff semantics;
+4. permitted plurality or incompatibility conditions;
+5. any authoritative precedence, supersession, delegation, or coordination relation;
+6. stale, expired, withdrawn, cancelled, corrected, and superseded treatment; and
+7. the family-specific meaning of vacancy/absence and conflict.
+
+The common result shape is:
+
+- exactly one eligible authoritative result where the contract requires one;
+- explicit `NOT ESTABLISHED`/absence where none qualifies; or
+- explicit `CONFLICT — UNRESOLVED` with all accessible incompatible candidates where more than one
+  remains and no governing relation resolves them.
+
+A contract that permits a set of compatible current facts must define their distinguishable scopes
+and deterministic set result. The common layer never chooses by recency, record/version label,
+specificity, breadth, strongest state, role hierarchy, semantic-contract version, display order,
+row order, software permission, or convenience. A deterministic tie-break used only to render an
+already determined set is not substantive selection.
+
+### 3A.6 Non-authoritative read composition
+
+A practitioner summary, current management position, attention view, participant view, derived work
+view, or historical Case view is a **Read Composition** unless a later accepted contract explicitly
+creates an authoritative Record. A read composition must:
+
+- identify its query and composition-rule version;
+- use exact visible source Versions and retain an authorized source manifest or equivalent trace;
+- apply access and non-disclosure before selection, counting, grouping, conflict calculation, or
+  labelling;
+- preserve source absence, vacancy, conflict, uncertainty, and staleness rather than fabricate a
+  favorable/current/completed state;
+- support effective-time and recorded-knowledge-cutoff queries where its sources do;
+- produce deterministic semantic output for identical visible source state, access context, query,
+  and rule version; and
+- be recomputable from authoritative sources.
+
+Rendering, caching, export, notification, queue position, count, label, color, or generated summary
+does not create completion, currentness, priority, responsibility, authority, or command basis. A
+persisted cache or output manifest remains a non-authoritative projection and cannot be mutated back
+into source truth. A downstream command must reconstruct and revalidate its own exact authoritative
+context; a presentation label alone is never sufficient.
+
+When access hides a source, the composition must not reveal that source through global counts,
+blocker/conflict labels, participant lists, work queues, status wording, timing hints, or changed
+output shape. Non-disclosing unavailable output must not falsely assert substantive absence where
+the system cannot disclose that conclusion.
+
+### 3A.7 Dual-time and historical reconstruction
+
+Prospective concepts use the existing temporal discipline:
+
+- **effective-at** asks which facts governed the subject at the requested effective time using the
+  permitted knowledge basis; and
+- **known-at** limits the source set to facts recorded by the requested cutoff.
+
+Exact Decision-bound reconstruction starts with the exact Versions bound to the Decision, not a
+current selector. A “best account now of then” may include a later-recorded correction effective at
+that time, clearly labelled as later knowledge. A “what PAIM knew then” view excludes it. Neither
+view rewrites the Decision's exact historical basis.
+
+Cross-era reconstruction interprets every Version with its own bound Semantic Contract
+ID/Version. A current adapter or contract must not reinterpret an earlier fact. Later quantitative
+observations remain later knowledge and do not rewrite earlier estimates, targets, assessment
+adequacy, reliance, or Decision basis. Later Responsibility, Work, Review, correction, or successor
+facts likewise do not alter who was accountable or what was established at an earlier cutoff.
+
+The common contract guarantees reconstruction only from authoritative data actually preserved and
+linked under the owning contracts. It does not claim that PAIM knew unrecorded external facts or can
+derive missing historical context.
+
+### 3A.8 Semantic transaction and atomicity
+
+A **Semantic Transaction** is the all-or-nothing commit boundary for one natural governed action
+that may create multiple separate authoritative facts. It is not a workflow language. The adopting
+command must bind:
+
+- transaction/command identity and exact idempotency key;
+- command Semantic Contract ID/Version;
+- authenticated Actor and separately resolved accountability/authority where required;
+- one exact canonical context/guard basis and its checksum where applicable;
+- every intended fact, relationship, status event, and audit effect; and
+- effective and recorded time rules.
+
+All guards are evaluated against one consistent transaction basis. Every intended mutation commits
+or none does. Stale context, absence, conflict, access denial, invalid authority/accountability, or
+any write/audit failure leaves prior authoritative state unchanged and creates no partial domain
+fact.
+
+Exact replay with the same idempotency key, Actor, command contract, context checksum, and intent
+returns the already committed outcome without duplicate mutation. Reuse of the key with different
+identity, context, or intent fails explicitly. Concurrent incompatible attempts resolve
+deterministically to one committed transaction plus explicit stale/conflict failure, or to no
+commit; they never partially interleave.
+
+Audit preserves a transaction-level relationship among outputs while retaining the separate
+identity, contract, attribution, context, and history of every authoritative fact. Transaction
+grouping must not collapse those facts into one substantive judgment.
+
+### 3A.9 Migration, compatibility, and recovery
+
+- Every v0.1.0 Record, Version, relationship, checksum, and audit fact remains immutable historical
+  evidence under its original contract.
+- Prospective writes use a new semantic contract only after the owning Gate 2–6 specification and
+  implementation cutover are independently accepted.
+- No bulk rename/rewrite, UI-state inference, numeric/prose parsing, or synthesized prospective fact
+  is permitted merely for migration convenience.
+- Every adapter is explicit, versioned, bounded to named source/consumer contracts, read-safe, and
+  non-authoritative unless an owning specification grants a precise effect.
+- Every supported prior persistence revision must have an explicit upgrade, compatibility,
+  reconstruction, and recovery path before implementation ships.
+- Upgrade, rollback, backup/restore, repair, or disaster recovery preserves semantic-contract
+  identity and cannot reinterpret data according to the software version performing recovery.
+
+Corrections or successors across eras preserve both Versions and an explicit typed relationship.
+The owning later contract decides whether cross-era continuity is permitted and how eligibility is
+resolved. The integrity layer supplies no era precedence and no silent fallback.
+
+### 3A.10 Access and non-disclosure
+
+Access is evaluated before exact-context construction, selector evaluation visible to the caller,
+read composition, historical reconstruction, adapter output, or command use. A command cannot rely
+on an inaccessible Record merely because the system knows a hidden relationship exists.
+
+Conflict and absence output is access-contextual. Ordinary views must not reveal hidden identity,
+fact, count, scope, role, timing, candidate plurality, or conflict contribution. This rule does not
+authorize a false substantive statement; where neither disclosure nor a complete determination is
+permitted, return a non-disclosing unavailable/insufficient-access result defined by the access
+contract.
+
+An authoritative mutation requiring a complete context or selector result must fail without
+mutation when the Actor cannot access every contract-required source. It must not ignore hidden
+facts, treat them as absent, or disclose which hidden fact prevented the action.
+
+Cross-era adapters apply every applicable source and consumer restriction and use the stricter
+result where they differ. Historical and technical/audit views expose additional detail only under
+explicit authorization. Gate 1 does not redesign identity, authentication, sessions, software
+permission, or deployment.
+
+### 3A.11 Product-to-integrity discipline and later ownership
+
+| Common concept | Practitioner/product need | Why common | Explicitly does not mean | Later substantive owner | Do not ordinarily expose |
+|---|---|---|---|---|---|
+| Semantic contract identity | Preserve what a fact meant when created | Every evolving authoritative family needs interpretation stability | newer era wins, migration, or new substantive fact | each Gate 2–6 owning specification | era keys, registry mechanics |
+| Authoritative envelope | Give future facts consistent identity, time, attribution, provenance, and history vocabulary | These are shared integrity properties | every field is mandatory or payload is valid | each owning record family | envelope/schema machinery |
+| Exact context set | Carry the precise basis across tasks, sessions, and commits | Multiple later concepts bind several exact Versions | Applicability, authority, responsibility, adequacy, materiality, causality, or Decision | each owning contract defines member roles/coherence | raw IDs and canonicalization |
+| Selector framework | Show one current fact, explicit absence, or conflict without incidental winners | The outcome mechanics recur across families | a universal eligibility or precedence rule | each owning contract defines scope, eligibility, and relations | query algorithms and tie-break mechanics |
+| Read composition | Provide current position, attention, work, and historical views without master-record sprawl | Access/traceability/non-authority rules are cross-cutting | source truth, command authority, priority, or completion | later read models and their source families | source manifests unless inspecting history |
+| Dual-time reconstruction | Explain then-known versus now-known history | Every evolving family needs the same temporal discipline | knowledge of unrecorded facts or hindsight rewrite | each family supplies exact preserved sources | timestamp/query controls in ordinary work |
+| Semantic transaction | Present one natural action while preserving several exact facts atomically | Atomicity/idempotency/audit are cross-cutting | workflow engine or merged substantive judgment | later command contracts define guards and outputs | transaction IDs and write choreography |
+
+Gate 2 owns Responsibility kinds/assignment; Gate 3 owns Case continuity; Gate 4 owns Case Work;
+Gate 5 owns Review Timing; and Gate 6 owns readiness, assessment adequacy, reliance, and quantitative
+Value/Risk payloads. Until each gate is accepted, those semantics remain unresolved and current
+v0.1 contracts remain controlling.
 
 ## 4. Integrated Operating Boundary contract
 
@@ -1013,6 +1292,10 @@ IRR-006 and IRR-008 are resolved for specification purposes by the Value/Risk In
 
 If any unresolved P1 question prevents a required P0 integrity determination in a concrete case, the system records the gap/conflict and does not invent a permissive answer.
 
+The accepted Normative Model Redesign Gates 2–6 are also intentionally unresolved here as stated
+in Section 3A.11. Gate 1 provides reusable integrity vocabulary only; it does not pre-decide those
+substantive contracts.
+
 ## 12. Platform boundary
 
 Platform architecture may decide:
@@ -1024,7 +1307,12 @@ Platform architecture may decide:
 - how transition guards are presented;
 - how authorization is signed or approved technically;
 - how current conflicts and management attention are displayed;
-- how audit/history views are implemented.
+- how audit/history views are implemented;
+- physical representation of the semantic-contract catalog and conditional envelope;
+- whether an adopting exact context set is embedded or, where later authorized, independently
+  identified;
+- transaction/isolation mechanisms that provide the specified all-or-nothing behavior; and
+- caching/materialization of non-authoritative read compositions.
 
 Platform architecture may not change the observable semantics in this specification.
 
@@ -1039,6 +1327,7 @@ Platform architecture may not change the observable semantics in this specificat
 | IRR-005 / CON-001 | §7 and §8: Interim Operating Disposition, permitted effects, authority/currentness/expiry, completed-Reassessment outcome invariant, successor rule for changed conditions |
 | IRR-007 | §§2.1, 3.11–3.13, 5.4, and 8–10: one owning Case, one/absence/conflict governing Configuration selection, orthogonal non-governing purpose, linked-Case concurrency, accountable materiality/identity history |
 | IRR-013 / CON-002 | §§2.1, 3.11–3.13, 6, and 8–10: typed/conditional scope conformance, compatible plural performers, one/absence/conflict accountability, no implicit scope precedence, and unchanged Decision Authorization Basis |
+| Issue #129 / Normative Redesign Gate 1 | §3A: prospective semantic-contract identity, conditional envelope, exact context sets, family-owned selection, non-authoritative read composition, dual-time reconstruction, semantic transactions, compatibility, access, and later-gate boundaries |
 
 ## 14. Repository placement
 
@@ -1051,7 +1340,9 @@ docs/
 
 ## 15. Conclusion
 
-This specification supplies the cross-cutting integrity rules required to translate PAIM's existing management semantics into one consistent platform architecture.
+This specification supplies the cross-cutting integrity rules required to translate PAIM's existing
+management semantics into one consistent platform architecture and the prospective common machinery
+needed for explicitly adopted later semantic contracts without reinterpreting v0.1 history.
 
 It preserves the governing distinctions:
 

@@ -25,6 +25,12 @@ It does not prescribe a specific software test framework or implementation techn
 
 **Normative cross-cutting test contract:** `../specifications/PAIM_SYSTEM_RECORD_AND_DECISION_INTEGRITY_SPEC_v0.1.md` defines the hard integrity behavior for authoritative record history/currentness, Integrated Operating Boundary Snapshots, case transitions, Decision Authorization Basis, and Interim Operating Disposition. Behavioral tests must use those rules as oracles without replacing the human judgments reserved there.
 
+Gate 1 adds prospective reusable hard-oracle categories for semantic-contract identity, exact
+context sets, selector outcomes, non-authoritative read composition, dual-time reconstruction,
+semantic transactions, migration/compatibility, and access/non-disclosure. Those oracles apply to a
+later record family only when its separately accepted Gate 2–6 contract adopts them. They do not
+change current v0.1 expected behavior or define later substantive payloads.
+
 **Bounded v0.1 validation scope:** the human-accepted
 `../../engineering/PAIM_V0_1_RELEASE_SCOPE_DECISION_IRR_009_IRR_014_v0.1.md` establishes that
 IRR-009 and IRR-014 each remain `OPEN — SEMANTICS UNDESIGNED` while each has bounded-v0.1
@@ -325,6 +331,174 @@ Every case lifecycle transition follows the canonical source-to-target table, pr
 ### 9.12 Reassessment outcome integrity
 
 Opening reassessment does not silently alter operation. Every completed Reassessment produces either an explicit unchanged-Decision confirmation or an authorized successor/amendment Decision; interim change is time-bounded and authorized.
+
+## 9A. Gate-1 common-integrity hard-oracle families
+
+### 9A.1 Oracle setup discipline
+
+Every Gate-1 oracle must name:
+
+- source Semantic Contract ID/Version and any prospective/adapted consumer contract;
+- exact Record IDs, Version IDs, typed context members, effective time, known-at cutoff, Actor,
+  access context, and idempotency identity relevant to the scenario;
+- authoritative state and audit digest before the action;
+- expected visible result and expected hidden/non-disclosed result; and
+- exact post-state, including zero mutation on failure.
+
+Fixture convenience, row order, current software version, record recency, or display order cannot be
+part of a substantive oracle unless the owning contract explicitly gives it meaning.
+
+### 9A.2 Semantic-era preservation and no reinterpretation
+
+| Scenario | Hard oracle |
+|---|---|
+| Read one legacy Fitness Version through its original contract after a prospective adequacy contract exists | The fact renders as legacy Fitness with its original outcome/basis; no adequacy fact is created or implied. |
+| Interpret a legacy Version that predates an explicit semantic-contract field | Exact family/revision mapping identifies the original contract without mutating the Version or supplying a prospective envelope/payload. |
+| Read legacy Acceptance/Selection, Role Assignment, or Case lifecycle through a named adapter | Output labels exact legacy source Version and adapter contract; stored fact and historical meaning remain unchanged. |
+| Correct or create an explicit successor across semantic eras where the owning contract permits continuity | Both Versions and exact typed cross-era relationship remain; each Version uses its own contract; the successor does not rewrite its predecessor. |
+| Two incompatible cross-era facts are otherwise eligible and the owning contract defines no precedence | Selector returns explicit conflict; neither newer era nor recorded time wins. |
+| Prospective guard fails while a legacy path could have succeeded | Prospective operation fails with zero mutation; no legacy fallback or synthesized prospective fact occurs. |
+| Recover/restore data using newer software | Every historical Version retains the semantic contract and interpretation it had before recovery. |
+
+### 9A.3 Authoritative-envelope hard oracles
+
+- Two different finalized payloads cannot share one Version identity or canonical checksum where a
+  checksum is contractually required.
+- Missing a family-required envelope element fails before authoritative mutation; omission of a
+  family-declared inapplicable element does not fabricate a gap.
+- Presence of Actor, source, context, or eligibility metadata does not establish accountability,
+  authority, Applicability, or eligibility without the owning substantive rule.
+- Status/correction/supersession relationships retain exact source/target Versions, contract
+  identities, effective/recorded time, and attribution.
+
+### 9A.4 Exact context-set canonicalization and identity
+
+For the same unordered typed membership submitted in different input/storage orders:
+
+> canonical representation, checksum, and semantic context identity are identical.
+
+For an owning contract that declares one ordered member role, changing the valid ordinal changes
+the canonical representation. Ordering other unordered roles has no effect.
+
+Additional hard oracles:
+
+- exact duplicate membership is rejected with zero mutation;
+- two Versions of one Record in a single-role context fail or return explicit conflict unless the
+  owning contract expressly permits distinct roles;
+- unknown member role, contradictory role, wrong Case/Configuration where the owning contract
+  requires coherence, or missing exact Version fails closed;
+- an inaccessible member cannot be used to commit and does not leak identity, type, count, role, or
+  conflict contribution;
+- context membership alone creates no Applicability, responsibility, authority, adequacy,
+  materiality, causality, comparability, priority, or Decision; and
+- an independently identified Context Set cannot be created merely for implementation convenience
+  where the owning contract requires only an embedded immutable component.
+
+### 9A.5 Deterministic selector outcomes
+
+For one fixed scope, effective time, known-at cutoff, access context, and family contract:
+
+| Eligible state | Required result |
+|---|---|
+| exactly one eligible fact | that exact Version |
+| zero eligible facts | explicit family-specific `NOT ESTABLISHED`/absence |
+| two incompatible eligible facts with no authoritative relation | explicit `CONFLICT — UNRESOLVED` |
+| compatible plurality expressly allowed in distinguishable scopes | deterministic exact set defined by the owning contract |
+
+Permuting row/input/display order must not change any result. Changing only recency, semantic era,
+specificity, breadth, role hierarchy, strongest-state label, software permission, or identifier must
+not create a winner. Explicit valid supersession/delegation/coordination changes the result only as
+the owning contract specifies. Stale, withdrawn, cancelled, expired, corrected, and superseded
+treatment must each have a family-owned oracle before implementation.
+
+### 9A.6 Access-filtered non-authoritative read composition
+
+Construct a source population containing visible and hidden facts, including a hidden conflict.
+
+Hard oracles:
+
+- access filtering occurs before selection, grouping, counting, blocker/conflict labelling, and
+  participant/work/current-position composition;
+- the restricted view exposes no hidden ID, fact, count, scope, timing, type, plurality, or changed
+  shape while avoiding a false assertion of substantive absence;
+- the fully authorized view retains the exact conflict and source Versions;
+- identical visible sources, query, access context, known-at/effective-at basis, and composition-rule
+  Version produce identical semantic output and source manifest;
+- cache/export/notification/label/queue order does not mutate source truth or authorize a command;
+- changing only presentation order or wording changes no authoritative digest; and
+- a downstream command using a stale presentation reconstructs authoritative context, fails closed,
+  and creates no mutation.
+- an Actor lacking access to one command-required hidden source receives a non-disclosing failure;
+  the command neither ignores the source nor reveals which source exists.
+
+### 9A.7 Dual-time and Decision-bound reconstruction
+
+Use a Decision bound to exact source Versions, then record a correction effective before the
+Decision but learned afterward, a later quantitative observation, and later
+Responsibility/Work/Review facts.
+
+Required results:
+
+- exact Decision-bound view returns the exact Versions originally relied upon;
+- effective-at viewed with current knowledge may show the later correction, clearly labelled later
+  knowledge;
+- known-at the Decision cutoff excludes every later-recorded fact;
+- later observation does not rewrite the earlier estimate/target or infer Decision error;
+- later responsibility/work/review does not alter earlier accountability state;
+- every Version is interpreted under its own Semantic Contract ID/Version; and
+- no view claims knowledge of an unrecorded external fact.
+
+### 9A.8 Semantic transaction atomicity and replay
+
+For a semantic transaction intended to create two separate authoritative facts and their audit
+links:
+
+1. With all exact guards valid, both facts and complete audit linkage commit once; each retains its
+   own identity and semantics.
+2. If the second write, audit write, access check, accountability/authority check, or any stale or
+   conflict guard fails, neither fact commits and the pre-state digest is unchanged.
+3. Exact replay with the same key, Actor, contract, context checksum, and intent returns the original
+   outcome without duplicate facts/events.
+4. Reusing the key with changed Actor, contract, context, or intent fails with zero mutation.
+5. Concurrent incompatible attempts produce one complete winner plus explicit stale/conflict failure,
+   or no winner; never partial interleaving.
+
+Transaction audit must reconstruct the natural action and grouped outputs without treating the two
+facts as one merged judgment. These oracles define atomic behavior only; they do not define a
+future `Complete Value review` or any other Gate 2–6 command.
+
+### 9A.9 Legacy/new coexistence, upgrade, and recovery
+
+- An empty store and every supported prior revision upgrade to the prospective-capable integrity
+  revision without changing legacy semantic digests.
+- No upgrade creates Responsibility, continuity, Work, Review Timing, adequacy/reliance, or typed
+  quantitative claims from legacy records/UI state.
+- Adapter output is deterministic, source-labelled, access-safe, and non-authoritative unless a
+  later owning contract explicitly says otherwise.
+- Backup/restore and rollback preserve IDs, Versions, checksums, relationships, audit, semantic
+  contracts, and historical reconstruction.
+- Unsupported adapter/contract pair, ambiguous cross-era state, or missing migration rule fails
+  explicitly with zero domain mutation.
+
+### 9A.10 Product-to-integrity negative oracles
+
+The UI/read model must not expose semantic-contract keys, canonicalization, selector algorithms,
+transaction choreography, or raw context IDs in ordinary work merely because the integrity layer
+requires them. Hiding machinery must not hide genuine absence, conflict, limitations, consequence,
+or attribution.
+
+No Gate-1 mechanism may be used as an oracle for:
+
+- a Responsibility kind or assignee;
+- Case continuity outcome;
+- Case Work state/result;
+- planned/required Review meaning;
+- assessment adequacy, reliance, or readiness;
+- quantitative Value/Risk payload meaning;
+- management priority, authority, or Decision.
+
+Any test expecting one of those outcomes belongs to Gate 2–6 and remains invalid until its owning
+specification is accepted.
 
 ## 10. Boundary-Sensitivity Tests
 
@@ -1007,9 +1181,13 @@ If PAIM method/system rules change intentionally:
 - preserve old test result;
 - update specification;
 - create new expected behavior;
+- bind the new expectation to its exact Semantic Contract ID/Version and applicable record-family
+  cutover; and
 - document reason.
 
-Do not silently rewrite the test oracle to make current software pass.
+Do not silently rewrite the test oracle to make current software pass. Legacy and prospective
+expectations may coexist; test selection follows the exact semantic contracts in the fixture rather
+than assuming the newest expectation applies retroactively.
 
 ## 40. Test Evidence
 
@@ -1017,8 +1195,10 @@ Each formal test should preserve:
 
 - Test ID
 - system/platform version
+- Semantic Contract ID/Version for every governed family under test
 - scenario version
 - input state
+- exact context/query/access basis and effective-at/known-at cutoff where applicable
 - controlled change
 - expected behavior/oracle
 - observed behavior
@@ -1158,12 +1338,10 @@ This substantially completes the system-specification layer required before plat
 
 ## 49. Recommended Next Step
 
-After this consistency package is independently reviewed and merged, the next work may be only a
-separately authorized bounded Increment 9 issue. That issue must freeze the exact v0.1 claim, three
-practitioner pathways, both excluded-boundary hard-oracle sets, regression/security/access/recovery/
-degraded/history evidence, practitioner-study evidence with usability/semantic-failure separation,
-final traceability, and the release verdict. Do not start Increment 9 or declare v0.1 released merely
-because scope is complete.
+After independent Gate-1 acceptance, add Gate-1 implementation or conformance tests only through a
+separately authorized architecture/implementation gate. The next substantive normative work may be
+Gate 2 (Responsibility) only through its own bounded issue. Do not use these common oracles to start,
+test, or imply Gate 2–6 semantics before their owning contracts are accepted.
 
 ## 50. Repository Placement
 
