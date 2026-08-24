@@ -158,22 +158,33 @@ not weaken the coordinated semantics. It must decide whether typed quantitative 
 embedded versioned component or a related stable Record family based on identity/reuse/history
 needs; it may not introduce one mandatory measure schema or top-level score.
 
+Issue #141 records the resulting
+[Gate-7 Architecture & Implementation Readiness Review](../../engineering/gate-7/PAIM_GATE_7_ARCHITECTURE_AND_IMPLEMENTATION_READINESS_REVIEW.md)
+with verdict **PASS WITH BOUNDED CONDITIONS**. Its package selects additive prospective families,
+related stable Quantitative Claim Records, explicit per-consumer semantic-era cutover, natural
+multi-fact command transactions, access-before-composition reads, a dependency-ordered slice plan,
+and mandatory Gates 1–6 conformance oracles. The verdict authorizes no implementation or cutover.
+
 ### Gate 8 — Domain/persistence implementation
 
-Implement production capabilities in dependency order:
+Use the accepted
+[Gate-7 Implementation Slice Plan](../../engineering/gate-7/PAIM_IMPLEMENTATION_SLICE_PLAN.md).
+Its dependency order is:
 
-1. integrity/semantic-era primitives and migrations;
-2. Responsibility and practical-role relationships;
-3. Case continuity selectors/events;
-4. Case Work and result/return;
-5. Review timing/constraint composition;
-6. optional typed quantitative-claim/context capability;
-7. readiness/assessment-adequacy/reliance commands; and
-8. access-filtered practitioner read composition.
+1. common semantic-era persistence plus Responsibility/Work foundation;
+2. continuing Case plus core Home/Case/Task compositions;
+3. independent Value/Risk Finish → Adequacy → Reliance vertical slice;
+4. prospective Integration/Decision consumption and natural Decision actions;
+5. continuing review/timing and focused refresh;
+6. optional quantitative-claim capture/comparison;
+7. then-versus-now reconstruction/audit; and
+8. integrated user-centric expression and separately authorized Harborlight runtime validation.
 
 Every increment requires empty/prior-revision migration tests, hard semantic oracles, full
 regression, dual-time reconstruction, zero-mutation failures, and compatibility evidence. No broad
-UI redesign begins during this gate.
+UI redesign begins during this gate. Thin practitioner expression may accompany a vertical slice
+only to prove its natural action; the integrated browser journey and human validation remain the
+final separately authorized slice.
 
 ### Gate 9 — Practitioner expression
 
@@ -241,5 +252,6 @@ Stop and return to product/design authority if a proposed revision would:
 ## Current checkpoint
 
 Issues #129, #131, #133, #135, and #137 complete Gates 1, accelerated 2/4, 3, 5, and 6 respectively
-as prospective specification contracts. They activate no consumer cutover or implementation.
-Gate 7 does not start automatically after Gate-6 acceptance.
+as prospective specification contracts. Issue #139 validates their combined practitioner journey,
+and Issue #141 records the bounded Gate-7 physical/migration/implementation/test plan. They activate
+no consumer cutover or implementation. Gate 8 does not start automatically after Gate-7 acceptance.

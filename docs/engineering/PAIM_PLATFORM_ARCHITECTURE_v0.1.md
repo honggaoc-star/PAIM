@@ -12,6 +12,12 @@ The implementation-readiness gate is:
 
 Source: `../system/testing/PAIM_CODEX_IMPLEMENTATION_READINESS_REREVIEW_v0.1.md`, §§11–12.
 
+The accepted Gates 1–6 prospective contracts are assessed separately in the
+[Gate-7 Architecture & Implementation Readiness Review](gate-7/PAIM_GATE_7_ARCHITECTURE_AND_IMPLEMENTATION_READINESS_REVIEW.md)
+and its physical, migration, slice, conformance-test, and computer-requirements plans. That package
+extends this implemented v0.1 baseline through additive semantic-era cutover; it does not
+reinterpret this architecture, activate a consumer, or authorize implementation.
+
 ## 1. Purpose and scope
 
 The PAIM platform must make the accepted PAIM management semantics durable, inspectable, enforceable, and testable without replacing accountable judgment.
