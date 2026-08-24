@@ -237,6 +237,10 @@ task, and consequence.
 
 - Show the management meaning first, then the formal governed effect where needed.
 - Carry and revalidate current context rather than asking the practitioner to assemble identifiers.
+- Name the action being attested to and its consequence; do not use an internal command name or
+  generic enforcement narration as the heading, explanation, or primary button.
+- Keep command names, Record/Version identifiers, and technical revalidation detail in secondary
+  authorized record detail. Practitioner-friendly copy never replaces server-side revalidation.
 - Preserve exact identity, effective time, known time, and append-only history underneath.
 - Keep prior/non-selected records available in authorized history without crowding ordinary work.
 

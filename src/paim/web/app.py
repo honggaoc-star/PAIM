@@ -24,6 +24,10 @@ from paim.operational.models import AccessDenied, AuthenticationFailed, LocalCon
 from paim.web.m1b import register_m1b_routes
 from paim.web.m1c import register_m1c_routes
 from paim.web.sessions import BrowserSession, SessionRegistry
+from paim.web.ux3a import (
+    applicability_task_context,
+    assessment_task_contexts,
+)
 
 COOKIE_NAME = "paim_session"
 MAX_REQUEST_BODY = 8_192
@@ -449,6 +453,43 @@ def create_web_application(
             return render(
                 request, "not_found.html", {"csrf_token": browser_session.csrf_secret}, 404
             )
+        task_context = None
+        if area == "evidence" and request.query_params.get("task"):
+            if request.query_params.get("task") != "assessment-support":
+                return render(
+                    request,
+                    "action_error.html",
+                    {
+                        "view": view,
+                        "csrf_token": browser_session.csrf_secret,
+                        "title": "This information-review task is unavailable",
+                        "message": "No governed record was changed.",
+                        "details": (),
+                        "return_path": f"/cases/{case_id}/evidence",
+                    },
+                    409,
+                )
+            try:
+                task_context = applicability_task_context(
+                    view,
+                    lane=request.query_params.get("lane", ""),
+                    input_version_id=request.query_params.get("input_version_id", ""),
+                    evidence_version_id=request.query_params.get("evidence_version_id"),
+                )
+            except ValueError as error:
+                return render(
+                    request,
+                    "action_error.html",
+                    {
+                        "view": view,
+                        "csrf_token": browser_session.csrf_secret,
+                        "title": "This information-review task has changed",
+                        "message": "Return to Value & Risk to reconstruct the current task.",
+                        "details": (str(error),),
+                        "return_path": f"/cases/{case_id}/assessment",
+                    },
+                    409,
+                )
         return render(
             request,
             template,
@@ -456,6 +497,8 @@ def create_web_application(
                 "view": view,
                 "active_area": area,
                 "csrf_token": browser_session.csrf_secret,
+                "task_context": task_context,
+                "assessment_task_contexts": assessment_task_contexts(view),
             },
         )
 

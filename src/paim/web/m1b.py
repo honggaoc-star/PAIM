@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from datetime import UTC, datetime
+from urllib.parse import urlencode
 
 from fastapi import FastAPI, Request
 from fastapi.responses import RedirectResponse, Response
@@ -35,6 +36,7 @@ from paim.integrity import EffectiveInterval, RecordId, RecordVersionId
 from paim.operational import OperationalApplication
 from paim.operational.models import AccessDenied
 from paim.web.sessions import ActionIntent, BrowserSession, SessionRegistry
+from paim.web.ux3a import applicability_task_context, confirmation_presentation
 
 Render = Callable[[Request, str, dict[str, object], int], Response]
 RequireSession = Callable[[Request], BrowserSession | Response]
@@ -131,6 +133,27 @@ def _bind_visible_choices(action: str, payload: dict[str, str], view: CaseWorksp
         payload["evidence_labels"] = "; ".join(item.label for item in supporting_evidence)
 
     if action == "evidence.applicability":
+        if payload.get("task_origin") == "assessment-support":
+            context = applicability_task_context(
+                view,
+                lane=payload.get("origin_lane", ""),
+                input_version_id=payload.get("origin_input_version_id", ""),
+                evidence_version_id=payload.get("origin_evidence_version_id", ""),
+            )
+            assert context.selected_item is not None
+            expected_evidence = context.selected_item.evidence.version_id
+            expected_target = context.assessment.input.version_id
+            if (
+                payload.get("evidence_choice") != expected_evidence
+                or payload.get("target_choice") != expected_target
+            ):
+                raise ValueError("the carried information-review context was changed")
+            payload["origin_lane"] = context.lane
+            payload["evidence_choice"] = expected_evidence
+            payload["target_choice"] = expected_target
+            payload["configuration_id"] = context.configuration.configuration_id
+            payload["configuration_version_id"] = context.configuration.version_id
+            payload["purpose"] = str(context.assessment.input.content.get("purpose", ""))
         selected_evidence = _record_by_version(
             view.evidence, payload.get("evidence_choice", ""), "Evidence"
         )
@@ -267,6 +290,24 @@ def _return_path(action: str, case_id: RecordId) -> str:
     if action.startswith(("value", "risk")):
         return f"/cases/{case_id}/assessment"
     return f"/cases/{case_id}"
+
+
+def _task_path(case_id: RecordId, payload: dict[str, str]) -> str:
+    query = urlencode(
+        {
+            "task": "assessment-support",
+            "lane": payload["origin_lane"],
+            "input_version_id": payload["origin_input_version_id"],
+            "evidence_version_id": payload["origin_evidence_version_id"],
+        }
+    )
+    return f"/cases/{case_id}/evidence?{query}"
+
+
+def _intent_return_path(action: str, case_id: RecordId, payload: dict[str, str]) -> str:
+    if action == "evidence.applicability" and payload.get("task_origin") == "assessment-support":
+        return _task_path(case_id, payload)
+    return _return_path(action, case_id)
 
 
 _REQUIRED: dict[str, tuple[str, ...]] = {
@@ -744,6 +785,25 @@ def _execute(
         )
     else:
         raise ValueError("unsupported M1B action")
+    if (
+        intent.action == "evidence.applicability"
+        and data.get("task_origin") == "assessment-support"
+    ):
+        current_view = gateway.practitioner_workspace(authentication, case_id)
+        if current_view is None:
+            raise AccessDenied("Case workspace is no longer visible")
+        context = applicability_task_context(
+            current_view,
+            lane=data["origin_lane"],
+            input_version_id=data["origin_input_version_id"],
+        )
+        if context.unresolved:
+            next_payload = {
+                **data,
+                "origin_evidence_version_id": context.unresolved[0].evidence.version_id,
+            }
+            return _task_path(case_id, next_payload)
+        return f"/cases/{case_id}/assessment#{context.lane.casefold()}-work"
     return _return_path(intent.action, case_id)
 
 
@@ -871,6 +931,12 @@ def register_m1b_routes(
                 409,
             )
         prefix = f"/cases/{case_id_text}" if case_id_text else "/cases"
+        case_identity = RecordId.parse(case_id_text) if case_id_text else None
+        return_path = (
+            _intent_return_path(action, case_identity, intent.payload)
+            if case_identity is not None
+            else action_return_path(action, case_id_text)
+        )
         return render(
             request,
             "confirm.html",
@@ -878,8 +944,9 @@ def register_m1b_routes(
                 "view": None,
                 "csrf_token": session.csrf_secret,
                 "intent": intent,
+                "confirmation": confirmation_presentation(action, intent.payload),
                 "commit_path": (f"{prefix}/{action.replace('.', '-')}/commit/{intent.intent_id}"),
-                "return_path": action_return_path(action, case_id_text),
+                "return_path": return_path,
             },
             200,
         )
@@ -965,7 +1032,11 @@ def register_m1b_routes(
                     "What can legitimately change it: use the named owning-domain action after "
                     "the missing prerequisite is established.",
                 ),
-                "return_path": action_return_path(action, case_id_text),
+                "return_path": (
+                    _intent_return_path(action, case_id, intent.payload)
+                    if case_id is not None
+                    else action_return_path(action, case_id_text)
+                ),
             },
             status,
         )

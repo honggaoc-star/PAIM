@@ -352,6 +352,26 @@ automatic choice. Selecting information for an assessment does not create Applic
 Applicability judgment does not create Fitness; Fitness does not select an assessment; and selection
 does not create Integration or a Decision.
 
+UX-3A preserves task context when that separate Applicability prerequisite crosses from `Value &
+Risk` to `What we know`. For a ready assessment, PAIM lists only the current visible Evidence
+Versions explicitly linked to that Input and identifies each missing information-to-assessment
+judgment separately. Follow `Continue information review`, record scope, outcome, conditions,
+limitations, rationale, and responsible governance process for one item, and confirm the
+practitioner consequence. PAIM then returns to the next unresolved item or the originating lane's
+support review. The count is reconstructed from governed records; it is not saved task state.
+
+Entering `What we know` through ordinary navigation remains a general Case information workspace.
+Leaving a contextual review changes no record. If the Case, setup, assessment, linked information,
+visibility, or currentness changes, the handoff fails closed and must be reconstructed from `Value &
+Risk`. Confirmation pages lead with the practitioner action and consequence; command and identity
+detail is secondary, while the production command still revalidates all security and governance
+prerequisites before commit.
+
+UX-3A intentionally leaves three later interaction questions open: the long page can show both
+development forms, the native multi-select control uses browser-specific Ctrl/Cmd interaction, and
+the wording/interaction for information used as limitation, uncertainty, comparison, or
+counterevidence requires separate analytical-input UX review.
+
 The workspace is divided into Overview, Proposal setup, What we know, Value & Risk, Management
 judgment, and Source & history. Governing assessment basis remains distinct from authorization and
 operation. Routine pages use practitioner language; raw identifiers and payloads are omitted because

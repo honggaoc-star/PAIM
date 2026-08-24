@@ -45,7 +45,7 @@ def test_m1c_no_javascript_exact_integration_review(
         ):
             assert page.get_by_text(f"Exact next state: {expected}").is_visible()
             page.get_by_role("button", name="Review lifecycle transition").click()
-            page.get_by_role("button", name="Confirm and revalidate").click()
+            page.locator("form[data-submit-lock] button").click()
 
         form = page.locator("details").filter(has_text="Record explicit Integration")
         form.locator("summary").click()
@@ -58,8 +58,8 @@ def test_m1c_no_javascript_exact_integration_review(
         form.get_by_label("Accountable mechanism").fill("governed:m1c-browser-board")
         form.get_by_label("Integration rationale").fill("Exact lane basis supports integration.")
         form.get_by_role("button", name="Review explicit Integration").click()
-        assert page.get_by_role("heading", name="Confirm exact action").is_visible()
+        assert page.get_by_role("heading", name="Review and confirm this action").is_visible()
         assert page.get_by_text("Independent Value finding", exact=False).is_visible()
-        page.get_by_role("button", name="Confirm and revalidate").click()
+        page.locator("form[data-submit-lock] button").click()
         assert page.get_by_text("Integration — Value:", exact=False).first.is_visible()
         context.close()

@@ -146,6 +146,30 @@ Boundary/operating limits, proposal or authorization, the global Source & histor
 reference-case fixture content, or M1D. It adds no universal score, inferred relevance/sufficiency,
 combined lane state, automatic choice, or new domain command.
 
+### UX-3A — Cross-workspace prerequisite context and practitioner confirmation
+
+Implementation status: implemented by Issue #119. When a ready Value or Risk assessment has
+explicitly linked current visible information but lacks one or more exact information-to-Input
+Applicability relationships, the assessment page now identifies only that exact prerequisite set.
+Each relationship remains an independent judgment. The contextual `What we know` handoff binds the
+information and target assessment, retains the practitioner's genuine scope, outcome, conditions,
+limitations, rationale, and governance-process decisions, and re-resolves the authoritative Case,
+setup, Input, Evidence, and relationship at review and commit.
+
+Completion returns to the next unresolved information item or to the originating lane's support
+review. The displayed count is derived each time and is not persisted workflow state. Ordinary
+`What we know` navigation remains general. Shared confirmations retain review-before-commit and
+server-side revalidation while leading with the action, reviewed content, and practitioner
+consequence; command names and identifiers are secondary record detail.
+
+Gate: exact linked-source selection, multiple-item independence, tamper/stale/access failure with
+zero mutation, deterministic return continuity, generic-workspace isolation, action-specific copy,
+and unchanged Value/Risk/Fitness/Selection boundaries have focused integration and Chromium tests.
+
+UX-3A does not solve the long dual-form page, replace the browser-native multi-select control, or
+redesign the analytical role of linked information. Those observed issues remain deferred. It does
+not implement UX-4, M1D, or a domain/schema change.
+
 ### UX-4 — Management judgment and operating limits
 
 Scope:
