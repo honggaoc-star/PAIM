@@ -1117,6 +1117,28 @@ The architecture and implementation-readiness gate must decide physical aggregat
 indexes/constraints, command/API boundaries, access enforcement, transaction shape, migration,
 upgrade/recovery, and automated hard-oracle realization. Gate 5 itself authorizes none of them.
 
+## 38B. Gate-6 Value/Risk refresh and comparison adoption
+
+After an explicit Gate-6 consumer cutover, focused review resolves each affected lane independently
+against the exact prospective Assessment/Input, Readiness Event, Adequacy Determination, Reliance
+Designation, Quantitative Claim, and information/Applicability Versions defined by the Value/Risk
+specification, §13A. A material change creates a successor Assessment/Input and separately valid
+successor readiness, adequacy, and reliance facts. The unaffected lane may carry forward its exact
+existing Versions only while every Gate-5 guard remains eligible. No review copies a lane package,
+inherits another lane's outcome, or creates combined readiness/adequacy/reliance.
+
+Gate-5 expectation-versus-experience comparison consumes exact Gate-6 Claim Versions and retains
+their semantic types. It produces a delta only when the §38A.7 comparability basis is eligible.
+Variance creates no causality, materiality, adequacy, reliance, acceptable-Risk, priority,
+Decision-error, or management-outcome judgment. Later `OBSERVED_RESULT` claims remain later
+knowledge and never rewrite earlier `ESTIMATE_EXPECTATION`, adequacy, reliance, Integration, or
+Decision history.
+
+This adoption does not change Trigger materiality, Reassessment outcome, Interim Operating
+Disposition, or Decision authority. It creates no automatic refresh, Reassessment, periodic copy,
+quantitative requirement, score, ROI/RWR/probability-times-impact formula, or first-class
+Observation/telemetry conversion.
+
 ## 39. Open Questions
 
 Deferred to later specifications/platform design:

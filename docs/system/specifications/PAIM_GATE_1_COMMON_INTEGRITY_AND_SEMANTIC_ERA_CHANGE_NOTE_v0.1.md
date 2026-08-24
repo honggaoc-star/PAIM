@@ -95,6 +95,12 @@ Constraint, and Review Episode, coordinating attention-only arrival, constraint 
 focused review, Decision authority, and dual-time reconstruction. That Gate-5 adoption activates no
 consumer cutover and does not begin Gate 6 or implementation.
 
+Issue #137 subsequently adopts the machinery for independent prospective Value/Risk Assessment/
+Input, Readiness, neutral Assessment Adequacy, explicit Reliance, and optional Quantitative Claim
+families. It coordinates exact Integration/Decision consumption, focused review, dual-time history,
+and legacy preservation. That Gate-6 adoption activates no consumer cutover or implementation and
+does not begin Gate 7 automatically.
+
 ## Implementation and migration boundary
 
 Gate 1 specifies behavior but makes no domain, schema, migration, code, UI, scheduler,

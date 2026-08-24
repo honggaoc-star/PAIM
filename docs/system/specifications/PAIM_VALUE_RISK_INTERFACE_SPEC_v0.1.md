@@ -388,10 +388,284 @@ readiness, determine fitness, accept/select an Input, merge lanes, or grant Deci
 Durable Work may carry a handoff but completes only by linking the exact result Version created by
 this specification's governing command.
 
-This section does not introduce assessment adequacy, reliance, candidate-finalization, or
-quantitative Value/Risk semantics; those remain Gate-6 work. Before an individual consumer's
-cutover, its existing Role Assignment/accountable-mechanism rules remain controlling and historical
-results retain their original meaning.
+The prospective Gate-6 contract in §13A adds neutral assessment adequacy, reliance, readiness, and
+optional quantitative claims without changing the legacy acts above. Before an individual
+consumer's cutover, its existing Role Assignment/accountable-mechanism rules remain controlling
+and historical results retain their original meaning.
+
+## 13A. Prospective Value/Risk Assessment, Adequacy, Reliance, and Quantitative Contract
+
+### 13A.1 Adoption, practitioner sequence, and authoritative separation
+
+This section is the primary substantive Gate-6 contract. It adopts the Gate-1 integrity machinery
+for prospective lane Assessment Readiness Event, Assessment Adequacy Determination, Assessment
+Reliance Designation, and Quantitative Claim families. It applies only after an explicit consumer
+cutover naming the Semantic Contract Version, population, effective/knowledge boundary, bounded
+legacy adapter, and cross-era rule.
+
+The practitioner sequence is:
+
+```text
+assessment produced
+  -> assessor finishes assessment
+  -> neutral adequacy review for exact decision use
+  -> explicit exact reliance designation
+  -> Integration/Decision consumes one relied-upon Value and one relied-upon Risk assessment
+```
+
+The natural actions may be **Finish Value assessment**, **Finish Risk assessment**, **Complete
+Value review**, and **Complete Risk review**. Practitioners need not operate an engineering `ready`
+state. Underneath, each readiness, adequacy, reliance, and Decision fact retains its own identity,
+context, accountability, time, history, and guards. Readiness is not adequacy; adequacy is not
+reliance; reliance is not Decision; and Value reliance is not Risk reliance.
+
+### 13A.2 Finish assessment and readiness history
+
+Finishing an assessment is the assessor's attributed declaration that one exact Value or Risk
+Assessment/Input Version is complete enough to leave drafting and enter independent review. The
+authoritative **Assessment Readiness Event** retains:
+
+- stable Event ID and immutable Version ID;
+- exact lane and Assessment/Input Record and Version IDs;
+- exact Case, governing Configuration Version, bounded purpose/use, and assessed scope;
+- complete five-part assessment content and exact information-basis manifest as of the knowledge
+  cutoff, including material Evidence/Authority and Applicability Versions;
+- responsible Actor, exact `FINISH_VALUE_ASSESSMENT` or `FINISH_RISK_ASSESSMENT` Responsibility
+  Version, and Responsibility Assignment Basis;
+- effective time, recorded time, and knowledge cutoff;
+- structural/currentness guard result and rationale/limitations where material; and
+- predecessor, correction, supersession, withdrawal, and replay history.
+
+Readiness does not establish Evidence Applicability, adequacy, reliance, freeze for a decision,
+Decision desirability, or authority. A material edit after finishing creates a successor
+Assessment/Input Version requiring its own readiness event. It never mutates the predecessor or
+inherits readiness, adequacy, or reliance. A natural finish confirmation may create an immutable
+candidate Version and its readiness event in one declared semantic transaction only when both
+facts are separately valid; otherwise neither commits.
+
+For one exact lane/Assessment Version/use/time, readiness selection returns one eligible event,
+`ASSESSMENT READINESS NOT ESTABLISHED`, or `ASSESSMENT READINESS CONFLICT — UNRESOLVED`. Recency,
+authorship, draft completion, UI state, status label, access, or candidate count never supplies a
+winner.
+
+### 13A.3 Neutral assessment adequacy for decision use
+
+The independent practitioner question is:
+
+> **Is this exact assessment adequate for use in the bounded management decision?**
+
+The accountable reviewer neutrally judges whether the assessment is sufficiently trustworthy and
+bounded for that use, irrespective of whether its conclusion is favorable, unfavorable, low-Value,
+high-Risk, or uncertain. The reviewer considers whether it is materially faithful to available
+information, complete enough on material considerations, proportionate rather than exaggerated or
+understated, appropriate to its scope/use, transparent about material limitations/uncertainty, and
+otherwise suitable to enter the management decision process. These are judgment considerations,
+not a mechanical checklist.
+
+The defensive test is whether a material reason prevents use, including material inaccuracy,
+exaggeration/understatement, incompleteness, inappropriate scope, hidden uncertainty, or another
+exactly explained limitation. The smallest authoritative outcomes are exactly:
+
+- `ADEQUATE` — no identified material reason prevents this exact bounded decision use;
+- `NOT_ADEQUATE` — an identified material reason currently prevents that use; and
+- `INDETERMINATE` — the available information/context does not permit the accountable judgment.
+
+Limitations and rationale remain separate content. “Adequate with limitations” is `ADEQUATE` plus
+explicit limitations, not a fourth outcome. “Additional work needed” may explain a remediable
+`NOT_ADEQUATE`; it is not a quality outcome.
+
+### 13A.4 Assessment Adequacy Determination identity and selection
+
+Each lane has a separate authoritative **Assessment Adequacy Determination** with stable identity
+and immutable Versions. Every Version retains:
+
+- exact lane, Assessment/Input Version, eligible Readiness Event Version, owning Case, governing
+  Configuration Version, bounded decision use/purpose, and assessed scope;
+- exact information-basis manifest and material Evidence/Authority Applicability Versions reviewed;
+- outcome, material reasons, rationale, limitations, and uncertainty;
+- responsible Actor, exact `REVIEW_VALUE_ASSESSMENT_ADEQUACY` or
+  `REVIEW_RISK_ASSESSMENT_ADEQUACY` Responsibility Version, and assignment basis;
+- effective interval, recorded time, and knowledge cutoff; and
+- predecessor, correction, supersession, withdrawal, conflict, and history.
+
+For one exact lane/Assessment Version/Configuration/use/time/knowledge cutoff, selection returns
+one eligible Determination, `ASSESSMENT ADEQUACY NOT ESTABLISHED`, or
+`ASSESSMENT ADEQUACY CONFLICT — UNRESOLVED`. Newest, favorable outcome, magnitude, reviewer,
+specificity, hierarchy, source count, score, status, or software permission never selects a winner.
+
+Adequacy remains distinct from Evidence Applicability, the assessment conclusion, Value-vs-Risk
+trade-off, Decision desirability, Decision Authority, reliance, and quantitative magnitude. It
+cannot create/change Applicability, select/freeze an assessment, authorize a Decision, or make one
+lane satisfy the other.
+
+### 13A.5 Reliance Designation and candidate choice
+
+An authoritative lane-specific **Assessment Reliance Designation** identifies which exact Value or
+Risk assessment the Case actually uses for one bounded management-decision basis. Every stable
+identity and immutable Version retains:
+
+- exact lane, Assessment/Input Version, eligible `ADEQUATE` Determination Version, Readiness Event
+  Version, Case, governing Configuration Version, bounded use/purpose, and scope;
+- exact information/Applicability basis and material limitations frozen for that use;
+- relied-on outcome and explicit dispositions/rationale for every materially competing candidate;
+- responsible Actor, exact `DESIGNATE_VALUE_ASSESSMENT_RELIANCE` or
+  `DESIGNATE_RISK_ASSESSMENT_RELIANCE` Responsibility Version, and assignment basis;
+- effective interval, recorded time, and knowledge cutoff; and
+- predecessor, correction, supersession, withdrawal, rejection, reuse, and history.
+
+For one lane/Case/Configuration/use/time/knowledge cutoff, reliance selection returns one eligible
+relied-upon exact Assessment Version and Reliance Version, `ASSESSMENT RELIANCE NOT ESTABLISHED`, or
+`ASSESSMENT RELIANCE CONFLICT — UNRESOLVED`. Reliance freezes that exact Assessment Version and
+its adequacy/material-Applicability basis for downstream reconstruction. It is not the Decision.
+
+Only `ADEQUATE` candidates are eligible. `NOT_ADEQUATE` and `INDETERMINATE` remain visible and
+cannot be relied upon for that use. With multiple adequate candidates, explicit accountable choice
+and material candidate dispositions are mandatory. No newest, strongest, broadest, largest,
+smallest, most favorable, owner, score, rank, row-order, or software winner exists. Candidate
+uniqueness alone never creates reliance.
+
+### 13A.6 One natural Complete Value/Risk review confirmation
+
+When exactly one candidate is adequate for the exact lane/Configuration/use and no competing
+choice remains, one natural **Complete Value review** or **Complete Risk review** confirmation may
+atomically create one Adequacy Determination and one Reliance Designation only when:
+
+1. the same Actor separately holds the exact adequacy-review and reliance Responsibilities;
+2. the confirmation exposes both neutral adequacy and actual-use consequences;
+3. readiness, exact context, information/Applicability, scope, access, authority where separately
+   required, currentness, candidate-set, conflict, expected-Version, and replay guards all pass;
+4. the adequacy outcome is `ADEQUATE`; and
+5. both facts are declared as separate intended facts and either both commit or neither commits.
+
+The two facts retain separate identity, basis, attribution, and history. If Responsibilities differ,
+the outcome is adverse/indeterminate, multiple adequate candidates exist, or any guard is missing,
+stale, inaccessible, or conflicting, the acts remain separate and zero unintended facts commit.
+The platform never derives reliance from candidate count.
+
+### 13A.7 Independent Value and Risk lanes
+
+Value and Risk retain separate Assessment/Input, Readiness, Adequacy, Reliance, Quantitative Claim,
+information/Applicability, uncertainty, Responsibility, Work, refresh, correction, and history
+families. One Actor may legitimately serve both lanes only through separately valid assignments and
+acts. There is no shared completion, cross-lane reliance, offset, strongest-state winner, net
+assessment, combined readiness/adequacy/reliance, universal score, or automatic disposition.
+
+### 13A.8 Optional typed quantitative claims
+
+A prospective **Quantitative Claim** is optional and authoritative only where quantification is
+meaningful and adequately grounded. It has stable identity and immutable Versions. Its semantic
+claim type is exactly one of:
+
+- `ESTIMATE_EXPECTATION` — projected/modeled quantity under named assumptions;
+- `TARGET_OBJECTIVE` — an outcome sought by the organization;
+- `OBSERVED_RESULT` — a quantity observed for a bounded population and period;
+- `THRESHOLD_CONSTRAINT` — a legitimately established level with an exact governing source;
+- `RISK_ESTIMATE` — defensible bounded likelihood/frequency, impact/exposure, affected population,
+  loss range, control performance, incident rate, or other Risk quantity; or
+- `COST_RESOURCE_MEASURE` — bounded implementation, review, operating, training, capacity, or
+  other cost/resource quantity relevant to Value.
+
+Claim type is distinct from representation. Permitted explicitly defined representations include
+scalar, range, interval, distribution, proportion, rate, count, currency, time, and another bounded
+form. One claim may relate to another, but target is not Evidence, estimate is not observation,
+observation is not causal attribution, threshold is not prediction, and measure is not management
+judgment.
+
+`OBSERVED_RESULT` is a semantic Quantitative Claim type, not the deferred IRR-009 first-class
+Observation family and not an automatic telemetry-to-record path. It requires exact governed
+provenance and information/Applicability treatment like any other material claim.
+
+### 13A.9 Minimum context-sensitive quantitative contract
+
+Every Quantitative Claim Version retains, as applicable to its meaning:
+
+- exact Claim ID/Version, semantic claim type, Value or Risk lane, owning Assessment/Input or
+  Information/Learning context, Case, governing Configuration Version, and bounded use/purpose;
+- construct/measure and representation with value/range/interval/distribution;
+- unit and direction where relevant;
+- scope/population and estimate/observation period;
+- baseline/comparator and sample/coverage basis where material;
+- exact provenance/source, method/assumptions where material, uncertainty, and limitations;
+- effective interval, recorded time, and knowledge cutoff; and
+- predecessor, correction, supersession, withdrawal, and exact relationships to the assessment,
+  information basis, adequacy, reliance, review, and Decision that used it.
+
+A `THRESHOLD_CONSTRAINT` additionally retains the exact governing source Version, Applicability,
+operator, scope, and authorized consequence. Missing context is never assumed: it is inapplicable,
+explicitly unknown, or a material limitation. Known Case/Configuration context may be carried from
+exact authoritative sources; the contract does not require a long mandatory UI form.
+
+Qualitative analysis and the exact conclusion that a quantity cannot currently be estimated
+reliably remain legitimate. PAIM must not manufacture a number, require quantification for every
+assessment, or treat non-quantification as incompleteness where responsible quantification is not
+supportable.
+
+### 13A.10 Value-specific and Risk-specific quantitative semantics
+
+Value may preserve expected or realized time, cost, capacity, throughput, revenue, quality/error,
+customer/business outcomes, or another bounded benefit measure. Value need not be monetary.
+Costs/resources remain distinguishable from benefits. PAIM may retain a calculation made under an
+exact separately accepted method but does not automatically compute ROI, net Value, RWR, ranking,
+or a management recommendation.
+
+Risk may preserve defensible likelihood/frequency, impact/exposure, affected population, loss
+range, control performance, incident rate, or another bounded measure. “Likelihood cannot
+currently be estimated reliably” is valid analytical content. PAIM requires no probability-times-
+impact formula, heat-map multiplication, universal Risk score, acceptable-Risk inference, ranking,
+or automated Decision rule.
+
+### 13A.11 Quantitative content in adequacy and continuing review
+
+Adequacy review treats quantitative content neutrally as part of the exact assessment. A material
+number may yield `NOT_ADEQUATE` or `INDETERMINATE` when unsupported, falsely precise, exaggerated
+or understated, generalized beyond scope/population, missing material baseline/period/method,
+inconsistent with provenance, or hiding required uncertainty. A qualitative assessment may be
+`ADEQUATE` when quantification is not defensible or material. Reviewers do not manufacture numbers.
+
+Gate-5 comparison of expected/observed Value, expected/observed Risk or control behavior,
+estimated/observed costs, or targets/thresholds and observations consumes exact Claim Versions only
+when all comparability guards in the Reassessment specification, §38A.7 pass. Same label/unit is
+insufficient. A delta never infers causality, materiality, Decision error, review priority,
+adequacy, acceptable/unacceptable Risk, or continue/adjust/stop outcome. Later observations remain
+later knowledge and cannot rewrite Decision-time estimates, adequacy, reliance, or judgment.
+
+### 13A.12 Reuse, focused refresh, and Decision boundary
+
+Reuse for another exact Configuration/use requires current readiness where applicable, a new
+Adequacy Determination, and a new explicit Reliance Designation with current information/
+Applicability, accountability, limitations, rationale, and time. Prior Fitness, adequacy,
+Acceptance/Selection, reliance, frozen status, absence of refresh attention, or uniqueness is
+provenance only.
+
+When Gate-5 focused review affects a lane, any material analytical change creates a successor
+Assessment/Input Version and separately valid successor readiness, adequacy, and reliance history.
+The unaffected lane may carry forward the same exact Versions only under Gate-5 currentness,
+Applicability, scope, authority, access, and conflict guards. No periodic copying occurs. A current
+Decision continues or changes only through its exact Confirmation or authorized successor/
+amendment path.
+
+### 13A.13 Legacy compatibility, exclusions, and impact handoff
+
+Every legacy v0.1 Input, readiness, Fitness, Acceptance/Selection, freeze, candidate disposition,
+Integration, and Decision fact retains its original name, outcome, basis, and semantic era. PAIM
+never renames legacy Fitness as Adequacy or Acceptance/Selection as Reliance, and never synthesizes
+prospective facts from legacy prose, UI state, candidate count, or apparent equivalence. There is no
+bulk rewrite, global cutover, newer-era winner, or silent fallback. Any adapter is bounded,
+versioned, provenance-preserving, and accepted through a later migration contract.
+
+| Accepted change | Impacted behavior | Authoritative records/history | Required tests | Migration and code impact |
+|---|---|---|---|---|
+| Finish assessment | producer submits one exact lane Version for review; later change requires successor | Readiness Event plus exact Assessment/Input and information-basis history | Validation §9E.1 | no code now; later candidate/readiness command after explicit cutover; no legacy-ready rewrite |
+| Neutral adequacy | quality/boundedness judgment independent of favorable conclusion and Applicability | lane Adequacy Determination, three outcomes, limitations, rationale, dual time | Validation §9E.2 | no code now; later selector/command; legacy Fitness unchanged |
+| Explicit reliance | one actual-use fact per lane/use, choice among adequate candidates, exact freeze | lane Reliance Designation, candidate dispositions, predecessor/reuse/withdrawal history | Validation §9E.3 | no code now; later selector/atomic command; legacy Acceptance/Selection unchanged |
+| Optional quantities | typed contextual claims without forced quantification or score | Quantitative Claim identities/Versions and exact assessment/Evidence/review links | Validation §9E.4 | no code/schema/UI/analytics now; physical shape deferred to Gate 7 |
+| Review and Decision composition | exact lane refresh/carry-forward and relied basis consumed by Integration | successor and historical lane chains; Decision-bound exact basis | Validation §9E.5 | later adapters/currentness guards only after accepted implementation/migration plan |
+
+Gate 6 introduces no domain code, schema, migration, API, UI, scheduler/notification, deployment,
+analytics, automated RWR/ROI/probability-times-impact calculation, universal score/ranking,
+Harborlight mutation, UX-4+, M1D, Scenarios B–F, release, tag, or consumer cutover. Gate 7 must
+decide physical architecture, persistence, indexes/constraints, commands/APIs, access, atomicity,
+migration/upgrade/recovery, adapters, and automated hard-oracle realization.
 
 ## 14. Frozen-Implication Fidelity
 

@@ -384,7 +384,8 @@ Gate 5 now owns planned/required review timing through the Reassessment specific
 continuity section does not redefine it. It does not define scheduler behavior, assessment
 adequacy, reliance, quantitative Value/Risk, first-class Observation, generic workflow, UI,
 notifications, persistence, schema, migration, deployment, analytics, or Harborlight mutation.
-Gate 6 remains separately gated.
+Gate 6 now owns the prospective analytical meanings; this continuity section does not redefine
+them.
 
 ### 3A.15 Gate-5 continuing-review interaction
 
@@ -399,6 +400,23 @@ violation. Neither arrival nor Review Episode completion moves the Case status, 
 work, or changes the current Decision. All point, constraint, Trigger, Work, and episode facts
 remain bound to their original exact Case/Decision/Configuration context and never retarget across
 continuity change.
+
+### 3A.16 Gate-6 analytical readiness composition
+
+For a prospective Gate-6-adopted consumer, **ready for Integration** is an access-filtered
+composition, not a Case status, lifecycle phase, shared Value/Risk result, or practitioner action.
+For the exact governing Configuration and bounded decision use, it requires independently one
+eligible current Value and one eligible current Risk Assessment/Input, Readiness Event, `ADEQUATE`
+Determination, and Reliance Designation, plus every owning information/Applicability/currentness
+guard required by the Value/Risk and Integration specifications. Absence or conflict in either lane
+keeps the composition not ready and reveals no inaccessible basis.
+
+Legacy `READY_FOR_INTEGRATION` phase events and readiness guards remain exact under their original
+semantic era. PAIM never converts the prospective composition into a phase, maps a legacy phase to
+new adequacy/reliance facts, or lets `OPEN` imply readiness. Case/Configuration continuity change
+causes prospective revalidation; it does not retarget an Assessment, Responsibility, Work,
+Adequacy Determination, or Reliance Designation. `CLOSED`/`SUPERSEDED` behavior remains governed by
+Gate 3.
 
 ## 4. State: OPEN
 

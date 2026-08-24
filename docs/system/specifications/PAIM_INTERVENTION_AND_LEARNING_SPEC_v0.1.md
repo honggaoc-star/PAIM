@@ -913,6 +913,26 @@ Learning result, Evidence record, Trigger Determination, Reassessment, or Decisi
 no per-metric schedule, notification service, automatic escalation, or Observation/telemetry
 family.
 
+## 40B. Gate-6 quantitative Learning and Intervention context
+
+An Intervention, Completion Result, Completion Acceptance, Learning Item, Learning result, or
+generated Evidence may relate to prospective Quantitative Claim Versions only through exact
+versioned relationships. Each quantity retains its semantic claim type, construct, lane, Case and
+Configuration, purpose/scope/population, period, baseline/comparator, provenance, method/coverage,
+uncertainty/limitations, and dual-time context required by the Value/Risk specification, §13A.
+
+An Intervention target or Learning objective is `TARGET_OBJECTIVE`, not Evidence or an observed
+result. A completion criterion expressed as a `THRESHOLD_CONSTRAINT` remains distinct from a
+prediction and retains its governing source/Applicability/consequence. A later measured result is
+`OBSERVED_RESULT`, not automatic causal attribution to the Intervention, Learning design, or AI
+use. Costs/resources remain separately typed rather than silently netted against Value.
+
+Completion, acceptance, favorable/unfavorable variance, or an observed number creates no
+Assessment Adequacy Determination, Reliance Designation, Value/Risk refresh, Trigger materiality,
+Reassessment, Decision Confirmation, successor Decision, or management outcome. Those facts use
+their separately accountable owning commands. Inability to quantify remains legitimate and does
+not make Learning or an assessment incomplete merely because no number exists.
+
 ## 41. Open Questions
 
 Deferred to later specifications/platform design:

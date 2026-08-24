@@ -47,6 +47,12 @@ Review Episode families and coordinates review attention, exact constraint inter
 review, Decision authority, and dual-time history. §9D defines those normative oracles. Gate 5
 changes no current implementation expectation before a separately accepted cutover.
 
+Gate 6 adopts the machinery for independent prospective Value/Risk Assessment/Input, Readiness,
+neutral Adequacy, explicit Reliance, and optional Quantitative Claim families. It coordinates exact
+Integration/Decision consumption, focused review, dual-time history, and legacy preservation. §9E
+defines those normative oracles. Gate 6 changes no current implementation expectation before a
+separately accepted cutover.
+
 **Bounded v0.1 validation scope:** the human-accepted
 `../../engineering/PAIM_V0_1_RELEASE_SCOPE_DECISION_IRR_009_IRR_014_v0.1.md` establishes that
 IRR-009 and IRR-014 each remain `OPEN — SEMANTICS UNDESIGNED` while each has bounded-v0.1
@@ -841,6 +847,123 @@ cadence, automatic Trigger/Reassessment/Decision, first-class Observation/teleme
 assessment adequacy/reliance, quantitative Value/Risk payload, Gate-6 behavior, or Harborlight
 mutation. These are specification-level hard oracles for a later separately authorized
 architecture/implementation and migration gate.
+
+## 9E. Gate-6 Value/Risk Assessment, Adequacy, Reliance, and Quantitative hard oracles
+
+Every Gate-6 oracle uses exact Semantic Contract Version, lane, record/Version identities, typed
+context, information/Applicability basis, Responsibilities and assignment bases, effective time,
+knowledge cutoff, access context, expected-Version guards, transaction ID, and before/after
+semantic digest. Value and Risk fixtures, selectors, mutations, and histories remain separate.
+
+### 9E.1 Finish assessment and readiness
+
+1. **Finish is readiness only:** finish one exact Value assessment through the natural practitioner
+   action. Verify the exact Readiness Event and attributed basis, but no Adequacy, Reliance,
+   Integration, Decision, Risk-lane fact, or freeze-for-use is created.
+2. **Risk finish independence:** repeat for Risk and verify no Value readiness/status/history
+   changes and no shared completion exists.
+3. **Successor after edit:** materially edit a finished assessment through a successor Version.
+   Verify predecessor content/readiness remains exact, successor readiness is not inherited, and
+   the stale predecessor cannot satisfy the new context.
+4. **Atomic finish:** declare an immutable candidate Version and readiness event in one permitted
+   finish command. Verify both commit or neither on missing information basis, Responsibility,
+   access, expected Version, or replay mismatch.
+
+### 9E.2 Neutral assessment adequacy
+
+5. **Favorable Value can be adequate:** review a well-bounded favorable Value conclusion and verify
+   `ADEQUATE` with exact rationale/limitations but no Reliance, Risk result, or favorable Decision.
+6. **Unfavorable/low Value can be adequate:** review a faithful low/unrealized Value conclusion and
+   verify `ADEQUATE`; outcome polarity does not choose adequacy or Decision desirability.
+7. **High Risk can be adequate:** review a faithful substantial-Risk conclusion and verify
+   `ADEQUATE`; adequacy does not mean Risk is acceptable or that operation should proceed.
+8. **Material defect outcomes:** exercise materially inaccurate, exaggerated/understated,
+   incomplete, inappropriately scoped, hidden-uncertainty, and unresolved-basis assessments.
+   Verify `NOT_ADEQUATE` where a material preventing reason is established and `INDETERMINATE`
+   where accountable judgment cannot be made; no mechanical checklist supplies the outcome.
+9. **Qualitative adequacy:** establish that quantification is not defensible, preserve that exact
+   limitation, and verify a faithful qualitative assessment may be `ADEQUATE` without a number.
+10. **False precision:** introduce an unsupported material number or missing material
+    scope/baseline/period/method/uncertainty. Verify `NOT_ADEQUATE` or `INDETERMINATE` as the exact
+    basis supports, with no fabricated replacement estimate.
+11. **Applicability separation:** change or conflict one material Evidence Applicability Version.
+    Verify adequacy review fails/re-evaluates as specified but creates or changes no Applicability
+    fact; favorable Evidence, quantity, or source count does not determine adequacy.
+
+### 9E.3 Reliance and practitioner simplification
+
+12. **One adequate candidate, separate Actors/Responsibilities:** commit Adequacy, then require a
+    separate explicit Reliance action. Verify readiness/adequacy/candidate uniqueness does not
+    derive reliance and the assessment remains unrelied until the second accountable act.
+13. **One adequate candidate, same Actor with two Responsibilities:** use one natural Complete
+    Value review confirmation. Verify one Adequacy Determination and one Reliance Designation with
+    distinct identities/bases commit atomically; make either Responsibility stale and verify
+    neither commits.
+14. **Multiple adequate candidates:** require explicit accountable choice and material candidate
+    dispositions. Verify no newest, strongest, largest, most favorable, owner, rank, score, or row-
+    order winner; incompatible co-current designations yield explicit conflict.
+15. **Adverse adequacy blocks reliance:** attempt reliance on `NOT_ADEQUATE` and `INDETERMINATE`
+    candidates. Verify zero Reliance, freeze, Integration, or Decision mutation.
+16. **Independent lane reliance:** establish one Value and one Risk Reliance for the same exact
+    Configuration/use. Change/withdraw/conflict each in turn and verify only that lane becomes
+    ineligible; neither lane offsets, completes, or selects the other.
+17. **Reuse:** attempt reuse from historical Fitness, Adequacy, Acceptance/Selection, Reliance,
+    frozen status, or uniqueness alone. Verify rejection. Supply new exact current adequacy and
+    reliance basis for the new use and preserve all predecessor history.
+
+### 9E.4 Typed quantitative capability
+
+18. **Claim-type separation:** preserve `ESTIMATE_EXPECTATION`, `TARGET_OBJECTIVE`,
+    `OBSERVED_RESULT`, `THRESHOLD_CONSTRAINT`, `RISK_ESTIMATE`, and `COST_RESOURCE_MEASURE` as
+    separate identities. Verify target is not Evidence, estimate is not observation, observation
+    is not causation, threshold is not prediction, and measure is not management judgment.
+19. **Context preservation:** exercise scalar, range/interval, distribution, proportion/rate,
+    count, currency, and time representations. Verify every material construct, unit/direction,
+    scope/population, period, baseline, coverage, Configuration, provenance, method, uncertainty,
+    limitation, and dual-time field is exact; inapplicable/unknown fields are not inferred.
+20. **Value and cost separation:** retain a bounded Value benefit and a separate cost/resource
+    measure. Verify no forced monetary conversion, ROI, net Value, RWR, ranking, or recommendation.
+21. **Risk and inability to estimate:** retain a defensible bounded Risk range and separately the
+    conclusion that likelihood cannot reliably be estimated. Verify no probability-times-impact,
+    heat-map multiplication, universal Risk score, acceptable-Risk result, or fabricated number.
+22. **Comparable versus non-comparable claims:** allow Gate-5 delta only for exact comparable claim
+    contexts. Change label/unit-only matches, construct, population, method, period, baseline,
+    Configuration, provenance, or Applicability and verify no delta, semantic normalization, or
+    inferred causality/materiality/adequacy/priority/Decision error/outcome.
+
+### 9E.5 Refresh, history, failure, and legacy
+
+23. **Later observation is later knowledge:** append an observed result after an estimate,
+    Adequacy, Reliance, Integration, and Decision. Verify effective-at/known-at reconstruction of
+    the earlier basis is unchanged and the observation does not infer estimate/Decision error.
+24. **Focused Value-only refresh:** create successor Value Assessment, Readiness, Adequacy, and
+    Reliance as separately required while exact Risk Versions/history remain byte/semantic-digest
+    unchanged. Mirror for focused Risk-only refresh with unchanged Value history.
+25. **Stale/access/conflict/authority zero mutation:** exercise stale Configuration/use/candidate,
+    inaccessible basis, adequacy/reliance conflict, missing Responsibility, and separately required
+    authority failure across finish, adequacy, reliance, Integration, and combined confirmation.
+    Verify exact explicit failure, non-disclosure, and unchanged semantic digest.
+26. **Legacy preservation:** read legacy Input readiness, Fitness, Acceptance/Selection, freeze,
+    Integration, and Decision after prospective adoption. Verify original names/outcomes/bases and
+    histories remain exact; no Adequacy, Reliance, Quantitative Claim, adapter winner, or newer-era
+    reinterpretation is synthesized.
+
+### 9E.6 Harborlight non-mutating illustration
+
+Using Harborlight Scenario A only as an explanatory fixture, represent expected document-sorting
+reduction as a bounded 20–35% `ESTIMATE_EXPECTATION`, later 24% as a separate
+`OBSERVED_RESULT`, and a distinct source-linkage result with its own construct/scope. Demonstrate
+that exact comparability and adequacy review inspect exaggeration, completeness, provenance, and
+limitations without deciding whether Harborlight should proceed. Append or change no Harborlight
+Case, Configuration, Evidence/Authority, Assessment, Responsibility, Work, Decision, review, or
+other governed fact.
+
+### 9E.7 Gate boundary
+
+No Gate-6 oracle may require domain code, persistence/schema/migration, UI, scheduler/notification,
+deployment, analytics, automated RWR/ROI/risk-formula calculation, universal score/ranking,
+Harborlight mutation, UX-4+, M1D, Scenarios B–F, release, tag, or consumer cutover. Gate 7 and
+implementation remain separately authorized.
 
 ## 10. Boundary-Sensitivity Tests
 
@@ -1680,10 +1803,9 @@ This substantially completes the system-specification layer required before plat
 
 ## 49. Recommended Next Step
 
-After independent Gate-5 acceptance, add Responsibility, Case Work, continuity, or review-timing
-implementation/conformance tests only through a separately authorized architecture/implementation
-gate. Gate 6 remains unstarted by these oracles. Do not use the common or Gate-2/4/3/5 oracles to
-imply readiness/adequacy/reliance or quantitative Value/Risk semantics.
+After independent Gate-6 acceptance, add Gates 1–6 implementation/conformance tests only through a
+separately authorized Gate-7 architecture/implementation-readiness decision. Do not use these
+oracles to imply a physical model, migration, UI, analytics, deployment, or consumer cutover.
 
 ## 50. Repository Placement
 

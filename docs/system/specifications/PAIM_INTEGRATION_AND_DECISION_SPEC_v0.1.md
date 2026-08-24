@@ -99,6 +99,11 @@ Minimum fields:
 - recorded time and effective time/interval
 - predecessor/successor integration where applicable
 
+After an explicit Gate-6 consumer cutover, the corresponding prospective Integration identity
+retains exact Value and Risk Assessment/Input, Readiness Event, Adequacy Determination, and Reliance
+Designation Versions instead of relabeling legacy Acceptance/Selection/Fitness facts. Any material
+Quantitative Claim Versions consumed remain exact lane-specific basis relationships.
+
 ## 4. Integration Status
 
 Possible statuses include:
@@ -148,11 +153,45 @@ PAIM may check these records mechanically but must not compute a universal evide
 ### 5.1 Prospective Integration Responsibility
 
 After explicit cutover, `COMPLETE_VALUE_RISK_INTEGRATION` binds the exact owning Case, governing
-Configuration Version, bounded use, and current Value and Risk Input plus Acceptance/Selection
-Versions. The same Responsibility may be held by a Case Coordinator or Assessor only through its
-own valid assignment basis. It permits no stale lane substitution and does not create Integration,
-Boundary, proposal, Decision Authority, or authorization. Contextual Work completes only by linking
-the exact Integration Version created through this specification.
+Configuration Version, bounded use, and current Value and Risk Input plus the exact
+Acceptance/Selection Versions under a legacy-adopted consumer or Readiness/Adequacy/Reliance
+Versions under a Gate-6-adopted consumer. The same Responsibility may be held by a Case Coordinator
+or Assessor only through its own valid assignment basis. It permits no stale lane substitution and
+does not create Integration, Boundary, proposal, Decision Authority, or authorization. Contextual
+Work completes only by linking the exact Integration Version created through this specification.
+
+### 5.2 Prospective Gate-6 relied-basis readiness
+
+For a Gate-6-adopted consumer, Integration readiness is an access-filtered composition, not a Case
+phase or authoritative combined Value/Risk result. At exact effective time and knowledge cutoff it
+requires independently for each lane:
+
+- one exact current Assessment/Input Version and eligible Readiness Event;
+- one eligible current Assessment Adequacy Determination with outcome `ADEQUATE` for the bounded
+  decision use;
+- one eligible current Assessment Reliance Designation freezing that same exact Assessment Version,
+  Adequacy Version, material information/Applicability basis, Configuration, purpose, and scope;
+- explicit Finding, Boundary, uncertainty, Implication, provenance, and all material quantitative
+  claim context/limitations; and
+- absence of withdrawal, supersession, refresh requirement, stale context, inaccessible basis, or
+  unresolved selection/currentness conflict.
+
+Value and Risk selection runs independently and each returns one exact relied basis,
+`ASSESSMENT RELIANCE NOT ESTABLISHED`, or `ASSESSMENT RELIANCE CONFLICT — UNRESOLVED`. No ready,
+adequate, unique, favorable, largest/smallest, newest, owner, score, rank, or software winner exists.
+One lane cannot satisfy or offset the other.
+
+Integration review and commit reconstruct and revalidate the exact current lane bases. If either
+Assessment, Readiness, Adequacy, Reliance, Configuration, purpose/scope, information/Applicability,
+access, or expected Version changes, the stale action fails closed and creates no Integration,
+Boundary, proposal, or Decision fact. Historical Integrations retain their exact legacy or
+prospective semantic-era basis.
+
+An Integration and every downstream Boundary, Decision proposal, and authorization must preserve
+the exact relied Value and Risk basis through the same chain. Quantitative magnitude, variance, or
+the presence/absence of numbers does not determine Integration readiness or management judgment.
+The Integration owns interaction/alternatives; it does not redo adequacy, change reliance, compute
+a universal score/ROI/RWR/probability-times-impact result, or infer Decision desirability.
 
 ## 6. Frozen Input Display
 
