@@ -24,9 +24,11 @@ from paim.continuing_review import (
     ReviewOutcome,
     ReviewRecordFacts,
     ReviewSelectionKind,
+    WithdrawRequiredReviewConstraintCommand,
 )
 from paim.domain import AuthorityVersionInput, CommandMeta
 from paim.integrity import CommandId, EffectiveInterval, FixedClock, RecordId, RecordVersionId
+from paim.integrity.selection import SelectionFound, SelectionQuery
 from paim.integrity.semantics import SemanticContractRef
 from paim.practitioner_queries import PractitionerQueryService
 from paim.prospective_decision import (
@@ -338,6 +340,97 @@ def test_planned_and_required_timing_remain_separate_and_attention_is_non_substa
     assert conflict.reason == "REQUIRED REVIEW TIMING CONFLICT — UNRESOLVED"
 
 
+def test_constraint_withdrawal_is_same_record_successor_with_dual_time_history(
+    sqlite_store: object,
+) -> None:
+    fx = slice_e_fixture(sqlite_store, "constraint-withdrawal")
+    constraint = constraint_command(
+        fx,
+        "constraint-withdrawal-establish",
+        ReviewConstraintOperator.BY,
+        None,
+        NOW + timedelta(days=40),
+    )
+    fx.service.establish_required_review_constraint(constraint)
+    accountability = fx.responsibilities[ObligationKind.NORMALIZE_REQUIRED_REVIEW_CONSTRAINT]
+    source = fx.source.source
+
+    def withdrawal(facts: ReviewRecordFacts, key: str) -> WithdrawRequiredReviewConstraintCommand:
+        return WithdrawRequiredReviewConstraintCommand(
+            identity(source.actor_a, key),
+            facts,
+            CONTRACT,
+            source.opened.context,  # type: ignore[attr-defined]
+            source.opened.facts.case_id,  # type: ignore[attr-defined]
+            source.opened.facts.configuration_version_id,  # type: ignore[attr-defined]
+            constraint.facts.version_id,
+            "the exact governing source no longer requires this constraint",
+            accountability.responsibility_version_id,
+            accountability.assignment_version_id,
+            fx.review_authority_version_id,
+            NOW,
+            KNOWLEDGE,
+        )
+
+    later = ContinuingReviewService(
+        sqlite_store,  # type: ignore[arg-type]
+        FixedClock(RECORDED + timedelta(seconds=9)),
+        source.access,
+    )
+    with sqlite_store.read_transaction() as tx:  # type: ignore[attr-defined]
+        before = tx.count_rows("required_review_constraint_versions")
+    with pytest.raises(ContinuingReviewConflict, match="exact same governed Record"):
+        later.withdraw_required_review_constraint(
+            withdrawal(ReviewRecordFacts.new(), "constraint-withdrawal-wrong-record")
+        )
+    with sqlite_store.read_transaction() as tx:  # type: ignore[attr-defined]
+        assert tx.count_rows("required_review_constraint_versions") == before
+
+    withdrawn_facts = ReviewRecordFacts.new(constraint.facts.record_id)
+    command = withdrawal(withdrawn_facts, "constraint-withdrawal-valid")
+    outcome = later.withdraw_required_review_constraint(command)
+    assert outcome.relationship_ids and outcome.status_event_ids
+    with sqlite_store.read_transaction() as tx:  # type: ignore[attr-defined]
+        rows = tx.projection_rows(
+            "required_review_constraint_versions", record_id=str(constraint.facts.record_id)
+        )
+        assert len(rows) == 2
+        assert {str(row["record_id"]) for row in rows} == {str(constraint.facts.record_id)}
+        withdrawn = tx.get_version(withdrawn_facts.version_id)
+        assert withdrawn is not None
+        current = tx.select_current(
+            SelectionQuery(
+                withdrawn.family,
+                withdrawn.scope,
+                NOW,
+                RECORDED + timedelta(seconds=10),
+                constraint.facts.record_id,
+            )
+        )
+        historical = tx.select_current(
+            SelectionQuery(
+                withdrawn.family,
+                withdrawn.scope,
+                NOW,
+                RECORDED + timedelta(milliseconds=8500),
+                constraint.facts.record_id,
+            )
+        )
+        assert isinstance(current, SelectionFound)
+        assert current.candidate.version_id == withdrawn_facts.version_id
+        assert isinstance(historical, SelectionFound)
+        assert historical.candidate.version_id == constraint.facts.version_id
+
+    stale = withdrawal(
+        ReviewRecordFacts.new(constraint.facts.record_id),
+        "constraint-withdrawal-stale",
+    )
+    with pytest.raises(ContinuingReviewConflict, match="constraint is stale"):
+        later.withdraw_required_review_constraint(stale)
+    with sqlite_store.read_transaction() as tx:  # type: ignore[attr-defined]
+        assert tx.count_rows("required_review_constraint_versions") == before + 1
+
+
 def test_practitioner_composition_filters_review_sources_before_dates_and_attention(
     sqlite_store: object,
 ) -> None:
@@ -490,6 +583,21 @@ def test_event_review_can_complete_with_exact_unchanged_decision_and_atomic_next
         KNOWLEDGE,
     )
     fx.service.record_event_review_attention(event)
+    attention_query = {
+        "principal_id": "principal:slice-c",
+        "actor_id": source.actor_a,
+        "case_id": source.opened.facts.case_id,  # type: ignore[attr-defined]
+        "configuration_version_id": source.opened.facts.configuration_version_id,  # type: ignore[attr-defined]
+        "decision_version_id": fx.decision_version_id,
+        "context": source.opened.context,  # type: ignore[attr-defined]
+        "review_purpose": REVIEW_PURPOSE,
+        "bounded_scope": ASSESSED_SCOPE,
+        "effective_at": NOW,
+        "known_at": RECORDED + timedelta(seconds=9),
+    }
+    before_review = fx.service.review_attention(**attention_query)
+    assert before_review.due
+    assert before_review.source_version_ids == (event.facts.version_id,)
     episode = BeginReviewEpisodeCommand(
         identity(source.actor_a, "unchanged-begin"),
         ReviewRecordFacts.new(),
@@ -511,6 +619,8 @@ def test_event_review_can_complete_with_exact_unchanged_decision_and_atomic_next
         KNOWLEDGE,
     )
     fx.service.begin_review_episode(episode)
+    while_open = fx.service.review_attention(**attention_query)
+    assert while_open.source_version_ids == (event.facts.version_id,)
     confirmation_basis = fx.source.responsibilities[ObligationKind.CONFIRM_MANAGEMENT_DECISION]
     confirmation = ConfirmDecisionCommand(
         identity(source.actor_a, "unchanged-confirm"),
@@ -573,6 +683,67 @@ def test_event_review_can_complete_with_exact_unchanged_decision_and_atomic_next
     )
     outcome = completion_service.complete_review_episode(complete)
     assert completion_service.complete_review_episode(complete) == outcome
+    addressed = completion_service.review_attention(
+        **{**attention_query, "known_at": RECORDED + timedelta(seconds=10)}
+    )
+    assert not addressed.due
+    assert addressed.source_version_ids == ()
+
+    visible_queries = PractitionerQueryService(
+        sqlite_store,  # type: ignore[arg-type]
+        CaseContinuityService(
+            sqlite_store,  # type: ignore[arg-type]
+            FixedClock(RECORDED + timedelta(seconds=10)),
+            source.access,
+        ),
+        source.access,
+    )
+    visible_home = visible_queries.home(
+        principal_id="principal:slice-c",
+        actor_id=source.actor_a,
+        candidate_case_ids=(source.opened.facts.case_id,),  # type: ignore[attr-defined]
+        effective_at=NOW,
+        known_at=RECORDED + timedelta(seconds=10),
+    )
+    assert not any(item.kind == "CONTINUING_REVIEW" for item in visible_home.items)
+
+    hidden_completion_access = SelectiveSourceAccess(frozenset({complete.facts.version_id}))
+    hidden_queries = PractitionerQueryService(
+        sqlite_store,  # type: ignore[arg-type]
+        CaseContinuityService(
+            sqlite_store,  # type: ignore[arg-type]
+            FixedClock(RECORDED + timedelta(seconds=10)),
+            hidden_completion_access,
+        ),
+        hidden_completion_access,
+    )
+    hidden_home = hidden_queries.home(
+        principal_id="principal:slice-c",
+        actor_id=source.actor_a,
+        candidate_case_ids=(source.opened.facts.case_id,),  # type: ignore[attr-defined]
+        effective_at=NOW,
+        known_at=RECORDED + timedelta(seconds=10),
+    )
+    assert any(item.kind == "CONTINUING_REVIEW" for item in hidden_home.items)
+
+    unresolved_event = replace(
+        event,
+        identity=identity(source.actor_a, "unchanged-unresolved-event"),
+        facts=ReviewRecordFacts.new(),
+        reason="a different exact governed event remains unresolved",
+    )
+    event_service = ContinuingReviewService(
+        sqlite_store,  # type: ignore[arg-type]
+        FixedClock(RECORDED + timedelta(seconds=11)),
+        source.access,
+    )
+    event_service.record_event_review_attention(unresolved_event)
+    current_attention = event_service.review_attention(
+        **{**attention_query, "known_at": RECORDED + timedelta(seconds=12)}
+    )
+    assert current_attention.source_version_ids == (unresolved_event.facts.version_id,)
+    historical_attention = event_service.review_attention(**attention_query)
+    assert historical_attention.source_version_ids == (event.facts.version_id,)
     current = completion_service.select_review_episode(
         principal_id="principal:slice-c",
         actor_id=source.actor_a,

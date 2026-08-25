@@ -661,6 +661,16 @@ class PractitionerQueryService:
         if known_completed:
             completed_at = max(value.effective.start for value in known_completed)
 
+        addressed_event_ids = {
+            str(link["result_version_id"])
+            for row in episodes
+            if row.get("status") == "COMPLETED"
+            for link in tx.projection_rows(
+                "review_episode_result_links",
+                episode_version_id=str(row["version_id"]),
+                link_role="ADDRESSED_EVENT_ORIGIN",
+            )
+        }
         event_raw = tuple(
             row
             for row in self._current_projection_rows(
@@ -670,6 +680,7 @@ class PractitionerQueryService:
                 known_at,
             )
             if row.get("decision_version_id") == decision_id
+            and str(row["version_id"]) not in addressed_event_ids
         )
         events, _event_hidden = self._visible_review_rows(
             tx,

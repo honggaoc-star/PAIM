@@ -15,6 +15,13 @@ and audit facts through one outer transaction. Exact replay returns its original
 replay, stale predecessor, inaccessible source, accountability vacancy/conflict, or invalid
 authority/basis fails with no partial semantic mutation.
 
+Constraint withdrawal is a successor Version of the exact same Required Review Constraint Record;
+the prior active Version remains historically reconstructable. A completed Review Episode records
+an exact `ADDRESSED_EVENT_ORIGIN` link for each event-attention Version it actually originated from.
+That link removes only the exact visible consumed event from current attention composition. It does
+not delete the event, resolve unrelated events, infer resolution from time, or project a later
+completion backward into an earlier knowledge-time view.
+
 Review scope is explicit. A Value-only refresh does not refresh Risk, and vice versa. Prior facts
 remain historical bases rather than being copied forward automatically. Completion requires
 exactly one separately established Slice-D continuation path: an unchanged authorized-Decision

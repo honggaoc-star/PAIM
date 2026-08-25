@@ -378,11 +378,15 @@ class ContinuingReviewService:
             predecessor = tx.get_version(command.constraint_version_id)
             if predecessor is None:
                 raise ContinuingReviewConflict("constraint predecessor is unavailable")
+            if command.facts.record_id != predecessor.record_id:
+                raise ContinuingReviewConflict(
+                    "constraint withdrawal must succeed the exact same governed Record"
+                )
             content = predecessor.content
             content.update({"state": "WITHDRAWN", "withdrawal_reason": command.reason})
             self._add_version(
                 tx,
-                command.facts.record_id,
+                predecessor.record_id,
                 command.facts.version_id,
                 "required-review-constraint",
                 predecessor.scope,
@@ -395,7 +399,7 @@ class ContinuingReviewService:
             values.update(
                 {
                     "version_id": str(command.facts.version_id),
-                    "record_id": str(command.facts.record_id),
+                    "record_id": str(predecessor.record_id),
                     "state": "WITHDRAWN",
                     "responsibility_version_id": str(command.responsibility_version_id),
                     "assignment_version_id": str(command.assignment_version_id),
@@ -417,7 +421,7 @@ class ContinuingReviewService:
                 tx,
                 command,
                 digest,
-                command.facts.record_id,
+                predecessor.record_id,
                 (command.facts.version_id,),
                 statuses,
                 relationships,
@@ -871,6 +875,17 @@ class ContinuingReviewService:
                     "link_role": "DECISION_CONTINUATION",
                 },
             )
+            for origin in json.loads(cast(str, episode["origin_version_ids_json"])):
+                origin_id = RecordVersionId.parse(str(origin))
+                if tx.projection_rows("review_attention_event_versions", version_id=str(origin_id)):
+                    tx.insert_projection(
+                        "review_episode_result_links",
+                        {
+                            "episode_version_id": str(command.facts.version_id),
+                            "result_version_id": str(origin_id),
+                            "link_role": "ADDRESSED_EVENT_ORIGIN",
+                        },
+                    )
             relationships, statuses = self._successor_history(
                 tx,
                 command.episode_version_id,
@@ -1147,6 +1162,14 @@ class ContinuingReviewService:
             kinds.append("REQUIRED REVIEW DUE")
             sources.update(required.constraint_version_ids)
         with self._store.read_transaction() as tx:
+            addressed_event_ids = self._visible_addressed_event_ids(
+                tx,
+                principal_id,
+                actor_id,
+                case_id,
+                effective_at,
+                known_at,
+            )
             for row in tx.projection_rows(
                 "review_attention_event_versions",
                 case_id=str(case_id),
@@ -1158,7 +1181,11 @@ class ContinuingReviewService:
             ):
                 version_id = RecordVersionId.parse(str(row["version_id"]))
                 version = tx.get_version(version_id)
-                if version is None or version.recorded_at > known_at:
+                if (
+                    version is None
+                    or version.recorded_at > known_at
+                    or version_id in addressed_event_ids
+                ):
                     continue
                 if self._row_visible(
                     tx,
@@ -1181,6 +1208,68 @@ class ContinuingReviewService:
         return ReviewAttention(
             bool(kinds), tuple(sorted(set(kinds))), tuple(sorted(sources, key=str))
         )
+
+    def _visible_addressed_event_ids(
+        self,
+        tx: ContinuityTransaction,
+        principal_id: str,
+        actor_id: RecordId,
+        case_id: RecordId,
+        effective_at: datetime,
+        known_at: datetime,
+    ) -> set[RecordVersionId]:
+        addressed: set[RecordVersionId] = set()
+        for link in tx.projection_rows(
+            "review_episode_result_links", link_role="ADDRESSED_EVENT_ORIGIN"
+        ):
+            episode_id = RecordVersionId.parse(str(link["episode_version_id"]))
+            rows = tx.projection_rows("review_episode_versions", version_id=str(episode_id))
+            if len(rows) != 1 or rows[0]["status"] != ReviewEpisodeStatus.COMPLETED.value:
+                continue
+            version = tx.get_version(episode_id)
+            if (
+                version is None
+                or version.recorded_at > known_at
+                or not version.effective.contains(effective_at)
+            ):
+                continue
+            selected = tx.select_current(
+                SelectionQuery(
+                    version.family,
+                    version.scope,
+                    effective_at,
+                    known_at,
+                    version.record_id,
+                )
+            )
+            if not (
+                isinstance(selected, SelectionFound) and selected.candidate.version_id == episode_id
+            ):
+                continue
+            if self._row_visible(
+                tx,
+                principal_id,
+                actor_id,
+                case_id,
+                rows[0],
+                (
+                    "version_id",
+                    "configuration_version_id",
+                    "prior_decision_version_id",
+                    "prior_integration_version_id",
+                    "prior_value_reliance_version_id",
+                    "prior_risk_reliance_version_id",
+                    "continued_value_reliance_version_id",
+                    "continued_risk_reliance_version_id",
+                    "decision_confirmation_version_id",
+                    "successor_decision_version_id",
+                    "responsibility_version_id",
+                    "assignment_version_id",
+                ),
+                ("origin_version_ids_json", "refreshed_result_version_ids_json"),
+            ):
+                addressed.add(RecordVersionId.parse(str(link["result_version_id"])))
+        return addressed
 
     def select_review_episode(
         self,
@@ -1856,10 +1945,13 @@ class ContinuingReviewService:
         if (
             before is None
             or after is None
+            or before.record_id != after.record_id
             or before.family != after.family
             or before.scope != after.scope
         ):
-            raise ContinuingReviewConflict("review succession requires one exact family and scope")
+            raise ContinuingReviewConflict(
+                "review succession requires one exact Record, family, and scope"
+            )
         relationship = VersionRelationship(
             RelationshipId.new(),
             predecessor,
