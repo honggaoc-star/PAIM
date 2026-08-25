@@ -17,6 +17,7 @@ from paim.persistence.sqlite.schema import (
     practical_role_catalog,
     responsibility_assignment_records,
     responsibility_assignment_versions,
+    responsibility_practical_roles,
     responsibility_records,
     responsibility_versions,
 )
@@ -30,6 +31,7 @@ _TABLES = (
     practical_role_catalog,
     responsibility_records,
     responsibility_versions,
+    responsibility_practical_roles,
     assignment_basis_records,
     assignment_basis_versions,
     responsibility_assignment_records,

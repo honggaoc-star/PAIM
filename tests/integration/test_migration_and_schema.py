@@ -65,6 +65,7 @@ def test_gate8_slice_a_schema_is_additive_append_only_and_not_backfilled(
         "practical_role_catalog",
         "responsibility_records",
         "responsibility_versions",
+        "responsibility_practical_roles",
         "assignment_basis_records",
         "assignment_basis_versions",
         "responsibility_assignment_records",
@@ -88,6 +89,27 @@ def test_gate8_slice_a_schema_is_additive_append_only_and_not_backfilled(
             connection.execute(text("SELECT role_code FROM practical_role_catalog")).scalars()
         )
     assert roles == {"CASE_COORDINATOR", "ASSESSOR", "REVIEWER"}
+    assert "practical_role" not in {
+        column["name"] for column in inspector.get_columns("responsibility_versions")
+    }
+    assert {
+        column["name"] for column in inspector.get_columns("responsibility_practical_roles")
+    } == {"responsibility_version_id", "role_code"}
+    assert {
+        "owning_case_id",
+        "context_digest",
+        "allowed_signature_digests_json",
+        "max_active_assignments",
+        "state",
+        "effective_from_us",
+        "effective_to_us",
+        "recorded_at_us",
+        "predecessor_version_id",
+    } <= {column["name"] for column in inspector.get_columns("assignment_basis_versions")}
+    assert {
+        constraint["name"]
+        for constraint in inspector.get_check_constraints("assignment_basis_versions")
+    } >= {"ck_assignment_basis_state", "ck_assignment_basis_positive_limit"}
     for table in common | responsibility_work:
         assert f"prevent_{table}_update" in triggers
         assert f"prevent_{table}_delete" in triggers

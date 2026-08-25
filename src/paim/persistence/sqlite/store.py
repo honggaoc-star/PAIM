@@ -238,6 +238,7 @@ _SLICE_A_PROJECTION_TABLES = frozenset(
         "practical_role_catalog",
         "responsibility_records",
         "responsibility_versions",
+        "responsibility_practical_roles",
         "assignment_basis_records",
         "assignment_basis_versions",
         "responsibility_assignment_records",

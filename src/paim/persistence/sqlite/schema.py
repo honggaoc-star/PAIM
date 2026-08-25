@@ -3656,7 +3656,6 @@ responsibility_versions = Table(
     Column("version_id", String(36), ForeignKey("record_versions.version_id"), primary_key=True),
     Column("record_id", String(36), ForeignKey("responsibility_records.record_id"), nullable=False),
     Column("obligation_kind", Text, nullable=False),
-    Column("practical_role", Text, ForeignKey("practical_role_catalog.role_code"), nullable=False),
     Column("owning_case_id", String(36), ForeignKey("paim_cases.case_id"), nullable=False),
     Column(
         "context_digest",
@@ -3667,6 +3666,22 @@ responsibility_versions = Table(
     Column("signature_digest", String(64), nullable=False),
 )
 Index("ix_responsibility_signature", responsibility_versions.c.signature_digest)
+responsibility_practical_roles = Table(
+    "responsibility_practical_roles",
+    metadata,
+    Column(
+        "responsibility_version_id",
+        String(36),
+        ForeignKey("responsibility_versions.version_id"),
+        primary_key=True,
+    ),
+    Column(
+        "role_code",
+        Text,
+        ForeignKey("practical_role_catalog.role_code"),
+        nullable=False,
+    ),
+)
 assignment_basis_records = Table(
     "assignment_basis_records",
     metadata,
@@ -3686,9 +3701,32 @@ assignment_basis_versions = Table(
         ForeignKey("record_versions.version_id"),
         nullable=False,
     ),
+    Column("owning_case_id", String(36), ForeignKey("paim_cases.case_id"), nullable=False),
+    Column(
+        "context_digest",
+        String(64),
+        ForeignKey("exact_context_sets.context_digest"),
+        nullable=False,
+    ),
     Column("allowed_obligation_kinds_json", Text, nullable=False),
     Column("allowed_case_ids_json", Text, nullable=False),
+    Column("allowed_signature_digests_json", Text, nullable=False),
     Column("limits_json", Text, nullable=False),
+    Column("max_active_assignments", BigInteger, nullable=False),
+    Column("state", Text, nullable=False),
+    Column("effective_from_us", BigInteger, nullable=False),
+    Column("effective_to_us", BigInteger, nullable=True),
+    Column("recorded_at_us", BigInteger, nullable=False),
+    Column(
+        "predecessor_version_id",
+        String(36),
+        ForeignKey("assignment_basis_versions.version_id"),
+        nullable=True,
+    ),
+    CheckConstraint(
+        "state IN ('ACTIVE','WITHDRAWN','SUPERSEDED')", name="ck_assignment_basis_state"
+    ),
+    CheckConstraint("max_active_assignments > 0", name="ck_assignment_basis_positive_limit"),
 )
 responsibility_assignment_records = Table(
     "responsibility_assignment_records",

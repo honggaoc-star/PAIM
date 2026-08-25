@@ -6,6 +6,10 @@ from datetime import datetime
 
 import pytest
 
+from paim.application import Increment3ApplicationService
+from paim.audit import ActorResolution
+from paim.domain import CommandMeta, RoleTargetType
+from paim.domain.increment3 import AuthorityVersionInput
 from paim.integrity import CommandId, EffectiveInterval, FixedClock, RecordId, RecordVersionId
 from paim.integrity.records import FinalizedRecordVersion, canonical_json
 from paim.integrity.semantics import (
@@ -30,7 +34,7 @@ from paim.responsibility.service import (
     SliceATransaction,
 )
 from tests.helpers import utc
-from tests.integration.test_increment_2_foundation import add_actor, add_case
+from tests.integration.test_increment_2_foundation import add_actor, add_case, add_role
 
 NOW = utc(2026, 8, 24)
 CONTRACT = SemanticContractRef("paim-gate8-slice-a", "1")
@@ -42,6 +46,15 @@ class ExactAccess:
 
     def authorize(self, **_: object) -> bool:
         return self.allowed
+
+
+class RevokedAtCommitAccess:
+    def __init__(self) -> None:
+        self.calls = 0
+
+    def authorize(self, **_: object) -> bool:
+        self.calls += 1
+        return self.calls == 1
 
 
 def context(case_id: RecordId, case_version_id: RecordVersionId) -> ExactContextSet:
@@ -98,11 +111,226 @@ def signature(exact_context: ExactContextSet, obligation: str) -> str:
     )
 
 
+def authority_source(
+    store: SQLiteIntegrityStore,
+    *,
+    case_id: RecordId,
+    assigning_actor_id: RecordId,
+    exact_context: ExactContextSet,
+    signature_digest: str,
+    obligation: str,
+    maximum: int = 2,
+) -> RecordVersionId:
+    authority_id, version_id = RecordId.new(), RecordVersionId.new()
+    Increment3ApplicationService(store, FixedClock(NOW)).commit_authority_record(
+        CommandMeta(
+            CommandId.new(),
+            "gate8-slice-a-tests",
+            f"authority-{version_id}",
+            "principal:slice-a",
+            str(assigning_actor_id),
+            ActorResolution.PROVIDED,
+        ),
+        AuthorityVersionInput(
+            authority_id,
+            version_id,
+            None,
+            None,
+            None,
+            "assignment-authority",
+            "governance-charter",
+            {"source": "slice-a-oracle"},
+            "exact Responsibility assignment",
+            "assignment requires exact bounded basis",
+            {
+                "assignment_authority": {
+                    "assigning_actor_id": str(assigning_actor_id),
+                    "allowed_case_ids": [str(case_id)],
+                    "allowed_obligation_kinds": [obligation],
+                    "allowed_signature_digests": [signature_digest],
+                    "context_digest": exact_context.digest,
+                    "max_active_assignments": maximum,
+                    "limits": {"max_active_assignments": maximum},
+                }
+            },
+            EffectiveInterval(NOW),
+        ),
+    )
+    return version_id
+
+
+def responsibility_command(
+    *,
+    case_id: RecordId,
+    actor_id: RecordId,
+    exact_context: ExactContextSet,
+    obligation: str,
+    key: str,
+    practical_role: str | None = None,
+) -> tuple[SliceACommand, str]:
+    digest = signature(exact_context, obligation)
+    result = command(
+        case_id=case_id,
+        actor_id=actor_id,
+        exact_context=exact_context,
+        family="responsibility",
+        key=key,
+        projections=(),
+    )
+    projections = [
+        ProjectionFact("responsibility_records", {"record_id": str(result.record_id)}),
+        ProjectionFact(
+            "responsibility_versions",
+            {
+                "version_id": str(result.version_id),
+                "record_id": str(result.record_id),
+                "obligation_kind": obligation,
+                "owning_case_id": str(case_id),
+                "context_digest": exact_context.digest,
+                "signature_digest": digest,
+            },
+        ),
+    ]
+    if practical_role is not None:
+        projections.append(
+            ProjectionFact(
+                "responsibility_practical_roles",
+                {
+                    "responsibility_version_id": str(result.version_id),
+                    "role_code": practical_role,
+                },
+            )
+        )
+    result = replace(
+        result,
+        content={
+            "purpose_discriminator": "continuing-review",
+            "use_discriminator": "case-management",
+            "scope_discriminator": "exact-case-context",
+        },
+        projections=tuple(projections),
+    )
+    return result, digest
+
+
+def basis_command(
+    *,
+    case_id: RecordId,
+    assigning_actor_id: RecordId,
+    exact_context: ExactContextSet,
+    source_version_id: RecordVersionId,
+    obligation: str,
+    signature_digest: str,
+    key: str,
+    maximum: int = 2,
+    record_id: RecordId | None = None,
+    version_id: RecordVersionId | None = None,
+    expected_version_id: RecordVersionId | None = None,
+    state: str = "ACTIVE",
+) -> SliceACommand:
+    result = command(
+        case_id=case_id,
+        actor_id=assigning_actor_id,
+        exact_context=exact_context,
+        family="assignment-basis",
+        key=key,
+        projections=(),
+    )
+    result = replace(
+        result,
+        record_id=record_id or result.record_id,
+        version_id=version_id or result.version_id,
+        expected_version_id=expected_version_id,
+    )
+    return replace(
+        result,
+        projections=(
+            *(
+                ()
+                if expected_version_id
+                else (
+                    ProjectionFact(
+                        "assignment_basis_records", {"record_id": str(result.record_id)}
+                    ),
+                )
+            ),
+            ProjectionFact(
+                "assignment_basis_versions",
+                {
+                    "version_id": str(result.version_id),
+                    "record_id": str(result.record_id),
+                    "assigning_actor_id": str(assigning_actor_id),
+                    "basis_source_version_id": str(source_version_id),
+                    "owning_case_id": str(case_id),
+                    "context_digest": exact_context.digest,
+                    "allowed_obligation_kinds_json": json.dumps([obligation]),
+                    "allowed_case_ids_json": json.dumps([str(case_id)]),
+                    "allowed_signature_digests_json": json.dumps([signature_digest]),
+                    "limits_json": json.dumps({"max_active_assignments": maximum}),
+                    "max_active_assignments": maximum,
+                    "state": state,
+                    "effective_from_us": to_epoch_microseconds(NOW),
+                    "effective_to_us": None,
+                    "recorded_at_us": 0,
+                    "predecessor_version_id": (
+                        str(expected_version_id) if expected_version_id else None
+                    ),
+                },
+            ),
+        ),
+    )
+
+
+def assignment_command(
+    *,
+    case_id: RecordId,
+    assigning_actor_id: RecordId,
+    assigned_actor_id: RecordId,
+    exact_context: ExactContextSet,
+    responsibility: SliceACommand,
+    signature_digest: str,
+    basis: SliceACommand,
+    key: str,
+) -> SliceACommand:
+    result = command(
+        case_id=case_id,
+        actor_id=assigning_actor_id,
+        exact_context=exact_context,
+        family="responsibility-assignment",
+        key=key,
+        projections=(),
+    )
+    return replace(
+        result,
+        projections=(
+            ProjectionFact(
+                "responsibility_assignment_records", {"record_id": str(result.record_id)}
+            ),
+            ProjectionFact(
+                "responsibility_assignment_versions",
+                {
+                    "version_id": str(result.version_id),
+                    "record_id": str(result.record_id),
+                    "responsibility_version_id": str(responsibility.version_id),
+                    "signature_digest": signature_digest,
+                    "actor_id": str(assigned_actor_id),
+                    "assignment_basis_version_id": str(basis.version_id),
+                    "state": "ASSIGNED",
+                    "effective_from_us": to_epoch_microseconds(NOW),
+                    "effective_to_us": None,
+                    "recorded_at_us": 0,
+                    "predecessor_version_id": None,
+                },
+            ),
+        ),
+    )
+
+
 def test_responsibility_work_vertical_proof_replay_restart_and_atomic_failure(
     sqlite_store: SQLiteIntegrityStore,
 ) -> None:
     case_id, case_version_id = add_case(sqlite_store, "slice-a")
-    actor_a, actor_a_version = add_actor(sqlite_store, "slice-a-a")
+    actor_a, _ = add_actor(sqlite_store, "slice-a-a")
     actor_b, _ = add_actor(sqlite_store, "slice-a-b")
     exact_context = context(case_id, case_version_id)
     svc = ResponsibilityWorkService(sqlite_store, FixedClock(NOW), ExactAccess())
@@ -121,7 +349,6 @@ def test_responsibility_work_vertical_proof_replay_restart_and_atomic_failure(
                 "responsibility_versions",
                 {
                     "obligation_kind": obligation,
-                    "practical_role": "REVIEWER",
                     "owning_case_id": str(case_id),
                     "context_digest": exact_context.digest,
                     "signature_digest": signature_digest,
@@ -145,7 +372,6 @@ def test_responsibility_work_vertical_proof_replay_restart_and_atomic_failure(
                     "version_id": str(responsibility.version_id),
                     "record_id": str(responsibility.record_id),
                     "obligation_kind": obligation,
-                    "practical_role": "REVIEWER",
                     "owning_case_id": str(case_id),
                     "context_digest": exact_context.digest,
                     "signature_digest": signature_digest,
@@ -155,6 +381,12 @@ def test_responsibility_work_vertical_proof_replay_restart_and_atomic_failure(
     )
     first = svc.commit(responsibility)
     assert svc.commit(responsibility) == first
+    with sqlite_store.read_transaction() as transaction:
+        stored_practical_roles = transaction.projection_rows(
+            "responsibility_practical_roles",
+            responsibility_version_id=str(responsibility.version_id),
+        )
+    assert stored_practical_roles == ()
     assert (
         svc.resolve_responsibility(
             principal_id="principal:slice-a",
@@ -167,7 +399,14 @@ def test_responsibility_work_vertical_proof_replay_restart_and_atomic_failure(
         is ResponsibilityResolutionKind.VACANCY
     )
 
-    # The exact Actor Version is the explicit, bounded policy/basis source for this proof.
+    source_version = authority_source(
+        sqlite_store,
+        case_id=case_id,
+        assigning_actor_id=actor_a,
+        exact_context=exact_context,
+        signature_digest=signature_digest,
+        obligation=obligation,
+    )
     basis = command(
         case_id=case_id,
         actor_id=actor_a,
@@ -186,10 +425,19 @@ def test_responsibility_work_vertical_proof_replay_restart_and_atomic_failure(
                     "version_id": str(basis.version_id),
                     "record_id": str(basis.record_id),
                     "assigning_actor_id": str(actor_a),
-                    "basis_source_version_id": str(actor_a_version),
+                    "basis_source_version_id": str(source_version),
+                    "owning_case_id": str(case_id),
+                    "context_digest": exact_context.digest,
                     "allowed_obligation_kinds_json": json.dumps([obligation]),
                     "allowed_case_ids_json": json.dumps([str(case_id)]),
-                    "limits_json": "{}",
+                    "allowed_signature_digests_json": json.dumps([signature_digest]),
+                    "limits_json": json.dumps({"max_active_assignments": 2}),
+                    "max_active_assignments": 2,
+                    "state": "ACTIVE",
+                    "effective_from_us": to_epoch_microseconds(NOW),
+                    "effective_to_us": None,
+                    "recorded_at_us": 0,
+                    "predecessor_version_id": None,
                 },
             ),
         ),
@@ -373,7 +621,7 @@ def test_responsibility_work_vertical_proof_replay_restart_and_atomic_failure(
         idempotency_key="assignment-b",
         record_id=RecordId.new(),
         version_id=RecordVersionId.new(),
-        actor_id=str(actor_b),
+        actor_id=str(actor_a),
     )
     other = replace(
         other,
@@ -404,6 +652,34 @@ def test_responsibility_work_vertical_proof_replay_restart_and_atomic_failure(
         ).kind
         is ResponsibilityResolutionKind.CONFLICT
     )
+
+    third = replace(
+        other,
+        command_id=CommandId.new(),
+        idempotency_key="assignment-limit-exceeded",
+        record_id=RecordId.new(),
+        version_id=RecordVersionId.new(),
+    )
+    third = replace(
+        third,
+        projections=(
+            ProjectionFact(
+                "responsibility_assignment_records", {"record_id": str(third.record_id)}
+            ),
+            ProjectionFact(
+                "responsibility_assignment_versions",
+                {
+                    **other.projections[1].values,
+                    "version_id": str(third.version_id),
+                    "record_id": str(third.record_id),
+                },
+            ),
+        ),
+    )
+    before_limit = sqlite_store.count_rows("record_versions")
+    with pytest.raises(SliceAConflict, match="LIMIT EXCEEDED"):
+        svc.commit(third)
+    assert sqlite_store.count_rows("record_versions") == before_limit
 
     before = sqlite_store.count_rows("record_versions")
     failed = replace(
@@ -496,4 +772,235 @@ def test_access_denial_precedes_composition_and_does_not_mutate(
     before = sqlite_store.count_rows("record_versions")
     with pytest.raises(SliceAAccessDenied, match="software access not established"):
         svc.commit(candidate)
+    assert sqlite_store.count_rows("record_versions") == before
+
+    responsibility, _ = responsibility_command(
+        case_id=case_id,
+        actor_id=actor_id,
+        exact_context=context(case_id, case_version_id),
+        obligation="COORDINATE_CASE",
+        key="revoked-at-commit",
+    )
+    revoked = ResponsibilityWorkService(sqlite_store, FixedClock(NOW), RevokedAtCommitAccess())
+    with pytest.raises(SliceAAccessDenied, match="software access not established"):
+        revoked.commit(responsibility)
+    assert sqlite_store.count_rows("record_versions") == before
+
+
+def test_assignment_authority_fail_closed_matrix_has_zero_failed_mutation(
+    sqlite_store: SQLiteIntegrityStore,
+) -> None:
+    case_id, case_version_id = add_case(sqlite_store, "authority-matrix")
+    other_case_id, other_case_version_id = add_case(sqlite_store, "authority-matrix-other")
+    assigning_actor, assigning_actor_version = add_actor(sqlite_store, "authority-assigner")
+    assigned_actor, _ = add_actor(sqlite_store, "authority-assignee")
+    add_role(
+        sqlite_store,
+        "authority-role-alone",
+        assigning_actor,
+        role="Case Coordinator",
+        target_type=RoleTargetType.CASE,
+        target_id=str(case_id),
+        case_context_id=case_id,
+        accountable=True,
+    )
+    exact_context = context(case_id, case_version_id)
+    other_context = context(other_case_id, other_case_version_id)
+    svc = ResponsibilityWorkService(sqlite_store, FixedClock(NOW), ExactAccess())
+    responsibility, signature_digest = responsibility_command(
+        case_id=case_id,
+        actor_id=assigning_actor,
+        exact_context=exact_context,
+        obligation="COMPLETE_CONTINUING_REVIEW",
+        key="matrix-responsibility",
+        practical_role="CASE_COORDINATOR",
+    )
+    svc.commit(responsibility)
+
+    # Practical role plus command access cannot manufacture assignment authority.
+    unauthorized_basis = basis_command(
+        case_id=case_id,
+        assigning_actor_id=assigning_actor,
+        exact_context=exact_context,
+        source_version_id=assigning_actor_version,
+        obligation="COMPLETE_CONTINUING_REVIEW",
+        signature_digest=signature_digest,
+        key="matrix-role-is-not-authority",
+        maximum=1,
+    )
+    before = sqlite_store.count_rows("record_versions")
+    with pytest.raises(SliceAConflict, match="AUTHORITY SOURCE NOT ESTABLISHED"):
+        svc.commit(unauthorized_basis)
+    assert sqlite_store.count_rows("record_versions") == before
+
+    command_only_basis = basis_command(
+        case_id=case_id,
+        assigning_actor_id=assigned_actor,
+        exact_context=exact_context,
+        source_version_id=assigning_actor_version,
+        obligation="COMPLETE_CONTINUING_REVIEW",
+        signature_digest=signature_digest,
+        key="matrix-command-access-is-not-authority",
+        maximum=1,
+    )
+    before = sqlite_store.count_rows("record_versions")
+    with pytest.raises(SliceAConflict, match="AUTHORITY SOURCE NOT ESTABLISHED"):
+        svc.commit(command_only_basis)
+    assert sqlite_store.count_rows("record_versions") == before
+
+    source = authority_source(
+        sqlite_store,
+        case_id=case_id,
+        assigning_actor_id=assigning_actor,
+        exact_context=exact_context,
+        signature_digest=signature_digest,
+        obligation="COMPLETE_CONTINUING_REVIEW",
+        maximum=1,
+    )
+    basis = basis_command(
+        case_id=case_id,
+        assigning_actor_id=assigning_actor,
+        exact_context=exact_context,
+        source_version_id=source,
+        obligation="COMPLETE_CONTINUING_REVIEW",
+        signature_digest=signature_digest,
+        key="matrix-valid-basis",
+        maximum=1,
+    )
+    svc.commit(basis)
+
+    wrong_actor = assignment_command(
+        case_id=case_id,
+        assigning_actor_id=assigned_actor,
+        assigned_actor_id=assigned_actor,
+        exact_context=exact_context,
+        responsibility=responsibility,
+        signature_digest=signature_digest,
+        basis=basis,
+        key="matrix-wrong-assigning-actor",
+    )
+    before = sqlite_store.count_rows("record_versions")
+    with pytest.raises(SliceAConflict, match="NOT AUTHORIZED"):
+        svc.commit(wrong_actor)
+    assert sqlite_store.count_rows("record_versions") == before
+
+    wrong_case = assignment_command(
+        case_id=other_case_id,
+        assigning_actor_id=assigning_actor,
+        assigned_actor_id=assigned_actor,
+        exact_context=other_context,
+        responsibility=responsibility,
+        signature_digest=signature_digest,
+        basis=basis,
+        key="matrix-wrong-case",
+    )
+    before = sqlite_store.count_rows("record_versions")
+    with pytest.raises(SliceAConflict, match="AUTHORIZE"):
+        svc.commit(wrong_case)
+    assert sqlite_store.count_rows("record_versions") == before
+
+    other_responsibility, other_signature = responsibility_command(
+        case_id=case_id,
+        actor_id=assigning_actor,
+        exact_context=exact_context,
+        obligation="PRODUCE_VALUE_INPUT",
+        key="matrix-other-obligation",
+    )
+    svc.commit(other_responsibility)
+    wrong_kind = assignment_command(
+        case_id=case_id,
+        assigning_actor_id=assigning_actor,
+        assigned_actor_id=assigned_actor,
+        exact_context=exact_context,
+        responsibility=other_responsibility,
+        signature_digest=other_signature,
+        basis=basis,
+        key="matrix-wrong-kind",
+    )
+    before = sqlite_store.count_rows("record_versions")
+    with pytest.raises(SliceAConflict, match="AUTHORIZE"):
+        svc.commit(wrong_kind)
+    assert sqlite_store.count_rows("record_versions") == before
+
+    valid = assignment_command(
+        case_id=case_id,
+        assigning_actor_id=assigning_actor,
+        assigned_actor_id=assigned_actor,
+        exact_context=exact_context,
+        responsibility=responsibility,
+        signature_digest=signature_digest,
+        basis=basis,
+        key="matrix-valid-assignment",
+    )
+    svc.commit(valid)
+    exceeded = assignment_command(
+        case_id=case_id,
+        assigning_actor_id=assigning_actor,
+        assigned_actor_id=assigning_actor,
+        exact_context=exact_context,
+        responsibility=responsibility,
+        signature_digest=signature_digest,
+        basis=basis,
+        key="matrix-limit-exceeded",
+    )
+    before = sqlite_store.count_rows("record_versions")
+    with pytest.raises(SliceAConflict, match="LIMIT EXCEEDED"):
+        svc.commit(exceeded)
+    assert sqlite_store.count_rows("record_versions") == before
+
+    successor = basis_command(
+        case_id=case_id,
+        assigning_actor_id=assigning_actor,
+        exact_context=exact_context,
+        source_version_id=source,
+        obligation="COMPLETE_CONTINUING_REVIEW",
+        signature_digest=signature_digest,
+        key="matrix-basis-successor",
+        maximum=1,
+        record_id=basis.record_id,
+        expected_version_id=basis.version_id,
+    )
+    svc.commit(successor)
+    stale_basis = assignment_command(
+        case_id=case_id,
+        assigning_actor_id=assigning_actor,
+        assigned_actor_id=assigned_actor,
+        exact_context=exact_context,
+        responsibility=responsibility,
+        signature_digest=signature_digest,
+        basis=basis,
+        key="matrix-stale-basis",
+    )
+    before = sqlite_store.count_rows("record_versions")
+    with pytest.raises(SliceAConflict, match="STALE OR SUPERSEDED"):
+        svc.commit(stale_basis)
+    assert sqlite_store.count_rows("record_versions") == before
+
+    withdrawn = basis_command(
+        case_id=case_id,
+        assigning_actor_id=assigning_actor,
+        exact_context=exact_context,
+        source_version_id=source,
+        obligation="COMPLETE_CONTINUING_REVIEW",
+        signature_digest=signature_digest,
+        key="matrix-basis-withdrawn",
+        maximum=1,
+        record_id=basis.record_id,
+        expected_version_id=successor.version_id,
+        state="WITHDRAWN",
+    )
+    svc.commit(withdrawn)
+    withdrawn_assignment = assignment_command(
+        case_id=case_id,
+        assigning_actor_id=assigning_actor,
+        assigned_actor_id=assigned_actor,
+        exact_context=exact_context,
+        responsibility=responsibility,
+        signature_digest=signature_digest,
+        basis=withdrawn,
+        key="matrix-withdrawn-basis",
+    )
+    before = sqlite_store.count_rows("record_versions")
+    with pytest.raises(SliceAConflict, match="WITHDRAWN"):
+        svc.commit(withdrawn_assignment)
     assert sqlite_store.count_rows("record_versions") == before

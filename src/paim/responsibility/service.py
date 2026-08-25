@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from collections.abc import Callable
 from contextlib import AbstractContextManager
 from dataclasses import dataclass
@@ -47,6 +48,7 @@ class SliceATransaction(Protocol):
     def add_audit(self, fact: AuditFact) -> None: ...
     def add_status_event(self, event: StatusEvent) -> None: ...
     def add_relationship(self, relationship: VersionRelationship) -> None: ...
+    def get_version(self, version_id: RecordVersionId) -> FinalizedRecordVersion | None: ...
     def select_current(self, query: SelectionQuery) -> object: ...
     def insert_projection(self, table_name: str, values: dict[str, object]) -> None: ...
     def projection_rows(
@@ -209,6 +211,14 @@ class ResponsibilityWorkService:
                 if existing.digest != digest:
                     raise SliceAConflict("IDEMPOTENCY KEY REUSE CONFLICT")
                 return existing.outcome
+            if not self._access_policy.authorize(
+                principal_id=command.principal_id,
+                actor_id=command.actor_id,
+                action=command.action,
+                case_id=command.owning_case_id,
+                write=True,
+            ):
+                raise SliceAAccessDenied()
             self._ensure_contract_and_context(transaction, command, recorded_at)
             observed = transaction.select_current(
                 SelectionQuery(
@@ -227,6 +237,13 @@ class ResponsibilityWorkService:
                 and observed.candidate.version_id == command.expected_version_id
             ):
                 raise SliceAConflict("stale exact predecessor; no retarget permitted")
+            version_row = self._version_projection(command)
+            if command.family == "assignment-basis":
+                self._validate_assignment_basis(transaction, command, version_row, recorded_at)
+            elif command.family == "responsibility-assignment":
+                self._validate_responsibility_assignment(
+                    transaction, command, version_row, recorded_at
+                )
             version = FinalizedRecordVersion(
                 command.record_id,
                 command.version_id,
@@ -250,7 +267,13 @@ class ResponsibilityWorkService:
             )
             extra_versions = extra_writer(transaction, recorded_at) if extra_writer else ()
             for projection in command.projections:
-                transaction.insert_projection(projection.table, projection.values)
+                values = dict(projection.values)
+                if projection.table in {
+                    "assignment_basis_versions",
+                    "responsibility_assignment_versions",
+                }:
+                    values["recorded_at_us"] = to_epoch_microseconds(recorded_at)
+                transaction.insert_projection(projection.table, values)
             relationship_ids: tuple[RelationshipId, ...] = ()
             status_ids: tuple[EventId, ...] = ()
             if command.expected_version_id is not None:
@@ -340,7 +363,11 @@ class ResponsibilityWorkService:
     def _validate_plan(command: SliceACommand, *, has_result_writer: bool) -> None:
         """Fail closed before storage when an internal projection plan is incoherent."""
         allowed = {
-            "responsibility": {"responsibility_records", "responsibility_versions"},
+            "responsibility": {
+                "responsibility_records",
+                "responsibility_versions",
+                "responsibility_practical_roles",
+            },
             "assignment-basis": {"assignment_basis_records", "assignment_basis_versions"},
             "responsibility-assignment": {
                 "responsibility_assignment_records",
@@ -351,12 +378,7 @@ class ResponsibilityWorkService:
         permitted = allowed.get(command.family)
         if permitted is None or any(fact.table not in permitted for fact in command.projections):
             raise ValueError("Slice-A family/projection contract is not established")
-        version_rows = [
-            fact.values for fact in command.projections if fact.table.endswith("_versions")
-        ]
-        if len(version_rows) != 1:
-            raise ValueError("one exact family Version projection is required")
-        version_row = version_rows[0]
+        version_row = ResponsibilityWorkService._version_projection(command)
         if version_row.get("version_id") != str(command.version_id):
             raise ValueError("projection Version identity does not match command")
         if version_row.get("record_id") != str(command.record_id):
@@ -377,6 +399,16 @@ class ResponsibilityWorkService:
             if state != "COMPLETED" and has_result_writer:
                 raise ValueError("governed-result writer is only valid for Work completion")
         if command.family == "responsibility":
+            role_rows = [
+                fact.values
+                for fact in command.projections
+                if fact.table == "responsibility_practical_roles"
+            ]
+            if len(role_rows) > 1 or (
+                role_rows
+                and role_rows[0].get("responsibility_version_id") != str(command.version_id)
+            ):
+                raise ValueError("optional practical-role association is not exact")
             try:
                 expected_signature = responsibility_signature(
                     contract=command.contract,
@@ -391,6 +423,227 @@ class ResponsibilityWorkService:
                 raise ValueError("Responsibility signature inputs are not established") from error
             if version_row.get("signature_digest") != expected_signature:
                 raise ValueError("Responsibility obligation signature is not canonical")
+
+    @staticmethod
+    def _version_projection(command: SliceACommand) -> dict[str, object]:
+        rows = [fact.values for fact in command.projections if fact.table.endswith("_versions")]
+        if len(rows) != 1:
+            raise ValueError("one exact family Version projection is required")
+        return rows[0]
+
+    @staticmethod
+    def _json_string_set(value: object, *, field: str) -> frozenset[str]:
+        try:
+            loaded = json.loads(cast(str, value))
+        except (TypeError, json.JSONDecodeError) as error:
+            raise SliceAConflict(f"{field} is not established") from error
+        if (
+            not isinstance(loaded, list)
+            or not loaded
+            or not all(isinstance(item, str) and item for item in loaded)
+        ):
+            raise SliceAConflict(f"{field} is not established")
+        return frozenset(loaded)
+
+    @staticmethod
+    def _require_exact_current(
+        transaction: SliceATransaction,
+        version: FinalizedRecordVersion,
+        *,
+        effective_at: datetime,
+        known_at: datetime,
+        reason: str,
+    ) -> None:
+        selected = transaction.select_current(
+            SelectionQuery(
+                family=version.family,
+                scope=version.scope,
+                effective_at=effective_at,
+                known_at=known_at,
+                record_id=version.record_id,
+            )
+        )
+        if not (
+            isinstance(selected, SelectionFound)
+            and selected.candidate.version_id == version.version_id
+        ):
+            raise SliceAConflict(reason)
+
+    def _validate_assignment_basis(
+        self,
+        transaction: SliceATransaction,
+        command: SliceACommand,
+        row: dict[str, object],
+        recorded_at: datetime,
+    ) -> None:
+        source_id = RecordVersionId.parse(str(row["basis_source_version_id"]))
+        source = transaction.get_version(source_id)
+        if source is None or source.family not in {
+            "authority-record",
+            "decision-authorization-basis",
+        }:
+            raise SliceAConflict("ASSIGNMENT AUTHORITY SOURCE NOT ESTABLISHED")
+        self._require_exact_current(
+            transaction,
+            source,
+            effective_at=command.effective_at,
+            known_at=recorded_at,
+            reason="ASSIGNMENT AUTHORITY SOURCE NOT CURRENT",
+        )
+        content = json.loads(source.content_json)
+        authority = content.get("assignment_authority")
+        if not isinstance(authority, dict):
+            raise SliceAConflict("ASSIGNMENT AUTHORITY NOT ESTABLISHED")
+        allowed_kinds = self._json_string_set(
+            row["allowed_obligation_kinds_json"], field="basis obligation kinds"
+        )
+        allowed_cases = self._json_string_set(row["allowed_case_ids_json"], field="basis Cases")
+        allowed_signatures = self._json_string_set(
+            row["allowed_signature_digests_json"], field="basis signatures"
+        )
+        source_kinds = frozenset(cast(list[str], authority.get("allowed_obligation_kinds", [])))
+        source_cases = frozenset(cast(list[str], authority.get("allowed_case_ids", [])))
+        source_signatures = frozenset(
+            cast(list[str], authority.get("allowed_signature_digests", []))
+        )
+        source_limit = authority.get("max_active_assignments")
+        basis_limit = row.get("max_active_assignments")
+        try:
+            basis_limits = json.loads(cast(str, row["limits_json"]))
+        except (TypeError, json.JSONDecodeError) as error:
+            raise SliceAConflict("ASSIGNMENT BASIS LIMITS NOT ESTABLISHED") from error
+        if (
+            authority.get("assigning_actor_id") != row.get("assigning_actor_id")
+            or authority.get("context_digest") != row.get("context_digest")
+            or row.get("owning_case_id") != str(command.owning_case_id)
+            or str(command.owning_case_id) not in allowed_cases
+            or not allowed_kinds <= source_kinds
+            or not allowed_cases <= source_cases
+            or not allowed_signatures <= source_signatures
+            or not isinstance(source_limit, int)
+            or not isinstance(basis_limit, int)
+            or basis_limit < 1
+            or basis_limit > source_limit
+            or basis_limits != authority.get("limits")
+            or row.get("state") not in {"ACTIVE", "WITHDRAWN", "SUPERSEDED"}
+            or row.get("effective_from_us") != to_epoch_microseconds(command.effective_at)
+        ):
+            raise SliceAConflict("ASSIGNMENT BASIS EXCEEDS EXACT AUTHORITY SOURCE")
+        if command.expected_version_id is None and row.get("state") != "ACTIVE":
+            raise SliceAConflict("INITIAL ASSIGNMENT BASIS MUST BE ACTIVE")
+        predecessor = row.get("predecessor_version_id")
+        expected = str(command.expected_version_id) if command.expected_version_id else None
+        if predecessor != expected:
+            raise SliceAConflict("ASSIGNMENT BASIS PREDECESSOR MISMATCH")
+
+    def _validate_responsibility_assignment(
+        self,
+        transaction: SliceATransaction,
+        command: SliceACommand,
+        row: dict[str, object],
+        recorded_at: datetime,
+    ) -> None:
+        responsibility_id = RecordVersionId.parse(str(row["responsibility_version_id"]))
+        responsibility = transaction.get_version(responsibility_id)
+        responsibility_rows = transaction.projection_rows(
+            "responsibility_versions", version_id=str(responsibility_id)
+        )
+        if responsibility is None or len(responsibility_rows) != 1:
+            raise SliceAConflict("EXACT RESPONSIBILITY NOT ESTABLISHED")
+        self._require_exact_current(
+            transaction,
+            responsibility,
+            effective_at=command.effective_at,
+            known_at=recorded_at,
+            reason="EXACT RESPONSIBILITY NOT CURRENT",
+        )
+        responsibility_row = responsibility_rows[0]
+        basis_id = RecordVersionId.parse(str(row["assignment_basis_version_id"]))
+        basis = transaction.get_version(basis_id)
+        basis_rows = transaction.projection_rows(
+            "assignment_basis_versions", version_id=str(basis_id)
+        )
+        if basis is None or len(basis_rows) != 1:
+            raise SliceAConflict("EXACT ASSIGNMENT BASIS NOT ESTABLISHED")
+        self._require_exact_current(
+            transaction,
+            basis,
+            effective_at=command.effective_at,
+            known_at=recorded_at,
+            reason="EXACT ASSIGNMENT BASIS STALE OR SUPERSEDED",
+        )
+        basis_row = basis_rows[0]
+        if basis_row["state"] != "ACTIVE":
+            raise SliceAConflict("EXACT ASSIGNMENT BASIS WITHDRAWN")
+        source_id = RecordVersionId.parse(str(basis_row["basis_source_version_id"]))
+        source = transaction.get_version(source_id)
+        if source is None or source.family not in {
+            "authority-record",
+            "decision-authorization-basis",
+        }:
+            raise SliceAConflict("ASSIGNMENT AUTHORITY SOURCE NOT ESTABLISHED")
+        self._require_exact_current(
+            transaction,
+            source,
+            effective_at=command.effective_at,
+            known_at=recorded_at,
+            reason="ASSIGNMENT AUTHORITY SOURCE NOT CURRENT",
+        )
+        source_authority = json.loads(source.content_json).get("assignment_authority")
+        if not isinstance(source_authority, dict) or (
+            source_authority.get("assigning_actor_id") != basis_row["assigning_actor_id"]
+            or source_authority.get("context_digest") != basis_row["context_digest"]
+            or str(command.owning_case_id)
+            not in cast(list[str], source_authority.get("allowed_case_ids", []))
+            or responsibility_row["obligation_kind"]
+            not in cast(list[str], source_authority.get("allowed_obligation_kinds", []))
+            or responsibility_row["signature_digest"]
+            not in cast(list[str], source_authority.get("allowed_signature_digests", []))
+            or json.loads(cast(str, basis_row["limits_json"])) != source_authority.get("limits")
+        ):
+            raise SliceAConflict("ASSIGNMENT AUTHORITY SOURCE DOES NOT AUTHORIZE ASSIGNMENT")
+        basis_from = cast(int, basis_row["effective_from_us"])
+        basis_to = cast(int | None, basis_row["effective_to_us"])
+        effective_us = to_epoch_microseconds(command.effective_at)
+        allowed_kinds = self._json_string_set(
+            basis_row["allowed_obligation_kinds_json"], field="basis obligation kinds"
+        )
+        allowed_cases = self._json_string_set(
+            basis_row["allowed_case_ids_json"], field="basis Cases"
+        )
+        allowed_signatures = self._json_string_set(
+            basis_row["allowed_signature_digests_json"], field="basis signatures"
+        )
+        if (
+            basis_row["assigning_actor_id"] != command.actor_id
+            or basis_row["owning_case_id"] != str(command.owning_case_id)
+            or responsibility_row["owning_case_id"] != str(command.owning_case_id)
+            or responsibility_row["context_digest"] != command.context.digest
+            or basis_row["context_digest"] != command.context.digest
+            or row["signature_digest"] != responsibility_row["signature_digest"]
+            or responsibility_row["obligation_kind"] not in allowed_kinds
+            or str(command.owning_case_id) not in allowed_cases
+            or str(row["signature_digest"]) not in allowed_signatures
+            or effective_us < basis_from
+            or (basis_to is not None and effective_us >= basis_to)
+        ):
+            raise SliceAConflict("ASSIGNMENT NOT AUTHORIZED BY EXACT BASIS")
+        active = transaction.projection_rows(
+            "responsibility_assignment_versions",
+            assignment_basis_version_id=str(basis_id),
+        )
+        active_count = sum(
+            1
+            for item in active
+            if item["state"] == "ASSIGNED"
+            and cast(int, item["effective_from_us"]) <= effective_us
+            and (
+                item["effective_to_us"] is None or effective_us < cast(int, item["effective_to_us"])
+            )
+            and cast(int, item["recorded_at_us"]) <= to_epoch_microseconds(recorded_at)
+        )
+        if active_count >= cast(int, basis_row["max_active_assignments"]):
+            raise SliceAConflict("ASSIGNMENT BASIS ACTIVE-ASSIGNMENT LIMIT EXCEEDED")
 
     def resolve_responsibility(
         self,
