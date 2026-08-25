@@ -4086,6 +4086,290 @@ Index(
     configuration_continuity_links.c.recorded_at_us,
 )
 
+# Gate 8 Slice C prospective assessment-review families. Legacy analytical
+# inputs, Fitness, Acceptance/Selection, and freeze projections remain exact
+# and are never migrated into these tables.
+assessment_candidate_records = Table(
+    "assessment_candidate_records",
+    metadata,
+    Column("record_id", String(36), ForeignKey("records.record_id"), primary_key=True),
+    Column("lane", Text, nullable=False),
+    Column("case_id", String(36), ForeignKey("paim_cases.case_id"), nullable=False),
+    CheckConstraint("lane IN ('VALUE','RISK')", name="ck_assessment_candidate_lane"),
+)
+assessment_candidate_versions = Table(
+    "assessment_candidate_versions",
+    metadata,
+    Column("version_id", String(36), ForeignKey("record_versions.version_id"), primary_key=True),
+    Column(
+        "record_id",
+        String(36),
+        ForeignKey("assessment_candidate_records.record_id"),
+        nullable=False,
+    ),
+    Column("lane", Text, nullable=False),
+    Column("case_id", String(36), ForeignKey("paim_cases.case_id"), nullable=False),
+    Column(
+        "configuration_version_id",
+        String(36),
+        ForeignKey("managed_configuration_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "context_digest",
+        String(64),
+        ForeignKey("exact_context_sets.context_digest"),
+        nullable=False,
+    ),
+    Column("decision_use", Text, nullable=False),
+    Column("assessed_scope", Text, nullable=False),
+    Column("information_basis_version_ids_json", Text, nullable=False),
+    Column(
+        "responsibility_version_id",
+        String(36),
+        ForeignKey("responsibility_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "assignment_version_id",
+        String(36),
+        ForeignKey("responsibility_assignment_versions.version_id"),
+        nullable=False,
+    ),
+    Column("knowledge_cutoff_us", BigInteger, nullable=False),
+    Column(
+        "predecessor_version_id",
+        String(36),
+        ForeignKey("assessment_candidate_versions.version_id"),
+        nullable=True,
+    ),
+    CheckConstraint("lane IN ('VALUE','RISK')", name="ck_assessment_candidate_version_lane"),
+)
+Index(
+    "ix_assessment_candidate_context",
+    assessment_candidate_versions.c.lane,
+    assessment_candidate_versions.c.case_id,
+    assessment_candidate_versions.c.configuration_version_id,
+)
+
+assessment_readiness_records = Table(
+    "assessment_readiness_records",
+    metadata,
+    Column("record_id", String(36), ForeignKey("records.record_id"), primary_key=True),
+)
+assessment_readiness_versions = Table(
+    "assessment_readiness_versions",
+    metadata,
+    Column("version_id", String(36), ForeignKey("record_versions.version_id"), primary_key=True),
+    Column(
+        "record_id",
+        String(36),
+        ForeignKey("assessment_readiness_records.record_id"),
+        nullable=False,
+    ),
+    Column("lane", Text, nullable=False),
+    Column(
+        "assessment_version_id",
+        String(36),
+        ForeignKey("assessment_candidate_versions.version_id"),
+        nullable=False,
+    ),
+    Column("case_id", String(36), ForeignKey("paim_cases.case_id"), nullable=False),
+    Column(
+        "configuration_version_id",
+        String(36),
+        ForeignKey("managed_configuration_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "context_digest",
+        String(64),
+        ForeignKey("exact_context_sets.context_digest"),
+        nullable=False,
+    ),
+    Column("decision_use", Text, nullable=False),
+    Column("assessed_scope", Text, nullable=False),
+    Column("information_basis_version_ids_json", Text, nullable=False),
+    Column(
+        "responsibility_version_id",
+        String(36),
+        ForeignKey("responsibility_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "assignment_version_id",
+        String(36),
+        ForeignKey("responsibility_assignment_versions.version_id"),
+        nullable=False,
+    ),
+    Column("knowledge_cutoff_us", BigInteger, nullable=False),
+    CheckConstraint("lane IN ('VALUE','RISK')", name="ck_assessment_readiness_lane"),
+)
+Index(
+    "ix_assessment_readiness_selection",
+    assessment_readiness_versions.c.lane,
+    assessment_readiness_versions.c.case_id,
+    assessment_readiness_versions.c.configuration_version_id,
+    assessment_readiness_versions.c.decision_use,
+)
+
+assessment_adequacy_records = Table(
+    "assessment_adequacy_records",
+    metadata,
+    Column("record_id", String(36), ForeignKey("records.record_id"), primary_key=True),
+)
+assessment_adequacy_versions = Table(
+    "assessment_adequacy_versions",
+    metadata,
+    Column("version_id", String(36), ForeignKey("record_versions.version_id"), primary_key=True),
+    Column(
+        "record_id", String(36), ForeignKey("assessment_adequacy_records.record_id"), nullable=False
+    ),
+    Column("lane", Text, nullable=False),
+    Column(
+        "assessment_version_id",
+        String(36),
+        ForeignKey("assessment_candidate_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "readiness_version_id",
+        String(36),
+        ForeignKey("assessment_readiness_versions.version_id"),
+        nullable=False,
+    ),
+    Column("case_id", String(36), ForeignKey("paim_cases.case_id"), nullable=False),
+    Column(
+        "configuration_version_id",
+        String(36),
+        ForeignKey("managed_configuration_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "context_digest",
+        String(64),
+        ForeignKey("exact_context_sets.context_digest"),
+        nullable=False,
+    ),
+    Column("decision_use", Text, nullable=False),
+    Column("assessed_scope", Text, nullable=False),
+    Column("information_basis_version_ids_json", Text, nullable=False),
+    Column("outcome", Text, nullable=False),
+    Column("material_reasons_json", Text, nullable=False),
+    Column("limitations_json", Text, nullable=False),
+    Column("rationale", Text, nullable=False),
+    Column("uncertainty", Text, nullable=False),
+    Column(
+        "responsibility_version_id",
+        String(36),
+        ForeignKey("responsibility_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "assignment_version_id",
+        String(36),
+        ForeignKey("responsibility_assignment_versions.version_id"),
+        nullable=False,
+    ),
+    Column("knowledge_cutoff_us", BigInteger, nullable=False),
+    Column(
+        "predecessor_version_id",
+        String(36),
+        ForeignKey("assessment_adequacy_versions.version_id"),
+        nullable=True,
+    ),
+    CheckConstraint("lane IN ('VALUE','RISK')", name="ck_assessment_adequacy_lane"),
+    CheckConstraint(
+        "outcome IN ('ADEQUATE','NOT_ADEQUATE','INDETERMINATE')",
+        name="ck_assessment_adequacy_outcome",
+    ),
+)
+Index(
+    "ix_assessment_adequacy_selection",
+    assessment_adequacy_versions.c.lane,
+    assessment_adequacy_versions.c.case_id,
+    assessment_adequacy_versions.c.configuration_version_id,
+    assessment_adequacy_versions.c.decision_use,
+)
+
+assessment_reliance_records = Table(
+    "assessment_reliance_records",
+    metadata,
+    Column("record_id", String(36), ForeignKey("records.record_id"), primary_key=True),
+)
+assessment_reliance_versions = Table(
+    "assessment_reliance_versions",
+    metadata,
+    Column("version_id", String(36), ForeignKey("record_versions.version_id"), primary_key=True),
+    Column(
+        "record_id", String(36), ForeignKey("assessment_reliance_records.record_id"), nullable=False
+    ),
+    Column("lane", Text, nullable=False),
+    Column(
+        "assessment_version_id",
+        String(36),
+        ForeignKey("assessment_candidate_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "readiness_version_id",
+        String(36),
+        ForeignKey("assessment_readiness_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "adequacy_version_id",
+        String(36),
+        ForeignKey("assessment_adequacy_versions.version_id"),
+        nullable=False,
+    ),
+    Column("case_id", String(36), ForeignKey("paim_cases.case_id"), nullable=False),
+    Column(
+        "configuration_version_id",
+        String(36),
+        ForeignKey("managed_configuration_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "context_digest",
+        String(64),
+        ForeignKey("exact_context_sets.context_digest"),
+        nullable=False,
+    ),
+    Column("decision_use", Text, nullable=False),
+    Column("assessed_scope", Text, nullable=False),
+    Column("information_basis_version_ids_json", Text, nullable=False),
+    Column("candidate_dispositions_json", Text, nullable=False),
+    Column("rationale", Text, nullable=False),
+    Column(
+        "responsibility_version_id",
+        String(36),
+        ForeignKey("responsibility_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "assignment_version_id",
+        String(36),
+        ForeignKey("responsibility_assignment_versions.version_id"),
+        nullable=False,
+    ),
+    Column("knowledge_cutoff_us", BigInteger, nullable=False),
+    Column(
+        "predecessor_version_id",
+        String(36),
+        ForeignKey("assessment_reliance_versions.version_id"),
+        nullable=True,
+    ),
+    CheckConstraint("lane IN ('VALUE','RISK')", name="ck_assessment_reliance_lane"),
+)
+Index(
+    "ix_assessment_reliance_selection",
+    assessment_reliance_versions.c.lane,
+    assessment_reliance_versions.c.case_id,
+    assessment_reliance_versions.c.configuration_version_id,
+    assessment_reliance_versions.c.decision_use,
+)
+
 IMMUTABILITY_TRIGGERS: tuple[str, ...] = (
     """
     CREATE TRIGGER prevent_finalized_version_update

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+from dataclasses import dataclass
 from datetime import datetime
 from typing import cast
 
@@ -18,9 +20,19 @@ from paim.practitioner_queries.models import (
     AttentionItem,
     CaseView,
     HomeView,
+    LanePosition,
     SourceManifest,
     TaskView,
 )
+
+
+@dataclass(frozen=True, slots=True)
+class _SliceCLaneRows:
+    assessment: tuple[dict[str, object], ...]
+    readiness: tuple[dict[str, object], ...]
+    adequacy: tuple[dict[str, object], ...]
+    reliance: tuple[dict[str, object], ...]
+    unavailable: frozenset[str]
 
 
 class PractitionerQueryService:
@@ -62,7 +74,16 @@ class PractitionerQueryService:
             for case_id in visible:
                 if not self._allowed(principal_id, actor_id, case_id, "home.read"):
                     continue
-                items.extend(self._case_attention(tx, actor_id, case_id, effective_at, known_at))
+                items.extend(
+                    self._case_attention(
+                        tx,
+                        principal_id,
+                        actor_id,
+                        case_id,
+                        effective_at,
+                        known_at,
+                    )
+                )
         return HomeView("What needs me?", tuple(items), visible)
 
     def case(
@@ -112,12 +133,37 @@ class PractitionerQueryService:
             elif len(governing) > 1:
                 governing_state = "GOVERNING CONFIGURATION CONFLICT — UNRESOLVED"
                 manifest.update(governing)
-            responsibilities = self._current_responsibilities(tx, case_id, effective_at, known_at)
-            work = self._current_work(tx, case_id, effective_at, known_at)
+            responsibilities = self._current_responsibilities(
+                tx, principal_id, actor_id, case_id, effective_at, known_at
+            )
+            work = self._current_work(tx, principal_id, actor_id, case_id, effective_at, known_at)
+            value_position = self._lane_position(
+                tx,
+                principal_id,
+                actor_id,
+                "VALUE",
+                case_id,
+                governing_id,
+                effective_at,
+                known_at,
+            )
+            risk_position = self._lane_position(
+                tx,
+                principal_id,
+                actor_id,
+                "RISK",
+                case_id,
+                governing_id,
+                effective_at,
+                known_at,
+            )
             manifest.update(
                 RecordVersionId.parse(str(row["version_id"])) for row in responsibilities
             )
             manifest.update(RecordVersionId.parse(str(row["version_id"])) for row in work)
+            for lane_position in (value_position, risk_position):
+                if lane_position is not None:
+                    manifest.update(lane_position.source_version_ids)
             position = (
                 "Case continuity: "
                 f"{continuity.status.value if continuity.status else continuity.kind.value}",
@@ -132,10 +178,20 @@ class PractitionerQueryService:
                 continuity.status,
                 governing_id,
                 governing_state,
-                self._responsibility_state(tx, responsibilities, effective_at, known_at),
+                self._responsibility_state(
+                    tx,
+                    principal_id,
+                    actor_id,
+                    case_id,
+                    responsibilities,
+                    effective_at,
+                    known_at,
+                ),
                 self._work_state(work),
                 position,
                 SourceManifest(tuple(sorted(manifest, key=str)), effective_at, known_at),
+                value_position=value_position,
+                risk_position=risk_position,
             )
 
     def task(
@@ -158,7 +214,9 @@ class PractitionerQueryService:
                 raise CaseContinuityAccessDenied()
             row = rows[0]
             exact = tx.get_version(work_version_id)
-            if exact is None:
+            if exact is None or not self._source_visible(
+                tx, principal_id, actor_id, case_id, work_version_id
+            ):
                 raise CaseContinuityAccessDenied()
             selected = tx.select_current(
                 SelectionQuery(exact.family, exact.scope, effective_at, known_at, exact.record_id)
@@ -170,8 +228,10 @@ class PractitionerQueryService:
                 raise ValueError("requested Work is not exact current Work")
             responsibility_id = RecordVersionId.parse(str(row["responsibility_version_id"]))
             responsibility = tx.get_version(responsibility_id)
-            if responsibility is None:
-                raise ValueError("owning Responsibility is not established")
+            if responsibility is None or not self._source_visible(
+                tx, principal_id, actor_id, case_id, responsibility_id
+            ):
+                raise CaseContinuityAccessDenied()
             content = exact.content
             return TaskView(
                 case_id,
@@ -210,13 +270,16 @@ class PractitionerQueryService:
     def _case_attention(
         self,
         tx: ContinuityTransaction,
+        principal_id: str,
         actor_id: RecordId,
         case_id: RecordId,
         effective_at: datetime,
         known_at: datetime,
     ) -> tuple[AttentionItem, ...]:
-        responsibilities = self._current_responsibilities(tx, case_id, effective_at, known_at)
-        work = self._current_work(tx, case_id, effective_at, known_at)
+        responsibilities = self._current_responsibilities(
+            tx, principal_id, actor_id, case_id, effective_at, known_at
+        )
+        work = self._current_work(tx, principal_id, actor_id, case_id, effective_at, known_at)
         result: list[AttentionItem] = []
         for row in work:
             if row["assignee_actor_id"] != str(actor_id) or row["state"] not in {
@@ -240,17 +303,72 @@ class PractitionerQueryService:
         # Responsibilities with vacancy/conflict are visible attention but are not
         # assigned to an Actor and never become inferred priority.
         for row in responsibilities:
-            state = self._one_responsibility_state(tx, row, effective_at, known_at)
+            state = self._one_responsibility_state(
+                tx,
+                principal_id,
+                actor_id,
+                case_id,
+                row,
+                effective_at,
+                known_at,
+            )
             if state == "ONE":
-                assignments = self._eligible_assignments(tx, row, effective_at, known_at)
+                assignments = self._eligible_assignments(
+                    tx,
+                    principal_id,
+                    actor_id,
+                    case_id,
+                    row,
+                    effective_at,
+                    known_at,
+                )
                 if assignments[0]["actor_id"] != str(actor_id):
                     continue
             responsibility_id = RecordVersionId.parse(str(row["version_id"]))
+            obligation = str(row["obligation_kind"])
+            lane_question = {
+                "FINISH_VALUE_ASSESSMENT": (
+                    "VALUE_ASSESSMENT",
+                    "Finish the Value assessment for independent review.",
+                ),
+                "FINISH_RISK_ASSESSMENT": (
+                    "RISK_ASSESSMENT",
+                    "Finish the Risk assessment for independent review.",
+                ),
+                "REVIEW_VALUE_ASSESSMENT_ADEQUACY": (
+                    "VALUE_REVIEW",
+                    "Is the Value assessment adequate for this bounded decision use?",
+                ),
+                "REVIEW_RISK_ASSESSMENT_ADEQUACY": (
+                    "RISK_REVIEW",
+                    "Is the Risk assessment adequate for this bounded decision use?",
+                ),
+                "DESIGNATE_VALUE_ASSESSMENT_RELIANCE": (
+                    "VALUE_RELIANCE",
+                    "Which adequate Value assessment should this Case actually use?",
+                ),
+                "DESIGNATE_RISK_ASSESSMENT_RELIANCE": (
+                    "RISK_RELIANCE",
+                    "Which adequate Risk assessment should this Case actually use?",
+                ),
+            }.get(obligation)
+            if lane_question and not self._lane_attention_required(
+                tx,
+                principal_id,
+                actor_id,
+                obligation,
+                case_id,
+                effective_at,
+                known_at,
+            ):
+                continue
             result.append(
                 AttentionItem(
                     case_id,
-                    state,
-                    f"Who will carry {row['obligation_kind']} for this exact Case context?",
+                    lane_question[0] if lane_question and state == "ONE" else state,
+                    lane_question[1]
+                    if lane_question
+                    else f"Who will carry {obligation} for this exact Case context?",
                     "The governed act cannot proceed until accountability is exact.",
                     responsibility_id,
                     None,
@@ -268,6 +386,298 @@ class PractitionerQueryService:
             )
         )
 
+    def _lane_attention_required(
+        self,
+        tx: ContinuityTransaction,
+        principal_id: str,
+        actor_id: RecordId,
+        obligation: str,
+        case_id: RecordId,
+        effective_at: datetime,
+        known_at: datetime,
+    ) -> bool:
+        lane = "VALUE" if "VALUE" in obligation else "RISK"
+        lane_rows = self._slice_c_lane_rows(
+            tx,
+            principal_id,
+            actor_id,
+            lane,
+            case_id,
+            None,
+            effective_at,
+            known_at,
+        )
+        assessment = lane_rows.assessment
+        readiness = lane_rows.readiness
+        adequacy = lane_rows.adequacy
+        reliance = lane_rows.reliance
+        if obligation.startswith("FINISH_"):
+            return not assessment and "assessment" not in lane_rows.unavailable
+        if obligation.startswith("REVIEW_"):
+            return bool(readiness) and not adequacy and "adequacy" not in lane_rows.unavailable
+        if obligation.startswith("DESIGNATE_"):
+            return (
+                any(row.get("outcome") == "ADEQUATE" for row in adequacy)
+                and not reliance
+                and "reliance" not in lane_rows.unavailable
+            )
+        return True
+
+    def _lane_position(
+        self,
+        tx: ContinuityTransaction,
+        principal_id: str,
+        actor_id: RecordId,
+        lane: str,
+        case_id: RecordId,
+        configuration_version_id: RecordVersionId | None,
+        effective_at: datetime,
+        known_at: datetime,
+    ) -> LanePosition | None:
+        if configuration_version_id is None:
+            return None
+        lane_rows = self._slice_c_lane_rows(
+            tx,
+            principal_id,
+            actor_id,
+            lane,
+            case_id,
+            configuration_version_id,
+            effective_at,
+            known_at,
+        )
+        definitions = (
+            ("assessment", "PRESENT"),
+            ("readiness", "READY FOR INDEPENDENT REVIEW"),
+            ("adequacy", None),
+            ("reliance", "RELIED"),
+        )
+        values = {
+            "assessment": "NOT ESTABLISHED",
+            "readiness": "NOT ESTABLISHED",
+            "adequacy": "NOT ESTABLISHED",
+            "reliance": "NOT ESTABLISHED",
+        }
+        manifest: set[RecordVersionId] = set()
+        for field, established in definitions:
+            current = cast(tuple[dict[str, object], ...], getattr(lane_rows, field))
+            if field in lane_rows.unavailable:
+                values[field] = (
+                    "REVIEW STATUS NOT AVAILABLE"
+                    if field in {"adequacy", "reliance"}
+                    else "STATUS NOT AVAILABLE"
+                )
+                continue
+            if len(current) > 1:
+                values[field] = "CONFLICT — UNRESOLVED"
+            elif len(current) == 1:
+                values[field] = str(current[0].get("outcome") or established)
+                manifest.update(
+                    RecordVersionId.parse(value)
+                    for value in cast(tuple[str, ...], current[0]["_visible_source_version_ids"])
+                )
+        if not manifest and not lane_rows.unavailable:
+            return None
+        return LanePosition(
+            lane,
+            values["assessment"],
+            values["readiness"],
+            values["adequacy"],
+            values["reliance"],
+            tuple(sorted(manifest, key=str)),
+        )
+
+    def _slice_c_lane_rows(
+        self,
+        tx: ContinuityTransaction,
+        principal_id: str,
+        actor_id: RecordId,
+        lane: str,
+        case_id: RecordId,
+        configuration_version_id: RecordVersionId | None,
+        effective_at: datetime,
+        known_at: datetime,
+    ) -> _SliceCLaneRows:
+        filters: dict[str, object] = {"lane": lane, "case_id": str(case_id)}
+        if configuration_version_id is not None:
+            filters["configuration_version_id"] = str(configuration_version_id)
+        unavailable: set[str] = set()
+        raw_assessment = PractitionerQueryService._current_projection_rows(
+            tx,
+            tx.projection_rows("assessment_candidate_versions", **filters),
+            effective_at,
+            known_at,
+        )
+        assessment = self._visible_slice_c_rows(
+            tx,
+            principal_id,
+            actor_id,
+            case_id,
+            raw_assessment,
+        )
+        if len(raw_assessment) != len(assessment):
+            unavailable.update(("assessment", "readiness", "adequacy", "reliance"))
+        assessment_ids = {str(row["version_id"]) for row in assessment}
+        raw_readiness = tuple(
+            row
+            for row in PractitionerQueryService._current_projection_rows(
+                tx,
+                tx.projection_rows("assessment_readiness_versions", **filters),
+                effective_at,
+                known_at,
+            )
+            if str(row["assessment_version_id"]) in assessment_ids
+        )
+        readiness = self._visible_slice_c_rows(tx, principal_id, actor_id, case_id, raw_readiness)
+        if len(raw_readiness) != len(readiness):
+            unavailable.update(("readiness", "adequacy", "reliance"))
+        readiness_ids = {str(row["version_id"]) for row in readiness}
+        raw_adequacy = tuple(
+            row
+            for row in PractitionerQueryService._current_projection_rows(
+                tx,
+                tx.projection_rows("assessment_adequacy_versions", **filters),
+                effective_at,
+                known_at,
+            )
+            if str(row["assessment_version_id"]) in assessment_ids
+            and str(row["readiness_version_id"]) in readiness_ids
+        )
+        adequacy = self._visible_slice_c_rows(tx, principal_id, actor_id, case_id, raw_adequacy)
+        if len(raw_adequacy) != len(adequacy):
+            unavailable.update(("adequacy", "reliance"))
+        adequate_ids = {
+            str(row["version_id"]) for row in adequacy if row.get("outcome") == "ADEQUATE"
+        }
+        raw_reliance = tuple(
+            row
+            for row in PractitionerQueryService._current_projection_rows(
+                tx,
+                tx.projection_rows("assessment_reliance_versions", **filters),
+                effective_at,
+                known_at,
+            )
+            if str(row["assessment_version_id"]) in assessment_ids
+            and str(row["readiness_version_id"]) in readiness_ids
+            and str(row["adequacy_version_id"]) in adequate_ids
+        )
+        reliance = self._visible_slice_c_rows(tx, principal_id, actor_id, case_id, raw_reliance)
+        if len(raw_reliance) != len(reliance):
+            unavailable.add("reliance")
+        return _SliceCLaneRows(
+            assessment,
+            readiness,
+            adequacy,
+            reliance,
+            frozenset(unavailable),
+        )
+
+    def _visible_slice_c_rows(
+        self,
+        tx: ContinuityTransaction,
+        principal_id: str,
+        actor_id: RecordId,
+        case_id: RecordId,
+        rows: tuple[dict[str, object], ...],
+    ) -> tuple[dict[str, object], ...]:
+        visible: list[dict[str, object]] = []
+        for row in rows:
+            required = self._slice_c_required_versions(tx, row)
+            if required is None or not all(
+                self._source_visible(tx, principal_id, actor_id, case_id, version_id)
+                for version_id in required
+            ):
+                continue
+            enriched = dict(row)
+            enriched["_visible_source_version_ids"] = tuple(
+                sorted(str(value) for value in required)
+            )
+            visible.append(enriched)
+        return tuple(visible)
+
+    @staticmethod
+    def _slice_c_required_versions(
+        tx: ContinuityTransaction, row: dict[str, object]
+    ) -> set[RecordVersionId] | None:
+        try:
+            required = {RecordVersionId.parse(str(row["version_id"]))}
+            for field in (
+                "configuration_version_id",
+                "assessment_version_id",
+                "readiness_version_id",
+                "adequacy_version_id",
+                "responsibility_version_id",
+                "assignment_version_id",
+                "assignment_basis_version_id",
+            ):
+                value = row.get(field)
+                if value:
+                    required.add(RecordVersionId.parse(str(value)))
+            encoded_basis = row.get("information_basis_version_ids_json")
+            if encoded_basis:
+                basis = json.loads(cast(str, encoded_basis))
+                if not isinstance(basis, list) or not all(
+                    isinstance(value, str) for value in basis
+                ):
+                    return None
+                required.update(RecordVersionId.parse(value) for value in basis)
+            assignment_id = row.get("assignment_version_id")
+            basis_id: RecordVersionId | None = None
+            if assignment_id:
+                assignments = tx.projection_rows(
+                    "responsibility_assignment_versions", version_id=str(assignment_id)
+                )
+                if len(assignments) != 1:
+                    return None
+                basis_id = RecordVersionId.parse(str(assignments[0]["assignment_basis_version_id"]))
+                required.add(basis_id)
+            elif row.get("assignment_basis_version_id"):
+                basis_id = RecordVersionId.parse(str(row["assignment_basis_version_id"]))
+            if basis_id is not None:
+                bases = tx.projection_rows("assignment_basis_versions", version_id=str(basis_id))
+                if len(bases) != 1:
+                    return None
+                required.add(RecordVersionId.parse(str(bases[0]["basis_source_version_id"])))
+            return required
+        except (KeyError, TypeError, ValueError):
+            return None
+
+    @staticmethod
+    def _current_projection_rows(
+        tx: ContinuityTransaction,
+        rows: tuple[dict[str, object], ...],
+        effective_at: datetime,
+        known_at: datetime,
+    ) -> tuple[dict[str, object], ...]:
+        by_record: dict[str, dict[str, dict[str, object]]] = {}
+        for row in rows:
+            by_record.setdefault(str(row["record_id"]), {})[str(row["version_id"])] = row
+        current: list[dict[str, object]] = []
+        for _record_id, versions in by_record.items():
+            sample = tx.get_version(RecordVersionId.parse(next(iter(versions))))
+            if sample is None:
+                continue
+            selected = tx.select_current(
+                SelectionQuery(
+                    sample.family,
+                    sample.scope,
+                    effective_at,
+                    known_at,
+                    sample.record_id,
+                )
+            )
+            candidates = (
+                (selected.candidate,)
+                if isinstance(selected, SelectionFound)
+                else getattr(selected, "candidates", ())
+            )
+            current.extend(
+                versions[str(candidate.version_id)]
+                for candidate in candidates
+                if str(candidate.version_id) in versions
+            )
+        return tuple(sorted(current, key=lambda row: str(row["version_id"])))
+
     @staticmethod
     def _current_family(
         tx: ContinuityTransaction,
@@ -282,19 +692,47 @@ class PractitionerQueryService:
         candidates = getattr(selected, "candidates", ())
         return tuple(sorted((item.version_id for item in candidates), key=str))
 
-    @staticmethod
     def _current_responsibilities(
-        tx: ContinuityTransaction, case_id: RecordId, effective_at: datetime, known_at: datetime
+        self,
+        tx: ContinuityTransaction,
+        principal_id: str,
+        actor_id: RecordId,
+        case_id: RecordId,
+        effective_at: datetime,
+        known_at: datetime,
     ) -> tuple[dict[str, object], ...]:
         rows = tx.projection_rows("responsibility_versions", owning_case_id=str(case_id))
-        return PractitionerQueryService._latest_rows(tx, rows, effective_at, known_at)
+        return tuple(
+            row
+            for row in PractitionerQueryService._latest_rows(tx, rows, effective_at, known_at)
+            if self._source_visible(
+                tx,
+                principal_id,
+                actor_id,
+                case_id,
+                RecordVersionId.parse(str(row["version_id"])),
+            )
+        )
 
-    @staticmethod
     def _current_work(
-        tx: ContinuityTransaction, case_id: RecordId, effective_at: datetime, known_at: datetime
+        self,
+        tx: ContinuityTransaction,
+        principal_id: str,
+        actor_id: RecordId,
+        case_id: RecordId,
+        effective_at: datetime,
+        known_at: datetime,
     ) -> tuple[dict[str, object], ...]:
         rows = tx.projection_rows("case_work_versions", owning_case_id=str(case_id))
-        return PractitionerQueryService._latest_rows(tx, rows, effective_at, known_at)
+        visible: list[dict[str, object]] = []
+        for row in PractitionerQueryService._latest_rows(tx, rows, effective_at, known_at):
+            required = self._slice_c_required_versions(tx, row)
+            if required is not None and all(
+                self._source_visible(tx, principal_id, actor_id, case_id, version_id)
+                for version_id in required
+            ):
+                visible.append(row)
+        return tuple(visible)
 
     @staticmethod
     def _latest_rows(
@@ -320,9 +758,12 @@ class PractitionerQueryService:
             for value in sorted(current.values(), key=lambda value: str(value[1]["version_id"]))
         )
 
-    @staticmethod
     def _eligible_assignments(
+        self,
         tx: ContinuityTransaction,
+        principal_id: str,
+        actor_id: RecordId,
+        case_id: RecordId,
         responsibility: dict[str, object],
         effective_at: datetime,
         known_at: datetime,
@@ -332,17 +773,38 @@ class PractitionerQueryService:
             signature_digest=str(responsibility["signature_digest"]),
         )
         latest = PractitionerQueryService._latest_rows(tx, rows, effective_at, known_at)
-        return tuple(row for row in latest if row["state"] == "ASSIGNED")
+        visible: list[dict[str, object]] = []
+        for row in latest:
+            required = self._slice_c_required_versions(tx, row)
+            if (
+                row["state"] == "ASSIGNED"
+                and required is not None
+                and all(
+                    self._source_visible(tx, principal_id, actor_id, case_id, version_id)
+                    for version_id in required
+                )
+            ):
+                visible.append(row)
+        return tuple(visible)
 
-    @staticmethod
     def _one_responsibility_state(
+        self,
         tx: ContinuityTransaction,
+        principal_id: str,
+        actor_id: RecordId,
+        case_id: RecordId,
         responsibility: dict[str, object],
         effective_at: datetime,
         known_at: datetime,
     ) -> str:
-        assignments = PractitionerQueryService._eligible_assignments(
-            tx, responsibility, effective_at, known_at
+        assignments = self._eligible_assignments(
+            tx,
+            principal_id,
+            actor_id,
+            case_id,
+            responsibility,
+            effective_at,
+            known_at,
         )
         if not assignments:
             return "RESPONSIBILITY NOT ESTABLISHED"
@@ -350,15 +812,26 @@ class PractitionerQueryService:
             return "RESPONSIBILITY CONFLICT — UNRESOLVED"
         return "ONE"
 
-    @staticmethod
     def _responsibility_state(
+        self,
         tx: ContinuityTransaction,
+        principal_id: str,
+        actor_id: RecordId,
+        case_id: RecordId,
         rows: tuple[dict[str, object], ...],
         effective_at: datetime,
         known_at: datetime,
     ) -> str:
         states = {
-            PractitionerQueryService._one_responsibility_state(tx, row, effective_at, known_at)
+            self._one_responsibility_state(
+                tx,
+                principal_id,
+                actor_id,
+                case_id,
+                row,
+                effective_at,
+                known_at,
+            )
             for row in rows
         }
         if "RESPONSIBILITY CONFLICT — UNRESOLVED" in states:
@@ -373,7 +846,13 @@ class PractitionerQueryService:
         return ", ".join(states) if states else "NO DURABLE WORK SOURCE"
 
     def _allowed(
-        self, principal_id: str, actor_id: RecordId, case_id: RecordId, action: str
+        self,
+        principal_id: str,
+        actor_id: RecordId,
+        case_id: RecordId,
+        action: str,
+        source_version_id: RecordVersionId | None = None,
+        source_family: str | None = None,
     ) -> bool:
         return self._access.authorize(
             principal_id=principal_id,
@@ -381,4 +860,27 @@ class PractitionerQueryService:
             action=action,
             case_id=case_id,
             write=False,
+            source_version_id=source_version_id,
+            source_family=source_family,
+        )
+
+    def _source_visible(
+        self,
+        tx: ContinuityTransaction,
+        principal_id: str,
+        actor_id: RecordId,
+        case_id: RecordId,
+        version_id: RecordVersionId,
+    ) -> bool:
+        source = tx.get_version(version_id)
+        return bool(
+            source is not None
+            and self._allowed(
+                principal_id,
+                actor_id,
+                case_id,
+                "source.read",
+                version_id,
+                source.family,
+            )
         )

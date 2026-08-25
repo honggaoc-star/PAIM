@@ -37,6 +37,16 @@ class HomeView:
 
 
 @dataclass(frozen=True, slots=True)
+class LanePosition:
+    lane: str
+    assessment: str
+    readiness: str
+    adequacy: str
+    reliance: str
+    source_version_ids: tuple[RecordVersionId, ...]
+
+
+@dataclass(frozen=True, slots=True)
 class CaseView:
     case_id: RecordId
     title: str
@@ -49,6 +59,8 @@ class CaseView:
     current_management_position: tuple[str, ...]
     source_manifest: SourceManifest
     authoritative_master_status_persisted: bool = False
+    value_position: LanePosition | None = None
+    risk_position: LanePosition | None = None
 
 
 @dataclass(frozen=True, slots=True)

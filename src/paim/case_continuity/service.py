@@ -95,6 +95,8 @@ class ContinuityAccessPolicy(Protocol):
         action: str,
         case_id: RecordId,
         write: bool,
+        source_version_id: RecordVersionId | None = None,
+        source_family: str | None = None,
     ) -> bool: ...
 
 
