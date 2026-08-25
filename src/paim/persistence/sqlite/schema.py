@@ -3510,6 +3510,311 @@ Index(
     operational_register_rebuild_bases.c.query_checksum,
 )
 
+# Gate 8 Slice A is prospective-only. These additive projections bind new facts to
+# an explicit semantic era and exact context without changing any legacy row.
+semantic_contracts = Table(
+    "semantic_contracts",
+    metadata,
+    Column("contract_key", Text, primary_key=True),
+    Column("contract_id", Text, nullable=False),
+    Column("contract_version", Text, nullable=False),
+    Column("owner", Text, nullable=False),
+    Column("interpretation_source", Text, nullable=False),
+    Column("recorded_at_us", BigInteger, nullable=False),
+    UniqueConstraint("contract_id", "contract_version", name="uq_semantic_contract_version"),
+)
+semantic_contract_families = Table(
+    "semantic_contract_families",
+    metadata,
+    Column("contract_key", Text, ForeignKey("semantic_contracts.contract_key"), primary_key=True),
+    Column("record_family", Text, primary_key=True),
+)
+semantic_contract_adapters = Table(
+    "semantic_contract_adapters",
+    metadata,
+    Column("adapter_key", Text, primary_key=True),
+    Column(
+        "source_contract_key", Text, ForeignKey("semantic_contracts.contract_key"), nullable=False
+    ),
+    Column(
+        "target_contract_key", Text, ForeignKey("semantic_contracts.contract_key"), nullable=False
+    ),
+    Column("adapter_version", Text, nullable=False),
+    Column("source_label", Text, nullable=False),
+    Column("read_safe", Boolean, nullable=False),
+)
+semantic_contract_successors = Table(
+    "semantic_contract_successors",
+    metadata,
+    Column(
+        "predecessor_contract_key",
+        Text,
+        ForeignKey("semantic_contracts.contract_key"),
+        primary_key=True,
+    ),
+    Column(
+        "successor_contract_key",
+        Text,
+        ForeignKey("semantic_contracts.contract_key"),
+        primary_key=True,
+    ),
+)
+exact_context_sets = Table(
+    "exact_context_sets",
+    metadata,
+    Column("context_digest", String(64), primary_key=True),
+    Column("canonical_json", Text, nullable=False, unique=True),
+    Column("recorded_at_us", BigInteger, nullable=False),
+)
+exact_context_members = Table(
+    "exact_context_members",
+    metadata,
+    Column(
+        "context_digest",
+        String(64),
+        ForeignKey("exact_context_sets.context_digest"),
+        primary_key=True,
+    ),
+    Column("slot", Text, primary_key=True),
+    Column("member_kind", Text, nullable=False),
+    Column("identity", Text, nullable=False),
+    CheckConstraint(
+        "member_kind IN ('RECORD','VERSION','LITERAL')", name="ck_exact_context_member_kind"
+    ),
+)
+record_version_semantics = Table(
+    "record_version_semantics",
+    metadata,
+    Column("version_id", String(36), ForeignKey("record_versions.version_id"), primary_key=True),
+    Column("contract_key", Text, ForeignKey("semantic_contracts.contract_key"), nullable=False),
+    Column(
+        "context_digest",
+        String(64),
+        ForeignKey("exact_context_sets.context_digest"),
+        nullable=False,
+    ),
+    Column("consumer_id", Text, nullable=False),
+    Column(
+        "adapter_key", Text, ForeignKey("semantic_contract_adapters.adapter_key"), nullable=True
+    ),
+)
+status_event_semantics = Table(
+    "status_event_semantics",
+    metadata,
+    Column("event_id", String(36), ForeignKey("status_events.event_id"), primary_key=True),
+    Column("contract_key", Text, ForeignKey("semantic_contracts.contract_key"), nullable=False),
+    Column(
+        "context_digest",
+        String(64),
+        ForeignKey("exact_context_sets.context_digest"),
+        nullable=False,
+    ),
+)
+version_relationship_semantics = Table(
+    "version_relationship_semantics",
+    metadata,
+    Column(
+        "relationship_id",
+        String(36),
+        ForeignKey("version_relationships.relationship_id"),
+        primary_key=True,
+    ),
+    Column("contract_key", Text, ForeignKey("semantic_contracts.contract_key"), nullable=False),
+    Column(
+        "context_digest",
+        String(64),
+        ForeignKey("exact_context_sets.context_digest"),
+        nullable=False,
+    ),
+)
+semantic_consumer_cutover_versions = Table(
+    "semantic_consumer_cutover_versions",
+    metadata,
+    Column("version_id", String(36), ForeignKey("record_versions.version_id"), primary_key=True),
+    Column("consumer_id", Text, nullable=False),
+    Column("contract_key", Text, ForeignKey("semantic_contracts.contract_key"), nullable=False),
+    Column("effective_from_us", BigInteger, nullable=False),
+    UniqueConstraint("consumer_id", "effective_from_us", name="uq_semantic_consumer_cutover_time"),
+)
+
+practical_role_catalog = Table(
+    "practical_role_catalog",
+    metadata,
+    Column("role_code", Text, primary_key=True),
+    CheckConstraint(
+        "role_code IN ('CASE_COORDINATOR','ASSESSOR','REVIEWER')", name="ck_practical_role_code"
+    ),
+)
+responsibility_records = Table(
+    "responsibility_records",
+    metadata,
+    Column("record_id", String(36), ForeignKey("records.record_id"), primary_key=True),
+)
+responsibility_versions = Table(
+    "responsibility_versions",
+    metadata,
+    Column("version_id", String(36), ForeignKey("record_versions.version_id"), primary_key=True),
+    Column("record_id", String(36), ForeignKey("responsibility_records.record_id"), nullable=False),
+    Column("obligation_kind", Text, nullable=False),
+    Column("practical_role", Text, ForeignKey("practical_role_catalog.role_code"), nullable=False),
+    Column("owning_case_id", String(36), ForeignKey("paim_cases.case_id"), nullable=False),
+    Column(
+        "context_digest",
+        String(64),
+        ForeignKey("exact_context_sets.context_digest"),
+        nullable=False,
+    ),
+    Column("signature_digest", String(64), nullable=False),
+)
+Index("ix_responsibility_signature", responsibility_versions.c.signature_digest)
+assignment_basis_records = Table(
+    "assignment_basis_records",
+    metadata,
+    Column("record_id", String(36), ForeignKey("records.record_id"), primary_key=True),
+)
+assignment_basis_versions = Table(
+    "assignment_basis_versions",
+    metadata,
+    Column("version_id", String(36), ForeignKey("record_versions.version_id"), primary_key=True),
+    Column(
+        "record_id", String(36), ForeignKey("assignment_basis_records.record_id"), nullable=False
+    ),
+    Column("assigning_actor_id", String(36), ForeignKey("paim_actors.actor_id"), nullable=False),
+    Column(
+        "basis_source_version_id",
+        String(36),
+        ForeignKey("record_versions.version_id"),
+        nullable=False,
+    ),
+    Column("allowed_obligation_kinds_json", Text, nullable=False),
+    Column("allowed_case_ids_json", Text, nullable=False),
+    Column("limits_json", Text, nullable=False),
+)
+responsibility_assignment_records = Table(
+    "responsibility_assignment_records",
+    metadata,
+    Column("record_id", String(36), ForeignKey("records.record_id"), primary_key=True),
+)
+responsibility_assignment_versions = Table(
+    "responsibility_assignment_versions",
+    metadata,
+    Column("version_id", String(36), ForeignKey("record_versions.version_id"), primary_key=True),
+    Column(
+        "record_id",
+        String(36),
+        ForeignKey("responsibility_assignment_records.record_id"),
+        nullable=False,
+    ),
+    Column(
+        "responsibility_version_id",
+        String(36),
+        ForeignKey("responsibility_versions.version_id"),
+        nullable=False,
+    ),
+    Column("signature_digest", String(64), nullable=False),
+    Column("actor_id", String(36), ForeignKey("paim_actors.actor_id"), nullable=False),
+    Column(
+        "assignment_basis_version_id",
+        String(36),
+        ForeignKey("assignment_basis_versions.version_id"),
+        nullable=False,
+    ),
+    Column("state", Text, nullable=False),
+    Column("effective_from_us", BigInteger, nullable=False),
+    Column("effective_to_us", BigInteger, nullable=True),
+    Column("recorded_at_us", BigInteger, nullable=False),
+    Column(
+        "predecessor_version_id",
+        String(36),
+        ForeignKey("responsibility_assignment_versions.version_id"),
+        nullable=True,
+    ),
+    CheckConstraint(
+        "state IN ('ASSIGNED','WITHDRAWN','SUPERSEDED')", name="ck_responsibility_assignment_state"
+    ),
+)
+Index(
+    "ix_responsibility_assignment_resolution",
+    responsibility_assignment_versions.c.signature_digest,
+    responsibility_assignment_versions.c.effective_from_us,
+    responsibility_assignment_versions.c.recorded_at_us,
+)
+case_work_records = Table(
+    "case_work_records",
+    metadata,
+    Column("record_id", String(36), ForeignKey("records.record_id"), primary_key=True),
+)
+case_work_versions = Table(
+    "case_work_versions",
+    metadata,
+    Column("version_id", String(36), ForeignKey("record_versions.version_id"), primary_key=True),
+    Column("record_id", String(36), ForeignKey("case_work_records.record_id"), nullable=False),
+    Column("owning_case_id", String(36), ForeignKey("paim_cases.case_id"), nullable=False),
+    Column(
+        "context_digest",
+        String(64),
+        ForeignKey("exact_context_sets.context_digest"),
+        nullable=False,
+    ),
+    Column(
+        "responsibility_version_id",
+        String(36),
+        ForeignKey("responsibility_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "assignment_version_id",
+        String(36),
+        ForeignKey("responsibility_assignment_versions.version_id"),
+        nullable=True,
+    ),
+    Column("requester_actor_id", String(36), ForeignKey("paim_actors.actor_id"), nullable=False),
+    Column("assignee_actor_id", String(36), ForeignKey("paim_actors.actor_id"), nullable=True),
+    Column("state", Text, nullable=False),
+    Column("reason", Text, nullable=False),
+    Column("prerequisites_json", Text, nullable=False),
+    Column("expected_result_family", Text, nullable=False),
+    Column("due_at_us", BigInteger, nullable=True),
+    Column(
+        "result_version_id", String(36), ForeignKey("record_versions.version_id"), nullable=True
+    ),
+    Column(
+        "return_context_digest",
+        String(64),
+        ForeignKey("exact_context_sets.context_digest"),
+        nullable=True,
+    ),
+    Column(
+        "predecessor_version_id",
+        String(36),
+        ForeignKey("case_work_versions.version_id"),
+        nullable=True,
+    ),
+    CheckConstraint(
+        "state IN ('READY','WAITING','COMPLETED','CANCELLED','SUPERSEDED')",
+        name="ck_case_work_state",
+    ),
+    CheckConstraint(
+        "state <> 'COMPLETED' OR result_version_id IS NOT NULL", name="ck_completed_work_has_result"
+    ),
+)
+case_work_result_links = Table(
+    "case_work_result_links",
+    metadata,
+    Column(
+        "work_version_id", String(36), ForeignKey("case_work_versions.version_id"), primary_key=True
+    ),
+    Column(
+        "result_version_id", String(36), ForeignKey("record_versions.version_id"), nullable=False
+    ),
+    Column(
+        "return_context_digest",
+        String(64),
+        ForeignKey("exact_context_sets.context_digest"),
+        nullable=False,
+    ),
+)
+
 IMMUTABILITY_TRIGGERS: tuple[str, ...] = (
     """
     CREATE TRIGGER prevent_finalized_version_update
