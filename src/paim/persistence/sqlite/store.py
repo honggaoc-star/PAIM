@@ -252,6 +252,15 @@ _PROSPECTIVE_PROJECTION_TABLES = frozenset(
         "case_continuity_determination_versions",
         "case_continuity_relationships",
         "configuration_continuity_links",
+        "assessment_candidate_records",
+        "assessment_candidate_versions",
+        "assessment_readiness_records",
+        "assessment_readiness_versions",
+        "assessment_adequacy_records",
+        "assessment_adequacy_versions",
+        "assessment_reliance_records",
+        "assessment_reliance_versions",
+        "evidence_applicability_versions",
         "governing_configuration_designations",
     }
 )

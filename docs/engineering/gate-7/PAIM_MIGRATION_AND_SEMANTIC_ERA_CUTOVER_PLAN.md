@@ -45,7 +45,7 @@ after its writer and every required reader pass conformance and its consumer cut
 | `0009_gate7_common_semantics` | semantic-contract registry, Version metadata, exact context sets/members, cutover declarations, append-only triggers/indexes | no domain consumer active |
 | `0010_gate8_responsibility_work` | practical-role, Responsibility, Assignment Basis/assignment, Work, result/return tables | new prospective Cases only after Slice A passes |
 | `0011_gate8_case_continuity` | prospective Case Continuity Status/Determination and exact Case/Configuration relationship projections; implemented replacement for the earlier proposed `0011_gate7_case_continuity` placeholder | Slice-B-created prospective Cases only; no legacy backfill or phase mapping |
-| `0012_gate7_assessment_review` | readiness, adequacy, reliance, dispositions and exact basis links | one lane/consumer at a time after Slice C passes both lanes |
+| `0012_gate8_assessment_review` | prospective independent Value/Risk candidate, readiness, adequacy, reliance, dispositions, and exact basis links; implemented replacement for the earlier proposed `0012_gate7_assessment_review` placeholder | prospective Slice-C-created assessments only after both lanes pass; no legacy backfill |
 | `0013_gate7_integration_decision_basis` | prospective relied-chain links/constraints and Decision consumer metadata | new prospective Integration/Decision only after Slice D passes |
 | `0014_gate7_continuing_review` | planned points, required constraints, Review Episodes and links | prospective review consumer only after Slice E passes |
 | `0015_gate7_quantitative_claims` | typed claim family, structured context and relationship tables | optional claim consumer only after Slice F passes |

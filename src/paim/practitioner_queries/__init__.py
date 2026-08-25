@@ -4,6 +4,7 @@ from paim.practitioner_queries.models import (
     AttentionItem,
     CaseView,
     HomeView,
+    LanePosition,
     SourceManifest,
     TaskView,
 )
@@ -13,6 +14,7 @@ __all__ = [
     "AttentionItem",
     "CaseView",
     "HomeView",
+    "LanePosition",
     "PractitionerQueryService",
     "SourceManifest",
     "TaskView",
