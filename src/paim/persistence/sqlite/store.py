@@ -223,7 +223,7 @@ from paim.persistence.sqlite.schema import (
 
 _semantic_active: ContextVar[bool] = ContextVar("paim_semantic_transaction_active", default=False)
 
-_SLICE_A_PROJECTION_TABLES = frozenset(
+_PROSPECTIVE_PROJECTION_TABLES = frozenset(
     {
         "semantic_contracts",
         "semantic_contract_families",
@@ -246,6 +246,13 @@ _SLICE_A_PROJECTION_TABLES = frozenset(
         "case_work_records",
         "case_work_versions",
         "case_work_result_links",
+        "case_continuity_status_records",
+        "case_continuity_status_versions",
+        "case_continuity_determination_records",
+        "case_continuity_determination_versions",
+        "case_continuity_relationships",
+        "configuration_continuity_links",
+        "governing_configuration_designations",
     }
 )
 
@@ -4142,15 +4149,15 @@ class SQLiteIntegrityTransaction:
     def insert_projection(self, table_name: str, values: dict[str, object]) -> None:
         """Append one normalized capability projection inside the outer transaction."""
         table = metadata.tables.get(table_name)
-        if table is None or table_name not in _SLICE_A_PROJECTION_TABLES:
-            raise ValueError(f"unsupported Slice-A projection table: {table_name}")
+        if table is None or table_name not in _PROSPECTIVE_PROJECTION_TABLES:
+            raise ValueError(f"unsupported prospective projection table: {table_name}")
         self._connection.execute(insert(table).values(**values))
 
     def projection_rows(self, table_name: str, **equals: object) -> tuple[dict[str, object], ...]:
         """Read an allowlisted Slice-A projection without semantic composition."""
         table = metadata.tables.get(table_name)
-        if table is None or table_name not in _SLICE_A_PROJECTION_TABLES:
-            raise ValueError(f"unsupported Slice-A projection table: {table_name}")
+        if table is None or table_name not in _PROSPECTIVE_PROJECTION_TABLES:
+            raise ValueError(f"unsupported prospective projection table: {table_name}")
         statement = select(table)
         for column_name, value in equals.items():
             if column_name not in table.c:

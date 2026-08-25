@@ -219,6 +219,7 @@ class ResponsibilityWorkService:
                 write=True,
             ):
                 raise SliceAAccessDenied()
+            self._validate_prospective_case_write(transaction, command, recorded_at)
             self._ensure_contract_and_context(transaction, command, recorded_at)
             observed = transaction.select_current(
                 SelectionQuery(
@@ -239,9 +240,9 @@ class ResponsibilityWorkService:
                 raise SliceAConflict("stale exact predecessor; no retarget permitted")
             version_row = self._version_projection(command)
             if command.family == "assignment-basis":
-                self._validate_assignment_basis(transaction, command, version_row, recorded_at)
+                self.validate_assignment_basis(transaction, command, version_row, recorded_at)
             elif command.family == "responsibility-assignment":
-                self._validate_responsibility_assignment(
+                self.validate_responsibility_assignment(
                     transaction, command, version_row, recorded_at
                 )
             version = FinalizedRecordVersion(
@@ -360,6 +361,44 @@ class ResponsibilityWorkService:
             return outcome
 
     @staticmethod
+    def _validate_prospective_case_write(
+        transaction: SliceATransaction,
+        command: SliceACommand,
+        recorded_at: datetime,
+    ) -> None:
+        """Reject new Slice-A substance on a non-OPEN prospective Case.
+
+        Legacy Cases have no prospective status projection and retain their exact
+        existing behavior.  Existing successor/correction commands remain bound
+        to their own expected Version and are not silently retargeted.
+        """
+        records = transaction.projection_rows(
+            "case_continuity_status_records", case_id=str(command.owning_case_id)
+        )
+        if not records:
+            return
+        if len(records) != 1:
+            raise SliceAConflict("CASE CONTINUITY STATUS CONFLICT — UNRESOLVED")
+        status_record_id = RecordId.parse(str(records[0]["record_id"]))
+        selection = transaction.select_current(
+            SelectionQuery(
+                family="case-continuity-status",
+                scope=f"case:{command.owning_case_id}",
+                effective_at=command.effective_at,
+                known_at=recorded_at,
+                record_id=status_record_id,
+            )
+        )
+        if not isinstance(selection, SelectionFound):
+            raise SliceAConflict("CASE CONTINUITY STATUS CONFLICT — UNRESOLVED")
+        rows = transaction.projection_rows(
+            "case_continuity_status_versions",
+            version_id=str(selection.candidate.version_id),
+        )
+        if len(rows) != 1 or rows[0]["status"] != "OPEN":
+            raise SliceAConflict("prospective Case is not OPEN for new substantive Work")
+
+    @staticmethod
     def _validate_plan(command: SliceACommand, *, has_result_writer: bool) -> None:
         """Fail closed before storage when an internal projection plan is incoherent."""
         allowed = {
@@ -469,8 +508,9 @@ class ResponsibilityWorkService:
         ):
             raise SliceAConflict(reason)
 
-    def _validate_assignment_basis(
-        self,
+    @classmethod
+    def validate_assignment_basis(
+        cls,
         transaction: SliceATransaction,
         command: SliceACommand,
         row: dict[str, object],
@@ -483,7 +523,7 @@ class ResponsibilityWorkService:
             "decision-authorization-basis",
         }:
             raise SliceAConflict("ASSIGNMENT AUTHORITY SOURCE NOT ESTABLISHED")
-        self._require_exact_current(
+        cls._require_exact_current(
             transaction,
             source,
             effective_at=command.effective_at,
@@ -494,11 +534,11 @@ class ResponsibilityWorkService:
         authority = content.get("assignment_authority")
         if not isinstance(authority, dict):
             raise SliceAConflict("ASSIGNMENT AUTHORITY NOT ESTABLISHED")
-        allowed_kinds = self._json_string_set(
+        allowed_kinds = cls._json_string_set(
             row["allowed_obligation_kinds_json"], field="basis obligation kinds"
         )
-        allowed_cases = self._json_string_set(row["allowed_case_ids_json"], field="basis Cases")
-        allowed_signatures = self._json_string_set(
+        allowed_cases = cls._json_string_set(row["allowed_case_ids_json"], field="basis Cases")
+        allowed_signatures = cls._json_string_set(
             row["allowed_signature_digests_json"], field="basis signatures"
         )
         source_kinds = frozenset(cast(list[str], authority.get("allowed_obligation_kinds", [])))
@@ -536,8 +576,9 @@ class ResponsibilityWorkService:
         if predecessor != expected:
             raise SliceAConflict("ASSIGNMENT BASIS PREDECESSOR MISMATCH")
 
-    def _validate_responsibility_assignment(
-        self,
+    @classmethod
+    def validate_responsibility_assignment(
+        cls,
         transaction: SliceATransaction,
         command: SliceACommand,
         row: dict[str, object],
@@ -550,7 +591,7 @@ class ResponsibilityWorkService:
         )
         if responsibility is None or len(responsibility_rows) != 1:
             raise SliceAConflict("EXACT RESPONSIBILITY NOT ESTABLISHED")
-        self._require_exact_current(
+        cls._require_exact_current(
             transaction,
             responsibility,
             effective_at=command.effective_at,
@@ -565,7 +606,7 @@ class ResponsibilityWorkService:
         )
         if basis is None or len(basis_rows) != 1:
             raise SliceAConflict("EXACT ASSIGNMENT BASIS NOT ESTABLISHED")
-        self._require_exact_current(
+        cls._require_exact_current(
             transaction,
             basis,
             effective_at=command.effective_at,
@@ -582,7 +623,7 @@ class ResponsibilityWorkService:
             "decision-authorization-basis",
         }:
             raise SliceAConflict("ASSIGNMENT AUTHORITY SOURCE NOT ESTABLISHED")
-        self._require_exact_current(
+        cls._require_exact_current(
             transaction,
             source,
             effective_at=command.effective_at,
@@ -605,13 +646,13 @@ class ResponsibilityWorkService:
         basis_from = cast(int, basis_row["effective_from_us"])
         basis_to = cast(int | None, basis_row["effective_to_us"])
         effective_us = to_epoch_microseconds(command.effective_at)
-        allowed_kinds = self._json_string_set(
+        allowed_kinds = cls._json_string_set(
             basis_row["allowed_obligation_kinds_json"], field="basis obligation kinds"
         )
-        allowed_cases = self._json_string_set(
+        allowed_cases = cls._json_string_set(
             basis_row["allowed_case_ids_json"], field="basis Cases"
         )
-        allowed_signatures = self._json_string_set(
+        allowed_signatures = cls._json_string_set(
             basis_row["allowed_signature_digests_json"], field="basis signatures"
         )
         if (

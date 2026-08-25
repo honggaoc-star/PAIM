@@ -25,7 +25,7 @@ def test_alembic_head_foreign_keys_and_immutability_triggers_exist(
     with sqlite_store.engine.connect() as connection:
         assert connection.exec_driver_sql("PRAGMA foreign_keys").scalar_one() == 1
         assert connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one() == (
-            "0010_gate8_responsibility_work"
+            "0011_gate8_case_continuity"
         )
         trigger_names = set(
             connection.execute(
@@ -142,7 +142,7 @@ def test_gate8_slice_a_upgrades_from_increment_8_without_legacy_backfill(
     command.upgrade(config, "head")
     with engine.connect() as connection:
         assert connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one() == (
-            "0010_gate8_responsibility_work"
+            "0011_gate8_case_continuity"
         )
         assert connection.execute(
             text("SELECT content_json FROM record_versions")
@@ -164,7 +164,7 @@ def test_gate8_responsibility_work_upgrades_from_common_semantics_revision(
     engine = create_engine(database_url)
     with engine.connect() as connection:
         assert connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one() == (
-            "0010_gate8_responsibility_work"
+            "0011_gate8_case_continuity"
         )
         assert set(
             connection.execute(text("SELECT role_code FROM practical_role_catalog")).scalars()
@@ -265,8 +265,67 @@ def test_upgrade_from_increment_2_revision_to_increment_3_head(tmp_path: Path) -
         with engine.connect() as connection:
             assert (
                 connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
-                == "0010_gate8_responsibility_work"
+                == "0011_gate8_case_continuity"
             )
+    finally:
+        engine.dispose()
+
+
+def test_gate8_case_continuity_schema_and_upgrade_from_slice_a(tmp_path: Path) -> None:
+    database_path = (tmp_path / "upgrade-from-slice-a.sqlite3").as_posix()
+    database_url = f"sqlite+pysqlite:///{database_path}"
+    config = alembic_config(database_url)
+    command.upgrade(config, "0010_gate8_responsibility_work")
+    engine = create_engine(database_url)
+    try:
+        assert "case_continuity_status_versions" not in inspect(engine).get_table_names()
+        command.upgrade(config, "head")
+        inspector = inspect(engine)
+        expected = {
+            "case_continuity_status_records",
+            "case_continuity_status_versions",
+            "case_continuity_determination_records",
+            "case_continuity_determination_versions",
+            "case_continuity_relationships",
+            "configuration_continuity_links",
+        }
+        assert expected <= set(inspector.get_table_names())
+        assert {
+            item["name"]
+            for item in inspector.get_check_constraints("case_continuity_status_versions")
+        } >= {
+            "ck_case_continuity_status",
+            "ck_case_continuity_transition_basis",
+            "ck_case_continuity_successor",
+        }
+        assert {
+            item["name"] for item in inspector.get_indexes("case_continuity_status_versions")
+        } >= {"ix_case_continuity_status_selection"}
+        with engine.connect() as connection:
+            assert (
+                connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
+                == "0011_gate8_case_continuity"
+            )
+            triggers = set(
+                connection.execute(
+                    text("SELECT name FROM sqlite_master WHERE type = 'trigger'")
+                ).scalars()
+            )
+            assert (
+                connection.execute(
+                    text("SELECT COUNT(*) FROM case_continuity_status_versions")
+                ).scalar_one()
+                == 0
+            )
+            assert (
+                connection.execute(
+                    text("SELECT COUNT(*) FROM case_continuity_determination_versions")
+                ).scalar_one()
+                == 0
+            )
+        for table_name in expected:
+            assert f"prevent_{table_name}_update" in triggers
+            assert f"prevent_{table_name}_delete" in triggers
     finally:
         engine.dispose()
 
@@ -343,7 +402,7 @@ def test_increment_2_schema_tables_constraints_indexes_and_upgrade_from_incremen
         with engine.connect() as connection:
             assert connection.execute(
                 text("SELECT version_num FROM alembic_version")
-            ).scalar_one() == ("0010_gate8_responsibility_work")
+            ).scalar_one() == ("0011_gate8_case_continuity")
     finally:
         engine.dispose()
 
@@ -472,7 +531,7 @@ def test_upgrade_from_increment_3_revision_to_increment_4_head(tmp_path: Path) -
         with engine.connect() as connection:
             assert (
                 connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
-                == "0010_gate8_responsibility_work"
+                == "0011_gate8_case_continuity"
             )
     finally:
         engine.dispose()
@@ -609,7 +668,7 @@ def test_upgrade_from_increment_4_revision_to_increment_5_head(tmp_path: Path) -
         with engine.connect() as connection:
             assert (
                 connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
-                == "0010_gate8_responsibility_work"
+                == "0011_gate8_case_continuity"
             )
     finally:
         engine.dispose()
@@ -732,7 +791,7 @@ def test_upgrade_from_increment_5_revision_to_increment_6_head(tmp_path: Path) -
         with engine.connect() as connection:
             assert connection.execute(
                 text("SELECT version_num FROM alembic_version")
-            ).scalar_one() == ("0010_gate8_responsibility_work")
+            ).scalar_one() == ("0011_gate8_case_continuity")
     finally:
         engine.dispose()
 
@@ -803,7 +862,7 @@ def test_upgrade_from_increment_6_revision_to_increment_7_head(tmp_path: Path) -
         with engine.connect() as connection:
             assert (
                 connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
-                == "0010_gate8_responsibility_work"
+                == "0011_gate8_case_continuity"
             )
     finally:
         engine.dispose()
@@ -943,7 +1002,7 @@ def test_upgrade_from_increment_7_to_increment_8_preserves_history(tmp_path: Pat
         with engine.connect() as connection:
             assert connection.execute(
                 text("SELECT version_num FROM alembic_version")
-            ).scalar_one() == ("0010_gate8_responsibility_work")
+            ).scalar_one() == ("0011_gate8_case_continuity")
             assert (
                 connection.execute(
                     text("SELECT COUNT(*) FROM record_versions WHERE version_id=:version_id"),

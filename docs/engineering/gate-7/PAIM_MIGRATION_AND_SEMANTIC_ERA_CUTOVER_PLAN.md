@@ -43,8 +43,8 @@ after its writer and every required reader pass conformance and its consumer cut
 | Proposed revision | Additive content | Activation boundary |
 |---|---|---|
 | `0009_gate7_common_semantics` | semantic-contract registry, Version metadata, exact context sets/members, cutover declarations, append-only triggers/indexes | no domain consumer active |
-| `0010_gate7_responsibility_work` | practical-role, Responsibility, Assignment Basis/assignment, Work, result/return tables | new prospective Cases only after Slice A passes |
-| `0011_gate7_case_continuity` | continuity status/event/determination and relationship support | prospective Case consumer only after Slice B passes |
+| `0010_gate8_responsibility_work` | practical-role, Responsibility, Assignment Basis/assignment, Work, result/return tables | new prospective Cases only after Slice A passes |
+| `0011_gate8_case_continuity` | prospective Case Continuity Status/Determination and exact Case/Configuration relationship projections; implemented replacement for the earlier proposed `0011_gate7_case_continuity` placeholder | Slice-B-created prospective Cases only; no legacy backfill or phase mapping |
 | `0012_gate7_assessment_review` | readiness, adequacy, reliance, dispositions and exact basis links | one lane/consumer at a time after Slice C passes both lanes |
 | `0013_gate7_integration_decision_basis` | prospective relied-chain links/constraints and Decision consumer metadata | new prospective Integration/Decision only after Slice D passes |
 | `0014_gate7_continuing_review` | planned points, required constraints, Review Episodes and links | prospective review consumer only after Slice E passes |

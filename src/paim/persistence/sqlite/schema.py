@@ -3853,6 +3853,239 @@ case_work_result_links = Table(
     ),
 )
 
+# Gate 8 Slice B prospective Case continuity.  Legacy paim_case_versions and
+# lifecycle status events remain unchanged; these projections exist only for
+# Versions carrying the prospective continuity semantic contract.
+case_continuity_status_records = Table(
+    "case_continuity_status_records",
+    metadata,
+    Column("record_id", String(36), ForeignKey("records.record_id"), primary_key=True),
+    Column("case_id", String(36), ForeignKey("paim_cases.case_id"), nullable=False, unique=True),
+)
+case_continuity_status_versions = Table(
+    "case_continuity_status_versions",
+    metadata,
+    Column("version_id", String(36), ForeignKey("record_versions.version_id"), primary_key=True),
+    Column(
+        "record_id",
+        String(36),
+        ForeignKey("case_continuity_status_records.record_id"),
+        nullable=False,
+    ),
+    Column("case_id", String(36), ForeignKey("paim_cases.case_id"), nullable=False),
+    Column("status", Text, nullable=False),
+    Column("prior_status", Text, nullable=True),
+    Column(
+        "determination_version_id",
+        String(36),
+        ForeignKey("case_continuity_determination_versions.version_id"),
+        nullable=True,
+    ),
+    Column(
+        "responsibility_version_id",
+        String(36),
+        ForeignKey("responsibility_versions.version_id"),
+        nullable=True,
+    ),
+    Column(
+        "assignment_version_id",
+        String(36),
+        ForeignKey("responsibility_assignment_versions.version_id"),
+        nullable=True,
+    ),
+    Column(
+        "authority_basis_version_id",
+        String(36),
+        ForeignKey("record_versions.version_id"),
+        nullable=True,
+    ),
+    Column("knowledge_cutoff_us", BigInteger, nullable=False),
+    Column("rationale", Text, nullable=False),
+    Column("effective_at_us", BigInteger, nullable=False),
+    Column("recorded_at_us", BigInteger, nullable=False),
+    Column(
+        "predecessor_version_id",
+        String(36),
+        ForeignKey("case_continuity_status_versions.version_id"),
+        nullable=True,
+    ),
+    Column("successor_case_id", String(36), ForeignKey("paim_cases.case_id"), nullable=True),
+    CheckConstraint("status IN ('OPEN','CLOSED','SUPERSEDED')", name="ck_case_continuity_status"),
+    CheckConstraint(
+        "prior_status IS NULL OR prior_status IN ('OPEN','CLOSED')",
+        name="ck_case_continuity_prior_status",
+    ),
+    CheckConstraint(
+        "(predecessor_version_id IS NULL AND prior_status IS NULL AND "
+        "determination_version_id IS NULL) OR "
+        "(predecessor_version_id IS NOT NULL AND prior_status IS NOT NULL AND "
+        "determination_version_id IS NOT NULL)",
+        name="ck_case_continuity_transition_basis",
+    ),
+    CheckConstraint(
+        "(status = 'SUPERSEDED' AND successor_case_id IS NOT NULL) OR "
+        "(status <> 'SUPERSEDED' AND successor_case_id IS NULL)",
+        name="ck_case_continuity_successor",
+    ),
+)
+Index(
+    "ix_case_continuity_status_selection",
+    case_continuity_status_versions.c.case_id,
+    case_continuity_status_versions.c.effective_at_us,
+    case_continuity_status_versions.c.recorded_at_us,
+)
+
+case_continuity_determination_records = Table(
+    "case_continuity_determination_records",
+    metadata,
+    Column("record_id", String(36), ForeignKey("records.record_id"), primary_key=True),
+)
+case_continuity_determination_versions = Table(
+    "case_continuity_determination_versions",
+    metadata,
+    Column("version_id", String(36), ForeignKey("record_versions.version_id"), primary_key=True),
+    Column(
+        "record_id",
+        String(36),
+        ForeignKey("case_continuity_determination_records.record_id"),
+        nullable=False,
+    ),
+    Column("kind", Text, nullable=False),
+    Column("outcome", Text, nullable=False),
+    Column("source_case_id", String(36), ForeignKey("paim_cases.case_id"), nullable=False),
+    Column(
+        "source_status_version_id",
+        String(36),
+        ForeignKey("case_continuity_status_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "prior_configuration_version_id",
+        String(36),
+        ForeignKey("managed_configuration_versions.version_id"),
+        nullable=True,
+    ),
+    Column(
+        "candidate_configuration_version_id",
+        String(36),
+        ForeignKey("managed_configuration_versions.version_id"),
+        nullable=True,
+    ),
+    Column("successor_case_id", String(36), ForeignKey("paim_cases.case_id"), nullable=True),
+    Column(
+        "changed_basis_context_digest",
+        String(64),
+        ForeignKey("exact_context_sets.context_digest"),
+        nullable=False,
+    ),
+    Column("guard_manifest_json", Text, nullable=False),
+    Column("rationale", Text, nullable=False),
+    Column("factors_json", Text, nullable=False),
+    Column(
+        "responsibility_version_id",
+        String(36),
+        ForeignKey("responsibility_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "assignment_version_id",
+        String(36),
+        ForeignKey("responsibility_assignment_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "authority_basis_version_id",
+        String(36),
+        ForeignKey("record_versions.version_id"),
+        nullable=False,
+    ),
+    Column("effective_at_us", BigInteger, nullable=False),
+    Column("knowledge_cutoff_us", BigInteger, nullable=False),
+    Column("recorded_at_us", BigInteger, nullable=False),
+    CheckConstraint(
+        "kind IN ('SAME_OR_NEW_CASE','CASE_CLOSURE','CASE_REOPENING','CASE_SUPERSESSION')",
+        name="ck_case_continuity_determination_kind",
+    ),
+    CheckConstraint(
+        "(kind = 'SAME_OR_NEW_CASE' AND outcome IN ('SAME_CASE','NEW_CASE_REQUIRED')) OR "
+        "(kind = 'CASE_CLOSURE' AND outcome IN ('CLOSE','REMAIN_OPEN')) OR "
+        "(kind = 'CASE_REOPENING' AND outcome IN "
+        "('REOPEN_SAME_CASE','REMAIN_CLOSED','NEW_CASE_REQUIRED')) OR "
+        "(kind = 'CASE_SUPERSESSION' AND outcome IN "
+        "('SUPERSEDE_WITH_SUCCESSOR','DO_NOT_SUPERSEDE'))",
+        name="ck_case_continuity_determination_outcome",
+    ),
+)
+Index(
+    "ix_case_continuity_determination_context",
+    case_continuity_determination_versions.c.source_case_id,
+    case_continuity_determination_versions.c.kind,
+    case_continuity_determination_versions.c.effective_at_us,
+    case_continuity_determination_versions.c.recorded_at_us,
+)
+
+case_continuity_relationships = Table(
+    "case_continuity_relationships",
+    metadata,
+    Column("relationship_id", String(36), primary_key=True),
+    Column("source_case_id", String(36), ForeignKey("paim_cases.case_id"), nullable=False),
+    Column("target_case_id", String(36), ForeignKey("paim_cases.case_id"), nullable=False),
+    Column("relationship_kind", Text, nullable=False),
+    Column(
+        "determination_version_id",
+        String(36),
+        ForeignKey("case_continuity_determination_versions.version_id"),
+        nullable=False,
+    ),
+    Column("effective_at_us", BigInteger, nullable=False),
+    Column("recorded_at_us", BigInteger, nullable=False),
+    CheckConstraint("source_case_id <> target_case_id", name="ck_case_continuity_distinct_cases"),
+    CheckConstraint(
+        "relationship_kind IN ('RELATED_NEW_CASE','SUPERSEDED_BY')",
+        name="ck_case_continuity_relationship_kind",
+    ),
+)
+Index(
+    "ix_case_continuity_relationship_cases",
+    case_continuity_relationships.c.source_case_id,
+    case_continuity_relationships.c.target_case_id,
+)
+
+configuration_continuity_links = Table(
+    "configuration_continuity_links",
+    metadata,
+    Column("relationship_id", String(36), primary_key=True),
+    Column("case_id", String(36), ForeignKey("paim_cases.case_id"), nullable=False),
+    Column(
+        "predecessor_configuration_version_id",
+        String(36),
+        ForeignKey("managed_configuration_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "successor_configuration_version_id",
+        String(36),
+        ForeignKey("managed_configuration_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "determination_version_id",
+        String(36),
+        ForeignKey("case_continuity_determination_versions.version_id"),
+        nullable=False,
+    ),
+    Column("recorded_at_us", BigInteger, nullable=False),
+    CheckConstraint(
+        "predecessor_configuration_version_id <> successor_configuration_version_id",
+        name="ck_configuration_continuity_distinct_versions",
+    ),
+)
+Index(
+    "ix_configuration_continuity_case",
+    configuration_continuity_links.c.case_id,
+    configuration_continuity_links.c.recorded_at_us,
+)
+
 IMMUTABILITY_TRIGGERS: tuple[str, ...] = (
     """
     CREATE TRIGGER prevent_finalized_version_update

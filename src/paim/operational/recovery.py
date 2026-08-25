@@ -29,7 +29,7 @@ from paim.persistence.sqlite import SQLiteIntegrityStore
 if TYPE_CHECKING:
     from paim.operational.application import OperationalApplication
 
-_EXPECTED_REVISION = "0008_increment_8"
+_EXPECTED_REVISION = "0011_gate8_case_continuity"
 _APPLICATION_VERSION = "0.1.0"
 _OPERATIONAL_TABLES = (
     "operational_principals",
@@ -144,7 +144,7 @@ def create_backup(
                 "str", source.execute("SELECT version_num FROM alembic_version").fetchone()[0]
             )
         if revision != _EXPECTED_REVISION:
-            raise RecoveryRejected("active database schema is not Increment 8 compatible")
+            raise RecoveryRejected("active database schema is not compatible with this PAIM binary")
         manifest = BackupManifest(
             application_version=_APPLICATION_VERSION,
             schema_revision=revision,
