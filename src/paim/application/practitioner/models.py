@@ -144,6 +144,12 @@ class QuantitativeHighlightView:
 
 
 @dataclass(frozen=True, slots=True)
+class QuantitativeHighlightPopulation:
+    state: str
+    highlights: tuple[QuantitativeHighlightView, ...]
+
+
+@dataclass(frozen=True, slots=True)
 class AnalyticalAssessmentView:
     """One visible analytical Input with only its exact governed relations."""
 

@@ -9,6 +9,13 @@ from paim.application import Increment3ApplicationService
 from paim.application.practitioner import PractitionerQueryService
 from paim.assessment_review import AssessmentLane
 from paim.audit import ActorResolution
+from paim.continuing_review import (
+    BeginReviewEpisodeCommand,
+    RecordEventReviewAttentionCommand,
+    ReviewFocus,
+    ReviewOrigin,
+    ReviewRecordFacts,
+)
 from paim.domain import AuthorityVersionInput, CommandMeta
 from paim.integrity import CommandId, EffectiveInterval, FixedClock, RecordId, RecordVersionId
 from paim.integrity.semantics import (
@@ -40,6 +47,10 @@ from tests.integration.test_gate8_slice_c_assessment_review import (
     establish_responsibility,
     fixture,
     identity,
+)
+from tests.integration.test_gate8_slice_e_continuing_review import (
+    REVIEW_PURPOSE,
+    slice_e_fixture,
 )
 
 CONTRACT = SemanticContractRef("paim.quantitative-claims", "1.0")
@@ -84,6 +95,7 @@ def quantitative_authority(
                     "actor_id": str(actor_id),
                     "allowed_actions": [
                         "AUTHOR_THRESHOLD_CONSTRAINT",
+                        "SUPPORT_QUANTITATIVE_CLAIM",
                         "ESTABLISH_QUANTITATIVE_COMPARABILITY",
                     ],
                     "allowed_case_ids": [str(case_id)],
@@ -232,6 +244,100 @@ def comparability_command(
     )
 
 
+def review_linked_fixture(
+    store: object, key: str
+) -> tuple[SliceFFixture, RecordVersionId, RecordVersionId, RecordVersionId]:
+    review = slice_e_fixture(store, key)
+    source = review.source.source
+    begin_basis = review.responsibilities[ObligationKind.BEGIN_CONTINUING_REVIEW]
+    event = RecordEventReviewAttentionCommand(
+        identity(source.actor_a, f"{key}-event"),
+        ReviewRecordFacts.new(),
+        SemanticContractRef("paim.continuing-review", "1.0"),
+        source.opened.context,  # type: ignore[attr-defined]
+        source.opened.facts.case_id,  # type: ignore[attr-defined]
+        source.opened.facts.configuration_version_id,  # type: ignore[attr-defined]
+        review.decision_version_id,
+        review.evidence_version_id,
+        REVIEW_PURPOSE,
+        ASSESSED_SCOPE,
+        (ReviewFocus.VALUE_REFRESH,),
+        "bounded quantitative source is explicitly admitted to review attention",
+        begin_basis.responsibility_version_id,
+        begin_basis.assignment_version_id,
+        NOW,
+        KNOWN,
+    )
+    review.service.record_event_review_attention(event)
+    episode = BeginReviewEpisodeCommand(
+        identity(source.actor_a, f"{key}-episode"),
+        ReviewRecordFacts.new(),
+        SemanticContractRef("paim.continuing-review", "1.0"),
+        source.opened.context,  # type: ignore[attr-defined]
+        source.opened.facts.case_id,  # type: ignore[attr-defined]
+        source.opened.facts.configuration_version_id,  # type: ignore[attr-defined]
+        review.decision_version_id,
+        review.integration_version_id,
+        ReviewOrigin.EVENT_TRIGGER,
+        (event.facts.version_id,),
+        (ReviewFocus.VALUE_REFRESH,),
+        review.source.value.reliance_version_id,
+        review.source.risk.reliance_version_id,
+        begin_basis.responsibility_version_id,
+        begin_basis.assignment_version_id,
+        None,
+        NOW,
+        KNOWN,
+    )
+    review.service.begin_review_episode(episode)
+
+    fx = object.__new__(SliceFFixture)
+    fx.base = source
+    fx.access = SelectiveSourceAccess()
+    fx.case_id = source.opened.facts.case_id  # type: ignore[attr-defined]
+    fx.configuration_id = source.opened.facts.configuration_id  # type: ignore[attr-defined]
+    fx.configuration_version_id = source.opened.facts.configuration_version_id  # type: ignore[attr-defined]
+    fx.context = source.opened.context  # type: ignore[attr-defined]
+    fx.actor_id = source.actor_a
+    fx.source_version_id = review.evidence_version_id
+    fx.applicability_version_id = review.applicability_version_id
+    fx.responsibilities = {
+        obligation: establish_responsibility(
+            store,
+            case_id=fx.case_id,
+            actor_id=fx.actor_id,
+            assigned_actor_id=fx.actor_id,
+            context=fx.context,
+            obligation=obligation,
+            key=f"{key}-{obligation.value}",
+        )
+        for obligation in (
+            ObligationKind.AUTHOR_QUANTITATIVE_CLAIM,
+            ObligationKind.ESTABLISH_QUANTITATIVE_COMPARABILITY,
+        )
+    }
+    fx.authority_id = quantitative_authority(
+        store,
+        case_id=fx.case_id,
+        configuration_id=fx.configuration_id,
+        configuration_version_id=fx.configuration_version_id,
+        context_digest=fx.context.digest,
+        actor_id=fx.actor_id,
+        key=f"{key}-quantitative-authority",
+    )
+    fx.service = QuantitativeClaimService(
+        store,  # type: ignore[arg-type]
+        FixedClock(KNOWN),
+        fx.access,
+    )
+    return (
+        fx,
+        review.source.value.assessment_version_id,
+        episode.facts.version_id,
+        review.source.risk.assessment_version_id,
+    )
+
+
 def test_optional_typed_claims_preserve_precision_and_do_not_substitute_for_judgment(
     sqlite_store: object,
 ) -> None:
@@ -288,15 +394,22 @@ def test_expected_observed_requires_judgment_then_returns_exact_non_causal_arith
             effective_at=NOW,
             known_at=KNOWN - timedelta(microseconds=1),
         )
-    expected_version = sqlite_store.get_version(expected.facts.version_id)  # type: ignore[attr-defined]
-    assert expected_version is not None
-    highlights = PractitionerQueryService(sqlite_store).quantitative_highlights(  # type: ignore[arg-type]
-        visible_claims=(expected_version,), effective_at=NOW, known_at=KNOWN
+    population = fx.service.readable_claim_population(
+        principal_id="principal:slice-c",
+        actor_id=fx.actor_id,
+        case_id=fx.case_id,
+        claim_version_ids=(expected.facts.version_id,),
+        effective_at=NOW,
+        known_at=KNOWN,
     )
-    assert len(highlights) == 1
-    assert highlights[0].supplied_value == "12.30"
-    assert not highlights[0].judgment_established
-    assert not highlights[0].ranking_inferred
+    highlights = PractitionerQueryService(sqlite_store).quantitative_highlights(  # type: ignore[arg-type]
+        population=population, effective_at=NOW, known_at=KNOWN
+    )
+    assert highlights.state == "AVAILABLE"
+    assert len(highlights.highlights) == 1
+    assert highlights.highlights[0].supplied_value == "12.30"
+    assert not highlights.highlights[0].judgment_established
+    assert not highlights.highlights[0].ranking_inferred
     before = fx.service.compare(
         principal_id="principal:slice-c",
         actor_id=fx.actor_id,
@@ -671,3 +784,148 @@ def test_comparison_enforces_orientation_exact_pair_and_dual_time_basis(
             effective_at=NOW,
             known_at=KNOWN + timedelta(seconds=1),
         )
+
+
+def test_complete_claim_source_closure_prevents_select_compare_and_highlight_leakage(
+    sqlite_store: object,
+) -> None:
+    fx, assessment_id, episode_id, unrelated_id = review_linked_fixture(
+        sqlite_store, "full-read-closure"
+    )
+    expected = replace(
+        claim_command(
+            fx,
+            "closure-expected",
+            QuantitativeClaimType.ESTIMATE_EXPECTATION,
+            "14.00",
+        ),
+        assessment_version_id=assessment_id,
+        review_episode_version_id=episode_id,
+        authority_source_version_id=fx.authority_id,
+    )
+    observed = replace(
+        claim_command(
+            fx,
+            "closure-observed",
+            QuantitativeClaimType.OBSERVED_RESULT,
+            "12.00",
+        ),
+        assessment_version_id=assessment_id,
+        review_episode_version_id=episode_id,
+        authority_source_version_id=fx.authority_id,
+    )
+    fx.service.record_claim(expected)
+    fx.service.record_claim(observed)
+    fx.service.establish_comparability(
+        comparability_command(
+            fx,
+            expected.facts.version_id,
+            observed.facts.version_id,
+            "closure-comparability",
+        )
+    )
+    author = fx.responsibilities[ObligationKind.AUTHOR_QUANTITATIVE_CLAIM]
+    with sqlite_store.read_transaction() as tx:  # type: ignore[attr-defined]
+        assignment = tx.projection_rows(
+            "responsibility_assignment_versions",
+            version_id=str(author.assignment_version_id),
+        )[0]
+        assignment_basis_id = RecordVersionId.parse(str(assignment["assignment_basis_version_id"]))
+        assignment_basis = tx.projection_rows(
+            "assignment_basis_versions", version_id=str(assignment_basis_id)
+        )[0]
+        assignment_authority_source_id = RecordVersionId.parse(
+            str(assignment_basis["basis_source_version_id"])
+        )
+
+    selection_arguments = {
+        "principal_id": "principal:slice-c",
+        "actor_id": fx.actor_id,
+        "case_id": fx.case_id,
+        "configuration_version_id": fx.configuration_version_id,
+        "context_digest": fx.context.digest,
+        "lane": AssessmentLane.VALUE.value,
+        "claim_type": QuantitativeClaimType.ESTIMATE_EXPECTATION.value,
+        "construct_id": "bounded-service-timeliness",
+        "metric_id": "approval-turnaround",
+        "effective_at": NOW,
+        "known_at": KNOWN,
+    }
+    comparison_arguments = {
+        "principal_id": "principal:slice-c",
+        "actor_id": fx.actor_id,
+        "case_id": fx.case_id,
+        "left_claim_version_id": expected.facts.version_id,
+        "right_claim_version_id": observed.facts.version_id,
+        "effective_at": NOW,
+        "known_at": KNOWN,
+    }
+    population_arguments = {
+        "principal_id": "principal:slice-c",
+        "actor_id": fx.actor_id,
+        "case_id": fx.case_id,
+        "claim_version_ids": (expected.facts.version_id,),
+        "effective_at": NOW,
+        "known_at": KNOWN,
+    }
+
+    assert fx.service.select_claim(**selection_arguments).state == "ONE"  # type: ignore[arg-type]
+    assert fx.service.compare(**comparison_arguments).state is ComparisonState.COMPARABLE  # type: ignore[arg-type]
+    visible_population = fx.service.readable_claim_population(**population_arguments)  # type: ignore[arg-type]
+    visible_highlights = PractitionerQueryService(sqlite_store).quantitative_highlights(  # type: ignore[arg-type]
+        population=visible_population,
+        effective_at=NOW,
+        known_at=KNOWN,
+    )
+    assert visible_population.state == "AVAILABLE"
+    assert visible_highlights.state == "AVAILABLE"
+    assert len(visible_highlights.highlights) == 1
+    assert visible_highlights.highlights[0].metric_label == "approval-turnaround"
+
+    governed_sources = {
+        "assessment": assessment_id,
+        "review_episode": episode_id,
+        "claim_authority": fx.authority_id,
+        "responsibility": author.responsibility_version_id,
+        "assignment": author.assignment_version_id,
+        "assignment_basis": assignment_basis_id,
+        "assignment_authority_source": assignment_authority_source_id,
+    }
+    for label, hidden_id in governed_sources.items():
+        hidden_service = QuantitativeClaimService(
+            sqlite_store,  # type: ignore[arg-type]
+            FixedClock(KNOWN),
+            SelectiveSourceAccess(frozenset({hidden_id})),
+        )
+        assert hidden_service.select_claim(**selection_arguments).state == (  # type: ignore[arg-type]
+            "NOT_SAFELY_AVAILABLE"
+        ), label
+        with pytest.raises(Exception, match="software access not established"):
+            hidden_service.compare(**comparison_arguments)  # type: ignore[arg-type]
+        hidden_population = hidden_service.readable_claim_population(  # type: ignore[arg-type]
+            **population_arguments
+        )
+        hidden_highlights = PractitionerQueryService(
+            sqlite_store  # type: ignore[arg-type]
+        ).quantitative_highlights(
+            population=hidden_population,
+            effective_at=NOW,
+            known_at=KNOWN,
+        )
+        assert hidden_population.state == "NOT_SAFELY_AVAILABLE", label
+        assert hidden_population.versions == (), label
+        assert hidden_highlights.state == "NOT_SAFELY_AVAILABLE", label
+        assert hidden_highlights.highlights == (), label
+
+    unrelated_service = QuantitativeClaimService(
+        sqlite_store,  # type: ignore[arg-type]
+        FixedClock(KNOWN),
+        SelectiveSourceAccess(frozenset({unrelated_id})),
+    )
+    assert unrelated_service.select_claim(**selection_arguments).state == "ONE"  # type: ignore[arg-type]
+    assert unrelated_service.compare(**comparison_arguments).state is ComparisonState.COMPARABLE  # type: ignore[arg-type]
+    unrelated_population = unrelated_service.readable_claim_population(  # type: ignore[arg-type]
+        **population_arguments
+    )
+    assert unrelated_population.state == "AVAILABLE"
+    assert len(unrelated_population.versions) == 1

@@ -9,6 +9,7 @@ from enum import StrEnum
 
 from paim.assessment_review.models import AssessmentLane, CommandIdentity
 from paim.integrity.ids import RecordId, RecordVersionId
+from paim.integrity.records import FinalizedRecordVersion
 from paim.integrity.semantics import ExactContextSet, SemanticContractRef
 from paim.integrity.time import require_utc
 
@@ -231,6 +232,12 @@ class EstablishComparabilityCommand:
 class ClaimSelection:
     state: str
     version_ids: tuple[RecordVersionId, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class ClaimReadPopulation:
+    state: str
+    versions: tuple[FinalizedRecordVersion, ...]
 
 
 @dataclass(frozen=True, slots=True)

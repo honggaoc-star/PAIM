@@ -36,10 +36,15 @@ or Value-minus-Risk netting.
 
 ## Access and practitioner composition
 
-Claim and linked-source authorization occurs before selection or comparison. Hidden sources do
-not leak labels, counts, dates, deltas, or comparison availability. Practitioner highlights are
-composed only from an already access-filtered population and expose supplied meaning and caveats,
-not a scorecard or generic numeric alert.
+Claim authorization uses one complete read-side source closure before selection, comparison, or
+practitioner composition. That closure includes the Claim Version, governing Configuration,
+exact context Versions, explicit source and Applicability links, optional assessment and Review
+Episode links, substantive claim authority, Responsibility, Assignment, Assignment Basis, and
+the assignment-authority source. If any required source is malformed or hidden, the claim is not
+safely available; absence remains distinct from non-disclosure. Hidden sources therefore do not
+leak labels, counts, dates, deltas, comparison availability, or highlights. Practitioner
+highlights are composed only from a population authorized over that full closure and expose
+supplied meaning and caveats, not a scorecard or generic numeric alert.
 
 ## Persistence and compatibility
 

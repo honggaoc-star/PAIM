@@ -33,6 +33,7 @@ from paim.integrity.time import Clock, EffectiveInterval, to_epoch_microseconds
 from paim.persistence.ports import CommandOutcome, IdempotencyFact
 from paim.quantitative_claims.models import (
     ClaimComparison,
+    ClaimReadPopulation,
     ClaimSelection,
     ComparisonState,
     EstablishComparabilityCommand,
@@ -307,8 +308,12 @@ class QuantitativeClaimService:
                 command.assignment_version_id,
                 command.authority_source_version_id,
             }
-            sources.update(self._claim_bases(tx, command.left_claim_version_id))
-            sources.update(self._claim_bases(tx, command.right_claim_version_id))
+            left_closure = self._claim_read_closure(tx, command.left_claim_version_id)
+            right_closure = self._claim_read_closure(tx, command.right_claim_version_id)
+            if left_closure is None or right_closure is None:
+                raise QuantitativeClaimAccessDenied()
+            sources.update(left_closure)
+            sources.update(right_closure)
             self._validate_sources(tx, command, sources, recorded_at)
             mismatches = self._mechanical_mismatches(left, right)
             if command.outcome is ComparisonState.COMPARABLE and mismatches:
@@ -438,7 +443,10 @@ class QuantitativeClaimService:
             visible: list[RecordVersionId] = []
             hidden = False
             for candidate in candidates:
-                bases = self._claim_bases(tx, candidate.version_id) | {candidate.version_id}
+                bases = self._claim_read_closure(tx, candidate.version_id)
+                if bases is None:
+                    hidden = True
+                    continue
                 if all(
                     self._source_visible(principal_id, actor_id, case_id, source_id)
                     for source_id in bases
@@ -462,8 +470,10 @@ class QuantitativeClaimService:
         known_at: datetime,
     ) -> ClaimComparison:
         with self._store.read_transaction() as tx:
-            left_bases = self._claim_bases(tx, left_claim_version_id) | {left_claim_version_id}
-            right_bases = self._claim_bases(tx, right_claim_version_id) | {right_claim_version_id}
+            left_bases = self._claim_read_closure(tx, left_claim_version_id)
+            right_bases = self._claim_read_closure(tx, right_claim_version_id)
+            if left_bases is None or right_bases is None:
+                raise QuantitativeClaimAccessDenied()
             if not all(
                 self._source_visible(principal_id, actor_id, case_id, version_id)
                 for version_id in left_bases | right_bases
@@ -572,6 +582,40 @@ class QuantitativeClaimService:
                 self._decimal_text(percentage) if percentage is not None else None,
             )
 
+    def readable_claim_population(
+        self,
+        *,
+        principal_id: str,
+        actor_id: RecordId,
+        case_id: RecordId,
+        claim_version_ids: tuple[RecordVersionId, ...],
+        effective_at: datetime,
+        known_at: datetime,
+    ) -> ClaimReadPopulation:
+        """Authorize the complete source closure; hidden is distinct from absence."""
+
+        if not claim_version_ids:
+            return ClaimReadPopulation("ABSENT", ())
+        with self._store.read_transaction() as tx:
+            versions: list[FinalizedRecordVersion] = []
+            for version_id in claim_version_ids:
+                closure = self._claim_read_closure(tx, version_id)
+                if closure is None or not all(
+                    self._source_visible(principal_id, actor_id, case_id, source_id)
+                    for source_id in closure
+                ):
+                    return ClaimReadPopulation("NOT_SAFELY_AVAILABLE", ())
+                try:
+                    self._require_knowable(tx, version_id, effective_at, known_at)
+                except QuantitativeClaimConflict:
+                    return ClaimReadPopulation("NOT_SAFELY_AVAILABLE", ())
+                row = self._claim_row(tx, version_id)
+                version = tx.get_version(version_id)
+                if row["case_id"] != str(case_id) or version is None:
+                    return ClaimReadPopulation("NOT_SAFELY_AVAILABLE", ())
+                versions.append(version)
+            return ClaimReadPopulation("AVAILABLE", tuple(versions))
+
     @staticmethod
     def _claim_row(tx: ContinuityTransaction, version_id: RecordVersionId) -> dict[str, object]:
         rows = tx.projection_rows("quantitative_claim_versions", version_id=str(version_id))
@@ -579,16 +623,65 @@ class QuantitativeClaimService:
             raise QuantitativeClaimConflict("exact quantitative claim is unavailable")
         return rows[0]
 
-    @staticmethod
-    def _claim_bases(
-        tx: ContinuityTransaction, version_id: RecordVersionId
-    ) -> set[RecordVersionId]:
-        return {
-            RecordVersionId.parse(str(row["source_version_id"]))
-            for row in tx.projection_rows(
-                "quantitative_claim_basis_links", claim_version_id=str(version_id)
+    @classmethod
+    def _claim_read_closure(
+        cls, tx: ContinuityTransaction, version_id: RecordVersionId
+    ) -> set[RecordVersionId] | None:
+        """One full exact source closure shared by selection, comparison, and composition."""
+
+        rows = tx.projection_rows("quantitative_claim_versions", version_id=str(version_id))
+        if len(rows) != 1 or tx.get_version(version_id) is None:
+            return None
+        row = rows[0]
+        links = tx.projection_rows(
+            "quantitative_claim_basis_links", claim_version_id=str(version_id)
+        )
+        if not {"SOURCE", "APPLICABILITY"} <= {str(item["link_role"]) for item in links}:
+            return None
+        try:
+            closure = {
+                version_id,
+                RecordVersionId.parse(str(row["configuration_version_id"])),
+                RecordVersionId.parse(str(row["responsibility_version_id"])),
+                RecordVersionId.parse(str(row["assignment_version_id"])),
+                *(RecordVersionId.parse(str(item["source_version_id"])) for item in links),
+            }
+            for field in (
+                "assessment_version_id",
+                "review_episode_version_id",
+                "authority_source_version_id",
+            ):
+                if row.get(field):
+                    closure.add(RecordVersionId.parse(str(row[field])))
+            assignments = tx.projection_rows(
+                "responsibility_assignment_versions",
+                version_id=str(row["assignment_version_id"]),
             )
-        }
+            if len(assignments) != 1 or assignments[0]["responsibility_version_id"] != str(
+                row["responsibility_version_id"]
+            ):
+                return None
+            basis_id = RecordVersionId.parse(str(assignments[0]["assignment_basis_version_id"]))
+            closure.add(basis_id)
+            bases = tx.projection_rows("assignment_basis_versions", version_id=str(basis_id))
+            if len(bases) != 1:
+                return None
+            closure.add(RecordVersionId.parse(str(bases[0]["basis_source_version_id"])))
+            context_members = tx.projection_rows(
+                "exact_context_members", context_digest=str(row["context_digest"])
+            )
+            if not context_members:
+                return None
+            closure.update(
+                RecordVersionId.parse(str(member["identity"]))
+                for member in context_members
+                if member["member_kind"] == "VERSION"
+            )
+        except (KeyError, TypeError, ValueError):
+            return None
+        if any(tx.get_version(source_id) is None for source_id in closure):
+            return None
+        return closure
 
     @classmethod
     def _mechanical_mismatches(
@@ -919,7 +1012,9 @@ class QuantitativeClaimService:
             tx,
             command,
             command.authority_source_version_id,
-            "AUTHOR_THRESHOLD_CONSTRAINT",
+            "AUTHOR_THRESHOLD_CONSTRAINT"
+            if command.claim_type is QuantitativeClaimType.THRESHOLD_CONSTRAINT
+            else "SUPPORT_QUANTITATIVE_CLAIM",
             known_at,
         )
 

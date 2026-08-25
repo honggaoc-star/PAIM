@@ -22,6 +22,7 @@ from paim.application.practitioner.models import (
     HomeView,
     OrientationItemView,
     PractitionerExceptionView,
+    QuantitativeHighlightPopulation,
     QuantitativeHighlightView,
     ReadState,
     SourceBasis,
@@ -43,6 +44,7 @@ from paim.integrity import (
     SelectionQuery,
 )
 from paim.persistence.ports import IntegrityStore
+from paim.quantitative_claims.models import ClaimReadPopulation
 
 
 class PractitionerQueryService:
@@ -132,13 +134,15 @@ class PractitionerQueryService:
     def quantitative_highlights(
         self,
         *,
-        visible_claims: tuple[FinalizedRecordVersion, ...],
+        population: ClaimReadPopulation,
         effective_at: datetime,
         known_at: datetime,
-    ) -> tuple[QuantitativeHighlightView, ...]:
-        """Compose only an upstream access-filtered population; never query hidden claims."""
+    ) -> QuantitativeHighlightPopulation:
+        """Compose only the full-closure-authorized population and retain its read state."""
 
-        current = self._current_versions(visible_claims, effective_at, known_at)
+        if population.state != "AVAILABLE":
+            return QuantitativeHighlightPopulation(population.state, ())
+        current = self._current_versions(population.versions, effective_at, known_at)
         highlights: list[QuantitativeHighlightView] = []
         for claim in current:
             if claim.family != "quantitative-claim":
@@ -187,7 +191,7 @@ class PractitionerQueryService:
                     claim_version_id=str(claim.version_id),
                 )
             )
-        return tuple(highlights)
+        return QuantitativeHighlightPopulation("AVAILABLE", tuple(highlights))
 
     def case_list(
         self,

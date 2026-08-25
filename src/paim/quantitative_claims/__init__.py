@@ -3,6 +3,7 @@
 from paim.quantitative_claims.models import (
     ClaimComparison,
     ClaimFacts,
+    ClaimReadPopulation,
     ClaimSelection,
     ComparabilityFacts,
     ComparisonState,
@@ -23,6 +24,7 @@ from paim.quantitative_claims.service import (
 __all__ = [
     "ClaimComparison",
     "ClaimFacts",
+    "ClaimReadPopulation",
     "ClaimSelection",
     "ComparabilityFacts",
     "ComparisonState",
