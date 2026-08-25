@@ -4370,6 +4370,382 @@ Index(
     assessment_reliance_versions.c.decision_use,
 )
 
+prospective_integration_records = Table(
+    "prospective_integration_records",
+    metadata,
+    Column("record_id", String(36), ForeignKey("records.record_id"), primary_key=True),
+)
+prospective_integration_versions = Table(
+    "prospective_integration_versions",
+    metadata,
+    Column("version_id", String(36), ForeignKey("record_versions.version_id"), primary_key=True),
+    Column(
+        "record_id",
+        String(36),
+        ForeignKey("prospective_integration_records.record_id"),
+        nullable=False,
+    ),
+    Column("case_id", String(36), ForeignKey("paim_cases.case_id"), nullable=False),
+    Column(
+        "configuration_version_id",
+        String(36),
+        ForeignKey("managed_configuration_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "context_digest",
+        String(64),
+        ForeignKey("exact_context_sets.context_digest"),
+        nullable=False,
+    ),
+    Column("decision_use", Text, nullable=False),
+    Column("bounded_scope", Text, nullable=False),
+    Column(
+        "value_assessment_version_id",
+        String(36),
+        ForeignKey("assessment_candidate_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "value_readiness_version_id",
+        String(36),
+        ForeignKey("assessment_readiness_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "value_adequacy_version_id",
+        String(36),
+        ForeignKey("assessment_adequacy_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "value_reliance_version_id",
+        String(36),
+        ForeignKey("assessment_reliance_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "risk_assessment_version_id",
+        String(36),
+        ForeignKey("assessment_candidate_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "risk_readiness_version_id",
+        String(36),
+        ForeignKey("assessment_readiness_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "risk_adequacy_version_id",
+        String(36),
+        ForeignKey("assessment_adequacy_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "risk_reliance_version_id",
+        String(36),
+        ForeignKey("assessment_reliance_versions.version_id"),
+        nullable=False,
+    ),
+    Column("value_information_basis_json", Text, nullable=False),
+    Column("risk_information_basis_json", Text, nullable=False),
+    Column(
+        "responsibility_version_id",
+        String(36),
+        ForeignKey("responsibility_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "assignment_version_id",
+        String(36),
+        ForeignKey("responsibility_assignment_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "authority_source_version_id",
+        String(36),
+        ForeignKey("record_versions.version_id"),
+        nullable=False,
+    ),
+    Column("knowledge_cutoff_us", BigInteger, nullable=False),
+    Column(
+        "predecessor_version_id",
+        String(36),
+        ForeignKey("prospective_integration_versions.version_id"),
+        nullable=True,
+    ),
+)
+Index(
+    "ix_prospective_integration_selection",
+    prospective_integration_versions.c.case_id,
+    prospective_integration_versions.c.configuration_version_id,
+    prospective_integration_versions.c.context_digest,
+    prospective_integration_versions.c.decision_use,
+    prospective_integration_versions.c.bounded_scope,
+)
+
+prospective_decision_records = Table(
+    "prospective_decision_records",
+    metadata,
+    Column("record_id", String(36), ForeignKey("records.record_id"), primary_key=True),
+)
+prospective_decision_versions = Table(
+    "prospective_decision_versions",
+    metadata,
+    Column("version_id", String(36), ForeignKey("record_versions.version_id"), primary_key=True),
+    Column(
+        "record_id",
+        String(36),
+        ForeignKey("prospective_decision_records.record_id"),
+        nullable=False,
+    ),
+    Column("case_id", String(36), ForeignKey("paim_cases.case_id"), nullable=False),
+    Column(
+        "configuration_version_id",
+        String(36),
+        ForeignKey("managed_configuration_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "context_digest",
+        String(64),
+        ForeignKey("exact_context_sets.context_digest"),
+        nullable=False,
+    ),
+    Column(
+        "integration_version_id",
+        String(36),
+        ForeignKey("prospective_integration_versions.version_id"),
+        nullable=False,
+    ),
+    Column("decision_use", Text, nullable=False),
+    Column("bounded_scope", Text, nullable=False),
+    Column("status", Text, nullable=False),
+    Column(
+        "value_assessment_version_id",
+        String(36),
+        ForeignKey("assessment_candidate_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "value_readiness_version_id",
+        String(36),
+        ForeignKey("assessment_readiness_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "value_adequacy_version_id",
+        String(36),
+        ForeignKey("assessment_adequacy_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "value_reliance_version_id",
+        String(36),
+        ForeignKey("assessment_reliance_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "risk_assessment_version_id",
+        String(36),
+        ForeignKey("assessment_candidate_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "risk_readiness_version_id",
+        String(36),
+        ForeignKey("assessment_readiness_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "risk_adequacy_version_id",
+        String(36),
+        ForeignKey("assessment_adequacy_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "risk_reliance_version_id",
+        String(36),
+        ForeignKey("assessment_reliance_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "responsibility_version_id",
+        String(36),
+        ForeignKey("responsibility_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "assignment_version_id",
+        String(36),
+        ForeignKey("responsibility_assignment_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "authority_source_version_id",
+        String(36),
+        ForeignKey("record_versions.version_id"),
+        nullable=True,
+    ),
+    Column(
+        "proposal_version_id",
+        String(36),
+        ForeignKey("prospective_decision_versions.version_id"),
+        nullable=True,
+    ),
+    Column(
+        "predecessor_version_id",
+        String(36),
+        ForeignKey("prospective_decision_versions.version_id"),
+        nullable=True,
+    ),
+    Column("knowledge_cutoff_us", BigInteger, nullable=False),
+    CheckConstraint("status IN ('PROPOSED','AUTHORIZED')", name="ck_prospective_decision_status"),
+)
+Index(
+    "ix_prospective_decision_selection",
+    prospective_decision_versions.c.case_id,
+    prospective_decision_versions.c.configuration_version_id,
+    prospective_decision_versions.c.context_digest,
+    prospective_decision_versions.c.decision_use,
+    prospective_decision_versions.c.bounded_scope,
+)
+
+prospective_decision_authorization_records = Table(
+    "prospective_decision_authorization_records",
+    metadata,
+    Column("record_id", String(36), ForeignKey("records.record_id"), primary_key=True),
+)
+prospective_decision_authorization_versions = Table(
+    "prospective_decision_authorization_versions",
+    metadata,
+    Column("version_id", String(36), ForeignKey("record_versions.version_id"), primary_key=True),
+    Column(
+        "record_id",
+        String(36),
+        ForeignKey("prospective_decision_authorization_records.record_id"),
+        nullable=False,
+    ),
+    Column(
+        "decision_version_id",
+        String(36),
+        ForeignKey("prospective_decision_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "proposal_version_id",
+        String(36),
+        ForeignKey("prospective_decision_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "integration_version_id",
+        String(36),
+        ForeignKey("prospective_integration_versions.version_id"),
+        nullable=False,
+    ),
+    Column("case_id", String(36), ForeignKey("paim_cases.case_id"), nullable=False),
+    Column(
+        "configuration_version_id",
+        String(36),
+        ForeignKey("managed_configuration_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "context_digest",
+        String(64),
+        ForeignKey("exact_context_sets.context_digest"),
+        nullable=False,
+    ),
+    Column(
+        "authority_source_version_id",
+        String(36),
+        ForeignKey("record_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "responsibility_version_id",
+        String(36),
+        ForeignKey("responsibility_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "assignment_version_id",
+        String(36),
+        ForeignKey("responsibility_assignment_versions.version_id"),
+        nullable=False,
+    ),
+)
+Index(
+    "ix_prospective_decision_authorization",
+    prospective_decision_authorization_versions.c.decision_version_id,
+)
+
+prospective_decision_confirmation_records = Table(
+    "prospective_decision_confirmation_records",
+    metadata,
+    Column("record_id", String(36), ForeignKey("records.record_id"), primary_key=True),
+)
+prospective_decision_confirmation_versions = Table(
+    "prospective_decision_confirmation_versions",
+    metadata,
+    Column("version_id", String(36), ForeignKey("record_versions.version_id"), primary_key=True),
+    Column(
+        "record_id",
+        String(36),
+        ForeignKey("prospective_decision_confirmation_records.record_id"),
+        nullable=False,
+    ),
+    Column(
+        "decision_version_id",
+        String(36),
+        ForeignKey("prospective_decision_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "integration_version_id",
+        String(36),
+        ForeignKey("prospective_integration_versions.version_id"),
+        nullable=False,
+    ),
+    Column("case_id", String(36), ForeignKey("paim_cases.case_id"), nullable=False),
+    Column(
+        "configuration_version_id",
+        String(36),
+        ForeignKey("managed_configuration_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "context_digest",
+        String(64),
+        ForeignKey("exact_context_sets.context_digest"),
+        nullable=False,
+    ),
+    Column(
+        "responsibility_version_id",
+        String(36),
+        ForeignKey("responsibility_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "assignment_version_id",
+        String(36),
+        ForeignKey("responsibility_assignment_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "authority_source_version_id",
+        String(36),
+        ForeignKey("record_versions.version_id"),
+        nullable=False,
+    ),
+)
+Index(
+    "ix_prospective_decision_confirmation",
+    prospective_decision_confirmation_versions.c.decision_version_id,
+)
+
 IMMUTABILITY_TRIGGERS: tuple[str, ...] = (
     """
     CREATE TRIGGER prevent_finalized_version_update

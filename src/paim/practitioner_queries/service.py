@@ -19,6 +19,7 @@ from paim.integrity.selection import SelectionFound, SelectionQuery
 from paim.practitioner_queries.models import (
     AttentionItem,
     CaseView,
+    GovernedPosition,
     HomeView,
     LanePosition,
     SourceManifest,
@@ -157,6 +158,15 @@ class PractitionerQueryService:
                 effective_at,
                 known_at,
             )
+            integration_position, decision_position = self._slice_d_positions(
+                tx,
+                principal_id,
+                actor_id,
+                case_id,
+                governing_id,
+                effective_at,
+                known_at,
+            )
             manifest.update(
                 RecordVersionId.parse(str(row["version_id"])) for row in responsibilities
             )
@@ -164,6 +174,9 @@ class PractitionerQueryService:
             for lane_position in (value_position, risk_position):
                 if lane_position is not None:
                     manifest.update(lane_position.source_version_ids)
+            for governed_position in (integration_position, decision_position):
+                if governed_position is not None:
+                    manifest.update(governed_position.source_version_ids)
             position = (
                 "Case continuity: "
                 f"{continuity.status.value if continuity.status else continuity.kind.value}",
@@ -192,6 +205,8 @@ class PractitionerQueryService:
                 SourceManifest(tuple(sorted(manifest, key=str)), effective_at, known_at),
                 value_position=value_position,
                 risk_position=risk_position,
+                integration_position=integration_position,
+                decision_position=decision_position,
             )
 
     def task(
@@ -351,17 +366,53 @@ class PractitionerQueryService:
                     "RISK_RELIANCE",
                     "Which adequate Risk assessment should this Case actually use?",
                 ),
+                "COMPLETE_VALUE_RISK_INTEGRATION": (
+                    "VALUE_RISK_INTEGRATION",
+                    "How should the exact relied Value and Risk positions be integrated?",
+                ),
+                "PROPOSE_MANAGEMENT_DECISION": (
+                    "DECISION_PROPOSAL",
+                    "What bounded management action should be proposed from this Integration?",
+                ),
+                "AUTHORIZE_MANAGEMENT_DECISION": (
+                    "DECISION_AUTHORIZATION",
+                    "Should this exact proposed Decision be authorized within its authority basis?",
+                ),
+                "CONFIRM_MANAGEMENT_DECISION": (
+                    "DECISION_CONFIRMATION",
+                    "Does the exact authorized Decision remain unchanged?",
+                ),
             }.get(obligation)
-            if lane_question and not self._lane_attention_required(
-                tx,
-                principal_id,
-                actor_id,
-                obligation,
-                case_id,
-                effective_at,
-                known_at,
-            ):
-                continue
+            if lane_question:
+                slice_d_obligations = {
+                    "COMPLETE_VALUE_RISK_INTEGRATION",
+                    "PROPOSE_MANAGEMENT_DECISION",
+                    "AUTHORIZE_MANAGEMENT_DECISION",
+                    "CONFIRM_MANAGEMENT_DECISION",
+                }
+                required = (
+                    self._slice_d_attention_required(
+                        tx,
+                        principal_id,
+                        actor_id,
+                        obligation,
+                        case_id,
+                        effective_at,
+                        known_at,
+                    )
+                    if obligation in slice_d_obligations
+                    else self._lane_attention_required(
+                        tx,
+                        principal_id,
+                        actor_id,
+                        obligation,
+                        case_id,
+                        effective_at,
+                        known_at,
+                    )
+                )
+                if not required:
+                    continue
             result.append(
                 AttentionItem(
                     case_id,
@@ -422,6 +473,67 @@ class PractitionerQueryService:
                 and "reliance" not in lane_rows.unavailable
             )
         return True
+
+    def _slice_d_attention_required(
+        self,
+        tx: ContinuityTransaction,
+        principal_id: str,
+        actor_id: RecordId,
+        obligation: str,
+        case_id: RecordId,
+        effective_at: datetime,
+        known_at: datetime,
+    ) -> bool:
+        governing = self._current_family(
+            tx,
+            "governing-configuration",
+            f"case:{case_id}",
+            effective_at,
+            known_at,
+        )
+        if len(governing) != 1:
+            return False
+        rows = tx.projection_rows(
+            "governing_configuration_designations", version_id=str(governing[0])
+        )
+        if len(rows) != 1:
+            return False
+        configuration_version_id = RecordVersionId.parse(str(rows[0]["configuration_version_id"]))
+        integration, decision = self._slice_d_positions(
+            tx,
+            principal_id,
+            actor_id,
+            case_id,
+            configuration_version_id,
+            effective_at,
+            known_at,
+        )
+        if obligation == "COMPLETE_VALUE_RISK_INTEGRATION":
+            lanes = tuple(
+                self._lane_position(
+                    tx,
+                    principal_id,
+                    actor_id,
+                    lane,
+                    case_id,
+                    configuration_version_id,
+                    effective_at,
+                    known_at,
+                )
+                for lane in ("VALUE", "RISK")
+            )
+            return integration is None and all(
+                lane is not None and lane.reliance == "RELIED" for lane in lanes
+            )
+        if obligation == "PROPOSE_MANAGEMENT_DECISION":
+            return bool(
+                integration is not None and integration.state == "COMPLETED" and decision is None
+            )
+        if obligation == "AUTHORIZE_MANAGEMENT_DECISION":
+            return decision is not None and decision.state == "PROPOSED"
+        # Confirmation requires an explicit owning review/Work source; the mere
+        # existence of an authorized Decision is not inferred as attention.
+        return False
 
     def _lane_position(
         self,
@@ -634,6 +746,294 @@ class PractitionerQueryService:
             elif row.get("assignment_basis_version_id"):
                 basis_id = RecordVersionId.parse(str(row["assignment_basis_version_id"]))
             if basis_id is not None:
+                bases = tx.projection_rows("assignment_basis_versions", version_id=str(basis_id))
+                if len(bases) != 1:
+                    return None
+                required.add(RecordVersionId.parse(str(bases[0]["basis_source_version_id"])))
+            return required
+        except (KeyError, TypeError, ValueError):
+            return None
+
+    def _slice_d_positions(
+        self,
+        tx: ContinuityTransaction,
+        principal_id: str,
+        actor_id: RecordId,
+        case_id: RecordId,
+        configuration_version_id: RecordVersionId | None,
+        effective_at: datetime,
+        known_at: datetime,
+    ) -> tuple[GovernedPosition | None, GovernedPosition | None]:
+        if configuration_version_id is None:
+            return None, None
+        integration_rows = self._current_projection_rows(
+            tx,
+            tx.projection_rows(
+                "prospective_integration_versions",
+                case_id=str(case_id),
+                configuration_version_id=str(configuration_version_id),
+            ),
+            effective_at,
+            known_at,
+        )
+        visible_integrations = self._visible_slice_d_rows(
+            tx,
+            principal_id,
+            actor_id,
+            case_id,
+            integration_rows,
+            "integration",
+            effective_at,
+            known_at,
+        )
+        integration_position = self._governed_position(
+            visible_integrations,
+            hidden=self._slice_d_has_hidden_sources(
+                tx,
+                principal_id,
+                actor_id,
+                case_id,
+                integration_rows,
+                "integration",
+            ),
+            established="COMPLETED",
+        )
+        visible_integration_ids = {str(row["version_id"]) for row in visible_integrations}
+        decision_rows = tuple(
+            row
+            for row in self._current_projection_rows(
+                tx,
+                tx.projection_rows(
+                    "prospective_decision_versions",
+                    case_id=str(case_id),
+                    configuration_version_id=str(configuration_version_id),
+                ),
+                effective_at,
+                known_at,
+            )
+            if str(row["integration_version_id"]) in visible_integration_ids
+        )
+        visible_decisions = self._visible_slice_d_rows(
+            tx,
+            principal_id,
+            actor_id,
+            case_id,
+            decision_rows,
+            "decision",
+            effective_at,
+            known_at,
+        )
+        decision_position = self._governed_position(
+            visible_decisions,
+            hidden=self._slice_d_has_hidden_sources(
+                tx,
+                principal_id,
+                actor_id,
+                case_id,
+                decision_rows,
+                "decision",
+            ),
+            established=None,
+        )
+        return integration_position, decision_position
+
+    @staticmethod
+    def _governed_position(
+        rows: tuple[dict[str, object], ...],
+        *,
+        hidden: bool,
+        established: str | None,
+    ) -> GovernedPosition | None:
+        if hidden:
+            return GovernedPosition("STATUS NOT AVAILABLE", ())
+        if not rows:
+            return None
+        if len(rows) > 1:
+            return GovernedPosition("CONFLICT — UNRESOLVED", ())
+        row = rows[0]
+        return GovernedPosition(
+            str(row.get("status") or established),
+            tuple(
+                RecordVersionId.parse(value)
+                for value in cast(tuple[str, ...], row["_visible_source_version_ids"])
+            ),
+        )
+
+    def _visible_slice_d_rows(
+        self,
+        tx: ContinuityTransaction,
+        principal_id: str,
+        actor_id: RecordId,
+        case_id: RecordId,
+        rows: tuple[dict[str, object], ...],
+        kind: str,
+        effective_at: datetime,
+        known_at: datetime,
+    ) -> tuple[dict[str, object], ...]:
+        visible: list[dict[str, object]] = []
+        for row in rows:
+            required = self._slice_d_required_versions(tx, row, kind)
+            if required is None or not all(
+                self._source_visible(
+                    tx,
+                    principal_id,
+                    actor_id,
+                    case_id,
+                    version_id,
+                )
+                for version_id in required
+            ):
+                continue
+            basis_row = row
+            if kind == "decision":
+                integration_rows = tx.projection_rows(
+                    "prospective_integration_versions",
+                    version_id=str(row["integration_version_id"]),
+                )
+                if len(integration_rows) != 1:
+                    continue
+                basis_row = integration_rows[0]
+            if not self._slice_d_basis_current(tx, basis_row, effective_at, known_at):
+                continue
+            enriched = dict(row)
+            enriched["_visible_source_version_ids"] = tuple(
+                sorted(str(value) for value in required)
+            )
+            visible.append(enriched)
+        return tuple(visible)
+
+    def _slice_d_has_hidden_sources(
+        self,
+        tx: ContinuityTransaction,
+        principal_id: str,
+        actor_id: RecordId,
+        case_id: RecordId,
+        rows: tuple[dict[str, object], ...],
+        kind: str,
+    ) -> bool:
+        for row in rows:
+            required = self._slice_d_required_versions(tx, row, kind)
+            if required is None or not all(
+                self._source_visible(
+                    tx,
+                    principal_id,
+                    actor_id,
+                    case_id,
+                    version_id,
+                )
+                for version_id in required
+            ):
+                return True
+        return False
+
+    @staticmethod
+    def _slice_d_basis_current(
+        tx: ContinuityTransaction,
+        row: dict[str, object],
+        effective_at: datetime,
+        known_at: datetime,
+    ) -> bool:
+        try:
+            for lane in ("value", "risk"):
+                for component in ("assessment", "readiness", "adequacy", "reliance"):
+                    version_id = RecordVersionId.parse(str(row[f"{lane}_{component}_version_id"]))
+                    version = tx.get_version(version_id)
+                    if version is None:
+                        return False
+                    selected = tx.select_current(
+                        SelectionQuery(
+                            version.family,
+                            version.scope,
+                            effective_at,
+                            known_at,
+                            version.record_id if component != "reliance" else None,
+                        )
+                    )
+                    if not (
+                        isinstance(selected, SelectionFound)
+                        and selected.candidate.version_id == version_id
+                    ):
+                        return False
+            return True
+        except (KeyError, TypeError, ValueError):
+            return False
+
+    @staticmethod
+    def _slice_d_required_versions(
+        tx: ContinuityTransaction,
+        row: dict[str, object],
+        kind: str,
+    ) -> set[RecordVersionId] | None:
+        try:
+            required = {
+                RecordVersionId.parse(str(row[field]))
+                for field in (
+                    "version_id",
+                    "configuration_version_id",
+                    "integration_version_id",
+                    "responsibility_version_id",
+                    "assignment_version_id",
+                    "authority_source_version_id",
+                    "proposal_version_id",
+                )
+                if row.get(field)
+            }
+            integration = row
+            if kind == "decision":
+                integration_rows = tx.projection_rows(
+                    "prospective_integration_versions",
+                    version_id=str(row["integration_version_id"]),
+                )
+                if len(integration_rows) != 1:
+                    return None
+                integration = integration_rows[0]
+            required.add(RecordVersionId.parse(str(integration["version_id"])))
+            for lane in ("value", "risk"):
+                for family, table in (
+                    ("assessment", "assessment_candidate_versions"),
+                    ("readiness", "assessment_readiness_versions"),
+                    ("adequacy", "assessment_adequacy_versions"),
+                    ("reliance", "assessment_reliance_versions"),
+                ):
+                    version_id = RecordVersionId.parse(
+                        str(integration[f"{lane}_{family}_version_id"])
+                    )
+                    rows = tx.projection_rows(table, version_id=str(version_id))
+                    if len(rows) != 1:
+                        return None
+                    source_set = PractitionerQueryService._slice_c_required_versions(tx, rows[0])
+                    if source_set is None:
+                        return None
+                    required.update(source_set)
+            for field in (
+                "value_information_basis_json",
+                "risk_information_basis_json",
+            ):
+                encoded = integration.get(field)
+                if not isinstance(encoded, str):
+                    return None
+                values = json.loads(encoded)
+                if not isinstance(values, list) or not all(
+                    isinstance(value, str) for value in values
+                ):
+                    return None
+                required.update(RecordVersionId.parse(value) for value in values)
+            assignment_ids = {
+                str(value)
+                for value in (
+                    integration.get("assignment_version_id"),
+                    row.get("assignment_version_id"),
+                )
+                if value
+            }
+            for assignment_id in assignment_ids:
+                assignments = tx.projection_rows(
+                    "responsibility_assignment_versions", version_id=str(assignment_id)
+                )
+                if len(assignments) != 1:
+                    return None
+                basis_id = RecordVersionId.parse(str(assignments[0]["assignment_basis_version_id"]))
+                required.add(basis_id)
                 bases = tx.projection_rows("assignment_basis_versions", version_id=str(basis_id))
                 if len(bases) != 1:
                     return None
