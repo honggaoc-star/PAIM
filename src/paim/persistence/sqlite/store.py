@@ -223,6 +223,32 @@ from paim.persistence.sqlite.schema import (
 
 _semantic_active: ContextVar[bool] = ContextVar("paim_semantic_transaction_active", default=False)
 
+_SLICE_A_PROJECTION_TABLES = frozenset(
+    {
+        "semantic_contracts",
+        "semantic_contract_families",
+        "semantic_contract_adapters",
+        "semantic_contract_successors",
+        "exact_context_sets",
+        "exact_context_members",
+        "record_version_semantics",
+        "status_event_semantics",
+        "version_relationship_semantics",
+        "semantic_consumer_cutover_versions",
+        "practical_role_catalog",
+        "responsibility_records",
+        "responsibility_versions",
+        "responsibility_practical_roles",
+        "assignment_basis_records",
+        "assignment_basis_versions",
+        "responsibility_assignment_records",
+        "responsibility_assignment_versions",
+        "case_work_records",
+        "case_work_versions",
+        "case_work_result_links",
+    }
+)
+
 
 def _enable_foreign_keys(dbapi_connection: Any, _connection_record: Any) -> None:
     cursor = dbapi_connection.cursor()
@@ -4112,6 +4138,25 @@ class SQLiteIntegrityTransaction:
         if table is None:
             raise ValueError(f"unknown table: {table_name}")
         return int(self._connection.scalar(select(func.count()).select_from(table)) or 0)
+
+    def insert_projection(self, table_name: str, values: dict[str, object]) -> None:
+        """Append one normalized capability projection inside the outer transaction."""
+        table = metadata.tables.get(table_name)
+        if table is None or table_name not in _SLICE_A_PROJECTION_TABLES:
+            raise ValueError(f"unsupported Slice-A projection table: {table_name}")
+        self._connection.execute(insert(table).values(**values))
+
+    def projection_rows(self, table_name: str, **equals: object) -> tuple[dict[str, object], ...]:
+        """Read an allowlisted Slice-A projection without semantic composition."""
+        table = metadata.tables.get(table_name)
+        if table is None or table_name not in _SLICE_A_PROJECTION_TABLES:
+            raise ValueError(f"unsupported Slice-A projection table: {table_name}")
+        statement = select(table)
+        for column_name, value in equals.items():
+            if column_name not in table.c:
+                raise ValueError(f"unknown projection column: {column_name}")
+            statement = statement.where(table.c[column_name] == value)
+        return tuple(dict(row) for row in self._connection.execute(statement).mappings())
 
 
 class SQLiteIntegrityStore:
