@@ -783,10 +783,19 @@ class PractitionerQueryService:
             case_id,
             integration_rows,
             "integration",
+            effective_at,
+            known_at,
         )
         integration_position = self._governed_position(
             visible_integrations,
-            hidden=bool(integration_rows and not visible_integrations),
+            hidden=self._slice_d_has_hidden_sources(
+                tx,
+                principal_id,
+                actor_id,
+                case_id,
+                integration_rows,
+                "integration",
+            ),
             established="COMPLETED",
         )
         visible_integration_ids = {str(row["version_id"]) for row in visible_integrations}
@@ -811,10 +820,19 @@ class PractitionerQueryService:
             case_id,
             decision_rows,
             "decision",
+            effective_at,
+            known_at,
         )
         decision_position = self._governed_position(
             visible_decisions,
-            hidden=bool(decision_rows and not visible_decisions),
+            hidden=self._slice_d_has_hidden_sources(
+                tx,
+                principal_id,
+                actor_id,
+                case_id,
+                decision_rows,
+                "decision",
+            ),
             established=None,
         )
         return integration_position, decision_position
@@ -849,6 +867,8 @@ class PractitionerQueryService:
         case_id: RecordId,
         rows: tuple[dict[str, object], ...],
         kind: str,
+        effective_at: datetime,
+        known_at: datetime,
     ) -> tuple[dict[str, object], ...]:
         visible: list[dict[str, object]] = []
         for row in rows:
@@ -864,12 +884,79 @@ class PractitionerQueryService:
                 for version_id in required
             ):
                 continue
+            basis_row = row
+            if kind == "decision":
+                integration_rows = tx.projection_rows(
+                    "prospective_integration_versions",
+                    version_id=str(row["integration_version_id"]),
+                )
+                if len(integration_rows) != 1:
+                    continue
+                basis_row = integration_rows[0]
+            if not self._slice_d_basis_current(tx, basis_row, effective_at, known_at):
+                continue
             enriched = dict(row)
             enriched["_visible_source_version_ids"] = tuple(
                 sorted(str(value) for value in required)
             )
             visible.append(enriched)
         return tuple(visible)
+
+    def _slice_d_has_hidden_sources(
+        self,
+        tx: ContinuityTransaction,
+        principal_id: str,
+        actor_id: RecordId,
+        case_id: RecordId,
+        rows: tuple[dict[str, object], ...],
+        kind: str,
+    ) -> bool:
+        for row in rows:
+            required = self._slice_d_required_versions(tx, row, kind)
+            if required is None or not all(
+                self._source_visible(
+                    tx,
+                    principal_id,
+                    actor_id,
+                    case_id,
+                    version_id,
+                )
+                for version_id in required
+            ):
+                return True
+        return False
+
+    @staticmethod
+    def _slice_d_basis_current(
+        tx: ContinuityTransaction,
+        row: dict[str, object],
+        effective_at: datetime,
+        known_at: datetime,
+    ) -> bool:
+        try:
+            for lane in ("value", "risk"):
+                for component in ("assessment", "readiness", "adequacy", "reliance"):
+                    version_id = RecordVersionId.parse(str(row[f"{lane}_{component}_version_id"]))
+                    version = tx.get_version(version_id)
+                    if version is None:
+                        return False
+                    selected = tx.select_current(
+                        SelectionQuery(
+                            version.family,
+                            version.scope,
+                            effective_at,
+                            known_at,
+                            version.record_id if component != "reliance" else None,
+                        )
+                    )
+                    if not (
+                        isinstance(selected, SelectionFound)
+                        and selected.candidate.version_id == version_id
+                    ):
+                        return False
+            return True
+        except (KeyError, TypeError, ValueError):
+            return False
 
     @staticmethod
     def _slice_d_required_versions(

@@ -245,6 +245,10 @@ def test_vertical_proof_binds_exact_lanes_and_separates_authorization(
     integration = integration_command(fx, "integrate")
     integrated = fx.service.integrate_value_risk(integration)
     assert fx.service.integrate_value_risk(integration) == integrated
+    with pytest.raises(ProspectiveDecisionConflict, match="IDEMPOTENCY"):
+        fx.service.integrate_value_risk(
+            replace(integration, integration_rationale="changed replay payload")
+        )
     selected_integration = fx.service.select_integration(
         case_id=integration.case_id,
         configuration_version_id=integration.configuration_version_id,
@@ -358,6 +362,18 @@ def test_lane_successor_invalidates_old_chain_without_retarget_or_mutation(
         expected_assessment_version_id=fx.value.assessment_version_id,
     )
     fx.source.service.finish_assessment(successor)
+    assert (
+        fx.service.select_integration(
+            case_id=integration.case_id,
+            configuration_version_id=integration.configuration_version_id,
+            context=integration.context,
+            decision_use=integration.decision_use,
+            bounded_scope=integration.bounded_scope,
+            effective_at=NOW,
+            known_at=RECORDED + timedelta(seconds=5),
+        ).kind
+        is ProspectiveSelectionKind.ABSENT
+    )
     with store.read_transaction() as tx:  # type: ignore[attr-defined]
         before = tx.count_rows("prospective_decision_versions")
     with pytest.raises(ProspectiveDecisionConflict, match="stale"):
@@ -389,6 +405,40 @@ def test_integration_requires_separate_authority_and_never_uses_legacy_fallback(
             tx.count_rows("prospective_integration_versions"),
             tx.count_rows("integration_versions"),
         ) == before
+
+    valid = replace(command, identity=identity(fx.source.actor_a, "valid-integration"))
+    fx.service.integrate_value_risk(valid)
+    proposal = proposal_command(fx, valid, "authority-proposal")
+    fx.service.propose_decision(proposal)
+    accountability = fx.responsibilities[ObligationKind.AUTHORIZE_MANAGEMENT_DECISION]
+    wrong_authorization = AuthorizeDecisionCommand(
+        identity(fx.source.actor_a, "wrong-decision-authority"),
+        AuthorizationFacts.new(),
+        CONTRACT,
+        proposal.context,
+        proposal.case_id,
+        proposal.configuration_version_id,
+        proposal.facts.version_id,
+        valid.facts.version_id,
+        DECISION_USE,
+        ASSESSED_SCOPE,
+        accountability.responsibility_version_id,
+        accountability.assignment_version_id,
+        fx.integration_authority,
+        "Integration Authority is not Decision Authority",
+        ASSESSED_SCOPE,
+        (),
+        (),
+        (),
+        NOW,
+        KNOWLEDGE,
+    )
+    with store.read_transaction() as tx:  # type: ignore[attr-defined]
+        decision_count = tx.count_rows("prospective_decision_versions")
+    with pytest.raises(ProspectiveDecisionConflict, match="substantive authority"):
+        fx.service.authorize_decision(wrong_authorization)
+    with store.read_transaction() as tx:  # type: ignore[attr-defined]
+        assert tx.count_rows("prospective_decision_versions") == decision_count
 
 
 def test_practitioner_composition_filters_exact_sources_before_slice_d_state(

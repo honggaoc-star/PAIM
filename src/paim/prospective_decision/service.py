@@ -680,7 +680,16 @@ class ProspectiveDecisionService:
                 if isinstance(selected, SelectionConflict)
                 else (cast(SelectionFound, selected).candidate,)
             )
-            ids = tuple(sorted((candidate.version_id for candidate in candidates), key=str))
+            eligible = tuple(
+                candidate
+                for candidate in candidates
+                if self._prospective_candidate_eligible(
+                    tx, family, candidate.version_id, effective_at, known_at
+                )
+            )
+            ids = tuple(sorted((candidate.version_id for candidate in eligible), key=str))
+            if not ids:
+                return ProspectiveSelection(ProspectiveSelectionKind.ABSENT, ())
             if len(ids) != 1:
                 return ProspectiveSelection(ProspectiveSelectionKind.CONFLICT, ids)
             version = tx.get_version(ids[0])
@@ -689,6 +698,91 @@ class ProspectiveDecisionService:
                 ids,
                 str(version.content.get("status")) if version else None,
             )
+
+    def _prospective_candidate_eligible(
+        self,
+        tx: ContinuityTransaction,
+        family: str,
+        version_id: RecordVersionId,
+        effective_at: datetime,
+        known_at: datetime,
+    ) -> bool:
+        table = {
+            "prospective-integration": "prospective_integration_versions",
+            "prospective-decision": "prospective_decision_versions",
+        }[family]
+        rows = tx.projection_rows(table, version_id=str(version_id))
+        if len(rows) != 1:
+            return False
+        row = rows[0]
+        if family == "prospective-decision":
+            integrations = tx.projection_rows(
+                "prospective_integration_versions",
+                version_id=str(row["integration_version_id"]),
+            )
+            if len(integrations) != 1 or not self._integration_basis_current(
+                tx, integrations[0], effective_at, known_at
+            ):
+                return False
+        return (
+            self._integration_basis_current(tx, row, effective_at, known_at)
+            if family == "prospective-integration"
+            else True
+        )
+
+    @staticmethod
+    def _integration_basis_current(
+        tx: ContinuityTransaction,
+        row: dict[str, object],
+        effective_at: datetime,
+        known_at: datetime,
+    ) -> bool:
+        try:
+            for lane in ("value", "risk"):
+                for component in ("assessment", "readiness", "adequacy", "reliance"):
+                    version_id = RecordVersionId.parse(str(row[f"{lane}_{component}_version_id"]))
+                    version = tx.get_version(version_id)
+                    if version is None:
+                        return False
+                    selected = tx.select_current(
+                        SelectionQuery(
+                            version.family,
+                            version.scope,
+                            effective_at,
+                            known_at,
+                            version.record_id if component != "reliance" else None,
+                        )
+                    )
+                    if not (
+                        isinstance(selected, SelectionFound)
+                        and selected.candidate.version_id == version_id
+                    ):
+                        return False
+                encoded = row[f"{lane}_information_basis_json"]
+                if not isinstance(encoded, str):
+                    return False
+                for value in cast(list[str], json.loads(encoded)):
+                    version_id = RecordVersionId.parse(value)
+                    version = tx.get_version(version_id)
+                    if version is None:
+                        return False
+                    selected = tx.select_current(
+                        SelectionQuery(
+                            version.family,
+                            version.scope,
+                            effective_at,
+                            known_at,
+                            version.record_id,
+                        )
+                    )
+                    if not (
+                        isinstance(selected, SelectionFound)
+                        and selected.candidate.version_id == version_id
+                    ):
+                        return False
+            return True
+        except (KeyError, TypeError, ValueError, json.JSONDecodeError):
+            return False
 
     def _validate_relied_basis(
         self,
