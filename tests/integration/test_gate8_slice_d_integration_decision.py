@@ -11,7 +11,14 @@ from paim.assessment_review import AssessmentLane
 from paim.audit import ActorResolution
 from paim.case_continuity import CaseContinuityService
 from paim.domain import AuthorityVersionInput, CommandMeta
-from paim.integrity import CommandId, EffectiveInterval, FixedClock, RecordId, RecordVersionId
+from paim.integrity import (
+    CommandId,
+    EffectiveInterval,
+    FixedClock,
+    RecordId,
+    RecordVersionId,
+    RelationshipType,
+)
 from paim.integrity.semantics import SemanticContractRef
 from paim.practitioner_queries import PractitionerQueryService
 from paim.prospective_decision import (
@@ -338,6 +345,257 @@ def test_vertical_proof_binds_exact_lanes_and_separates_authorization(
         assert row["value_reliance_version_id"] == str(fx.value.reliance_version_id)
         assert row["risk_reliance_version_id"] == str(fx.risk.reliance_version_id)
         assert tx.count_rows("prospective_decision_confirmation_versions") == 1
+
+
+def test_decision_authorization_is_one_structural_successor_with_history(
+    sqlite_store: object,
+) -> None:
+    store = sqlite_store
+    fx = slice_d_fixture(store, "authorization-succession")
+    integration = integration_command(fx, "authorization-succession-integration")
+    fx.service.integrate_value_risk(integration)
+    proposal = proposal_command(fx, integration, "authorization-succession-proposal")
+    fx.service.propose_decision(proposal)
+
+    proposal_known_at = RECORDED + timedelta(seconds=4)
+    before = fx.service.select_decision(
+        case_id=proposal.case_id,
+        configuration_version_id=proposal.configuration_version_id,
+        context=proposal.context,
+        decision_use=proposal.decision_use,
+        bounded_scope=proposal.bounded_scope,
+        effective_at=NOW,
+        known_at=proposal_known_at,
+    )
+    assert before.kind is ProspectiveSelectionKind.ONE
+    assert before.version_ids == (proposal.facts.version_id,)
+    assert before.status == ProspectiveDecisionStatus.PROPOSED.value
+
+    authorization_service = ProspectiveDecisionService(
+        store,  # type: ignore[arg-type]
+        FixedClock(RECORDED + timedelta(seconds=5)),
+        fx.source.access,
+    )
+    authority = fx.responsibilities[ObligationKind.AUTHORIZE_MANAGEMENT_DECISION]
+    authorize = AuthorizeDecisionCommand(
+        identity(fx.source.actor_a, "authorization-structural-successor"),
+        AuthorizationFacts.new(),
+        CONTRACT,
+        proposal.context,
+        proposal.case_id,
+        proposal.configuration_version_id,
+        proposal.facts.version_id,
+        integration.facts.version_id,
+        DECISION_USE,
+        ASSESSED_SCOPE,
+        authority.responsibility_version_id,
+        authority.assignment_version_id,
+        fx.decision_authority,
+        "bounded Decision Authority",
+        ASSESSED_SCOPE,
+        ("no broader use",),
+        ("remain inside exact boundary",),
+        (),
+        NOW,
+        KNOWLEDGE,
+    )
+    authorization_service.authorize_decision(authorize)
+
+    current = authorization_service.select_decision(
+        case_id=proposal.case_id,
+        configuration_version_id=proposal.configuration_version_id,
+        context=proposal.context,
+        decision_use=proposal.decision_use,
+        bounded_scope=proposal.bounded_scope,
+        effective_at=NOW,
+        known_at=RECORDED + timedelta(seconds=6),
+    )
+    assert current.kind is ProspectiveSelectionKind.ONE
+    assert current.version_ids == (authorize.facts.decision_version_id,)
+    assert current.status == ProspectiveDecisionStatus.AUTHORIZED.value
+
+    historical = authorization_service.select_decision(
+        case_id=proposal.case_id,
+        configuration_version_id=proposal.configuration_version_id,
+        context=proposal.context,
+        decision_use=proposal.decision_use,
+        bounded_scope=proposal.bounded_scope,
+        effective_at=NOW,
+        known_at=proposal_known_at,
+    )
+    assert historical.version_ids == (proposal.facts.version_id,)
+    assert historical.status == ProspectiveDecisionStatus.PROPOSED.value
+    with store.read_transaction() as tx:  # type: ignore[attr-defined]
+        projection = tx.projection_rows(
+            "prospective_decision_versions",
+            version_id=str(authorize.facts.decision_version_id),
+        )[0]
+        history = tx.get_history(proposal.facts.record_id)
+    assert projection["predecessor_version_id"] == str(proposal.facts.version_id)
+    assert any(
+        relation.source_version_id == proposal.facts.version_id
+        and relation.target_version_id == authorize.facts.decision_version_id
+        and relation.relationship_type is RelationshipType.SUPERSESSION
+        for relation in history.relationships
+    )
+    assert any(
+        event.target_version_id == proposal.facts.version_id and event.new_status == "SUPERSEDED"
+        for event in history.status_events
+    )
+
+
+def test_explicit_successor_proposal_is_current_and_preserves_predecessor(
+    sqlite_store: object,
+) -> None:
+    store = sqlite_store
+    fx = slice_d_fixture(store, "proposal-succession")
+    integration = integration_command(fx, "proposal-succession-integration")
+    fx.service.integrate_value_risk(integration)
+    predecessor = proposal_command(fx, integration, "proposal-predecessor")
+    fx.service.propose_decision(predecessor)
+
+    successor = replace(
+        proposal_command(fx, integration, "proposal-successor"),
+        predecessor_decision_version_id=predecessor.facts.version_id,
+        expected_current_decision_version_id=predecessor.facts.version_id,
+        proposed_action="continue under a newly explicit bounded proposal",
+    )
+    successor_service = ProspectiveDecisionService(
+        store,  # type: ignore[arg-type]
+        FixedClock(RECORDED + timedelta(seconds=5)),
+        fx.source.access,
+    )
+    successor_service.propose_decision(successor)
+
+    current = successor_service.select_decision(
+        case_id=successor.case_id,
+        configuration_version_id=successor.configuration_version_id,
+        context=successor.context,
+        decision_use=successor.decision_use,
+        bounded_scope=successor.bounded_scope,
+        effective_at=NOW,
+        known_at=RECORDED + timedelta(seconds=6),
+    )
+    assert current.kind is ProspectiveSelectionKind.ONE
+    assert current.version_ids == (successor.facts.version_id,)
+    assert current.status == ProspectiveDecisionStatus.PROPOSED.value
+    historical = successor_service.select_decision(
+        case_id=predecessor.case_id,
+        configuration_version_id=predecessor.configuration_version_id,
+        context=predecessor.context,
+        decision_use=predecessor.decision_use,
+        bounded_scope=predecessor.bounded_scope,
+        effective_at=NOW,
+        known_at=RECORDED + timedelta(seconds=4),
+    )
+    assert historical.version_ids == (predecessor.facts.version_id,)
+    with store.read_transaction() as tx:  # type: ignore[attr-defined]
+        projection = tx.projection_rows(
+            "prospective_decision_versions", version_id=str(successor.facts.version_id)
+        )[0]
+        history = tx.get_history(predecessor.facts.record_id)
+    assert projection["predecessor_version_id"] == str(predecessor.facts.version_id)
+    assert any(
+        relation.source_version_id == predecessor.facts.version_id
+        and relation.target_version_id == successor.facts.version_id
+        and relation.relationship_type is RelationshipType.SUPERSESSION
+        for relation in history.relationships
+    )
+
+
+def test_independent_decisions_conflict_and_failed_resolution_does_not_mutate(
+    sqlite_store: object,
+) -> None:
+    store = sqlite_store
+    fx = slice_d_fixture(store, "independent-conflict")
+    integration = integration_command(fx, "independent-conflict-integration")
+    fx.service.integrate_value_risk(integration)
+    first = proposal_command(fx, integration, "independent-first")
+    fx.service.propose_decision(first)
+    independent = proposal_command(fx, integration, "independent-second")
+
+    with store.semantic_transaction() as tx:  # type: ignore[attr-defined]
+        first_version = tx.get_version(first.facts.version_id)
+        integration_row = tx.projection_rows(
+            "prospective_integration_versions", version_id=str(integration.facts.version_id)
+        )[0]
+        assert first_version is not None
+        fx.service._add_version(
+            tx,
+            independent.facts.record_id,
+            independent.facts.version_id,
+            "prospective-decision",
+            first_version.scope,
+            first_version.content,
+            NOW,
+            RECORDED + timedelta(seconds=5),
+            fx.source.actor_a,
+            CONTRACT.key,
+            independent.context.digest,
+        )
+        tx.insert_projection(
+            "prospective_decision_records", {"record_id": str(independent.facts.record_id)}
+        )
+        relationships, statuses = fx.service._insert_decision_projection(
+            tx,
+            version_id=independent.facts.version_id,
+            record_id=independent.facts.record_id,
+            command=independent,
+            status=ProspectiveDecisionStatus.PROPOSED,
+            integration=integration_row,
+            responsibility_version_id=independent.responsibility_version_id,
+            assignment_version_id=independent.assignment_version_id,
+            authority_source_version_id=None,
+            proposal_version_id=None,
+            predecessor_version_id=None,
+            knowledge_cutoff=independent.knowledge_cutoff,
+            effective_at=independent.effective_at,
+            recorded_at=RECORDED + timedelta(seconds=5),
+            actor_id=fx.source.actor_a,
+            contract_key=CONTRACT.key,
+            context_digest=independent.context.digest,
+            succession_reason="independent Decision has no invented predecessor",
+        )
+        assert relationships == statuses == ()
+
+    conflict = fx.service.select_decision(
+        case_id=first.case_id,
+        configuration_version_id=first.configuration_version_id,
+        context=first.context,
+        decision_use=first.decision_use,
+        bounded_scope=first.bounded_scope,
+        effective_at=NOW,
+        known_at=RECORDED + timedelta(seconds=6),
+    )
+    assert conflict.kind is ProspectiveSelectionKind.CONFLICT
+    assert set(conflict.version_ids) == {
+        first.facts.version_id,
+        independent.facts.version_id,
+    }
+    with store.read_transaction() as tx:  # type: ignore[attr-defined]
+        before = (
+            tx.count_rows("prospective_decision_versions"),
+            tx.count_rows("status_events"),
+            tx.count_rows("version_relationships"),
+        )
+    attempted = replace(
+        proposal_command(fx, integration, "failed-conflict-resolution"),
+        predecessor_decision_version_id=first.facts.version_id,
+        expected_current_decision_version_id=first.facts.version_id,
+    )
+    conflict_service = ProspectiveDecisionService(
+        store,  # type: ignore[arg-type]
+        FixedClock(RECORDED + timedelta(seconds=6)),
+        fx.source.access,
+    )
+    with pytest.raises(ProspectiveDecisionConflict, match="stale exact predecessor"):
+        conflict_service.propose_decision(attempted)
+    with store.read_transaction() as tx:  # type: ignore[attr-defined]
+        assert (
+            tx.count_rows("prospective_decision_versions"),
+            tx.count_rows("status_events"),
+            tx.count_rows("version_relationships"),
+        ) == before
 
 
 def test_lane_successor_invalidates_old_chain_without_retarget_or_mutation(

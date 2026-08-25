@@ -326,7 +326,7 @@ class ProspectiveDecisionService:
             tx.insert_projection(
                 "prospective_decision_records", {"record_id": str(command.facts.record_id)}
             )
-            self._insert_decision_projection(
+            relationships, statuses = self._insert_decision_projection(
                 tx,
                 version_id=command.facts.version_id,
                 record_id=command.facts.record_id,
@@ -339,17 +339,12 @@ class ProspectiveDecisionService:
                 proposal_version_id=None,
                 predecessor_version_id=command.predecessor_decision_version_id,
                 knowledge_cutoff=command.knowledge_cutoff,
-            )
-            relationships, statuses = self._successor_history(
-                tx,
-                command.predecessor_decision_version_id,
-                command.facts.version_id,
-                "explicit prospective successor Decision proposal",
-                command.effective_at,
-                recorded_at,
-                command.identity.actor_id,
-                command.contract.key,
-                command.context.digest,
+                effective_at=command.effective_at,
+                recorded_at=recorded_at,
+                actor_id=command.identity.actor_id,
+                contract_key=command.contract.key,
+                context_digest=command.context.digest,
+                succession_reason="explicit prospective successor Decision proposal",
             )
             return self._finish_commit(
                 tx,
@@ -438,7 +433,7 @@ class ProspectiveDecisionService:
                 command.contract.key,
                 command.context.digest,
             )
-            self._insert_decision_projection(
+            relationships, statuses = self._insert_decision_projection(
                 tx,
                 version_id=command.facts.decision_version_id,
                 record_id=proposal_version.record_id,
@@ -451,6 +446,12 @@ class ProspectiveDecisionService:
                 proposal_version_id=command.proposal_version_id,
                 predecessor_version_id=command.proposal_version_id,
                 knowledge_cutoff=command.knowledge_cutoff,
+                effective_at=command.effective_at,
+                recorded_at=recorded_at,
+                actor_id=command.identity.actor_id,
+                contract_key=command.contract.key,
+                context_digest=command.context.digest,
+                succession_reason="separate Decision authorization",
             )
             self._add_version(
                 tx,
@@ -497,17 +498,6 @@ class ProspectiveDecisionService:
                     "responsibility_version_id": str(command.responsibility_version_id),
                     "assignment_version_id": str(command.assignment_version_id),
                 },
-            )
-            relationships, statuses = self._successor_history(
-                tx,
-                command.proposal_version_id,
-                command.facts.decision_version_id,
-                "separate Decision authorization",
-                command.effective_at,
-                recorded_at,
-                command.identity.actor_id,
-                command.contract.key,
-                command.context.digest,
             )
             return self._finish_commit(
                 tx,
@@ -1412,7 +1402,37 @@ class ProspectiveDecisionService:
         proposal_version_id: RecordVersionId | None,
         predecessor_version_id: RecordVersionId | None,
         knowledge_cutoff: datetime,
-    ) -> None:
+        effective_at: datetime,
+        recorded_at: datetime,
+        actor_id: RecordId,
+        contract_key: str,
+        context_digest: str,
+        succession_reason: str,
+    ) -> tuple[tuple[RelationshipId, ...], tuple[EventId, ...]]:
+        """Persist one Decision projection and its canonical succession facts.
+
+        The projection predecessor is not an independent currentness hint.  When
+        present, it is always materialized by this same operation as the kernel
+        supersession relationship and predecessor status event consumed by
+        ``select_current``.  Keeping the three representations behind one helper
+        prevents a Decision successor from becoming co-current with its predecessor.
+        """
+        if predecessor_version_id is not None:
+            predecessor = tx.get_version(predecessor_version_id)
+            successor = tx.get_version(version_id)
+            if predecessor is None or successor is None:
+                raise ProspectiveDecisionConflict(
+                    "Decision succession requires exact persisted predecessor "
+                    "and successor Versions"
+                )
+            if (
+                predecessor.family != "prospective-decision"
+                or successor.family != "prospective-decision"
+                or predecessor.scope != successor.scope
+            ):
+                raise ProspectiveDecisionConflict(
+                    "Decision succession requires one exact Decision family and scope"
+                )
         tx.insert_projection(
             "prospective_decision_versions",
             {
@@ -1444,6 +1464,17 @@ class ProspectiveDecisionService:
                 ),
                 "knowledge_cutoff_us": to_epoch_microseconds(knowledge_cutoff),
             },
+        )
+        return ProspectiveDecisionService._successor_history(
+            tx,
+            predecessor_version_id,
+            version_id,
+            succession_reason,
+            effective_at,
+            recorded_at,
+            actor_id,
+            contract_key,
+            context_digest,
         )
 
     @staticmethod
