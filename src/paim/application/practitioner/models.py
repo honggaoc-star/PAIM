@@ -127,6 +127,23 @@ class GovernedRecordView:
 
 
 @dataclass(frozen=True, slots=True)
+class QuantitativeHighlightView:
+    """One already-authorized optional claim; never a synthesized score."""
+
+    lane: str
+    claim_role: str
+    metric_label: str
+    supplied_value: str
+    unit_and_basis: str
+    period_or_horizon: str
+    uncertainty_and_caveats: str
+    source_version_ids: tuple[str, ...]
+    claim_version_id: str
+    judgment_established: bool = False
+    ranking_inferred: bool = False
+
+
+@dataclass(frozen=True, slots=True)
 class AnalyticalAssessmentView:
     """One visible analytical Input with only its exact governed relations."""
 

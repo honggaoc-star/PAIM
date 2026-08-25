@@ -1,0 +1,42 @@
+# Gate 8 Slice F — Optional quantitative Value/Risk claims
+
+## Implemented boundary
+
+Slice F adds prospective, append-only Quantitative Claim Records/Versions and explicit
+Comparability Records/Versions. Claims retain their exact Case, governing Configuration,
+semantic context, Value or Risk lane, claim role, construct and metric, supplied decimal text,
+representation, units and bases, time basis, population, method, provenance, Applicability,
+uncertainty, limitations, accountability, and optional assessment or Review Episode link.
+
+The six controlled claim roles are estimate/expectation, target/objective, observed result,
+threshold/constraint, Risk estimate, and cost/resource measure. Quantification remains optional.
+An assessment, review, Integration, or Decision neither requires nor follows from a claim.
+
+## Comparison boundary
+
+The comparison service first rejects clear mechanical mismatches across exact context, lane,
+construct/metric, quantity representation, unit/currency/scale, direction, population/base,
+time basis/horizon, baseline, gross/net, nominal/real, and method. Passing those checks does not
+establish substantive comparability. A practitioner with a current Responsibility, assignment,
+and quantitative authority source must explicitly establish `COMPARABLE` or `NOT_COMPARABLE`.
+
+Only an explicitly comparable scalar expected/target and observed pair receives exact Decimal
+arithmetic. A zero baseline suppresses ratio and percentage change. No comparison infers
+causation, success, materiality, adequacy, reliance, Decision quality, priority, score, ranking,
+or Value-minus-Risk netting.
+
+## Access and practitioner composition
+
+Claim and linked-source authorization occurs before selection or comparison. Hidden sources do
+not leak labels, counts, dates, deltas, or comparison availability. Practitioner highlights are
+composed only from an already access-filtered population and expose supplied meaning and caveats,
+not a scorecard or generic numeric alert.
+
+## Persistence and compatibility
+
+Migration `0015_gate8_quantitative_claims` is additive from
+`0014_gate8_continuing_review`. It creates typed claim, exact basis-link, and comparability
+tables with foreign keys, checks, indexes, and append-only triggers. It performs no prospective
+backfill and refuses destructive downgrade after Slice-F facts exist. Legacy and Harborlight
+records are not mutated. This slice does not claim Slice G reconstruction, Slice H integrated UI,
+multi-user deployment, scheduler/notification behavior, or release readiness.
