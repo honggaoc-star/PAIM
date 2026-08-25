@@ -219,6 +219,7 @@ class ResponsibilityWorkService:
                 write=True,
             ):
                 raise SliceAAccessDenied()
+            self._validate_prospective_case_write(transaction, command, recorded_at)
             self._ensure_contract_and_context(transaction, command, recorded_at)
             observed = transaction.select_current(
                 SelectionQuery(
@@ -358,6 +359,44 @@ class ResponsibilityWorkService:
                 )
             )
             return outcome
+
+    @staticmethod
+    def _validate_prospective_case_write(
+        transaction: SliceATransaction,
+        command: SliceACommand,
+        recorded_at: datetime,
+    ) -> None:
+        """Reject new Slice-A substance on a non-OPEN prospective Case.
+
+        Legacy Cases have no prospective status projection and retain their exact
+        existing behavior.  Existing successor/correction commands remain bound
+        to their own expected Version and are not silently retargeted.
+        """
+        records = transaction.projection_rows(
+            "case_continuity_status_records", case_id=str(command.owning_case_id)
+        )
+        if not records:
+            return
+        if len(records) != 1:
+            raise SliceAConflict("CASE CONTINUITY STATUS CONFLICT — UNRESOLVED")
+        status_record_id = RecordId.parse(str(records[0]["record_id"]))
+        selection = transaction.select_current(
+            SelectionQuery(
+                family="case-continuity-status",
+                scope=f"case:{command.owning_case_id}",
+                effective_at=command.effective_at,
+                known_at=recorded_at,
+                record_id=status_record_id,
+            )
+        )
+        if not isinstance(selection, SelectionFound):
+            raise SliceAConflict("CASE CONTINUITY STATUS CONFLICT — UNRESOLVED")
+        rows = transaction.projection_rows(
+            "case_continuity_status_versions",
+            version_id=str(selection.candidate.version_id),
+        )
+        if len(rows) != 1 or rows[0]["status"] != "OPEN":
+            raise SliceAConflict("prospective Case is not OPEN for new substantive Work")
 
     @staticmethod
     def _validate_plan(command: SliceACommand, *, has_result_writer: bool) -> None:
