@@ -11,7 +11,12 @@ from paim.assessment_review import AssessmentLane
 from paim.audit import ActorResolution
 from paim.domain import AuthorityVersionInput, CommandMeta
 from paim.integrity import CommandId, EffectiveInterval, FixedClock, RecordId, RecordVersionId
-from paim.integrity.semantics import SemanticContractRef
+from paim.integrity.semantics import (
+    ContextMemberKind,
+    ExactContextMember,
+    ExactContextSet,
+    SemanticContractRef,
+)
 from paim.quantitative_claims import (
     ClaimFacts,
     ComparabilityFacts,
@@ -201,23 +206,27 @@ def comparability_command(
     left: RecordVersionId,
     right: RecordVersionId,
     key: str,
+    *,
+    facts: ComparabilityFacts | None = None,
+    outcome: ComparisonState = ComparisonState.COMPARABLE,
+    expected: RecordVersionId | None = None,
 ) -> EstablishComparabilityCommand:
     accountability = fx.responsibilities[ObligationKind.ESTABLISH_QUANTITATIVE_COMPARABILITY]
     return EstablishComparabilityCommand(
         identity(fx.actor_id, key),
-        ComparabilityFacts.new(),
+        facts or ComparabilityFacts.new(),
         CONTRACT,
         fx.context,
         fx.case_id,
         fx.configuration_version_id,
         left,
         right,
-        ComparisonState.COMPARABLE,
+        outcome,
         "Practitioner confirms the same bounded construct, cohort, method, basis, and horizon.",
         accountability.responsibility_version_id,
         accountability.assignment_version_id,
         fx.authority_id,
-        None,
+        expected,
         NOW,
         KNOWN,
     )
@@ -459,4 +468,206 @@ def test_zero_baseline_history_replay_stale_write_and_hidden_source_are_fail_clo
             right_claim_version_id=observed.facts.version_id,
             effective_at=NOW,
             known_at=KNOWN,
+        )
+
+
+def test_claim_successor_preserves_exact_semantic_identity_with_zero_mutation(
+    sqlite_store: object,
+) -> None:
+    fx = SliceFFixture(sqlite_store, "successor-identity")
+    original = claim_command(fx, "identity-original", QuantitativeClaimType.ESTIMATE_EXPECTATION)
+    fx.service.record_claim(original)
+
+    other_context = ExactContextSet.create(
+        (
+            ExactContextMember("case", ContextMemberKind.RECORD, str(fx.case_id)),
+            ExactContextMember(
+                "configuration_version",
+                ContextMemberKind.VERSION,
+                str(fx.configuration_version_id),
+            ),
+            ExactContextMember("bounded_use", ContextMemberKind.LITERAL, "different use"),
+        )
+    )
+    mutations: tuple[dict[str, object], ...] = (
+        {"lane": AssessmentLane.RISK},
+        {"claim_type": QuantitativeClaimType.OBSERVED_RESULT},
+        {"construct_id": "different-construct"},
+        {"metric_id": "different-metric"},
+        {"case_id": RecordId.new()},
+        {"configuration_version_id": RecordVersionId.new()},
+        {"context": other_context},
+        {"facts": ClaimFacts.new()},
+    )
+    guarded_tables = (
+        "records",
+        "record_versions",
+        "quantitative_claim_records",
+        "quantitative_claim_versions",
+        "status_events",
+        "version_relationships",
+        "audit_facts",
+        "idempotency_facts",
+    )
+    for index, changes in enumerate(mutations):
+        before = {
+            table: sqlite_store.count_rows(table)  # type: ignore[attr-defined]
+            for table in guarded_tables
+        }
+        replacement: dict[str, object] = {
+            "identity": identity(fx.actor_id, f"identity-invalid-{index}"),
+            "facts": ClaimFacts(original.facts.record_id, RecordVersionId.new()),
+            "expected_current_version_id": original.facts.version_id,
+        }
+        replacement.update(changes)
+        command = replace(original, **replacement)  # type: ignore[arg-type]
+        with pytest.raises(QuantitativeClaimConflict, match=r"semantic identity|exact Record"):
+            fx.service.record_claim(command)
+        assert before == {
+            table: sqlite_store.count_rows(table)  # type: ignore[attr-defined]
+            for table in guarded_tables
+        }
+
+    correction = replace(
+        original,
+        identity=identity(fx.actor_id, "identity-valid-correction"),
+        facts=ClaimFacts(original.facts.record_id, RecordVersionId.new()),
+        quantity=QuantityValue(QuantityRepresentation.SCALAR, central="11.75"),
+        uncertainty="corrected source transcription; no probabilistic confidence asserted",
+        expected_current_version_id=original.facts.version_id,
+    )
+    fx.service.record_claim(correction)
+    history = sqlite_store.get_history(original.facts.record_id)  # type: ignore[attr-defined]
+    assert {item.version_id for item in history.versions} == {
+        original.facts.version_id,
+        correction.facts.version_id,
+    }
+    assert any(
+        relation.source_version_id == original.facts.version_id
+        and relation.target_version_id == correction.facts.version_id
+        for relation in history.relationships
+    )
+
+
+def test_comparison_enforces_orientation_exact_pair_and_dual_time_basis(
+    sqlite_store: object,
+) -> None:
+    fx = SliceFFixture(sqlite_store, "comparison-basis")
+    expected = claim_command(
+        fx, "basis-expected", QuantitativeClaimType.ESTIMATE_EXPECTATION, "10.00"
+    )
+    observed = claim_command(fx, "basis-observed", QuantitativeClaimType.OBSERVED_RESULT, "8.00")
+    other_expected = claim_command(
+        fx,
+        "basis-other-expected",
+        QuantitativeClaimType.ESTIMATE_EXPECTATION,
+        "20.00",
+        metric="other-metric",
+    )
+    other_observed = claim_command(
+        fx,
+        "basis-other-observed",
+        QuantitativeClaimType.OBSERVED_RESULT,
+        "19.00",
+        metric="other-metric",
+    )
+    for command in (expected, observed, other_expected, other_observed):
+        fx.service.record_claim(command)
+
+    reversed_result = fx.service.compare(
+        principal_id="principal:slice-c",
+        actor_id=fx.actor_id,
+        case_id=fx.case_id,
+        left_claim_version_id=observed.facts.version_id,
+        right_claim_version_id=expected.facts.version_id,
+        effective_at=NOW,
+        known_at=KNOWN,
+    )
+    assert reversed_result.state is ComparisonState.MECHANICALLY_INCOMPATIBLE
+    assert "orientation requires" in reversed_result.reasons[-1]
+    with pytest.raises(QuantitativeClaimConflict, match="mechanically incompatible"):
+        fx.service.establish_comparability(
+            comparability_command(
+                fx,
+                observed.facts.version_id,
+                expected.facts.version_id,
+                "reversed-basis",
+            )
+        )
+
+    unrelated_basis = comparability_command(
+        fx,
+        other_expected.facts.version_id,
+        other_observed.facts.version_id,
+        "unrelated-basis",
+    )
+    fx.service.establish_comparability(unrelated_basis)
+    no_wrong_pair_reuse = fx.service.compare(
+        principal_id="principal:slice-c",
+        actor_id=fx.actor_id,
+        case_id=fx.case_id,
+        left_claim_version_id=expected.facts.version_id,
+        right_claim_version_id=observed.facts.version_id,
+        effective_at=NOW,
+        known_at=KNOWN,
+    )
+    assert no_wrong_pair_reuse.state is ComparisonState.SUBSTANTIVE_COMPARABILITY_REQUIRES_JUDGMENT
+
+    first = comparability_command(
+        fx, expected.facts.version_id, observed.facts.version_id, "current-basis"
+    )
+    fx.service.establish_comparability(first)
+    successor = replace(
+        first,
+        identity=identity(fx.actor_id, "not-comparable-successor"),
+        facts=ComparabilityFacts(first.facts.record_id, RecordVersionId.new()),
+        outcome=ComparisonState.NOT_COMPARABLE,
+        rationale="Later accountable review rejects substantive comparability.",
+        expected_current_version_id=first.facts.version_id,
+        knowledge_cutoff=KNOWN + timedelta(seconds=1),
+    )
+    later_service = QuantitativeClaimService(
+        sqlite_store,  # type: ignore[arg-type]
+        FixedClock(KNOWN + timedelta(seconds=1)),
+        fx.access,
+    )
+    later_service.establish_comparability(successor)
+
+    historical = fx.service.compare(
+        principal_id="principal:slice-c",
+        actor_id=fx.actor_id,
+        case_id=fx.case_id,
+        left_claim_version_id=expected.facts.version_id,
+        right_claim_version_id=observed.facts.version_id,
+        effective_at=NOW,
+        known_at=KNOWN,
+    )
+    assert historical.state is ComparisonState.COMPARABLE
+    assert historical.comparability_version_id == first.facts.version_id
+    current = later_service.compare(
+        principal_id="principal:slice-c",
+        actor_id=fx.actor_id,
+        case_id=fx.case_id,
+        left_claim_version_id=expected.facts.version_id,
+        right_claim_version_id=observed.facts.version_id,
+        effective_at=NOW,
+        known_at=KNOWN + timedelta(seconds=1),
+    )
+    assert current.state is ComparisonState.NOT_COMPARABLE
+    assert current.comparability_version_id == successor.facts.version_id
+
+    hidden_basis_service = QuantitativeClaimService(
+        sqlite_store,  # type: ignore[arg-type]
+        FixedClock(KNOWN + timedelta(seconds=1)),
+        SelectiveSourceAccess(frozenset({fx.authority_id})),
+    )
+    with pytest.raises(Exception, match="software access not established"):
+        hidden_basis_service.compare(
+            principal_id="principal:slice-c",
+            actor_id=fx.actor_id,
+            case_id=fx.case_id,
+            left_claim_version_id=expected.facts.version_id,
+            right_claim_version_id=observed.facts.version_id,
+            effective_at=NOW,
+            known_at=KNOWN + timedelta(seconds=1),
         )

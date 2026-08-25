@@ -82,6 +82,7 @@ class QuantitativeClaimService:
             if replay is not None:
                 return replay
             self._require_access(command, action)
+            self._validate_claim_successor(tx, command)
             self._validate_case_context(tx, command, recorded_at)
             self._validate_accountability(
                 tx,
@@ -279,6 +280,7 @@ class QuantitativeClaimService:
             if replay is not None:
                 return replay
             self._require_access(command, action)
+            self._validate_comparability_successor(tx, command)
             self._validate_case_context(tx, command, recorded_at)
             left = self._claim_row(tx, command.left_claim_version_id)
             right = self._claim_row(tx, command.right_claim_version_id)
@@ -498,11 +500,31 @@ class QuantitativeClaimService:
             )
             if len(basis) != 1:
                 raise QuantitativeClaimAccessDenied()
+            self._require_knowable(tx, basis_id, effective_at, known_at)
+            self._require_current(tx, basis_id, effective_at, known_at)
+            basis_row = basis[0]
+            if (
+                basis_row["left_claim_version_id"] != str(left_claim_version_id)
+                or basis_row["right_claim_version_id"] != str(right_claim_version_id)
+                or basis_row["case_id"] != str(case_id)
+                or basis_row["configuration_version_id"] != left["configuration_version_id"]
+                or basis_row["context_digest"] != left["context_digest"]
+                or basis_row["configuration_version_id"] != right["configuration_version_id"]
+                or basis_row["context_digest"] != right["context_digest"]
+                or basis_row["outcome"]
+                not in {
+                    ComparisonState.COMPARABLE.value,
+                    ComparisonState.NOT_COMPARABLE.value,
+                }
+            ):
+                raise QuantitativeClaimConflict(
+                    "comparability basis does not match the exact requested pair and context"
+                )
             basis_sources = {
                 basis_id,
-                RecordVersionId.parse(str(basis[0]["responsibility_version_id"])),
-                RecordVersionId.parse(str(basis[0]["assignment_version_id"])),
-                RecordVersionId.parse(str(basis[0]["authority_source_version_id"])),
+                RecordVersionId.parse(str(basis_row["responsibility_version_id"])),
+                RecordVersionId.parse(str(basis_row["assignment_version_id"])),
+                RecordVersionId.parse(str(basis_row["authority_source_version_id"])),
             }
             self._expand_assignment_sources(tx, basis_sources)
             if not all(
@@ -510,10 +532,10 @@ class QuantitativeClaimService:
                 for version_id in basis_sources
             ):
                 raise QuantitativeClaimAccessDenied()
-            if basis[0]["outcome"] == ComparisonState.NOT_COMPARABLE.value:
+            if basis_row["outcome"] == ComparisonState.NOT_COMPARABLE.value:
                 return ClaimComparison(
                     ComparisonState.NOT_COMPARABLE,
-                    (str(basis[0]["rationale"]),),
+                    (str(basis_row["rationale"]),),
                     left_claim_version_id,
                     right_claim_version_id,
                     basis_id,
@@ -577,24 +599,102 @@ class QuantitativeClaimService:
             for dimension in cls._comparison_dimensions()
             if left.get(dimension) != right.get(dimension)
         )
-        roles = {str(left["claim_type"]), str(right["claim_type"])}
-        allowed_roles = {
-            frozenset(
-                {
-                    QuantitativeClaimType.ESTIMATE_EXPECTATION.value,
-                    QuantitativeClaimType.OBSERVED_RESULT.value,
-                }
+        if (
+            str(left["claim_type"])
+            not in {
+                QuantitativeClaimType.ESTIMATE_EXPECTATION.value,
+                QuantitativeClaimType.TARGET_OBJECTIVE.value,
+            }
+            or str(right["claim_type"]) != QuantitativeClaimType.OBSERVED_RESULT.value
+        ):
+            mismatches += (
+                "comparison orientation requires expectation/target left and observed result right",
+            )
+        return mismatches
+
+    @staticmethod
+    def _validate_claim_successor(
+        tx: ContinuityTransaction, command: QuantitativeClaimCommand
+    ) -> None:
+        predecessor_id = command.expected_current_version_id
+        if predecessor_id is None:
+            return
+        predecessor = tx.get_version(predecessor_id)
+        rows = tx.projection_rows("quantitative_claim_versions", version_id=str(predecessor_id))
+        if (
+            predecessor is None
+            or len(rows) != 1
+            or predecessor.record_id != command.facts.record_id
+            or predecessor.family != "quantitative-claim"
+            or predecessor.scope != QuantitativeClaimService._claim_scope(command)
+        ):
+            raise QuantitativeClaimConflict(
+                "claim successor must preserve one exact Record and semantic identity"
+            )
+        row = rows[0]
+        expected_identity: dict[str, object] = {
+            "case_id": str(command.case_id),
+            "configuration_version_id": str(command.configuration_version_id),
+            "context_digest": command.context.digest,
+            "lane": command.lane.value,
+            "claim_type": command.claim_type.value,
+            "construct_id": command.construct_id,
+            "metric_id": command.metric_id,
+            "quantity_kind": command.quantity_kind.value,
+            "representation": command.quantity.representation.value,
+            "unit": command.unit,
+            "currency": command.currency,
+            "scale": command.scale,
+            "direction": command.direction,
+            "population": command.population,
+            "denominator": command.denominator,
+            "temporal_basis": command.temporal_basis.value,
+            "horizon": command.horizon,
+            "baseline": command.baseline,
+            "gross_net": command.gross_net,
+            "nominal_real": command.nominal_real,
+            "method_id": command.method_id,
+            "assessment_version_id": QuantitativeClaimService._optional_id(
+                command.assessment_version_id
             ),
-            frozenset(
-                {
-                    QuantitativeClaimType.TARGET_OBJECTIVE.value,
-                    QuantitativeClaimType.OBSERVED_RESULT.value,
-                }
+            "review_episode_version_id": QuantitativeClaimService._optional_id(
+                command.review_episode_version_id
             ),
         }
-        if frozenset(roles) not in allowed_roles:
-            mismatches += ("claim roles are not an accepted expected/observed pairing",)
-        return mismatches
+        if any(row[field] != value for field, value in expected_identity.items()):
+            raise QuantitativeClaimConflict(
+                "claim successor cannot change identity-defining semantics"
+            )
+
+    @staticmethod
+    def _validate_comparability_successor(
+        tx: ContinuityTransaction, command: EstablishComparabilityCommand
+    ) -> None:
+        predecessor_id = command.expected_current_version_id
+        if predecessor_id is None:
+            return
+        predecessor = tx.get_version(predecessor_id)
+        rows = tx.projection_rows(
+            "quantitative_comparability_versions", version_id=str(predecessor_id)
+        )
+        if (
+            predecessor is None
+            or len(rows) != 1
+            or predecessor.record_id != command.facts.record_id
+            or predecessor.family != "quantitative-comparability"
+            or predecessor.scope
+            != QuantitativeClaimService._comparison_scope(
+                command.left_claim_version_id, command.right_claim_version_id
+            )
+            or rows[0]["left_claim_version_id"] != str(command.left_claim_version_id)
+            or rows[0]["right_claim_version_id"] != str(command.right_claim_version_id)
+            or rows[0]["case_id"] != str(command.case_id)
+            or rows[0]["configuration_version_id"] != str(command.configuration_version_id)
+            or rows[0]["context_digest"] != command.context.digest
+        ):
+            raise QuantitativeClaimConflict(
+                "comparability successor must preserve the exact oriented pair and context"
+            )
 
     @staticmethod
     def _comparison_dimensions() -> tuple[str, ...]:
