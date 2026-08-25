@@ -40,7 +40,8 @@ from paim.integrity.selection import (
 from paim.integrity.semantics import ExactContextSet, SemanticContractRef
 from paim.integrity.time import Clock, EffectiveInterval, to_epoch_microseconds
 from paim.persistence.ports import CommandOutcome, IdempotencyFact, RecordHistory
-from paim.responsibility.models import ObligationKind
+from paim.responsibility.models import ObligationKind, responsibility_signature
+from paim.responsibility.service import ProjectionFact, ResponsibilityWorkService, SliceACommand
 
 
 class ContinuityTransaction(Protocol):
@@ -829,15 +830,56 @@ class CaseContinuityService:
         self, tx: ContinuityTransaction, command: OpenCaseCommand, recorded_at: datetime
     ) -> str:
         f = command.facts
-        signature = canonical_command_digest(
-            {
-                "obligation_kind": ObligationKind.DETERMINE_CASE_CONTINUITY.value,
-                "case_id": str(f.case_id),
-                "context_digest": command.context.digest,
-                "purpose": "continuing-case",
-                "use": command.bounded_use,
-                "scope": command.management_question,
-            }
+        signature = responsibility_signature(
+            contract=command.contract,
+            obligation_kind=ObligationKind.DETERMINE_CASE_CONTINUITY,
+            owning_case_id=f.case_id,
+            context=command.context,
+            purpose="continuing-case",
+            use=command.bounded_use,
+            scope=command.management_question,
+        )
+        basis_limits = {"continuity_actions": [value.value for value in DeterminationKind]}
+        basis_row: dict[str, object] = {
+            "version_id": str(f.assignment_basis_version_id),
+            "record_id": str(f.assignment_basis_record_id),
+            "assigning_actor_id": str(command.identity.actor_id),
+            "basis_source_version_id": str(command.assignment_authority_source_version_id),
+            "owning_case_id": str(f.case_id),
+            "context_digest": command.context.digest,
+            "allowed_obligation_kinds_json": json.dumps(
+                [ObligationKind.DETERMINE_CASE_CONTINUITY.value]
+            ),
+            "allowed_case_ids_json": json.dumps([str(f.case_id)]),
+            "allowed_signature_digests_json": json.dumps([signature]),
+            "limits_json": json.dumps(basis_limits),
+            "max_active_assignments": 1,
+            "state": "ACTIVE",
+            "effective_from_us": to_epoch_microseconds(command.effective_at),
+            "effective_to_us": None,
+            "recorded_at_us": to_epoch_microseconds(recorded_at),
+            "predecessor_version_id": None,
+        }
+        basis_validation = SliceACommand(
+            command.identity.command_id,
+            command.identity.idempotency_scope,
+            command.identity.idempotency_key,
+            command.identity.principal_id,
+            str(command.identity.actor_id),
+            f.assignment_basis_record_id,
+            f.assignment_basis_version_id,
+            "assignment-basis",
+            f"case:{f.case_id}",
+            {"authority_source_version_id": str(command.assignment_authority_source_version_id)},
+            command.effective_at,
+            command.contract,
+            command.context,
+            f.case_id,
+            "responsibility.assignment-basis.create",
+            (ProjectionFact("assignment_basis_versions", basis_row),),
+        )
+        ResponsibilityWorkService.validate_assignment_basis(
+            tx, basis_validation, basis_row, recorded_at
         )
         self._add_version(
             tx,
@@ -876,7 +918,7 @@ class CaseContinuityService:
             f.assignment_basis_version_id,
             "assignment-basis",
             f"case:{f.case_id}",
-            {"authority_source_version_id": str(command.authority_source_version_id)},
+            {"authority_source_version_id": str(command.assignment_authority_source_version_id)},
             command.effective_at,
             recorded_at,
             command.identity.actor_id,
@@ -886,30 +928,43 @@ class CaseContinuityService:
         tx.insert_projection(
             "assignment_basis_records", {"record_id": str(f.assignment_basis_record_id)}
         )
-        tx.insert_projection(
-            "assignment_basis_versions",
+        tx.insert_projection("assignment_basis_versions", basis_row)
+        assignment_row: dict[str, object] = {
+            "version_id": str(f.assignment_version_id),
+            "record_id": str(f.assignment_record_id),
+            "responsibility_version_id": str(f.responsibility_version_id),
+            "signature_digest": signature,
+            "actor_id": str(command.identity.actor_id),
+            "assignment_basis_version_id": str(f.assignment_basis_version_id),
+            "state": "ASSIGNED",
+            "effective_from_us": to_epoch_microseconds(command.effective_at),
+            "effective_to_us": None,
+            "recorded_at_us": to_epoch_microseconds(recorded_at),
+            "predecessor_version_id": None,
+        }
+        assignment_validation = SliceACommand(
+            command.identity.command_id,
+            command.identity.idempotency_scope,
+            command.identity.idempotency_key,
+            command.identity.principal_id,
+            str(command.identity.actor_id),
+            f.assignment_record_id,
+            f.assignment_version_id,
+            "responsibility-assignment",
+            f"case:{f.case_id}",
             {
-                "version_id": str(f.assignment_basis_version_id),
-                "record_id": str(f.assignment_basis_record_id),
-                "assigning_actor_id": str(command.identity.actor_id),
-                "basis_source_version_id": str(command.authority_source_version_id),
-                "owning_case_id": str(f.case_id),
-                "context_digest": command.context.digest,
-                "allowed_obligation_kinds_json": json.dumps(
-                    [ObligationKind.DETERMINE_CASE_CONTINUITY.value]
-                ),
-                "allowed_case_ids_json": json.dumps([str(f.case_id)]),
-                "allowed_signature_digests_json": json.dumps([signature]),
-                "limits_json": json.dumps(
-                    {"continuity_actions": [value.value for value in DeterminationKind]}
-                ),
-                "max_active_assignments": 1,
-                "state": "ACTIVE",
-                "effective_from_us": to_epoch_microseconds(command.effective_at),
-                "effective_to_us": None,
-                "recorded_at_us": to_epoch_microseconds(recorded_at),
-                "predecessor_version_id": None,
+                "responsibility_version_id": str(f.responsibility_version_id),
+                "actor_id": str(command.identity.actor_id),
             },
+            command.effective_at,
+            command.contract,
+            command.context,
+            f.case_id,
+            "responsibility.assignment.create",
+            (ProjectionFact("responsibility_assignment_versions", assignment_row),),
+        )
+        ResponsibilityWorkService.validate_responsibility_assignment(
+            tx, assignment_validation, assignment_row, recorded_at
         )
         self._add_version(
             tx,
@@ -930,22 +985,7 @@ class CaseContinuityService:
         tx.insert_projection(
             "responsibility_assignment_records", {"record_id": str(f.assignment_record_id)}
         )
-        tx.insert_projection(
-            "responsibility_assignment_versions",
-            {
-                "version_id": str(f.assignment_version_id),
-                "record_id": str(f.assignment_record_id),
-                "responsibility_version_id": str(f.responsibility_version_id),
-                "signature_digest": signature,
-                "actor_id": str(command.identity.actor_id),
-                "assignment_basis_version_id": str(f.assignment_basis_version_id),
-                "state": "ASSIGNED",
-                "effective_from_us": to_epoch_microseconds(command.effective_at),
-                "effective_to_us": None,
-                "recorded_at_us": to_epoch_microseconds(recorded_at),
-                "predecessor_version_id": None,
-            },
-        )
+        tx.insert_projection("responsibility_assignment_versions", assignment_row)
         return signature
 
     def _validate_accountability(
@@ -1413,7 +1453,8 @@ class CaseContinuityService:
             "bounded_use": command.bounded_use,
             "management_question": command.management_question,
             "configuration": command.configuration_content,
-            "authority": str(command.authority_source_version_id),
+            "continuity_authority": str(command.authority_source_version_id),
+            "assignment_authority": str(command.assignment_authority_source_version_id),
             "effective_at": command.effective_at.isoformat(),
             "knowledge_cutoff": command.knowledge_cutoff.isoformat(),
             "actor": str(command.identity.actor_id),

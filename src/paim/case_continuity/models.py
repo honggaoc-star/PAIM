@@ -126,6 +126,7 @@ class OpenCaseCommand:
     configuration_maturity: str
     configuration_purpose: str
     authority_source_version_id: RecordVersionId
+    assignment_authority_source_version_id: RecordVersionId
     effective_at: datetime
     knowledge_cutoff: datetime
 

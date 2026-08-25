@@ -240,9 +240,9 @@ class ResponsibilityWorkService:
                 raise SliceAConflict("stale exact predecessor; no retarget permitted")
             version_row = self._version_projection(command)
             if command.family == "assignment-basis":
-                self._validate_assignment_basis(transaction, command, version_row, recorded_at)
+                self.validate_assignment_basis(transaction, command, version_row, recorded_at)
             elif command.family == "responsibility-assignment":
-                self._validate_responsibility_assignment(
+                self.validate_responsibility_assignment(
                     transaction, command, version_row, recorded_at
                 )
             version = FinalizedRecordVersion(
@@ -508,8 +508,9 @@ class ResponsibilityWorkService:
         ):
             raise SliceAConflict(reason)
 
-    def _validate_assignment_basis(
-        self,
+    @classmethod
+    def validate_assignment_basis(
+        cls,
         transaction: SliceATransaction,
         command: SliceACommand,
         row: dict[str, object],
@@ -522,7 +523,7 @@ class ResponsibilityWorkService:
             "decision-authorization-basis",
         }:
             raise SliceAConflict("ASSIGNMENT AUTHORITY SOURCE NOT ESTABLISHED")
-        self._require_exact_current(
+        cls._require_exact_current(
             transaction,
             source,
             effective_at=command.effective_at,
@@ -533,11 +534,11 @@ class ResponsibilityWorkService:
         authority = content.get("assignment_authority")
         if not isinstance(authority, dict):
             raise SliceAConflict("ASSIGNMENT AUTHORITY NOT ESTABLISHED")
-        allowed_kinds = self._json_string_set(
+        allowed_kinds = cls._json_string_set(
             row["allowed_obligation_kinds_json"], field="basis obligation kinds"
         )
-        allowed_cases = self._json_string_set(row["allowed_case_ids_json"], field="basis Cases")
-        allowed_signatures = self._json_string_set(
+        allowed_cases = cls._json_string_set(row["allowed_case_ids_json"], field="basis Cases")
+        allowed_signatures = cls._json_string_set(
             row["allowed_signature_digests_json"], field="basis signatures"
         )
         source_kinds = frozenset(cast(list[str], authority.get("allowed_obligation_kinds", [])))
@@ -575,8 +576,9 @@ class ResponsibilityWorkService:
         if predecessor != expected:
             raise SliceAConflict("ASSIGNMENT BASIS PREDECESSOR MISMATCH")
 
-    def _validate_responsibility_assignment(
-        self,
+    @classmethod
+    def validate_responsibility_assignment(
+        cls,
         transaction: SliceATransaction,
         command: SliceACommand,
         row: dict[str, object],
@@ -589,7 +591,7 @@ class ResponsibilityWorkService:
         )
         if responsibility is None or len(responsibility_rows) != 1:
             raise SliceAConflict("EXACT RESPONSIBILITY NOT ESTABLISHED")
-        self._require_exact_current(
+        cls._require_exact_current(
             transaction,
             responsibility,
             effective_at=command.effective_at,
@@ -604,7 +606,7 @@ class ResponsibilityWorkService:
         )
         if basis is None or len(basis_rows) != 1:
             raise SliceAConflict("EXACT ASSIGNMENT BASIS NOT ESTABLISHED")
-        self._require_exact_current(
+        cls._require_exact_current(
             transaction,
             basis,
             effective_at=command.effective_at,
@@ -621,7 +623,7 @@ class ResponsibilityWorkService:
             "decision-authorization-basis",
         }:
             raise SliceAConflict("ASSIGNMENT AUTHORITY SOURCE NOT ESTABLISHED")
-        self._require_exact_current(
+        cls._require_exact_current(
             transaction,
             source,
             effective_at=command.effective_at,
@@ -644,13 +646,13 @@ class ResponsibilityWorkService:
         basis_from = cast(int, basis_row["effective_from_us"])
         basis_to = cast(int | None, basis_row["effective_to_us"])
         effective_us = to_epoch_microseconds(command.effective_at)
-        allowed_kinds = self._json_string_set(
+        allowed_kinds = cls._json_string_set(
             basis_row["allowed_obligation_kinds_json"], field="basis obligation kinds"
         )
-        allowed_cases = self._json_string_set(
+        allowed_cases = cls._json_string_set(
             basis_row["allowed_case_ids_json"], field="basis Cases"
         )
-        allowed_signatures = self._json_string_set(
+        allowed_signatures = cls._json_string_set(
             basis_row["allowed_signature_digests_json"], field="basis signatures"
         )
         if (

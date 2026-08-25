@@ -36,6 +36,7 @@ from paim.integrity.semantics import (
     SemanticContractRef,
 )
 from paim.practitioner_queries import PractitionerQueryService
+from paim.responsibility.models import ObligationKind, responsibility_signature
 from paim.responsibility.service import (
     ProjectionFact,
     ResponsibilityWorkService,
@@ -79,6 +80,9 @@ def add_authority(
     case_id: RecordId,
     exact_context: ExactContextSet,
     suffix: str,
+    assignment_signature: str | None = None,
+    assignment_actor_id: RecordId | None = None,
+    assignment_effective: EffectiveInterval | None = None,
 ) -> RecordVersionId:
     record_id, version_id = RecordId.new(), RecordVersionId.new()
     with sqlite_store.semantic_transaction() as tx:  # type: ignore[attr-defined]
@@ -103,10 +107,31 @@ def add_authority(
                             ],
                             "context_digest": exact_context.digest,
                         },
+                        **(
+                            {
+                                "assignment_authority": {
+                                    "assigning_actor_id": str(assignment_actor_id or actor_id),
+                                    "allowed_case_ids": [str(case_id)],
+                                    "allowed_obligation_kinds": [
+                                        ObligationKind.DETERMINE_CASE_CONTINUITY.value
+                                    ],
+                                    "allowed_signature_digests": [assignment_signature],
+                                    "context_digest": exact_context.digest,
+                                    "max_active_assignments": 1,
+                                    "limits": {
+                                        "continuity_actions": [
+                                            value.value for value in DeterminationKind
+                                        ]
+                                    },
+                                }
+                            }
+                            if assignment_signature is not None
+                            else {}
+                        ),
                     }
                 ),
                 NOW,
-                EffectiveInterval(NOW),
+                assignment_effective or EffectiveInterval(NOW),
                 str(actor_id),
             )
         )
@@ -114,7 +139,13 @@ def add_authority(
 
 
 def opening(
-    sqlite_store: object, actor_id: RecordId, suffix: str
+    sqlite_store: object,
+    actor_id: RecordId,
+    suffix: str,
+    *,
+    assignment_authority: bool = True,
+    assignment_actor_id: RecordId | None = None,
+    assignment_effective: EffectiveInterval | None = None,
 ) -> tuple[OpenCaseCommand, RecordVersionId]:
     facts = OpeningFacts.new()
     exact_context = context(facts, f"bounded-use-{suffix}")
@@ -124,6 +155,25 @@ def opening(
         case_id=facts.case_id,
         exact_context=exact_context,
         suffix=suffix,
+    )
+    assignment_signature = responsibility_signature(
+        contract=CONTRACT,
+        obligation_kind=ObligationKind.DETERMINE_CASE_CONTINUITY,
+        owning_case_id=facts.case_id,
+        context=exact_context,
+        purpose="continuing-case",
+        use=f"bounded-use-{suffix}",
+        scope=f"Should bounded use {suffix} continue?",
+    )
+    assignment_source = add_authority(
+        sqlite_store,
+        actor_id=actor_id,
+        case_id=facts.case_id,
+        exact_context=exact_context,
+        suffix=f"{suffix}-assignment",
+        assignment_signature=(assignment_signature if assignment_authority else None),
+        assignment_actor_id=assignment_actor_id,
+        assignment_effective=assignment_effective,
     )
     command = OpenCaseCommand(
         CommandIdentity(CommandId.new(), "slice-b-open", suffix, "principal:slice-b", actor_id),
@@ -137,10 +187,14 @@ def opening(
         "finalized",
         "candidate",
         authority,
+        assignment_source,
         NOW,
         NOW,
     )
-    return command, authority
+    # Subsequent accountable continuity determinations bind the exact source of
+    # the opening assignment. That source independently carries the bounded
+    # continuity authority needed by those determinations.
+    return command, assignment_source
 
 
 def transition(
@@ -234,6 +288,99 @@ def add_ready_work(sqlite_store: object, opened: OpenCaseCommand) -> SliceAComma
                 },
             ),
         ),
+    )
+
+
+@pytest.mark.parametrize(
+    ("suffix", "opening_options", "expected"),
+    (
+        (
+            "continuity-authority-only",
+            {"assignment_authority": False},
+            "ASSIGNMENT AUTHORITY NOT ESTABLISHED",
+        ),
+        (
+            "wrong-assignment-authority",
+            {"assignment_actor_id": RecordId.new()},
+            "ASSIGNMENT BASIS EXCEEDS EXACT AUTHORITY SOURCE",
+        ),
+        (
+            "stale-assignment-authority",
+            {
+                "assignment_effective": EffectiveInterval(
+                    NOW - timedelta(days=2), NOW - timedelta(days=1)
+                )
+            },
+            "ASSIGNMENT AUTHORITY SOURCE NOT CURRENT",
+        ),
+    ),
+)
+def test_open_case_requires_exact_slice_a_assignment_authority_with_zero_mutation(
+    sqlite_store: object,
+    suffix: str,
+    opening_options: dict[str, object],
+    expected: str,
+) -> None:
+    actor_id, _ = add_actor(sqlite_store, f"slice-b-{suffix}")  # type: ignore[arg-type]
+    command, _ = opening(
+        sqlite_store,
+        actor_id,
+        suffix,
+        **opening_options,  # type: ignore[arg-type]
+    )
+    before_versions = sqlite_store.count_rows("record_versions")  # type: ignore[attr-defined]
+    before_cases = sqlite_store.count_rows("paim_cases")  # type: ignore[attr-defined]
+
+    with pytest.raises(SliceAConflict, match=expected):
+        CaseContinuityService(
+            sqlite_store,
+            FixedClock(RECORDED),
+            ExactAccess(),
+        ).open_case(command)  # type: ignore[arg-type]
+
+    assert sqlite_store.count_rows("record_versions") == before_versions  # type: ignore[attr-defined]
+    assert sqlite_store.count_rows("paim_cases") == before_cases  # type: ignore[attr-defined]
+    with sqlite_store.read_transaction() as tx:  # type: ignore[attr-defined]
+        assert not tx.case_exists(command.facts.case_id)
+        assert not tx.projection_rows(
+            "assignment_basis_versions",
+            version_id=str(command.facts.assignment_basis_version_id),
+        )
+        assert not tx.projection_rows(
+            "responsibility_assignment_versions",
+            version_id=str(command.facts.assignment_version_id),
+        )
+
+
+def test_open_case_atomically_requires_and_uses_both_exact_authority_sources(
+    sqlite_store: object,
+) -> None:
+    actor_id, _ = add_actor(sqlite_store, "slice-b-exact-authority")  # type: ignore[arg-type]
+    command, assignment_authority = opening(sqlite_store, actor_id, "exact-authority")
+
+    outcome = CaseContinuityService(
+        sqlite_store,
+        FixedClock(RECORDED),
+        ExactAccess(),
+    ).open_case(command)  # type: ignore[arg-type]
+
+    assert len(outcome.version_ids) == 7
+    assert command.assignment_authority_source_version_id == assignment_authority
+    assert command.authority_source_version_id != assignment_authority
+    with sqlite_store.read_transaction() as tx:  # type: ignore[attr-defined]
+        basis = tx.projection_rows(
+            "assignment_basis_versions",
+            version_id=str(command.facts.assignment_basis_version_id),
+        )
+        assignment = tx.projection_rows(
+            "responsibility_assignment_versions",
+            version_id=str(command.facts.assignment_version_id),
+        )
+    assert basis[0]["basis_source_version_id"] == str(
+        command.assignment_authority_source_version_id
+    )
+    assert assignment[0]["assignment_basis_version_id"] == str(
+        command.facts.assignment_basis_version_id
     )
 
 
