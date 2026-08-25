@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import cast
 
 from paim.case_continuity.service import (
@@ -19,6 +19,7 @@ from paim.integrity.selection import SelectionFound, SelectionQuery
 from paim.practitioner_queries.models import (
     AttentionItem,
     CaseView,
+    ContinuingReviewPosition,
     GovernedPosition,
     HomeView,
     LanePosition,
@@ -167,6 +168,15 @@ class PractitionerQueryService:
                 effective_at,
                 known_at,
             )
+            review_position = self._continuing_review_position(
+                tx,
+                principal_id,
+                actor_id,
+                case_id,
+                governing_id,
+                effective_at,
+                known_at,
+            )
             manifest.update(
                 RecordVersionId.parse(str(row["version_id"])) for row in responsibilities
             )
@@ -177,6 +187,8 @@ class PractitionerQueryService:
             for governed_position in (integration_position, decision_position):
                 if governed_position is not None:
                     manifest.update(governed_position.source_version_ids)
+            if review_position is not None:
+                manifest.update(review_position.source_version_ids)
             position = (
                 "Case continuity: "
                 f"{continuity.status.value if continuity.status else continuity.kind.value}",
@@ -207,6 +219,7 @@ class PractitionerQueryService:
                 risk_position=risk_position,
                 integration_position=integration_position,
                 decision_position=decision_position,
+                continuing_review_position=review_position,
             )
 
     def task(
@@ -296,6 +309,37 @@ class PractitionerQueryService:
         )
         work = self._current_work(tx, principal_id, actor_id, case_id, effective_at, known_at)
         result: list[AttentionItem] = []
+        governing = self._current_family(
+            tx, "governing-configuration", f"case:{case_id}", effective_at, known_at
+        )
+        governing_id: RecordVersionId | None = None
+        if len(governing) == 1:
+            rows = tx.projection_rows(
+                "governing_configuration_designations", version_id=str(governing[0])
+            )
+            if len(rows) == 1:
+                governing_id = RecordVersionId.parse(str(rows[0]["configuration_version_id"]))
+        review = self._continuing_review_position(
+            tx,
+            principal_id,
+            actor_id,
+            case_id,
+            governing_id,
+            effective_at,
+            known_at,
+        )
+        if review is not None and review.attention_reasons:
+            result.append(
+                AttentionItem(
+                    case_id,
+                    "CONTINUING_REVIEW",
+                    "What specifically needs review for this continuing Case?",
+                    "; ".join(review.attention_reasons),
+                    None,
+                    None,
+                    SourceManifest(review.source_version_ids, effective_at, known_at),
+                )
+            )
         for row in work:
             if row["assignee_actor_id"] != str(actor_id) or row["state"] not in {
                 "READY",
@@ -436,6 +480,307 @@ class PractitionerQueryService:
                 ),
             )
         )
+
+    def _continuing_review_position(
+        self,
+        tx: ContinuityTransaction,
+        principal_id: str,
+        actor_id: RecordId,
+        case_id: RecordId,
+        configuration_version_id: RecordVersionId | None,
+        effective_at: datetime,
+        known_at: datetime,
+    ) -> ContinuingReviewPosition | None:
+        if configuration_version_id is None:
+            return None
+        decision_rows = self._current_projection_rows(
+            tx,
+            tx.projection_rows(
+                "prospective_decision_versions",
+                case_id=str(case_id),
+                configuration_version_id=str(configuration_version_id),
+            ),
+            effective_at,
+            known_at,
+        )
+        visible_decisions = self._visible_slice_d_rows(
+            tx,
+            principal_id,
+            actor_id,
+            case_id,
+            decision_rows,
+            "decision",
+            effective_at,
+            known_at,
+        )
+        authorized = tuple(row for row in visible_decisions if row.get("status") == "AUTHORIZED")
+        if len(authorized) != 1:
+            return None
+        decision = authorized[0]
+        decision_id = str(decision["version_id"])
+        context_digest = str(decision["context_digest"])
+        common = {
+            "case_id": str(case_id),
+            "configuration_version_id": str(configuration_version_id),
+            "context_digest": context_digest,
+        }
+
+        plan_raw = tuple(
+            row
+            for row in self._current_projection_rows(
+                tx,
+                tx.projection_rows("planned_review_point_versions", **common),
+                effective_at,
+                known_at,
+            )
+            if row.get("decision_version_id") == decision_id
+        )
+        plans, plan_hidden = self._visible_review_rows(
+            tx,
+            principal_id,
+            actor_id,
+            case_id,
+            plan_raw,
+            (
+                "configuration_version_id",
+                "decision_version_id",
+                "responsibility_version_id",
+                "assignment_version_id",
+                "planning_authority_source_version_id",
+            ),
+            ("source_basis_version_ids_json",),
+        )
+        planned_at: datetime | None = None
+        if plan_hidden:
+            planned_state = "STATUS NOT SAFELY AVAILABLE"
+        elif not plans:
+            planned_state = "NEXT REVIEW NOT PLANNED"
+        elif len(plans) > 1:
+            planned_state = "PLANNED REVIEW CONFLICT — UNRESOLVED"
+        else:
+            planned_state = "PLANNED"
+            planned_at = self._from_epoch_us(cast(int, plans[0]["review_at_us"]))
+
+        constraint_raw = tuple(
+            row
+            for row in self._current_projection_rows(
+                tx,
+                tx.projection_rows("required_review_constraint_versions", state="ACTIVE", **common),
+                effective_at,
+                known_at,
+            )
+            if row.get("decision_version_id") == decision_id
+        )
+        constraints, constraint_hidden = self._visible_review_rows(
+            tx,
+            principal_id,
+            actor_id,
+            case_id,
+            constraint_raw,
+            (
+                "configuration_version_id",
+                "decision_version_id",
+                "source_version_id",
+                "source_authority_version_id",
+                "applicability_version_id",
+                "responsibility_version_id",
+                "assignment_version_id",
+            ),
+            (),
+        )
+        required_start: datetime | None = None
+        required_end: datetime | None = None
+        if constraint_hidden:
+            required_state = "STATUS NOT SAFELY AVAILABLE"
+        elif not constraints:
+            required_state = "REQUIRED REVIEW NOT ESTABLISHED"
+        else:
+            starts = [
+                cast(int, row["window_start_us"])
+                for row in constraints
+                if row.get("window_start_us") is not None
+            ]
+            ends = [
+                cast(int, row["window_end_us"])
+                for row in constraints
+                if row.get("window_end_us") is not None
+            ]
+            required_start = self._from_epoch_us(max(starts)) if starts else None
+            required_end = self._from_epoch_us(min(ends)) if ends else None
+            required_state = (
+                "REQUIRED REVIEW TIMING CONFLICT — UNRESOLVED"
+                if required_start is not None
+                and required_end is not None
+                and required_start > required_end
+                else "EXACT MECHANICAL CONSTRAINT INTERSECTION"
+            )
+
+        episode_raw = self._current_projection_rows(
+            tx,
+            tx.projection_rows("review_episode_versions", **common),
+            effective_at,
+            known_at,
+        )
+        episodes, episode_hidden = self._visible_review_rows(
+            tx,
+            principal_id,
+            actor_id,
+            case_id,
+            episode_raw,
+            (
+                "configuration_version_id",
+                "prior_decision_version_id",
+                "prior_integration_version_id",
+                "prior_value_reliance_version_id",
+                "prior_risk_reliance_version_id",
+                "continued_value_reliance_version_id",
+                "continued_risk_reliance_version_id",
+                "decision_confirmation_version_id",
+                "successor_decision_version_id",
+                "responsibility_version_id",
+                "assignment_version_id",
+            ),
+            ("origin_version_ids_json", "refreshed_result_version_ids_json"),
+        )
+        open_episodes = tuple(row for row in episodes if row.get("status") == "OPEN")
+        if episode_hidden:
+            current_review = "STATUS NOT SAFELY AVAILABLE"
+        elif not open_episodes:
+            current_review = "NO OPEN REVIEW"
+        elif len(open_episodes) == 1:
+            current_review = "FOCUSED REVIEW OPEN"
+        else:
+            current_review = "REVIEW EPISODE CONFLICT — UNRESOLVED"
+        completed_at: datetime | None = None
+        completed_versions = [
+            tx.get_version(RecordVersionId.parse(str(row["version_id"])))
+            for row in episodes
+            if row.get("status") == "COMPLETED"
+        ]
+        known_completed = [value for value in completed_versions if value is not None]
+        if known_completed:
+            completed_at = max(value.effective.start for value in known_completed)
+
+        event_raw = tuple(
+            row
+            for row in self._current_projection_rows(
+                tx,
+                tx.projection_rows("review_attention_event_versions", **common),
+                effective_at,
+                known_at,
+            )
+            if row.get("decision_version_id") == decision_id
+        )
+        events, _event_hidden = self._visible_review_rows(
+            tx,
+            principal_id,
+            actor_id,
+            case_id,
+            event_raw,
+            (
+                "configuration_version_id",
+                "decision_version_id",
+                "event_source_version_id",
+                "responsibility_version_id",
+                "assignment_version_id",
+            ),
+            (),
+        )
+        reasons: list[str] = []
+        source_ids: set[RecordVersionId] = set()
+        if planned_at is not None and planned_at <= effective_at:
+            reasons.append("The visible planned review point is due.")
+            source_ids.add(RecordVersionId.parse(str(plans[0]["version_id"])))
+        if required_state == "REQUIRED REVIEW TIMING CONFLICT — UNRESOLVED":
+            reasons.append("Visible required review timing is unresolved.")
+            source_ids.update(RecordVersionId.parse(str(row["version_id"])) for row in constraints)
+        elif required_end is not None and required_end <= effective_at:
+            reasons.append("A visible governing review requirement is due.")
+            source_ids.update(RecordVersionId.parse(str(row["version_id"])) for row in constraints)
+        if events:
+            reasons.append("An explicit visible governed event calls for review attention.")
+            source_ids.update(RecordVersionId.parse(str(row["version_id"])) for row in events)
+        for rows in (plans, constraints, episodes):
+            source_ids.update(RecordVersionId.parse(str(row["version_id"])) for row in rows)
+        if not (plan_raw or constraint_raw or episode_raw or event_raw):
+            return None
+        return ContinuingReviewPosition(
+            planned_at,
+            planned_state,
+            required_start,
+            required_end,
+            required_state,
+            current_review,
+            completed_at,
+            tuple(reasons),
+            tuple(sorted(source_ids, key=str)),
+        )
+
+    def _visible_review_rows(
+        self,
+        tx: ContinuityTransaction,
+        principal_id: str,
+        actor_id: RecordId,
+        case_id: RecordId,
+        rows: tuple[dict[str, object], ...],
+        scalar_fields: tuple[str, ...],
+        json_fields: tuple[str, ...],
+    ) -> tuple[tuple[dict[str, object], ...], bool]:
+        visible: list[dict[str, object]] = []
+        for row in rows:
+            required = self._review_required_versions(tx, row, scalar_fields, json_fields)
+            if required is not None and all(
+                self._source_visible(tx, principal_id, actor_id, case_id, version_id)
+                for version_id in required
+            ):
+                visible.append(row)
+        return tuple(visible), len(visible) != len(rows)
+
+    @staticmethod
+    def _review_required_versions(
+        tx: ContinuityTransaction,
+        row: dict[str, object],
+        scalar_fields: tuple[str, ...],
+        json_fields: tuple[str, ...],
+    ) -> set[RecordVersionId] | None:
+        try:
+            required = {RecordVersionId.parse(str(row["version_id"]))}
+            for field in scalar_fields:
+                if row.get(field):
+                    required.add(RecordVersionId.parse(str(row[field])))
+            for field in json_fields:
+                encoded = row.get(field)
+                if encoded:
+                    values = json.loads(cast(str, encoded))
+                    if not isinstance(values, list) or not all(
+                        isinstance(value, str) for value in values
+                    ):
+                        return None
+                    required.update(RecordVersionId.parse(value) for value in values)
+            assignment = row.get("assignment_version_id")
+            if assignment:
+                assignment_rows = tx.projection_rows(
+                    "responsibility_assignment_versions", version_id=str(assignment)
+                )
+                if len(assignment_rows) != 1:
+                    return None
+                basis_id = RecordVersionId.parse(
+                    str(assignment_rows[0]["assignment_basis_version_id"])
+                )
+                required.add(basis_id)
+                basis_rows = tx.projection_rows(
+                    "assignment_basis_versions", version_id=str(basis_id)
+                )
+                if len(basis_rows) != 1:
+                    return None
+                required.add(RecordVersionId.parse(str(basis_rows[0]["basis_source_version_id"])))
+            return required
+        except (KeyError, TypeError, ValueError):
+            return None
+
+    @staticmethod
+    def _from_epoch_us(value: int) -> datetime:
+        return datetime.fromtimestamp(value / 1_000_000, tz=UTC)
 
     def _lane_attention_required(
         self,

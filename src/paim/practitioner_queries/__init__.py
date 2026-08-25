@@ -3,6 +3,7 @@
 from paim.practitioner_queries.models import (
     AttentionItem,
     CaseView,
+    ContinuingReviewPosition,
     GovernedPosition,
     HomeView,
     LanePosition,
@@ -14,6 +15,7 @@ from paim.practitioner_queries.service import PractitionerQueryService
 __all__ = [
     "AttentionItem",
     "CaseView",
+    "ContinuingReviewPosition",
     "GovernedPosition",
     "HomeView",
     "LanePosition",

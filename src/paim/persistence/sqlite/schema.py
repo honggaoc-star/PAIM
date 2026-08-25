@@ -4746,6 +4746,388 @@ Index(
     prospective_decision_confirmation_versions.c.decision_version_id,
 )
 
+planned_review_point_records = Table(
+    "planned_review_point_records",
+    metadata,
+    Column("record_id", String(36), ForeignKey("records.record_id"), primary_key=True),
+)
+planned_review_point_versions = Table(
+    "planned_review_point_versions",
+    metadata,
+    Column("version_id", String(36), ForeignKey("record_versions.version_id"), primary_key=True),
+    Column(
+        "record_id",
+        String(36),
+        ForeignKey("planned_review_point_records.record_id"),
+        nullable=False,
+    ),
+    Column("case_id", String(36), ForeignKey("paim_cases.case_id"), nullable=False),
+    Column(
+        "configuration_version_id",
+        String(36),
+        ForeignKey("managed_configuration_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "decision_version_id",
+        String(36),
+        ForeignKey("prospective_decision_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "context_digest",
+        String(64),
+        ForeignKey("exact_context_sets.context_digest"),
+        nullable=False,
+    ),
+    Column("review_purpose", Text, nullable=False),
+    Column("bounded_scope", Text, nullable=False),
+    Column("review_at_us", BigInteger, nullable=False),
+    Column("rationale", Text, nullable=False),
+    Column("source_basis_version_ids_json", Text, nullable=False),
+    Column(
+        "responsibility_version_id",
+        String(36),
+        ForeignKey("responsibility_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "assignment_version_id",
+        String(36),
+        ForeignKey("responsibility_assignment_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "planning_authority_source_version_id",
+        String(36),
+        ForeignKey("record_versions.version_id"),
+        nullable=True,
+    ),
+    Column("decision_condition", Boolean, nullable=False),
+    Column(
+        "predecessor_version_id",
+        String(36),
+        ForeignKey("planned_review_point_versions.version_id"),
+        nullable=True,
+    ),
+    Column("knowledge_cutoff_us", BigInteger, nullable=False),
+)
+Index(
+    "ix_planned_review_point_selection",
+    planned_review_point_versions.c.case_id,
+    planned_review_point_versions.c.configuration_version_id,
+    planned_review_point_versions.c.decision_version_id,
+    planned_review_point_versions.c.context_digest,
+    planned_review_point_versions.c.review_purpose,
+    planned_review_point_versions.c.bounded_scope,
+)
+
+required_review_constraint_records = Table(
+    "required_review_constraint_records",
+    metadata,
+    Column("record_id", String(36), ForeignKey("records.record_id"), primary_key=True),
+)
+required_review_constraint_versions = Table(
+    "required_review_constraint_versions",
+    metadata,
+    Column("version_id", String(36), ForeignKey("record_versions.version_id"), primary_key=True),
+    Column(
+        "record_id",
+        String(36),
+        ForeignKey("required_review_constraint_records.record_id"),
+        nullable=False,
+    ),
+    Column("case_id", String(36), ForeignKey("paim_cases.case_id"), nullable=False),
+    Column(
+        "configuration_version_id",
+        String(36),
+        ForeignKey("managed_configuration_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "decision_version_id",
+        String(36),
+        ForeignKey("prospective_decision_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "context_digest",
+        String(64),
+        ForeignKey("exact_context_sets.context_digest"),
+        nullable=False,
+    ),
+    Column("review_purpose", Text, nullable=False),
+    Column("bounded_scope", Text, nullable=False),
+    Column("state", Text, nullable=False),
+    Column("operator", Text, nullable=False),
+    Column("window_start_us", BigInteger, nullable=True),
+    Column("window_end_us", BigInteger, nullable=True),
+    Column("limitations_json", Text, nullable=False),
+    Column("rationale", Text, nullable=False),
+    Column(
+        "source_version_id",
+        String(36),
+        ForeignKey("record_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "source_authority_version_id",
+        String(36),
+        ForeignKey("record_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "applicability_version_id",
+        String(36),
+        ForeignKey("record_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "responsibility_version_id",
+        String(36),
+        ForeignKey("responsibility_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "assignment_version_id",
+        String(36),
+        ForeignKey("responsibility_assignment_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "predecessor_version_id",
+        String(36),
+        ForeignKey("required_review_constraint_versions.version_id"),
+        nullable=True,
+    ),
+    Column("knowledge_cutoff_us", BigInteger, nullable=False),
+    CheckConstraint("state IN ('ACTIVE','WITHDRAWN')", name="ck_required_review_state"),
+    CheckConstraint(
+        "operator IN ('BY','NOT_BEFORE','WINDOW')",
+        name="ck_required_review_operator",
+    ),
+    CheckConstraint(
+        "(operator = 'BY' AND window_start_us IS NULL AND window_end_us IS NOT NULL) OR "
+        "(operator = 'NOT_BEFORE' AND window_start_us IS NOT NULL AND window_end_us IS NULL) OR "
+        "(operator = 'WINDOW' AND window_start_us IS NOT NULL AND window_end_us IS NOT NULL "
+        "AND window_start_us < window_end_us) OR state = 'WITHDRAWN'",
+        name="ck_required_review_window",
+    ),
+)
+Index(
+    "ix_required_review_constraint_selection",
+    required_review_constraint_versions.c.case_id,
+    required_review_constraint_versions.c.configuration_version_id,
+    required_review_constraint_versions.c.decision_version_id,
+    required_review_constraint_versions.c.context_digest,
+    required_review_constraint_versions.c.review_purpose,
+    required_review_constraint_versions.c.bounded_scope,
+)
+
+review_attention_event_records = Table(
+    "review_attention_event_records",
+    metadata,
+    Column("record_id", String(36), ForeignKey("records.record_id"), primary_key=True),
+)
+review_attention_event_versions = Table(
+    "review_attention_event_versions",
+    metadata,
+    Column("version_id", String(36), ForeignKey("record_versions.version_id"), primary_key=True),
+    Column(
+        "record_id",
+        String(36),
+        ForeignKey("review_attention_event_records.record_id"),
+        nullable=False,
+    ),
+    Column("case_id", String(36), ForeignKey("paim_cases.case_id"), nullable=False),
+    Column(
+        "configuration_version_id",
+        String(36),
+        ForeignKey("managed_configuration_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "decision_version_id",
+        String(36),
+        ForeignKey("prospective_decision_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "context_digest",
+        String(64),
+        ForeignKey("exact_context_sets.context_digest"),
+        nullable=False,
+    ),
+    Column(
+        "event_source_version_id",
+        String(36),
+        ForeignKey("record_versions.version_id"),
+        nullable=False,
+    ),
+    Column("review_purpose", Text, nullable=False),
+    Column("bounded_scope", Text, nullable=False),
+    Column("affected_focus_json", Text, nullable=False),
+    Column("reason", Text, nullable=False),
+    Column(
+        "responsibility_version_id",
+        String(36),
+        ForeignKey("responsibility_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "assignment_version_id",
+        String(36),
+        ForeignKey("responsibility_assignment_versions.version_id"),
+        nullable=False,
+    ),
+    Column("knowledge_cutoff_us", BigInteger, nullable=False),
+)
+Index(
+    "ix_review_attention_event_case",
+    review_attention_event_versions.c.case_id,
+    review_attention_event_versions.c.configuration_version_id,
+    review_attention_event_versions.c.context_digest,
+)
+
+review_episode_records = Table(
+    "review_episode_records",
+    metadata,
+    Column("record_id", String(36), ForeignKey("records.record_id"), primary_key=True),
+)
+review_episode_versions = Table(
+    "review_episode_versions",
+    metadata,
+    Column("version_id", String(36), ForeignKey("record_versions.version_id"), primary_key=True),
+    Column(
+        "record_id",
+        String(36),
+        ForeignKey("review_episode_records.record_id"),
+        nullable=False,
+    ),
+    Column("case_id", String(36), ForeignKey("paim_cases.case_id"), nullable=False),
+    Column(
+        "configuration_version_id",
+        String(36),
+        ForeignKey("managed_configuration_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "context_digest",
+        String(64),
+        ForeignKey("exact_context_sets.context_digest"),
+        nullable=False,
+    ),
+    Column("status", Text, nullable=False),
+    Column("origin", Text, nullable=False),
+    Column("origin_version_ids_json", Text, nullable=False),
+    Column("focused_scope_json", Text, nullable=False),
+    Column(
+        "prior_decision_version_id",
+        String(36),
+        ForeignKey("prospective_decision_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "prior_integration_version_id",
+        String(36),
+        ForeignKey("prospective_integration_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "prior_value_reliance_version_id",
+        String(36),
+        ForeignKey("assessment_reliance_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "prior_risk_reliance_version_id",
+        String(36),
+        ForeignKey("assessment_reliance_versions.version_id"),
+        nullable=False,
+    ),
+    Column("refreshed_result_version_ids_json", Text, nullable=False),
+    Column(
+        "continued_value_reliance_version_id",
+        String(36),
+        ForeignKey("assessment_reliance_versions.version_id"),
+        nullable=True,
+    ),
+    Column(
+        "continued_risk_reliance_version_id",
+        String(36),
+        ForeignKey("assessment_reliance_versions.version_id"),
+        nullable=True,
+    ),
+    Column(
+        "decision_confirmation_version_id",
+        String(36),
+        ForeignKey("prospective_decision_confirmation_versions.version_id"),
+        nullable=True,
+    ),
+    Column(
+        "successor_decision_version_id",
+        String(36),
+        ForeignKey("prospective_decision_versions.version_id"),
+        nullable=True,
+    ),
+    Column("outcome", Text, nullable=True),
+    Column("completion_rationale", Text, nullable=True),
+    Column(
+        "responsibility_version_id",
+        String(36),
+        ForeignKey("responsibility_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "assignment_version_id",
+        String(36),
+        ForeignKey("responsibility_assignment_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "predecessor_version_id",
+        String(36),
+        ForeignKey("review_episode_versions.version_id"),
+        nullable=True,
+    ),
+    Column("knowledge_cutoff_us", BigInteger, nullable=False),
+    CheckConstraint("status IN ('OPEN','COMPLETED')", name="ck_review_episode_status"),
+    CheckConstraint(
+        "(status = 'OPEN' AND outcome IS NULL AND decision_confirmation_version_id IS NULL "
+        "AND successor_decision_version_id IS NULL) OR "
+        "(status = 'COMPLETED' AND outcome IS NOT NULL AND "
+        "((decision_confirmation_version_id IS NOT NULL AND successor_decision_version_id IS NULL) "
+        "OR (decision_confirmation_version_id IS NULL "
+        "AND successor_decision_version_id IS NOT NULL)))",
+        name="ck_review_episode_decision_path",
+    ),
+)
+Index(
+    "ix_review_episode_selection",
+    review_episode_versions.c.case_id,
+    review_episode_versions.c.configuration_version_id,
+    review_episode_versions.c.context_digest,
+    review_episode_versions.c.status,
+)
+
+review_episode_result_links = Table(
+    "review_episode_result_links",
+    metadata,
+    Column(
+        "episode_version_id",
+        String(36),
+        ForeignKey("review_episode_versions.version_id"),
+        primary_key=True,
+    ),
+    Column(
+        "result_version_id",
+        String(36),
+        ForeignKey("record_versions.version_id"),
+        primary_key=True,
+    ),
+    Column("link_role", Text, primary_key=True),
+)
+
 IMMUTABILITY_TRIGGERS: tuple[str, ...] = (
     """
     CREATE TRIGGER prevent_finalized_version_update
