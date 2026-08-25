@@ -53,6 +53,19 @@ class GovernedPosition:
 
 
 @dataclass(frozen=True, slots=True)
+class ContinuingReviewPosition:
+    next_planned_review_at: datetime | None
+    planned_state: str
+    required_window_start: datetime | None
+    required_window_end: datetime | None
+    required_state: str
+    current_review_state: str
+    last_completed_review_at: datetime | None
+    attention_reasons: tuple[str, ...]
+    source_version_ids: tuple[RecordVersionId, ...]
+
+
+@dataclass(frozen=True, slots=True)
 class CaseView:
     case_id: RecordId
     title: str
@@ -69,6 +82,7 @@ class CaseView:
     risk_position: LanePosition | None = None
     integration_position: GovernedPosition | None = None
     decision_position: GovernedPosition | None = None
+    continuing_review_position: ContinuingReviewPosition | None = None
 
 
 @dataclass(frozen=True, slots=True)

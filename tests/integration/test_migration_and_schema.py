@@ -19,6 +19,88 @@ def alembic_config(database_url: str) -> Config:
     return config
 
 
+def test_gate8_slice_e_upgrades_exact_slice_d_head_without_backfill(
+    tmp_path: Path,
+) -> None:
+    database_url = f"sqlite+pysqlite:///{(tmp_path / 'gate8-from-0013.sqlite3').as_posix()}"
+    config = alembic_config(database_url)
+    command.upgrade(config, "0013_gate8_integration_decision_basis")
+    engine = create_engine(database_url)
+    legacy_tables = (
+        "prospective_decision_versions",
+        "assessment_reliance_versions",
+        "reassessment_versions",
+    )
+    with engine.connect() as connection:
+        before = {
+            table: connection.execute(text(f"SELECT COUNT(*) FROM {table}")).scalar_one()
+            for table in legacy_tables
+        }
+    command.upgrade(config, "head")
+    inspector = inspect(engine)
+    expected = {
+        "planned_review_point_records",
+        "planned_review_point_versions",
+        "required_review_constraint_records",
+        "required_review_constraint_versions",
+        "review_attention_event_records",
+        "review_attention_event_versions",
+        "review_episode_records",
+        "review_episode_versions",
+        "review_episode_result_links",
+    }
+    assert expected <= set(inspector.get_table_names())
+    assert {index["name"] for index in inspector.get_indexes("planned_review_point_versions")} >= {
+        "ix_planned_review_point_selection"
+    }
+    assert {
+        index["name"] for index in inspector.get_indexes("required_review_constraint_versions")
+    } >= {"ix_required_review_constraint_selection"}
+    assert {index["name"] for index in inspector.get_indexes("review_episode_versions")} >= {
+        "ix_review_episode_selection"
+    }
+    assert {
+        constraint["name"]
+        for constraint in inspector.get_check_constraints("required_review_constraint_versions")
+    } >= {
+        "ck_required_review_state",
+        "ck_required_review_operator",
+        "ck_required_review_window",
+    }
+    assert {
+        constraint["name"]
+        for constraint in inspector.get_check_constraints("review_episode_versions")
+    } >= {"ck_review_episode_status", "ck_review_episode_decision_path"}
+    assert {
+        foreign_key["referred_table"]
+        for foreign_key in inspector.get_foreign_keys("review_episode_versions")
+    } >= {
+        "record_versions",
+        "prospective_decision_versions",
+        "prospective_integration_versions",
+        "assessment_reliance_versions",
+        "responsibility_assignment_versions",
+    }
+    with engine.connect() as connection:
+        assert connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one() == (
+            "0014_gate8_continuing_review"
+        )
+        assert before == {
+            table: connection.execute(text(f"SELECT COUNT(*) FROM {table}")).scalar_one()
+            for table in legacy_tables
+        }
+        triggers = {
+            value
+            for value in connection.execute(
+                text("SELECT name FROM sqlite_master WHERE type='trigger'")
+            ).scalars()
+        }
+        for table in expected:
+            assert f"prevent_{table}_update" in triggers
+            assert f"prevent_{table}_delete" in triggers
+    engine.dispose()
+
+
 def test_gate8_slice_d_upgrades_exact_slice_c_head_without_backfill(
     tmp_path: Path,
 ) -> None:
@@ -57,7 +139,7 @@ def test_gate8_slice_d_upgrades_exact_slice_c_head_without_backfill(
     }
     with engine.connect() as connection:
         assert connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one() == (
-            "0013_gate8_integration_decision_basis"
+            "0014_gate8_continuing_review"
         )
         assert before == {
             table: connection.execute(text(f"SELECT COUNT(*) FROM {table}")).scalar_one()
@@ -90,7 +172,7 @@ def test_alembic_head_foreign_keys_and_immutability_triggers_exist(
     with sqlite_store.engine.connect() as connection:
         assert connection.exec_driver_sql("PRAGMA foreign_keys").scalar_one() == 1
         assert connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one() == (
-            "0013_gate8_integration_decision_basis"
+            "0014_gate8_continuing_review"
         )
         trigger_names = set(
             connection.execute(
@@ -207,7 +289,7 @@ def test_gate8_slice_a_upgrades_from_increment_8_without_legacy_backfill(
     command.upgrade(config, "head")
     with engine.connect() as connection:
         assert connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one() == (
-            "0013_gate8_integration_decision_basis"
+            "0014_gate8_continuing_review"
         )
         assert connection.execute(
             text("SELECT content_json FROM record_versions")
@@ -229,7 +311,7 @@ def test_gate8_responsibility_work_upgrades_from_common_semantics_revision(
     engine = create_engine(database_url)
     with engine.connect() as connection:
         assert connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one() == (
-            "0013_gate8_integration_decision_basis"
+            "0014_gate8_continuing_review"
         )
         assert set(
             connection.execute(text("SELECT role_code FROM practical_role_catalog")).scalars()
@@ -330,7 +412,7 @@ def test_upgrade_from_increment_2_revision_to_increment_3_head(tmp_path: Path) -
         with engine.connect() as connection:
             assert (
                 connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
-                == "0013_gate8_integration_decision_basis"
+                == "0014_gate8_continuing_review"
             )
     finally:
         engine.dispose()
@@ -369,7 +451,7 @@ def test_gate8_case_continuity_schema_and_upgrade_from_slice_a(tmp_path: Path) -
         with engine.connect() as connection:
             assert (
                 connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
-                == "0013_gate8_integration_decision_basis"
+                == "0014_gate8_continuing_review"
             )
             triggers = set(
                 connection.execute(
@@ -422,7 +504,7 @@ def test_gate8_assessment_review_upgrades_exact_slice_b_head_without_backfill(
     assert slice_c_tables <= set(inspector.get_table_names())
     with engine.connect() as connection:
         assert connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one() == (
-            "0013_gate8_integration_decision_basis"
+            "0014_gate8_continuing_review"
         )
         assert legacy_counts == {
             table: connection.execute(text(f"SELECT count(*) FROM {table}")).scalar_one()
@@ -530,7 +612,7 @@ def test_increment_2_schema_tables_constraints_indexes_and_upgrade_from_incremen
         with engine.connect() as connection:
             assert connection.execute(
                 text("SELECT version_num FROM alembic_version")
-            ).scalar_one() == ("0013_gate8_integration_decision_basis")
+            ).scalar_one() == ("0014_gate8_continuing_review")
     finally:
         engine.dispose()
 
@@ -659,7 +741,7 @@ def test_upgrade_from_increment_3_revision_to_increment_4_head(tmp_path: Path) -
         with engine.connect() as connection:
             assert (
                 connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
-                == "0013_gate8_integration_decision_basis"
+                == "0014_gate8_continuing_review"
             )
     finally:
         engine.dispose()
@@ -796,7 +878,7 @@ def test_upgrade_from_increment_4_revision_to_increment_5_head(tmp_path: Path) -
         with engine.connect() as connection:
             assert (
                 connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
-                == "0013_gate8_integration_decision_basis"
+                == "0014_gate8_continuing_review"
             )
     finally:
         engine.dispose()
@@ -919,7 +1001,7 @@ def test_upgrade_from_increment_5_revision_to_increment_6_head(tmp_path: Path) -
         with engine.connect() as connection:
             assert connection.execute(
                 text("SELECT version_num FROM alembic_version")
-            ).scalar_one() == ("0013_gate8_integration_decision_basis")
+            ).scalar_one() == ("0014_gate8_continuing_review")
     finally:
         engine.dispose()
 
@@ -990,7 +1072,7 @@ def test_upgrade_from_increment_6_revision_to_increment_7_head(tmp_path: Path) -
         with engine.connect() as connection:
             assert (
                 connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
-                == "0013_gate8_integration_decision_basis"
+                == "0014_gate8_continuing_review"
             )
     finally:
         engine.dispose()
@@ -1130,7 +1212,7 @@ def test_upgrade_from_increment_7_to_increment_8_preserves_history(tmp_path: Pat
         with engine.connect() as connection:
             assert connection.execute(
                 text("SELECT version_num FROM alembic_version")
-            ).scalar_one() == ("0013_gate8_integration_decision_basis")
+            ).scalar_one() == ("0014_gate8_continuing_review")
             assert (
                 connection.execute(
                     text("SELECT COUNT(*) FROM record_versions WHERE version_id=:version_id"),
