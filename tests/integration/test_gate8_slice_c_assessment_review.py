@@ -45,7 +45,7 @@ from paim.integrity import (
 )
 from paim.integrity.semantics import SemanticContractRef
 from paim.integrity.time import to_epoch_microseconds
-from paim.practitioner_queries import PractitionerQueryService
+from paim.practitioner_queries import CaseView, HomeView, PractitionerQueryService
 from paim.responsibility.models import ObligationKind, responsibility_signature
 from paim.responsibility.service import ProjectionFact, ResponsibilityWorkService
 from tests.integration.test_gate8_slice_a_responsibility_work import (
@@ -88,6 +88,23 @@ class Fixture:
     opened: object
     information_basis: tuple[RecordVersionId, ...]
     responsibilities: dict[tuple[AssessmentLane, str], ResponsibilityBasis]
+
+
+class SelectiveSourceAccess(ExactAccess):
+    def __init__(self, hidden_versions: frozenset[RecordVersionId] = frozenset()) -> None:
+        super().__init__()
+        self.hidden_versions = hidden_versions
+
+    def authorize(
+        self,
+        *,
+        case_id: RecordId,
+        source_version_id: RecordVersionId | None = None,
+        **_: object,
+    ) -> bool:
+        return case_id not in self.hidden and (
+            source_version_id is None or source_version_id not in self.hidden_versions
+        )
 
 
 def meta(key: str, actor_id: RecordId) -> CommandMeta:
@@ -406,6 +423,35 @@ def reliance_command(
         NOW,
         KNOWLEDGE,
     )
+
+
+def practitioner_views(
+    store: object, fx: Fixture, access: ExactAccess
+) -> tuple[CaseView, HomeView]:
+    queries = PractitionerQueryService(
+        store,  # type: ignore[arg-type]
+        CaseContinuityService(
+            store,
+            FixedClock(RECORDED + timedelta(seconds=5)),
+            access,  # type: ignore[arg-type]
+        ),
+        access,
+    )
+    case = queries.case(
+        principal_id="principal:slice-c",
+        actor_id=fx.actor_a,
+        case_id=fx.opened.facts.case_id,  # type: ignore[attr-defined]
+        effective_at=NOW,
+        known_at=RECORDED + timedelta(seconds=5),
+    )
+    home = queries.home(
+        principal_id="principal:slice-c",
+        actor_id=fx.actor_a,
+        candidate_case_ids=(fx.opened.facts.case_id,),  # type: ignore[attr-defined]
+        effective_at=NOW,
+        known_at=RECORDED + timedelta(seconds=5),
+    )
+    return case, home
 
 
 def test_two_lane_vertical_combined_and_separate_actor_paths(sqlite_store: object) -> None:
@@ -768,6 +814,183 @@ def test_finish_requires_exact_complete_information_applicability_basis(
     assert sqlite_store.count_rows("record_versions") == before  # type: ignore[attr-defined]
     assert sqlite_store.count_rows("assessment_candidate_versions") == 0  # type: ignore[attr-defined]
     assert sqlite_store.count_rows("assessment_readiness_versions") == 0  # type: ignore[attr-defined]
+
+
+def test_selectively_hidden_slice_c_sources_are_filtered_before_composition(
+    sqlite_store: object,
+) -> None:
+    fx = fixture(sqlite_store, "source-nondisclosure")
+    initial_case, initial_home = practitioner_views(sqlite_store, fx, SelectiveSourceAccess())
+    assert initial_case.value_position is None
+
+    value = finish_command(fx, AssessmentLane.VALUE, "visible-value-finish")
+    fx.service.finish_assessment(value)
+    finished_case, finished_home = practitioner_views(sqlite_store, fx, SelectiveSourceAccess())
+    assert finished_case.value_position is not None
+    assert finished_case.value_position.readiness == "READY FOR INDEPENDENT REVIEW"
+    assert any(item.kind == "VALUE_REVIEW" for item in finished_home.items)
+
+    hidden_assessment_case, hidden_assessment_home = practitioner_views(
+        sqlite_store,
+        fx,
+        SelectiveSourceAccess(frozenset({value.facts.assessment_version_id})),
+    )
+    assert hidden_assessment_case == initial_case
+    assert hidden_assessment_home == initial_home
+
+    hidden_readiness_case, hidden_readiness_home = practitioner_views(
+        sqlite_store,
+        fx,
+        SelectiveSourceAccess(frozenset({value.facts.readiness_version_id})),
+    )
+    assert hidden_readiness_case.value_position is not None
+    assert hidden_readiness_case.value_position.assessment == "PRESENT"
+    assert hidden_readiness_case.value_position.readiness == "NOT ESTABLISHED"
+    assert value.facts.readiness_version_id not in (
+        hidden_readiness_case.value_position.source_version_ids
+    )
+    assert any(item.kind == "VALUE_ASSESSMENT" for item in hidden_readiness_home.items)
+    assert all(item.kind != "VALUE_REVIEW" for item in hidden_readiness_home.items)
+
+    adequacy = adequacy_command(fx, value, "visible-value-adequacy")
+    fx.service.determine_adequacy(adequacy)
+    adequate_case, adequate_home = practitioner_views(sqlite_store, fx, SelectiveSourceAccess())
+    assert adequate_case.value_position is not None
+    assert adequate_case.value_position.adequacy == "ADEQUATE"
+    assert any(item.kind == "VALUE_RELIANCE" for item in adequate_home.items)
+    hidden_adequacy_case, hidden_adequacy_home = practitioner_views(
+        sqlite_store,
+        fx,
+        SelectiveSourceAccess(frozenset({adequacy.facts.version_id})),
+    )
+    assert hidden_adequacy_case == finished_case
+    assert hidden_adequacy_home == finished_home
+
+    reliance = reliance_command(fx, value, adequacy, "visible-value-reliance", fx.actor_a)
+    fx.service.designate_reliance(reliance)
+    relied_case, _relied_home = practitioner_views(sqlite_store, fx, SelectiveSourceAccess())
+    assert relied_case.value_position is not None
+    assert relied_case.value_position.reliance == "RELIED"
+    assert practitioner_views(
+        sqlite_store,
+        fx,
+        SelectiveSourceAccess(frozenset({value.facts.assessment_version_id})),
+    ) == (initial_case, initial_home)
+    assert practitioner_views(
+        sqlite_store,
+        fx,
+        SelectiveSourceAccess(frozenset({value.facts.readiness_version_id})),
+    ) == (hidden_readiness_case, hidden_readiness_home)
+    assert practitioner_views(
+        sqlite_store,
+        fx,
+        SelectiveSourceAccess(frozenset({adequacy.facts.version_id})),
+    ) == (finished_case, finished_home)
+    hidden_reliance_case, hidden_reliance_home = practitioner_views(
+        sqlite_store,
+        fx,
+        SelectiveSourceAccess(frozenset({reliance.facts.version_id})),
+    )
+    assert hidden_reliance_case == adequate_case
+    assert hidden_reliance_home == adequate_home
+
+    for hidden_information_version in fx.information_basis:
+        hidden_information_case, hidden_information_home = practitioner_views(
+            sqlite_store,
+            fx,
+            SelectiveSourceAccess(frozenset({hidden_information_version})),
+        )
+        assert hidden_information_case == initial_case
+        assert hidden_information_home == initial_home
+        assert hidden_information_version not in (
+            hidden_information_case.source_manifest.version_ids
+        )
+
+    finish_basis = fx.responsibilities[(AssessmentLane.VALUE, "finish")]
+    hidden_responsibility_case, hidden_responsibility_home = practitioner_views(
+        sqlite_store,
+        fx,
+        SelectiveSourceAccess(frozenset({finish_basis.responsibility_version_id})),
+    )
+    assert hidden_responsibility_case.value_position is None
+    assert finish_basis.responsibility_version_id not in (
+        hidden_responsibility_case.source_manifest.version_ids
+    )
+    assert all(not item.kind.startswith("VALUE_") for item in hidden_responsibility_home.items)
+    with sqlite_store.read_transaction() as transaction:  # type: ignore[attr-defined]
+        assignment_rows = transaction.projection_rows(
+            "responsibility_assignment_versions",
+            version_id=str(finish_basis.assignment_version_id),
+        )
+    assert len(assignment_rows) == 1
+    assignment_basis_version_id = RecordVersionId.parse(
+        str(assignment_rows[0]["assignment_basis_version_id"])
+    )
+    for hidden_accountability_version in (
+        finish_basis.assignment_version_id,
+        assignment_basis_version_id,
+    ):
+        hidden_basis_case, hidden_basis_home = practitioner_views(
+            sqlite_store,
+            fx,
+            SelectiveSourceAccess(frozenset({hidden_accountability_version})),
+        )
+        assert hidden_basis_case.value_position is None
+        assert hidden_accountability_version not in (hidden_basis_case.source_manifest.version_ids)
+        assert all(not item.kind.startswith("VALUE_") for item in hidden_basis_home.items)
+
+    before_hidden_work = practitioner_views(sqlite_store, fx, SelectiveSourceAccess())
+    work = slice_a_command(
+        case_id=value.case_id,
+        actor_id=fx.actor_a,
+        exact_context=value.context,
+        family="case-work",
+        key="hidden-source-work",
+        projections=(),
+    )
+    work = replace(
+        work,
+        effective_at=NOW,
+        content={
+            "question": "Review the exact Value assessment basis.",
+            "instruction": "Use only the visible exact governed context.",
+        },
+        projections=(
+            ProjectionFact("case_work_records", {"record_id": str(work.record_id)}),
+            ProjectionFact(
+                "case_work_versions",
+                {
+                    "version_id": str(work.version_id),
+                    "record_id": str(work.record_id),
+                    "owning_case_id": str(value.case_id),
+                    "context_digest": value.context.digest,
+                    "responsibility_version_id": str(finish_basis.responsibility_version_id),
+                    "assignment_version_id": str(finish_basis.assignment_version_id),
+                    "requester_actor_id": str(fx.actor_a),
+                    "assignee_actor_id": str(fx.actor_a),
+                    "state": "READY",
+                    "reason": "review exact prospective Value basis",
+                    "prerequisites_json": "[]",
+                    "expected_result_family": "prospective-assessment",
+                    "due_at_us": None,
+                    "result_version_id": None,
+                    "return_context_digest": value.context.digest,
+                    "predecessor_version_id": None,
+                },
+            ),
+        ),
+    )
+    ResponsibilityWorkService(
+        sqlite_store,
+        FixedClock(RECORDED + timedelta(seconds=6)),
+        ExactAccess(),  # type: ignore[arg-type]
+    ).commit(work)
+    hidden_work_views = practitioner_views(
+        sqlite_store,
+        fx,
+        SelectiveSourceAccess(frozenset({work.version_id})),
+    )
+    assert hidden_work_views == before_hidden_work
 
 
 def test_slice_c_schema_is_additive_append_only_and_not_backfilled(sqlite_store: object) -> None:

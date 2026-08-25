@@ -37,11 +37,14 @@ reconstruction, and return one, absence, or conflict without an incidental winne
 `PractitionerQueryService` extends the access-filtered Home and Case compositions with separate
 ordinary-language Value and Risk positions. Home exposes only visible, unranked lane work that is
 actually due. Case reports assessment, readiness, adequacy, and reliance independently with exact
-source manifests. The read composition follows authoritative Version selection and dependent-basis
-currentness; it does not choose by record recency or fabricate prospective state from legacy
-sources. Existing Task composition carries the substantive question, needed instruction,
-consequence, return path, and the software-access/Responsibility/authority boundary from exact
-durable Work.
+source manifests. Before aggregation, the composition authorizes each exact assessment,
+Readiness, Adequacy, Reliance, information/Applicability, Responsibility, assignment/authority
+basis, and Work source. A dependent fact is omitted unless its required bases are also visible, so
+a hidden source cannot change visible status, attention, conflict, count, or manifest shape. The
+read composition follows authoritative Version selection and dependent-basis currentness; it does
+not choose by record recency or fabricate prospective state from legacy sources. Existing Task
+composition carries the substantive question, needed instruction, consequence, return path, and
+the software-access/Responsibility/authority boundary from exact durable Work.
 
 ## Schema and migration
 
