@@ -47,6 +47,12 @@ class LanePosition:
 
 
 @dataclass(frozen=True, slots=True)
+class GovernedPosition:
+    state: str
+    source_version_ids: tuple[RecordVersionId, ...]
+
+
+@dataclass(frozen=True, slots=True)
 class CaseView:
     case_id: RecordId
     title: str
@@ -61,6 +67,8 @@ class CaseView:
     authoritative_master_status_persisted: bool = False
     value_position: LanePosition | None = None
     risk_position: LanePosition | None = None
+    integration_position: GovernedPosition | None = None
+    decision_position: GovernedPosition | None = None
 
 
 @dataclass(frozen=True, slots=True)
