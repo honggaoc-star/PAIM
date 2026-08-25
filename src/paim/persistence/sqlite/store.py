@@ -277,6 +277,11 @@ _PROSPECTIVE_PROJECTION_TABLES = frozenset(
         "review_episode_records",
         "review_episode_versions",
         "review_episode_result_links",
+        "quantitative_claim_records",
+        "quantitative_claim_versions",
+        "quantitative_claim_basis_links",
+        "quantitative_comparability_records",
+        "quantitative_comparability_versions",
         "evidence_applicability_versions",
         "governing_configuration_designations",
     }

@@ -5128,6 +5128,251 @@ review_episode_result_links = Table(
     Column("link_role", Text, primary_key=True),
 )
 
+quantitative_claim_records = Table(
+    "quantitative_claim_records",
+    metadata,
+    Column("record_id", String(36), ForeignKey("records.record_id"), primary_key=True),
+)
+quantitative_claim_versions = Table(
+    "quantitative_claim_versions",
+    metadata,
+    Column("version_id", String(36), ForeignKey("record_versions.version_id"), primary_key=True),
+    Column(
+        "record_id", String(36), ForeignKey("quantitative_claim_records.record_id"), nullable=False
+    ),
+    Column("case_id", String(36), ForeignKey("paim_cases.case_id"), nullable=False),
+    Column(
+        "configuration_version_id",
+        String(36),
+        ForeignKey("managed_configuration_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "context_digest",
+        String(64),
+        ForeignKey("exact_context_sets.context_digest"),
+        nullable=False,
+    ),
+    Column("lane", Text, nullable=False),
+    Column("claim_type", Text, nullable=False),
+    Column("construct_id", Text, nullable=False),
+    Column("metric_id", Text, nullable=False),
+    Column("quantity_kind", Text, nullable=False),
+    Column("representation", Text, nullable=False),
+    Column("central_value_text", Text, nullable=True),
+    Column("lower_value_text", Text, nullable=True),
+    Column("upper_value_text", Text, nullable=True),
+    Column("distribution_json", Text, nullable=False),
+    Column("unit", Text, nullable=False),
+    Column("currency", Text, nullable=True),
+    Column("scale", Text, nullable=False),
+    Column("direction", Text, nullable=False),
+    Column("population", Text, nullable=False),
+    Column("denominator", Text, nullable=True),
+    Column("temporal_basis", Text, nullable=False),
+    Column("period_start_us", BigInteger, nullable=False),
+    Column("period_end_us", BigInteger, nullable=True),
+    Column("horizon", Text, nullable=False),
+    Column("baseline", Text, nullable=False),
+    Column("gross_net", Text, nullable=False),
+    Column("nominal_real", Text, nullable=False),
+    Column("method_id", Text, nullable=False),
+    Column("assumptions_json", Text, nullable=False),
+    Column("uncertainty", Text, nullable=False),
+    Column("limitations_json", Text, nullable=False),
+    Column(
+        "assessment_version_id",
+        String(36),
+        ForeignKey("assessment_candidate_versions.version_id"),
+        nullable=True,
+    ),
+    Column(
+        "review_episode_version_id",
+        String(36),
+        ForeignKey("review_episode_versions.version_id"),
+        nullable=True,
+    ),
+    Column(
+        "authority_source_version_id",
+        String(36),
+        ForeignKey("record_versions.version_id"),
+        nullable=True,
+    ),
+    Column(
+        "responsibility_version_id",
+        String(36),
+        ForeignKey("responsibility_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "assignment_version_id",
+        String(36),
+        ForeignKey("responsibility_assignment_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "predecessor_version_id",
+        String(36),
+        ForeignKey("quantitative_claim_versions.version_id"),
+        nullable=True,
+    ),
+    Column("knowledge_cutoff_us", BigInteger, nullable=False),
+    CheckConstraint("lane IN ('VALUE','RISK')", name="ck_quantitative_claim_lane"),
+    CheckConstraint(
+        "claim_type IN ('ESTIMATE_EXPECTATION','TARGET_OBJECTIVE','OBSERVED_RESULT',"
+        "'THRESHOLD_CONSTRAINT','RISK_ESTIMATE','COST_RESOURCE_MEASURE')",
+        name="ck_quantitative_claim_type",
+    ),
+    CheckConstraint(
+        "quantity_kind IN ('ABSOLUTE_AMOUNT','RATE','RATIO','PERCENTAGE','COUNT',"
+        "'CONTINUOUS_MEASURE','CURRENCY','TIME')",
+        name="ck_quantitative_quantity_kind",
+    ),
+    CheckConstraint(
+        "representation IN ('SCALAR','RANGE','INTERVAL','DISTRIBUTION','PROPORTION',"
+        "'RATE','COUNT','CURRENCY','TIME','OTHER_BOUNDED')",
+        name="ck_quantitative_representation",
+    ),
+    CheckConstraint(
+        "temporal_basis IN ('POINT_IN_TIME','PERIODIC','CUMULATIVE')",
+        name="ck_quantitative_temporal_basis",
+    ),
+    CheckConstraint(
+        "(representation IN ('RANGE','INTERVAL') AND central_value_text IS NULL "
+        "AND lower_value_text IS NOT NULL AND upper_value_text IS NOT NULL) OR "
+        "(representation = 'DISTRIBUTION' AND central_value_text IS NULL "
+        "AND lower_value_text IS NULL AND upper_value_text IS NULL) OR "
+        "(representation NOT IN ('RANGE','INTERVAL','DISTRIBUTION') "
+        "AND central_value_text IS NOT NULL AND lower_value_text IS NULL "
+        "AND upper_value_text IS NULL)",
+        name="ck_quantitative_value_shape",
+    ),
+    CheckConstraint(
+        "(quantity_kind = 'CURRENCY' AND currency IS NOT NULL) OR quantity_kind <> 'CURRENCY'",
+        name="ck_quantitative_currency",
+    ),
+    CheckConstraint(
+        "(temporal_basis = 'POINT_IN_TIME' AND period_end_us IS NULL) OR "
+        "(temporal_basis <> 'POINT_IN_TIME' AND period_end_us IS NOT NULL "
+        "AND period_start_us < period_end_us)",
+        name="ck_quantitative_period",
+    ),
+    CheckConstraint(
+        "claim_type <> 'THRESHOLD_CONSTRAINT' OR authority_source_version_id IS NOT NULL",
+        name="ck_quantitative_threshold_authority",
+    ),
+)
+Index(
+    "ix_quantitative_claim_selection",
+    quantitative_claim_versions.c.case_id,
+    quantitative_claim_versions.c.configuration_version_id,
+    quantitative_claim_versions.c.context_digest,
+    quantitative_claim_versions.c.lane,
+    quantitative_claim_versions.c.claim_type,
+    quantitative_claim_versions.c.construct_id,
+    quantitative_claim_versions.c.metric_id,
+)
+Index("ix_quantitative_claim_assessment", quantitative_claim_versions.c.assessment_version_id)
+Index("ix_quantitative_claim_review", quantitative_claim_versions.c.review_episode_version_id)
+
+quantitative_claim_basis_links = Table(
+    "quantitative_claim_basis_links",
+    metadata,
+    Column(
+        "claim_version_id",
+        String(36),
+        ForeignKey("quantitative_claim_versions.version_id"),
+        primary_key=True,
+    ),
+    Column(
+        "source_version_id", String(36), ForeignKey("record_versions.version_id"), primary_key=True
+    ),
+    Column("link_role", Text, primary_key=True),
+    CheckConstraint(
+        "link_role IN ('SOURCE','APPLICABILITY')", name="ck_quantitative_basis_link_role"
+    ),
+)
+
+quantitative_comparability_records = Table(
+    "quantitative_comparability_records",
+    metadata,
+    Column("record_id", String(36), ForeignKey("records.record_id"), primary_key=True),
+)
+quantitative_comparability_versions = Table(
+    "quantitative_comparability_versions",
+    metadata,
+    Column("version_id", String(36), ForeignKey("record_versions.version_id"), primary_key=True),
+    Column(
+        "record_id",
+        String(36),
+        ForeignKey("quantitative_comparability_records.record_id"),
+        nullable=False,
+    ),
+    Column("case_id", String(36), ForeignKey("paim_cases.case_id"), nullable=False),
+    Column(
+        "configuration_version_id",
+        String(36),
+        ForeignKey("managed_configuration_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "context_digest",
+        String(64),
+        ForeignKey("exact_context_sets.context_digest"),
+        nullable=False,
+    ),
+    Column(
+        "left_claim_version_id",
+        String(36),
+        ForeignKey("quantitative_claim_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "right_claim_version_id",
+        String(36),
+        ForeignKey("quantitative_claim_versions.version_id"),
+        nullable=False,
+    ),
+    Column("outcome", Text, nullable=False),
+    Column("rationale", Text, nullable=False),
+    Column(
+        "responsibility_version_id",
+        String(36),
+        ForeignKey("responsibility_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "assignment_version_id",
+        String(36),
+        ForeignKey("responsibility_assignment_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "authority_source_version_id",
+        String(36),
+        ForeignKey("record_versions.version_id"),
+        nullable=False,
+    ),
+    Column(
+        "predecessor_version_id",
+        String(36),
+        ForeignKey("quantitative_comparability_versions.version_id"),
+        nullable=True,
+    ),
+    Column("knowledge_cutoff_us", BigInteger, nullable=False),
+    CheckConstraint(
+        "outcome IN ('COMPARABLE','NOT_COMPARABLE')", name="ck_quantitative_comparability_outcome"
+    ),
+    CheckConstraint(
+        "left_claim_version_id <> right_claim_version_id", name="ck_quantitative_distinct_claims"
+    ),
+)
+Index(
+    "ix_quantitative_comparability_pair",
+    quantitative_comparability_versions.c.left_claim_version_id,
+    quantitative_comparability_versions.c.right_claim_version_id,
+)
+
 IMMUTABILITY_TRIGGERS: tuple[str, ...] = (
     """
     CREATE TRIGGER prevent_finalized_version_update

@@ -19,6 +19,8 @@ from paim.application.practitioner.models import (
     HomeView,
     OrientationItemView,
     PractitionerExceptionView,
+    QuantitativeHighlightPopulation,
+    QuantitativeHighlightView,
     ReadState,
     SourceBasis,
 )
@@ -41,6 +43,8 @@ __all__ = [
     "OrientationItemView",
     "PractitionerExceptionView",
     "PractitionerQueryService",
+    "QuantitativeHighlightPopulation",
+    "QuantitativeHighlightView",
     "ReadState",
     "SourceBasis",
     "exact_current_integration_basis",

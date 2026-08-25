@@ -22,6 +22,8 @@ from paim.application.practitioner.models import (
     HomeView,
     OrientationItemView,
     PractitionerExceptionView,
+    QuantitativeHighlightPopulation,
+    QuantitativeHighlightView,
     ReadState,
     SourceBasis,
 )
@@ -42,6 +44,7 @@ from paim.integrity import (
     SelectionQuery,
 )
 from paim.persistence.ports import IntegrityStore
+from paim.quantitative_claims.models import ClaimReadPopulation
 
 
 class PractitionerQueryService:
@@ -127,6 +130,68 @@ class PractitionerQueryService:
             effective_at=effective_at,
             known_at=known_at,
         )
+
+    def quantitative_highlights(
+        self,
+        *,
+        population: ClaimReadPopulation,
+        effective_at: datetime,
+        known_at: datetime,
+    ) -> QuantitativeHighlightPopulation:
+        """Compose only the full-closure-authorized population and retain its read state."""
+
+        if population.state != "AVAILABLE":
+            return QuantitativeHighlightPopulation(population.state, ())
+        current = self._current_versions(population.versions, effective_at, known_at)
+        highlights: list[QuantitativeHighlightView] = []
+        for claim in current:
+            if claim.family != "quantitative-claim":
+                continue
+            content = claim.content
+            central = content.get("central")
+            lower = content.get("lower")
+            upper = content.get("upper")
+            distribution = content.get("distribution")
+            if isinstance(central, str):
+                supplied_value = central
+            elif isinstance(lower, str) and isinstance(upper, str):
+                supplied_value = f"{lower} to {upper}"
+            else:
+                supplied_value = str(distribution)
+            source_ids = content.get("source_version_ids")
+            limitations = content.get("limitations")
+            if not isinstance(source_ids, list) or not all(
+                isinstance(item, str) for item in source_ids
+            ):
+                continue
+            exact_source_ids = tuple(str(item) for item in source_ids)
+            caveats = (
+                "; ".join(str(item) for item in limitations)
+                if isinstance(limitations, list)
+                else ""
+            )
+            highlights.append(
+                QuantitativeHighlightView(
+                    lane=str(content.get("lane", "")),
+                    claim_role=str(content.get("claim_type", "")),
+                    metric_label=str(content.get("metric_id", "")),
+                    supplied_value=supplied_value,
+                    unit_and_basis=(
+                        f"{content.get('unit', '')}; scale {content.get('scale', '')}; "
+                        f"population {content.get('population', '')}; "
+                        f"denominator {content.get('denominator') or 'not applicable'}"
+                    ),
+                    period_or_horizon=(
+                        f"{content.get('temporal_basis', '')}; {content.get('horizon', '')}"
+                    ),
+                    uncertainty_and_caveats=(
+                        f"{content.get('uncertainty', '')}" + (f"; {caveats}" if caveats else "")
+                    ),
+                    source_version_ids=exact_source_ids,
+                    claim_version_id=str(claim.version_id),
+                )
+            )
+        return QuantitativeHighlightPopulation("AVAILABLE", tuple(highlights))
 
     def case_list(
         self,
