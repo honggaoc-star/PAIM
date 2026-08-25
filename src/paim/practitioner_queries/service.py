@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from dataclasses import dataclass
 from datetime import datetime
 from typing import cast
 
@@ -23,6 +24,15 @@ from paim.practitioner_queries.models import (
     SourceManifest,
     TaskView,
 )
+
+
+@dataclass(frozen=True, slots=True)
+class _SliceCLaneRows:
+    assessment: tuple[dict[str, object], ...]
+    readiness: tuple[dict[str, object], ...]
+    adequacy: tuple[dict[str, object], ...]
+    reliance: tuple[dict[str, object], ...]
+    unavailable: frozenset[str]
 
 
 class PractitionerQueryService:
@@ -397,15 +407,20 @@ class PractitionerQueryService:
             effective_at,
             known_at,
         )
-        readiness = lane_rows["readiness"]
-        adequacy = lane_rows["adequacy"]
-        reliance = lane_rows["reliance"]
+        assessment = lane_rows.assessment
+        readiness = lane_rows.readiness
+        adequacy = lane_rows.adequacy
+        reliance = lane_rows.reliance
         if obligation.startswith("FINISH_"):
-            return not readiness
+            return not assessment and "assessment" not in lane_rows.unavailable
         if obligation.startswith("REVIEW_"):
-            return bool(readiness) and not adequacy
+            return bool(readiness) and not adequacy and "adequacy" not in lane_rows.unavailable
         if obligation.startswith("DESIGNATE_"):
-            return any(row.get("outcome") == "ADEQUATE" for row in adequacy) and not reliance
+            return (
+                any(row.get("outcome") == "ADEQUATE" for row in adequacy)
+                and not reliance
+                and "reliance" not in lane_rows.unavailable
+            )
         return True
 
     def _lane_position(
@@ -445,7 +460,14 @@ class PractitionerQueryService:
         }
         manifest: set[RecordVersionId] = set()
         for field, established in definitions:
-            current = lane_rows[field]
+            current = cast(tuple[dict[str, object], ...], getattr(lane_rows, field))
+            if field in lane_rows.unavailable:
+                values[field] = (
+                    "REVIEW STATUS NOT AVAILABLE"
+                    if field in {"adequacy", "reliance"}
+                    else "STATUS NOT AVAILABLE"
+                )
+                continue
             if len(current) > 1:
                 values[field] = "CONFLICT — UNRESOLVED"
             elif len(current) == 1:
@@ -454,7 +476,7 @@ class PractitionerQueryService:
                     RecordVersionId.parse(value)
                     for value in cast(tuple[str, ...], current[0]["_visible_source_version_ids"])
                 )
-        if not manifest:
+        if not manifest and not lane_rows.unavailable:
             return None
         return LanePosition(
             lane,
@@ -475,84 +497,80 @@ class PractitionerQueryService:
         configuration_version_id: RecordVersionId | None,
         effective_at: datetime,
         known_at: datetime,
-    ) -> dict[str, tuple[dict[str, object], ...]]:
+    ) -> _SliceCLaneRows:
         filters: dict[str, object] = {"lane": lane, "case_id": str(case_id)}
         if configuration_version_id is not None:
             filters["configuration_version_id"] = str(configuration_version_id)
+        unavailable: set[str] = set()
+        raw_assessment = PractitionerQueryService._current_projection_rows(
+            tx,
+            tx.projection_rows("assessment_candidate_versions", **filters),
+            effective_at,
+            known_at,
+        )
         assessment = self._visible_slice_c_rows(
             tx,
             principal_id,
             actor_id,
             case_id,
-            PractitionerQueryService._current_projection_rows(
+            raw_assessment,
+        )
+        if len(raw_assessment) != len(assessment):
+            unavailable.update(("assessment", "readiness", "adequacy", "reliance"))
+        assessment_ids = {str(row["version_id"]) for row in assessment}
+        raw_readiness = tuple(
+            row
+            for row in PractitionerQueryService._current_projection_rows(
                 tx,
-                tx.projection_rows("assessment_candidate_versions", **filters),
+                tx.projection_rows("assessment_readiness_versions", **filters),
                 effective_at,
                 known_at,
-            ),
-        )
-        assessment_ids = {str(row["version_id"]) for row in assessment}
-        readiness = tuple(
-            row
-            for row in self._visible_slice_c_rows(
-                tx,
-                principal_id,
-                actor_id,
-                case_id,
-                PractitionerQueryService._current_projection_rows(
-                    tx,
-                    tx.projection_rows("assessment_readiness_versions", **filters),
-                    effective_at,
-                    known_at,
-                ),
             )
             if str(row["assessment_version_id"]) in assessment_ids
         )
+        readiness = self._visible_slice_c_rows(tx, principal_id, actor_id, case_id, raw_readiness)
+        if len(raw_readiness) != len(readiness):
+            unavailable.update(("readiness", "adequacy", "reliance"))
         readiness_ids = {str(row["version_id"]) for row in readiness}
-        adequacy = tuple(
+        raw_adequacy = tuple(
             row
-            for row in self._visible_slice_c_rows(
+            for row in PractitionerQueryService._current_projection_rows(
                 tx,
-                principal_id,
-                actor_id,
-                case_id,
-                PractitionerQueryService._current_projection_rows(
-                    tx,
-                    tx.projection_rows("assessment_adequacy_versions", **filters),
-                    effective_at,
-                    known_at,
-                ),
+                tx.projection_rows("assessment_adequacy_versions", **filters),
+                effective_at,
+                known_at,
             )
             if str(row["assessment_version_id"]) in assessment_ids
             and str(row["readiness_version_id"]) in readiness_ids
         )
+        adequacy = self._visible_slice_c_rows(tx, principal_id, actor_id, case_id, raw_adequacy)
+        if len(raw_adequacy) != len(adequacy):
+            unavailable.update(("adequacy", "reliance"))
         adequate_ids = {
             str(row["version_id"]) for row in adequacy if row.get("outcome") == "ADEQUATE"
         }
-        reliance = tuple(
+        raw_reliance = tuple(
             row
-            for row in self._visible_slice_c_rows(
+            for row in PractitionerQueryService._current_projection_rows(
                 tx,
-                principal_id,
-                actor_id,
-                case_id,
-                PractitionerQueryService._current_projection_rows(
-                    tx,
-                    tx.projection_rows("assessment_reliance_versions", **filters),
-                    effective_at,
-                    known_at,
-                ),
+                tx.projection_rows("assessment_reliance_versions", **filters),
+                effective_at,
+                known_at,
             )
             if str(row["assessment_version_id"]) in assessment_ids
             and str(row["readiness_version_id"]) in readiness_ids
             and str(row["adequacy_version_id"]) in adequate_ids
         )
-        return {
-            "assessment": assessment,
-            "readiness": readiness,
-            "adequacy": adequacy,
-            "reliance": reliance,
-        }
+        reliance = self._visible_slice_c_rows(tx, principal_id, actor_id, case_id, raw_reliance)
+        if len(raw_reliance) != len(reliance):
+            unavailable.add("reliance")
+        return _SliceCLaneRows(
+            assessment,
+            readiness,
+            adequacy,
+            reliance,
+            frozenset(unavailable),
+        )
 
     def _visible_slice_c_rows(
         self,

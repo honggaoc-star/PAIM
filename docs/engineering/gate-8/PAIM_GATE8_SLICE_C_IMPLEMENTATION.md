@@ -41,10 +41,15 @@ source manifests. Before aggregation, the composition authorizes each exact asse
 Readiness, Adequacy, Reliance, information/Applicability, Responsibility, assignment/authority
 basis, and Work source. A dependent fact is omitted unless its required bases are also visible, so
 a hidden source cannot change visible status, attention, conflict, count, or manifest shape. The
-read composition follows authoritative Version selection and dependent-basis currentness; it does
-not choose by record recency or fabricate prospective state from legacy sources. Existing Task
-composition carries the substantive question, needed instruction, consequence, return path, and
-the software-access/Responsibility/authority boundary from exact durable Work.
+read composition distinguishes a true visible absence from an unavailable dependent status. When
+the visible sources cannot justify a readiness/review claim, it uses a bounded neutral `STATUS NOT
+AVAILABLE` / `REVIEW STATUS NOT AVAILABLE` presentation and suppresses Finish, Review, and
+Reliance progression rather than declaring a hidden fact absent or asking the practitioner to
+repeat an atomic action. It follows authoritative Version selection and dependent-basis
+currentness; it does not choose by record recency or fabricate prospective state from legacy
+sources. Existing Task composition carries the substantive question, needed instruction,
+consequence, return path, and the software-access/Responsibility/authority boundary from exact
+durable Work.
 
 ## Schema and migration
 

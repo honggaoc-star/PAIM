@@ -820,7 +820,7 @@ def test_selectively_hidden_slice_c_sources_are_filtered_before_composition(
     sqlite_store: object,
 ) -> None:
     fx = fixture(sqlite_store, "source-nondisclosure")
-    initial_case, initial_home = practitioner_views(sqlite_store, fx, SelectiveSourceAccess())
+    initial_case, _initial_home = practitioner_views(sqlite_store, fx, SelectiveSourceAccess())
     assert initial_case.value_position is None
 
     value = finish_command(fx, AssessmentLane.VALUE, "visible-value-finish")
@@ -835,8 +835,11 @@ def test_selectively_hidden_slice_c_sources_are_filtered_before_composition(
         fx,
         SelectiveSourceAccess(frozenset({value.facts.assessment_version_id})),
     )
-    assert hidden_assessment_case == initial_case
-    assert hidden_assessment_home == initial_home
+    assert hidden_assessment_case.value_position is not None
+    assert hidden_assessment_case.value_position.assessment == "STATUS NOT AVAILABLE"
+    assert hidden_assessment_case.value_position.readiness == "STATUS NOT AVAILABLE"
+    assert hidden_assessment_case.value_position.source_version_ids == ()
+    assert all(not item.kind.startswith("VALUE_") for item in hidden_assessment_home.items)
 
     hidden_readiness_case, hidden_readiness_home = practitioner_views(
         sqlite_store,
@@ -845,12 +848,13 @@ def test_selectively_hidden_slice_c_sources_are_filtered_before_composition(
     )
     assert hidden_readiness_case.value_position is not None
     assert hidden_readiness_case.value_position.assessment == "PRESENT"
-    assert hidden_readiness_case.value_position.readiness == "NOT ESTABLISHED"
+    assert hidden_readiness_case.value_position.readiness == "STATUS NOT AVAILABLE"
+    assert hidden_readiness_case.value_position.adequacy == "REVIEW STATUS NOT AVAILABLE"
+    assert hidden_readiness_case.value_position.reliance == "REVIEW STATUS NOT AVAILABLE"
     assert value.facts.readiness_version_id not in (
         hidden_readiness_case.value_position.source_version_ids
     )
-    assert any(item.kind == "VALUE_ASSESSMENT" for item in hidden_readiness_home.items)
-    assert all(item.kind != "VALUE_REVIEW" for item in hidden_readiness_home.items)
+    assert all(not item.kind.startswith("VALUE_") for item in hidden_readiness_home.items)
 
     adequacy = adequacy_command(fx, value, "visible-value-adequacy")
     fx.service.determine_adequacy(adequacy)
@@ -863,36 +867,54 @@ def test_selectively_hidden_slice_c_sources_are_filtered_before_composition(
         fx,
         SelectiveSourceAccess(frozenset({adequacy.facts.version_id})),
     )
-    assert hidden_adequacy_case == finished_case
-    assert hidden_adequacy_home == finished_home
+    assert hidden_adequacy_case.value_position is not None
+    assert hidden_adequacy_case.value_position.assessment == "PRESENT"
+    assert hidden_adequacy_case.value_position.readiness == "READY FOR INDEPENDENT REVIEW"
+    assert hidden_adequacy_case.value_position.adequacy == "REVIEW STATUS NOT AVAILABLE"
+    assert hidden_adequacy_case.value_position.reliance == "REVIEW STATUS NOT AVAILABLE"
+    assert all(not item.kind.startswith("VALUE_") for item in hidden_adequacy_home.items)
 
     reliance = reliance_command(fx, value, adequacy, "visible-value-reliance", fx.actor_a)
     fx.service.designate_reliance(reliance)
     relied_case, _relied_home = practitioner_views(sqlite_store, fx, SelectiveSourceAccess())
     assert relied_case.value_position is not None
     assert relied_case.value_position.reliance == "RELIED"
-    assert practitioner_views(
+    hidden_assessment_after_reliance = practitioner_views(
         sqlite_store,
         fx,
         SelectiveSourceAccess(frozenset({value.facts.assessment_version_id})),
-    ) == (initial_case, initial_home)
-    assert practitioner_views(
+    )
+    assert hidden_assessment_after_reliance == (
+        hidden_assessment_case,
+        hidden_assessment_home,
+    )
+    hidden_readiness_after_reliance = practitioner_views(
         sqlite_store,
         fx,
         SelectiveSourceAccess(frozenset({value.facts.readiness_version_id})),
-    ) == (hidden_readiness_case, hidden_readiness_home)
-    assert practitioner_views(
+    )
+    assert hidden_readiness_after_reliance == (
+        hidden_readiness_case,
+        hidden_readiness_home,
+    )
+    hidden_adequacy_after_reliance = practitioner_views(
         sqlite_store,
         fx,
         SelectiveSourceAccess(frozenset({adequacy.facts.version_id})),
-    ) == (finished_case, finished_home)
+    )
+    assert hidden_adequacy_after_reliance == (
+        hidden_adequacy_case,
+        hidden_adequacy_home,
+    )
     hidden_reliance_case, hidden_reliance_home = practitioner_views(
         sqlite_store,
         fx,
         SelectiveSourceAccess(frozenset({reliance.facts.version_id})),
     )
-    assert hidden_reliance_case == adequate_case
-    assert hidden_reliance_home == adequate_home
+    assert hidden_reliance_case.value_position is not None
+    assert hidden_reliance_case.value_position.adequacy == "ADEQUATE"
+    assert hidden_reliance_case.value_position.reliance == "REVIEW STATUS NOT AVAILABLE"
+    assert all(not item.kind.startswith("VALUE_") for item in hidden_reliance_home.items)
 
     for hidden_information_version in fx.information_basis:
         hidden_information_case, hidden_information_home = practitioner_views(
@@ -900,8 +922,9 @@ def test_selectively_hidden_slice_c_sources_are_filtered_before_composition(
             fx,
             SelectiveSourceAccess(frozenset({hidden_information_version})),
         )
-        assert hidden_information_case == initial_case
-        assert hidden_information_home == initial_home
+        assert hidden_information_case.value_position is not None
+        assert hidden_information_case.value_position.assessment == "STATUS NOT AVAILABLE"
+        assert all(not item.kind.startswith("VALUE_") for item in hidden_information_home.items)
         assert hidden_information_version not in (
             hidden_information_case.source_manifest.version_ids
         )
@@ -912,7 +935,8 @@ def test_selectively_hidden_slice_c_sources_are_filtered_before_composition(
         fx,
         SelectiveSourceAccess(frozenset({finish_basis.responsibility_version_id})),
     )
-    assert hidden_responsibility_case.value_position is None
+    assert hidden_responsibility_case.value_position is not None
+    assert hidden_responsibility_case.value_position.assessment == "STATUS NOT AVAILABLE"
     assert finish_basis.responsibility_version_id not in (
         hidden_responsibility_case.source_manifest.version_ids
     )
@@ -935,7 +959,8 @@ def test_selectively_hidden_slice_c_sources_are_filtered_before_composition(
             fx,
             SelectiveSourceAccess(frozenset({hidden_accountability_version})),
         )
-        assert hidden_basis_case.value_position is None
+        assert hidden_basis_case.value_position is not None
+        assert hidden_basis_case.value_position.assessment == "STATUS NOT AVAILABLE"
         assert hidden_accountability_version not in (hidden_basis_case.source_manifest.version_ids)
         assert all(not item.kind.startswith("VALUE_") for item in hidden_basis_home.items)
 
