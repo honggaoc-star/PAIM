@@ -2,23 +2,23 @@
 {% block title %}Cases — PAIM{% endblock %}
 {% block content %}
 <section aria-labelledby="cases-heading">
-  <h1 id="cases-heading">Your Cases</h1>
-  <p><a class="button-link" href="/cases/new">Create a Case</a></p>
+  <h1 id="cases-heading">Cases</h1>
+  <p><a class="button-link" href="/cases/new">Start a Case</a></p>
   <form action="/cases" method="get" role="search">
     <label for="case-search">Search Cases</label>
     <div class="search-row"><input id="case-search" name="q" value="{{ view.search_text }}" maxlength="200"><button type="submit">Search</button></div>
   </form>
-  <p>{{ view.visible_case_count }} result{% if view.visible_case_count != 1 %}s{% endif %}</p>
-  {% if view.cases %}
+  {% if view.search_text %}<p>{{ view.visible_case_count }} results</p>{% endif %}
+  {% if prospective_cases %}
   <ul class="card-list">
-    {% for case in view.cases %}
-    <li>
-      <div><a href="/cases/{{ case.case_id }}">{{ case.title }}</a></div>
-    </li>
+    {% for case in prospective_cases %}
+    <li><article><h2><a href="/cases/{{ case.case_id }}">{{ case.title }}</a></h2><p>{{ case.continuity_status.value.replace('_', ' ').title() if case.continuity_status else 'Current position is not safely available' }}</p></article></li>
     {% endfor %}
   </ul>
   {% else %}
-  <div class="empty-state"><h2>No matching Cases</h2><p>Try a different Case title.</p></div>
+  <div class="empty-state"><h2>No prospective workspaces are visible</h2><p>Start a bounded Case when there is a legitimate AI-use question to manage.</p></div>
   {% endif %}
+  {% set legacy = namespace(count=0) %}{% for case in view.cases %}{% if case.case_id not in prospective_case_ids %}{% set legacy.count = legacy.count + 1 %}{% endif %}{% endfor %}
+  {% if legacy.count %}<section class="system-status" aria-labelledby="earlier-cases-heading"><h2 id="earlier-cases-heading">Earlier Case workspaces</h2><p>These compatibility workspaces remain separate from the prospective practitioner journey.</p><ul>{% for case in view.cases %}{% if case.case_id not in prospective_case_ids %}<li><a href="/cases/{{ case.case_id }}">{{ case.title }}</a></li>{% endif %}{% endfor %}</ul></section>{% endif %}
 </section>
 {% endblock %}

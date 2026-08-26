@@ -134,6 +134,21 @@ class SessionRegistry:
             return None
         return intent
 
+    def intent_for_actions(
+        self, identifier: str, intent_id: str, *, actions: frozenset[str]
+    ) -> ActionIntent | None:
+        """Resolve one intent only when its action belongs to a closed route allowlist."""
+
+        session = self.get(identifier, touch=False)
+        if session is None:
+            return None
+        key = (session.digest, intent_id)
+        intent = self._intents.get(key)
+        if intent is None or intent.action not in actions or self._now() >= intent.expires_at:
+            self._intents.pop(key, None)
+            return None
+        return intent
+
     def record_intent_outcome(
         self, identifier: str, intent_id: str, *, outcome_path: str
     ) -> ActionIntent:

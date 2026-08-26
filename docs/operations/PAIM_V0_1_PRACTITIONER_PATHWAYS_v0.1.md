@@ -15,9 +15,11 @@ into substantive authority. The detailed local setup, intake, export, delivery, 
 and unsupported-capability rules remain in
 `PAIM_LOCAL_OPERATIONAL_APPLICATION_v0.1.md`.
 
-PAIM v0.1 is a local governed application, not a polished self-service workflow product. The CLI
-supports operational commands; remaining domain commands use the typed production gateway. There
-is deliberately no generic approve, resolve, override, or Register “mark resolved” command.
+PAIM is a local governed application. On current post-v0.1 development `main`, its integrated
+prospective practitioner browser uses the same production services as the typed gateway and keeps
+technical/legacy surfaces outside the ordinary Home → Case → contextual Task → History journey.
+The tagged v0.1.0 release boundary remains unchanged. There is deliberately no generic approve,
+resolve, override, or Register “mark resolved” command.
 
 ## 2. Non-negotiable execution rules
 
@@ -210,7 +212,11 @@ domain, or correct an exact command input. Do not bypass a failed guard.
 
 ## 10. v0.1 residual limitations
 
-This guide does not add a browser UI, workflow engine, automatic next-step engine, first-class
-Observation, telemetry automation, operating-state ranking, semantic dependency matching, or
-generic Register resolution. Practitioner navigation remains documentation-led. These limitations
-must remain visible in release wording and do not authorize approximations.
+The current post-v0.1 development browser covers the accepted prospective Home, Cases, Case,
+contextual Task, independent Value/Risk, adequacy, bounded Reliance choice, Decision,
+continuing/focused review, and History & decisions experience. It is not a workflow engine or an
+automatic substantive next-step engine. This guide does not add first-class Observation,
+telemetry automation,
+operating-state ranking, semantic dependency matching, generic Register resolution, background
+scheduling, notifications, or networked multi-user deployment. These limitations remain visible
+and do not authorize approximations.

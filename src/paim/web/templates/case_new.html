@@ -1,16 +1,17 @@
 {% extends "base.html" %}
-{% block title %}Create a Case — PAIM{% endblock %}
+{% block title %}Start a Case — PAIM{% endblock %}
 {% block content %}
-<nav aria-label="Breadcrumb"><a href="/cases">Cases</a> / <span>Create</span></nav>
+<nav aria-label="Breadcrumb"><a href="/cases">Cases</a> / <span>Start a Case</span></nav>
 <section class="narrow" aria-labelledby="new-case-heading">
-  <h1 id="new-case-heading">Create a Case</h1>
-  <p>This creates one PAIM Case only. It does not assign an owner, accountability, or authority.</p>
-  <form action="/cases/new/review" method="post">
+  <h1 id="new-case-heading">Start a Case</h1>
+  <p>Capture only the bounded AI use and starting setup. People, review timing, and later authority are established when the work legitimately requires them.</p>
+  <form action="/cases/start/review" method="post">
     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
     <input type="hidden" name="effective_at" value="{{ effective_at }}">
-    <label for="case-title">Management question or Case title</label>
-    <input id="case-title" name="title" maxlength="300" required>
-    <button type="submit">Review exact Case creation</button>
+    <label for="case-title">What should people recognize this Case as?<input id="case-title" name="title" maxlength="300" required></label>
+    <label for="bounded-use">What AI use are you considering?<textarea id="bounded-use" name="bounded_use" maxlength="1200" required></textarea></label>
+    <label for="setup-description">What setup or scope should this Case begin with?<textarea id="setup-description" name="setup_description" maxlength="2000" required></textarea></label>
+    <button type="submit">Review Case start</button>
   </form>
 </section>
 {% endblock %}
