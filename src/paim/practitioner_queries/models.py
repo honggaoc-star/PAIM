@@ -50,6 +50,9 @@ class LanePosition:
 class GovernedPosition:
     state: str
     source_version_ids: tuple[RecordVersionId, ...]
+    action: str | None = None
+    rationale: str | None = None
+    conditions: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -83,6 +86,8 @@ class CaseView:
     integration_position: GovernedPosition | None = None
     decision_position: GovernedPosition | None = None
     continuing_review_position: ContinuingReviewPosition | None = None
+    bounded_use: str | None = None
+    management_question: str | None = None
 
 
 @dataclass(frozen=True, slots=True)

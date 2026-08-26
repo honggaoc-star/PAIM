@@ -30,7 +30,41 @@ from paim.application.practitioner import (
     HomeView,
     PractitionerQueryService,
 )
+from paim.assessment_review import (
+    AdequacyFacts,
+    AdequacyOutcome,
+    AssessmentContent,
+    AssessmentLane,
+    AssessmentReviewService,
+    CandidateDisposition,
+    DesignateRelianceCommand,
+    DetermineAdequacyCommand,
+    FinishAssessmentCommand,
+    FinishFacts,
+    RelianceFacts,
+)
+from paim.assessment_review import (
+    CommandIdentity as AssessmentCommandIdentity,
+)
 from paim.audit import ActorResolution
+from paim.case_continuity import (
+    CaseContinuityService,
+    MinimalOpenCaseCommand,
+)
+from paim.case_continuity import (
+    CommandIdentity as ContinuityCommandIdentity,
+)
+from paim.continuing_review import (
+    BeginReviewEpisodeCommand,
+    CompleteReviewEpisodeCommand,
+    ContinuingReviewService,
+    EstablishPlannedReviewPointCommand,
+    PlannedReviewPointSpec,
+    ReviewFocus,
+    ReviewOrigin,
+    ReviewOutcome,
+    ReviewRecordFacts,
+)
 from paim.domain import (
     AccountabilityConflict,
     AccountabilityFound,
@@ -54,9 +88,12 @@ from paim.integrity import (
     to_epoch_microseconds,
 )
 from paim.integrity.records import JsonValue
+from paim.integrity.selection import SelectionFound, SelectionQuery
+from paim.integrity.semantics import SemanticContractRef
 from paim.operational.models import (
     UNSUPPORTED_CAPABILITIES,
     AccessDenied,
+    AccessEffect,
     AccessGrantInput,
     AccountabilityCheck,
     AccountableAssignmentView,
@@ -79,8 +116,40 @@ from paim.operational.models import (
 )
 from paim.operational.recovery import create_backup, health_report, restore_backup
 from paim.operational.store import OperationalStore
-from paim.persistence.ports import WriterContention
+from paim.persistence.ports import CommandOutcome, WriterContention
 from paim.persistence.sqlite import SQLiteIntegrityStore
+from paim.practitioner_queries import (
+    CaseView as ProspectiveCaseView,
+)
+from paim.practitioner_queries import (
+    HomeView as ProspectiveHomeView,
+)
+from paim.practitioner_queries import (
+    PractitionerQueryService as ProspectivePractitionerQueryService,
+)
+from paim.practitioner_queries import (
+    TaskView as ProspectiveTaskView,
+)
+from paim.prospective_decision import (
+    AuthorizationFacts,
+    AuthorizeDecisionCommand,
+    ConfirmationFacts,
+    ConfirmDecisionCommand,
+    DecisionFacts,
+    IntegrateValueRiskCommand,
+    IntegrationFacts,
+    ProposeDecisionCommand,
+    ProspectiveDecisionService,
+    ReliedLaneBasis,
+)
+from paim.reconstruction import CaseTimeline, ReconstructionService, ThenNowComparison
+from paim.responsibility.models import ObligationKind
+from paim.responsibility.service import OperationalSliceAAccessPolicy
+from paim.slice_h_actions import (
+    SliceHActionContext,
+    SliceHActionContextResolver,
+    json_version_ids,
+)
 
 T = TypeVar("T")
 _ITERATIONS = 600_000
@@ -107,6 +176,26 @@ class OperationalApplication:
         self.operational_store = OperationalStore(config.database_url, config.event_log_path)
         self._service = Increment7ApplicationService(self.domain_store, self.clock)
         self._practitioner_queries = PractitionerQueryService(self.domain_store)
+        self._prospective_access = OperationalSliceAAccessPolicy(self.operational_store)
+        self._case_continuity = CaseContinuityService(
+            self.domain_store, self.clock, self._prospective_access
+        )
+        self._assessment_review = AssessmentReviewService(
+            self.domain_store, self.clock, self._prospective_access
+        )
+        self._prospective_decision = ProspectiveDecisionService(
+            self.domain_store, self.clock, self._prospective_access
+        )
+        self._continuing_review = ContinuingReviewService(
+            self.domain_store, self.clock, self._prospective_access
+        )
+        self._slice_h_actions = SliceHActionContextResolver(
+            self.domain_store, self._prospective_access
+        )
+        self._prospective_queries = ProspectivePractitionerQueryService(
+            self.domain_store, self._case_continuity, self._prospective_access
+        )
+        self._reconstruction = ReconstructionService(self.domain_store, self._prospective_access)
         self._register_queries: dict[str, RegisterQuery] = {}
 
     def close(self) -> None:
@@ -358,6 +447,894 @@ class OperationalApplication:
     def revalidate_session(self, session: AuthenticatedSession) -> None:
         """Fail closed when current principal status or Actor mapping has changed."""
         self._validate_session(session, "browser.session")
+
+    def slice_h_home(
+        self,
+        session: AuthenticatedSession,
+        *,
+        effective_at: datetime | None = None,
+        known_at: datetime | None = None,
+    ) -> ProspectiveHomeView:
+        """Compose the Slice-H Home surface from exact prospective sources."""
+
+        actor_id, effective, known = self._slice_h_context(
+            session, effective_at=effective_at, known_at=known_at
+        )
+        return self._prospective_queries.home(
+            principal_id=session.principal_id,
+            actor_id=actor_id,
+            candidate_case_ids=self._prospective_case_ids(session),
+            effective_at=effective,
+            known_at=known,
+        )
+
+    def slice_h_case(
+        self,
+        session: AuthenticatedSession,
+        case_id: RecordId,
+        *,
+        effective_at: datetime | None = None,
+        known_at: datetime | None = None,
+    ) -> ProspectiveCaseView:
+        """Compose one continuing Case without a persisted master status."""
+
+        actor_id, effective, known = self._slice_h_context(
+            session, effective_at=effective_at, known_at=known_at
+        )
+        if case_id not in self._prospective_case_ids(session):
+            raise AccessDenied("prospective Case is not visible")
+        return self._prospective_queries.case(
+            principal_id=session.principal_id,
+            actor_id=actor_id,
+            case_id=case_id,
+            effective_at=effective,
+            known_at=known,
+        )
+
+    def slice_h_task(
+        self,
+        session: AuthenticatedSession,
+        case_id: RecordId,
+        work_version_id: RecordVersionId,
+        *,
+        effective_at: datetime | None = None,
+        known_at: datetime | None = None,
+    ) -> ProspectiveTaskView:
+        """Reconstruct durable Work context; browser state is never continuity authority."""
+
+        actor_id, effective, known = self._slice_h_context(
+            session, effective_at=effective_at, known_at=known_at
+        )
+        return self._prospective_queries.task(
+            principal_id=session.principal_id,
+            actor_id=actor_id,
+            case_id=case_id,
+            work_version_id=work_version_id,
+            effective_at=effective,
+            known_at=known,
+        )
+
+    def slice_h_action_context(
+        self,
+        session: AuthenticatedSession,
+        case_id: RecordId,
+        responsibility_version_id: RecordVersionId,
+        *,
+        effective_at: datetime | None = None,
+        known_at: datetime | None = None,
+    ) -> SliceHActionContext:
+        """Reconstruct exact action context from durable governed facts only."""
+
+        actor_id, effective, known = self._slice_h_context(
+            session, effective_at=effective_at, known_at=known_at
+        )
+        if case_id not in self._prospective_case_ids(session):
+            raise AccessDenied("prospective Case is not visible")
+        try:
+            return self._slice_h_actions.resolve(
+                principal_id=session.principal_id,
+                actor_id=actor_id,
+                case_id=case_id,
+                responsibility_version_id=responsibility_version_id,
+                effective_at=effective,
+                known_at=known,
+            )
+        except ValueError as exc:
+            raise AccessDenied(str(exc)) from exc
+
+    def slice_h_commit_action(
+        self,
+        session: AuthenticatedSession,
+        *,
+        case_id: RecordId,
+        responsibility_version_id: RecordVersionId,
+        expected_source_version_ids: tuple[RecordVersionId, ...],
+        action: str,
+        payload: Mapping[str, str],
+        idempotency_key: str,
+        effective_at: datetime,
+    ) -> CommandOutcome:
+        """Commit one ordinary judgment through its accepted production service.
+
+        The exact context is reconstructed again at commit. A browser-supplied
+        identity can select only the previously reviewed Responsibility; it can
+        never retarget any downstream source.
+        """
+
+        self._require(session, Permission.COMMAND, action, ScopeType.CASE, case_id)
+        context = self.slice_h_action_context(
+            session,
+            case_id,
+            responsibility_version_id,
+            effective_at=effective_at,
+            known_at=self.clock.now(),
+        )
+        if context.source_version_ids != expected_source_version_ids:
+            raise AccessDenied("the reviewed exact context changed; no retarget permitted")
+        if session.actor_id is None:
+            raise AccessDenied("current Actor mapping is not established")
+        identity = AssessmentCommandIdentity(
+            CommandId.new(),
+            "slice-h-practitioner-action",
+            idempotency_key,
+            session.principal_id,
+            session.actor_id,
+        )
+        now = self.clock.now()
+
+        def lines(name: str) -> tuple[str, ...]:
+            return tuple(
+                value.strip() for value in payload.get(name, "").splitlines() if value.strip()
+            )
+
+        if action in {"assessment.finish.value", "assessment.finish.risk"}:
+            lane = AssessmentLane.VALUE if action.endswith("value") else AssessmentLane.RISK
+            if context.lane is not lane:
+                raise AccessDenied("task lane does not match the exact Responsibility")
+            return self._assessment_review.finish_assessment(
+                FinishAssessmentCommand(
+                    identity,
+                    FinishFacts.new(),
+                    SemanticContractRef("paim.assessment-review", "1.0"),
+                    context.context,
+                    lane,
+                    case_id,
+                    context.configuration_version_id,
+                    AssessmentContent(
+                        payload["finding"],
+                        payload["boundary"],
+                        payload["uncertainty"],
+                        payload["implication"],
+                        payload["provenance"],
+                    ),
+                    context.decision_use,
+                    context.bounded_scope,
+                    context.information_basis_version_ids,
+                    context.responsibility_version_id,
+                    context.assignment_version_id,
+                    context.current_assessment_version_id,
+                    payload["rationale"],
+                    lines("limitations"),
+                    effective_at,
+                    now,
+                )
+            )
+        if action in {"assessment.adequacy.value", "assessment.adequacy.risk"}:
+            lane = AssessmentLane.VALUE if action.endswith("value") else AssessmentLane.RISK
+            if (
+                context.lane is not lane
+                or context.current_assessment_version_id is None
+                or context.current_readiness_version_id is None
+            ):
+                raise AccessDenied("the exact assessment is not ready for this review")
+            outcome = AdequacyOutcome(payload["outcome"])
+            reasons = lines("material_reasons")
+            return self._assessment_review.determine_adequacy(
+                DetermineAdequacyCommand(
+                    identity,
+                    AdequacyFacts.new(),
+                    SemanticContractRef("paim.assessment-review", "1.0"),
+                    context.context,
+                    lane,
+                    case_id,
+                    context.configuration_version_id,
+                    context.current_assessment_version_id,
+                    context.current_readiness_version_id,
+                    context.decision_use,
+                    context.bounded_scope,
+                    context.information_basis_version_ids,
+                    outcome,
+                    reasons,
+                    payload["rationale"],
+                    lines("limitations"),
+                    payload["uncertainty"],
+                    context.responsibility_version_id,
+                    context.assignment_version_id,
+                    context.current_adequacy_version_id,
+                    effective_at,
+                    now,
+                )
+            )
+        if action in {"assessment.reliance.value", "assessment.reliance.risk"}:
+            lane = AssessmentLane.VALUE if action.endswith("value") else AssessmentLane.RISK
+            if context.lane is not lane or not context.reliance_candidate_version_ids:
+                raise AccessDenied("one exact adequate assessment is not available")
+            choice = payload.get("candidate_choice", "candidate-1")
+            try:
+                choice_index = int(choice.removeprefix("candidate-")) - 1
+                assessment_id = context.reliance_candidate_version_ids[choice_index]
+            except (IndexError, ValueError) as exc:
+                raise AccessDenied("the selected adequate assessment is unavailable") from exc
+            with self.domain_store.read_transaction() as transaction:
+                readiness_rows = transaction.projection_rows(
+                    "assessment_readiness_versions",
+                    assessment_version_id=str(assessment_id),
+                )
+                adequacy_rows = transaction.projection_rows(
+                    "assessment_adequacy_versions",
+                    assessment_version_id=str(assessment_id),
+                    outcome="ADEQUATE",
+                )
+            if len(readiness_rows) != 1 or len(adequacy_rows) != 1:
+                raise AccessDenied("the selected adequate assessment is unavailable")
+            readiness_id = RecordVersionId.parse(str(readiness_rows[0]["version_id"]))
+            adequacy_id = RecordVersionId.parse(str(adequacy_rows[0]["version_id"]))
+            information_basis = context.reliance_candidate_information_basis[choice_index]
+            dispositions = tuple(
+                CandidateDisposition(
+                    candidate_id,
+                    "NOT_SELECTED_FOR_THIS_USE",
+                    payload["rationale"],
+                )
+                for candidate_id in context.reliance_candidate_version_ids
+                if candidate_id != assessment_id
+            )
+            return self._assessment_review.designate_reliance(
+                DesignateRelianceCommand(
+                    identity,
+                    RelianceFacts.new(),
+                    SemanticContractRef("paim.assessment-review", "1.0"),
+                    context.context,
+                    lane,
+                    case_id,
+                    context.configuration_version_id,
+                    assessment_id,
+                    readiness_id,
+                    adequacy_id,
+                    context.decision_use,
+                    context.bounded_scope,
+                    information_basis,
+                    dispositions,
+                    payload["rationale"],
+                    context.responsibility_version_id,
+                    context.assignment_version_id,
+                    context.current_reliance_version_id,
+                    effective_at,
+                    now,
+                )
+            )
+        if action == "integration.complete":
+            value = self._slice_h_relied_basis(context, AssessmentLane.VALUE)
+            risk = self._slice_h_relied_basis(context, AssessmentLane.RISK)
+            return self._prospective_decision.integrate_value_risk(
+                IntegrateValueRiskCommand(
+                    identity,
+                    IntegrationFacts.new(),
+                    SemanticContractRef("paim.prospective-integration-decision", "1.0"),
+                    context.context,
+                    case_id,
+                    context.configuration_version_id,
+                    context.decision_use,
+                    context.bounded_scope,
+                    value,
+                    risk,
+                    payload["rationale"],
+                    lines("material_tensions"),
+                    lines("limitations"),
+                    payload["uncertainty"],
+                    lines("unresolved_conditions"),
+                    context.responsibility_version_id,
+                    context.assignment_version_id,
+                    context.authority_source_version_id,
+                    context.current_integration_version_id,
+                    effective_at,
+                    now,
+                )
+            )
+        if action == "decision.propose":
+            if context.current_integration_version_id is None:
+                raise AccessDenied("one exact current Value/Risk consideration is required")
+            return self._prospective_decision.propose_decision(
+                ProposeDecisionCommand(
+                    identity,
+                    DecisionFacts.new(),
+                    SemanticContractRef("paim.prospective-integration-decision", "1.0"),
+                    context.context,
+                    case_id,
+                    context.configuration_version_id,
+                    context.current_integration_version_id,
+                    context.decision_use,
+                    context.bounded_scope,
+                    payload["proposed_action"],
+                    payload["operating_state"],
+                    payload["rationale"],
+                    lines("conditions"),
+                    lines("alternatives"),
+                    context.responsibility_version_id,
+                    context.assignment_version_id,
+                    context.current_decision_version_id,
+                    context.current_decision_version_id,
+                    effective_at,
+                    now,
+                )
+            )
+        if action == "decision.authorize":
+            if (
+                context.current_decision_version_id is None
+                or context.current_decision_status != "PROPOSED"
+                or context.current_integration_version_id is None
+            ):
+                raise AccessDenied("one exact current proposal is required")
+            return self._prospective_decision.authorize_decision(
+                AuthorizeDecisionCommand(
+                    identity,
+                    AuthorizationFacts.new(),
+                    SemanticContractRef("paim.prospective-integration-decision", "1.0"),
+                    context.context,
+                    case_id,
+                    context.configuration_version_id,
+                    context.current_decision_version_id,
+                    context.current_integration_version_id,
+                    context.decision_use,
+                    context.bounded_scope,
+                    context.responsibility_version_id,
+                    context.assignment_version_id,
+                    context.authority_source_version_id,
+                    payload["authority_identity"],
+                    context.bounded_scope,
+                    lines("authority_limits"),
+                    lines("conditions"),
+                    lines("dissent"),
+                    effective_at,
+                    now,
+                )
+            )
+        if action == "decision.confirm":
+            if (
+                context.current_decision_version_id is None
+                or context.current_decision_status != "AUTHORIZED"
+                or context.current_integration_version_id is None
+            ):
+                raise AccessDenied("one exact authorized Decision is required")
+            return self._prospective_decision.confirm_decision(
+                ConfirmDecisionCommand(
+                    identity,
+                    ConfirmationFacts.new(),
+                    SemanticContractRef("paim.prospective-integration-decision", "1.0"),
+                    context.context,
+                    case_id,
+                    context.configuration_version_id,
+                    context.current_decision_version_id,
+                    context.current_integration_version_id,
+                    context.decision_use,
+                    context.bounded_scope,
+                    payload["rationale"],
+                    context.responsibility_version_id,
+                    context.assignment_version_id,
+                    context.authority_source_version_id,
+                    effective_at,
+                    now,
+                )
+            )
+        if action == "review.plan":
+            if context.current_decision_version_id is None:
+                raise AccessDenied("one exact current Decision is required")
+            review_at = datetime.fromisoformat(payload["review_at"].replace("Z", "+00:00"))
+            return self._continuing_review.establish_planned_review_point(
+                EstablishPlannedReviewPointCommand(
+                    identity,
+                    SemanticContractRef("paim.continuing-review", "1.0"),
+                    context.context,
+                    case_id,
+                    context.configuration_version_id,
+                    context.current_decision_version_id,
+                    "continuing management review",
+                    context.bounded_scope,
+                    PlannedReviewPointSpec(
+                        ReviewRecordFacts.new(),
+                        review_at,
+                        payload["rationale"],
+                        (context.current_decision_version_id,),
+                    ),
+                    context.responsibility_version_id,
+                    context.assignment_version_id,
+                    None,
+                    False,
+                    effective_at,
+                    now,
+                )
+            )
+        if action == "review.episode.begin":
+            if (
+                context.current_decision_version_id is None
+                or context.current_integration_version_id is None
+                or not context.review_origin_version_ids
+                or not context.review_focus
+            ):
+                raise AccessDenied("one exact visible focused-review origin is required")
+            value = self._slice_h_relied_basis(context, AssessmentLane.VALUE)
+            risk = self._slice_h_relied_basis(context, AssessmentLane.RISK)
+            return self._continuing_review.begin_review_episode(
+                BeginReviewEpisodeCommand(
+                    identity,
+                    ReviewRecordFacts.new(),
+                    SemanticContractRef("paim.continuing-review", "1.0"),
+                    context.context,
+                    case_id,
+                    context.configuration_version_id,
+                    context.current_decision_version_id,
+                    context.current_integration_version_id,
+                    ReviewOrigin.EVENT_TRIGGER,
+                    context.review_origin_version_ids,
+                    tuple(ReviewFocus(value) for value in context.review_focus),
+                    value.reliance_version_id,
+                    risk.reliance_version_id,
+                    context.responsibility_version_id,
+                    context.assignment_version_id,
+                    None,
+                    effective_at,
+                    now,
+                )
+            )
+        if action == "review.episode.complete":
+            if (
+                context.current_review_episode_version_id is None
+                or context.current_confirmation_version_id is None
+            ):
+                raise AccessDenied(
+                    "an exact focused review and unchanged-Decision confirmation are required"
+                )
+            value = self._slice_h_relied_basis(context, AssessmentLane.VALUE)
+            risk = self._slice_h_relied_basis(context, AssessmentLane.RISK)
+            with self.domain_store.read_transaction() as transaction:
+                episode = transaction.get_version(context.current_review_episode_version_id)
+            if episode is None:
+                raise AccessDenied("the exact focused review is unavailable")
+            return self._continuing_review.complete_review_episode(
+                CompleteReviewEpisodeCommand(
+                    identity,
+                    ReviewRecordFacts(episode.record_id, RecordVersionId.new()),
+                    SemanticContractRef("paim.continuing-review", "1.0"),
+                    context.context,
+                    case_id,
+                    context.configuration_version_id,
+                    context.current_review_episode_version_id,
+                    ReviewOutcome.UNCHANGED_DECISION_CONFIRMED,
+                    (),
+                    value.reliance_version_id,
+                    risk.reliance_version_id,
+                    context.current_confirmation_version_id,
+                    None,
+                    payload["rationale"],
+                    context.responsibility_version_id,
+                    context.assignment_version_id,
+                    None,
+                    None,
+                    None,
+                    effective_at,
+                    now,
+                )
+            )
+        raise ValueError("unsupported contextual Slice-H action")
+
+    def slice_h_carry_single_reliance(
+        self,
+        session: AuthenticatedSession,
+        *,
+        case_id: RecordId,
+        lane: AssessmentLane,
+        effective_at: datetime,
+        idempotency_key: str,
+    ) -> CommandOutcome | None:
+        """Carry one deterministic eligible assessment without a Level-1 choice.
+
+        Reliance remains its own authoritative command and audit outcome. Carriage
+        occurs only when the signed-in Actor is the one exact accountable assignee,
+        has the exact command permission and source visibility, and one (not zero or
+        multiple) eligible adequate assessment exists. Otherwise no fact is written
+        and the owning-domain state remains available for explicit resolution.
+        """
+
+        action = f"assessment.reliance.{lane.value.lower()}"
+        if not self.operational_store.permission_allowed(
+            session.principal_id,
+            Permission.COMMAND,
+            action,
+            ScopeType.CASE,
+            case_id,
+        ):
+            return None
+        obligation = (
+            ObligationKind.DESIGNATE_VALUE_ASSESSMENT_RELIANCE
+            if lane is AssessmentLane.VALUE
+            else ObligationKind.DESIGNATE_RISK_ASSESSMENT_RELIANCE
+        )
+        with self.domain_store.read_transaction() as transaction:
+            rows = transaction.projection_rows(
+                "responsibility_versions",
+                owning_case_id=str(case_id),
+                obligation_kind=obligation.value,
+            )
+            current_ids: list[RecordVersionId] = []
+            for row in rows:
+                version_id = RecordVersionId.parse(str(row["version_id"]))
+                source = transaction.get_version(version_id)
+                if source is None:
+                    continue
+                selected = transaction.select_current(
+                    SelectionQuery(
+                        source.family,
+                        source.scope,
+                        effective_at,
+                        self.clock.now(),
+                        source.record_id,
+                    )
+                )
+                if (
+                    isinstance(selected, SelectionFound)
+                    and selected.candidate.version_id == version_id
+                ):
+                    current_ids.append(version_id)
+        contexts: list[SliceHActionContext] = []
+        for responsibility_id in current_ids:
+            try:
+                context = self.slice_h_action_context(
+                    session,
+                    case_id,
+                    responsibility_id,
+                    effective_at=effective_at,
+                    known_at=self.clock.now(),
+                )
+            except AccessDenied:
+                continue
+            if (
+                context.lane is lane
+                and context.current_reliance_version_id is None
+                and len(context.reliance_candidate_version_ids) == 1
+            ):
+                contexts.append(context)
+        if len(contexts) != 1:
+            return None
+        context = contexts[0]
+        return self.slice_h_commit_action(
+            session,
+            case_id=case_id,
+            responsibility_version_id=context.responsibility_version_id,
+            expected_source_version_ids=context.source_version_ids,
+            action=action,
+            payload={
+                "rationale": (
+                    "Carried deterministically because exactly one eligible adequate "
+                    f"{lane.value.title()} assessment is established for this decision use."
+                )
+            },
+            idempotency_key=idempotency_key,
+            effective_at=effective_at,
+        )
+
+    def _slice_h_relied_basis(
+        self, context: SliceHActionContext, lane: AssessmentLane
+    ) -> ReliedLaneBasis:
+        rows: tuple[dict[str, object], ...]
+        with self.domain_store.read_transaction() as transaction:
+            rows = transaction.projection_rows(
+                "assessment_reliance_versions",
+                lane=lane.value,
+                case_id=str(context.case_id),
+                configuration_version_id=str(context.configuration_version_id),
+                context_digest=context.context.digest,
+                decision_use=context.decision_use,
+            )
+            current: list[dict[str, object]] = []
+            for row in rows:
+                version_id = RecordVersionId.parse(str(row["version_id"]))
+                source = transaction.get_version(version_id)
+                if source is None:
+                    continue
+                selected = transaction.select_current(
+                    SelectionQuery(
+                        source.family,
+                        source.scope,
+                        self.clock.now(),
+                        self.clock.now(),
+                        source.record_id,
+                    )
+                )
+                if (
+                    isinstance(selected, SelectionFound)
+                    and selected.candidate.version_id == version_id
+                ):
+                    current.append(row)
+        if len(current) != 1:
+            raise AccessDenied(f"one exact current {lane.value.title()} reliance is required")
+        row = current[0]
+        return ReliedLaneBasis(
+            lane,
+            RecordVersionId.parse(str(row["assessment_version_id"])),
+            RecordVersionId.parse(str(row["readiness_version_id"])),
+            RecordVersionId.parse(str(row["adequacy_version_id"])),
+            RecordVersionId.parse(str(row["version_id"])),
+            json_version_ids(row["information_basis_version_ids_json"]),
+        )
+
+    def slice_h_timeline(
+        self,
+        session: AuthenticatedSession,
+        case_id: RecordId,
+        *,
+        effective_at: datetime | None = None,
+        known_at: datetime | None = None,
+    ) -> CaseTimeline:
+        """Return access-filtered dual-time organizational memory for one Case."""
+
+        actor_id, effective, known = self._slice_h_context(
+            session, effective_at=effective_at, known_at=known_at
+        )
+        return self._reconstruction.timeline(
+            principal_id=session.principal_id,
+            actor_id=actor_id,
+            case_id=case_id,
+            effective_at=effective,
+            known_at=known,
+        )
+
+    def slice_h_comparison(
+        self,
+        session: AuthenticatedSession,
+        case_id: RecordId,
+        *,
+        prior_effective_at: datetime,
+        prior_known_at: datetime,
+        current_effective_at: datetime | None = None,
+        current_known_at: datetime | None = None,
+    ) -> ThenNowComparison:
+        """Compare two access-safe exact positions without projecting later knowledge back."""
+
+        actor_id, current_effective, current_known = self._slice_h_context(
+            session,
+            effective_at=current_effective_at,
+            known_at=current_known_at,
+        )
+        prior = self._reconstruction.current_position(
+            principal_id=session.principal_id,
+            actor_id=actor_id,
+            case_id=case_id,
+            effective_at=prior_effective_at,
+            known_at=prior_known_at,
+        )
+        current = self._reconstruction.current_position(
+            principal_id=session.principal_id,
+            actor_id=actor_id,
+            case_id=case_id,
+            effective_at=current_effective,
+            known_at=current_known,
+        )
+        return self._reconstruction.compare(prior, current)
+
+    def slice_h_initiate_case(
+        self,
+        session: AuthenticatedSession,
+        *,
+        idempotency_key: str,
+        title: str,
+        bounded_use: str,
+        management_question: str,
+        setup_description: str,
+        effective_at: datetime,
+    ) -> CommandOutcome:
+        """Use the H0 natural command; no PAIM identity is supplied by the practitioner."""
+
+        self._validate_session(session, "case.create_open")
+        if session.actor_id is None:
+            raise AccessDenied("current Actor mapping is not established")
+        organization_scope = self._case_initiation_scope(
+            actor_id=session.actor_id,
+            bounded_use=bounded_use,
+            effective_at=effective_at,
+        )
+        return self._case_continuity.initiate_case(
+            MinimalOpenCaseCommand(
+                ContinuityCommandIdentity(
+                    CommandId.new(),
+                    "slice-h-case-initiation",
+                    idempotency_key,
+                    session.principal_id,
+                    session.actor_id,
+                ),
+                SemanticContractRef("paim.case-continuity", "1.0"),
+                organization_scope,
+                title,
+                bounded_use,
+                management_question,
+                {
+                    "system": title,
+                    "intended_use": bounded_use,
+                    "scope": setup_description,
+                },
+                "finalized",
+                "candidate",
+                effective_at,
+                self.clock.now(),
+            )
+        )
+
+    def slice_h_establish_creator_visibility(
+        self,
+        session: AuthenticatedSession,
+        outcome: CommandOutcome,
+        *,
+        effective_at: datetime,
+    ) -> None:
+        """Apply separately authorized software visibility to a newly created Case.
+
+        This operation is deliberately separate from Case semantics. It runs only
+        when the signed-in principal already holds both exact operational-admin
+        permissions; it creates no Responsibility or substantive authority.
+        """
+
+        if not (
+            self.operational_store.permission_allowed(
+                session.principal_id, Permission.OPERATIONAL_ADMIN, "access.manage"
+            )
+            and self.operational_store.permission_allowed(
+                session.principal_id,
+                Permission.OPERATIONAL_ADMIN,
+                "source-access.manage",
+            )
+        ):
+            return
+        case_id = RecordId.parse(outcome.record_id)
+        if not self.operational_store.permission_allowed(
+            session.principal_id,
+            Permission.CASE_READ,
+            "read",
+            ScopeType.CASE,
+            case_id,
+        ):
+            self.grant_access(
+                session,
+                principal_id=session.principal_id,
+                grant=AccessGrantInput(
+                    Permission.CASE_READ,
+                    "read",
+                    ScopeType.CASE,
+                    case_id,
+                    AccessEffect.ALLOW,
+                ),
+            )
+        source_ids = {RecordVersionId.parse(value) for value in outcome.version_ids}
+        with self.domain_store.read_transaction() as transaction:
+            for basis in transaction.projection_rows("assignment_basis_versions"):
+                if RecordVersionId.parse(str(basis["version_id"])) in source_ids:
+                    source_ids.add(RecordVersionId.parse(str(basis["basis_source_version_id"])))
+            sources = tuple(transaction.get_version(value) for value in source_ids)
+        if any(source is None for source in sources):
+            raise RuntimeError("new Case source manifest is unavailable")
+        for source in sources:
+            assert source is not None
+            self.grant_source_access(
+                session,
+                principal_id=session.principal_id,
+                grant=SourceAccessGrantInput(
+                    "source.read",
+                    case_id,
+                    source.version_id,
+                    source.family,
+                    AccessEffect.ALLOW,
+                    effective_at,
+                ),
+            )
+
+    def slice_h_establish_result_visibility(
+        self,
+        session: AuthenticatedSession,
+        outcome: CommandOutcome,
+        *,
+        case_id: RecordId,
+        effective_at: datetime,
+    ) -> None:
+        """Apply only separately authorized source visibility to a committed result."""
+
+        if not self.operational_store.permission_allowed(
+            session.principal_id,
+            Permission.OPERATIONAL_ADMIN,
+            "source-access.manage",
+        ):
+            return
+        source_ids = tuple(RecordVersionId.parse(value) for value in outcome.version_ids)
+        with self.domain_store.read_transaction() as transaction:
+            sources = tuple(transaction.get_version(value) for value in source_ids)
+        if any(source is None for source in sources):
+            raise RuntimeError("committed result source manifest is unavailable")
+        for source in sources:
+            assert source is not None
+            self.grant_source_access(
+                session,
+                principal_id=session.principal_id,
+                grant=SourceAccessGrantInput(
+                    "source.read",
+                    case_id,
+                    source.version_id,
+                    source.family,
+                    AccessEffect.ALLOW,
+                    effective_at,
+                ),
+            )
+
+    def _slice_h_context(
+        self,
+        session: AuthenticatedSession,
+        *,
+        effective_at: datetime | None,
+        known_at: datetime | None,
+    ) -> tuple[RecordId, datetime, datetime]:
+        self._validate_session(session, "practitioner.read")
+        if session.actor_id is None:
+            raise AccessDenied("current Actor mapping is not established")
+        effective = effective_at or self.clock.now()
+        known = known_at or self.clock.now()
+        return session.actor_id, effective, known
+
+    def _prospective_case_ids(self, session: AuthenticatedSession) -> tuple[RecordId, ...]:
+        accessible = self.operational_store.accessible_case_ids(session.principal_id)
+        with self.domain_store.read_transaction() as transaction:
+            prospective = {
+                RecordId.parse(str(row["case_id"]))
+                for row in transaction.projection_rows("case_continuity_status_records")
+            }
+        return tuple(sorted(accessible.intersection(prospective), key=str))
+
+    def _case_initiation_scope(
+        self,
+        *,
+        actor_id: RecordId,
+        bounded_use: str,
+        effective_at: datetime,
+    ) -> str:
+        known_at = self.clock.now()
+        scopes: set[str] = set()
+        with self.domain_store.read_transaction() as transaction:
+            rows = transaction.projection_rows(
+                "case_initiation_authority_versions",
+                authorized_actor_id=str(actor_id),
+                state="ACTIVE",
+            )
+            for row in rows:
+                version_id = RecordVersionId.parse(str(row["version_id"]))
+                version = transaction.get_version(version_id)
+                if version is None:
+                    continue
+                selected = transaction.select_current(
+                    SelectionQuery(
+                        version.family,
+                        version.scope,
+                        effective_at,
+                        known_at,
+                        version.record_id,
+                    )
+                )
+                prefixes = json.loads(cast(str, row["allowed_use_prefixes_json"]))
+                if (
+                    isinstance(selected, SelectionFound)
+                    and selected.candidate.version_id == version_id
+                    and isinstance(prefixes, list)
+                    and all(isinstance(value, str) for value in prefixes)
+                    and (not prefixes or any(bounded_use.startswith(value) for value in prefixes))
+                ):
+                    scopes.add(str(row["organization_scope"]))
+        if len(scopes) != 1:
+            raise AccessDenied("one exact Case-initiation mandate is not established")
+        return scopes.pop()
 
     def practitioner_home(self, session: AuthenticatedSession) -> HomeView:
         actor, cases, effective_at, known_at = self._practitioner_context(session)

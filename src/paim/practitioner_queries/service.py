@@ -114,6 +114,8 @@ class PractitionerQueryService:
                 tx, "prospective-case", f"case:{case_id}", effective_at, known_at
             )
             title = "Bounded PAIM Case"
+            bounded_use: str | None = None
+            management_question: str | None = None
             manifest: set[RecordVersionId] = set()
             continuity_visible = all(
                 self._source_visible(
@@ -141,6 +143,12 @@ class PractitionerQueryService:
                     known_at,
                 ):
                     title = cast(str, source.content.get("title", title))
+                    bounded_use_value = source.content.get("bounded_use")
+                    question_value = source.content.get("management_question")
+                    bounded_use = bounded_use_value if isinstance(bounded_use_value, str) else None
+                    management_question = (
+                        question_value if isinstance(question_value, str) else None
+                    )
                     manifest.add(source.version_id)
             governing = self._current_family(
                 tx, "governing-configuration", f"case:{case_id}", effective_at, known_at
@@ -286,6 +294,8 @@ class PractitionerQueryService:
                 integration_position=integration_position,
                 decision_position=decision_position,
                 continuing_review_position=review_position,
+                bounded_use=bounded_use,
+                management_question=management_question,
             )
 
     def task(
@@ -407,13 +417,81 @@ class PractitionerQueryService:
             known_at,
         )
         if review is not None and review.attention_reasons:
+            review_obligation: str | None = "BEGIN_CONTINUING_REVIEW"
+            if review.current_review_state == "FOCUSED REVIEW OPEN":
+                confirmation_raw = self._current_projection_rows(
+                    tx,
+                    tx.projection_rows(
+                        "prospective_decision_confirmation_versions",
+                        case_id=str(case_id),
+                        configuration_version_id=str(governing_id),
+                    ),
+                    effective_at,
+                    known_at,
+                )
+                confirmation_rows, confirmation_hidden = self._visible_review_rows(
+                    tx,
+                    principal_id,
+                    actor_id,
+                    case_id,
+                    effective_at,
+                    known_at,
+                    confirmation_raw,
+                    (
+                        "decision_version_id",
+                        "integration_version_id",
+                        "configuration_version_id",
+                        "responsibility_version_id",
+                        "assignment_version_id",
+                        "authority_source_version_id",
+                    ),
+                    (),
+                )
+                review_obligation = (
+                    None
+                    if confirmation_hidden
+                    else "COMPLETE_CONTINUING_REVIEW"
+                    if confirmation_rows
+                    else "CONFIRM_MANAGEMENT_DECISION"
+                )
+            review_responsibility: RecordVersionId | None = None
+            for responsibility in responsibilities:
+                if review_obligation is None or (
+                    responsibility["obligation_kind"] != review_obligation
+                ):
+                    continue
+                if (
+                    self._one_responsibility_state(
+                        tx,
+                        principal_id,
+                        actor_id,
+                        case_id,
+                        responsibility,
+                        effective_at,
+                        known_at,
+                    )
+                    != "ONE"
+                ):
+                    continue
+                assignments = self._eligible_assignments(
+                    tx,
+                    principal_id,
+                    actor_id,
+                    case_id,
+                    responsibility,
+                    effective_at,
+                    known_at,
+                )
+                if assignments and assignments[0]["actor_id"] == str(actor_id):
+                    review_responsibility = RecordVersionId.parse(str(responsibility["version_id"]))
+                    break
             result.append(
                 AttentionItem(
                     case_id,
                     "CONTINUING_REVIEW",
                     "What specifically needs review for this continuing Case?",
                     "; ".join(review.attention_reasons),
-                    None,
+                    review_responsibility,
                     None,
                     SourceManifest(review.source_version_ids, effective_at, known_at),
                 )
@@ -505,6 +583,8 @@ class PractitionerQueryService:
                     "Does the exact authorized Decision remain unchanged?",
                 ),
             }.get(obligation)
+            if lane_question is None and state == "ONE":
+                continue
             if lane_question:
                 slice_d_obligations = {
                     "COMPLETE_VALUE_RISK_INTEGRATION",
@@ -1309,6 +1389,28 @@ class PractitionerQueryService:
             ),
             established=None,
         )
+        if decision_position is not None and len(visible_decisions) == 1:
+            decision_source = tx.get_version(
+                RecordVersionId.parse(str(visible_decisions[0]["version_id"]))
+            )
+            if decision_source is not None:
+                action = decision_source.content.get("proposed_action")
+                rationale = decision_source.content.get("rationale")
+                raw_conditions = decision_source.content.get("authorization_conditions")
+                if raw_conditions is None:
+                    raw_conditions = decision_source.content.get("conditions_and_limits")
+                conditions = (
+                    tuple(value for value in raw_conditions if isinstance(value, str))
+                    if isinstance(raw_conditions, list)
+                    else ()
+                )
+                decision_position = GovernedPosition(
+                    decision_position.state,
+                    decision_position.source_version_ids,
+                    action if isinstance(action, str) else None,
+                    rationale if isinstance(rationale, str) else None,
+                    conditions,
+                )
         return integration_position, decision_position
 
     @staticmethod

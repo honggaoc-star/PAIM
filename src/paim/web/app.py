@@ -24,6 +24,7 @@ from paim.operational.models import AccessDenied, AuthenticationFailed, LocalCon
 from paim.web.m1b import register_m1b_routes
 from paim.web.m1c import register_m1c_routes
 from paim.web.sessions import BrowserSession, SessionRegistry
+from paim.web.slice_h import register_slice_h_routes
 from paim.web.ux3a import (
     applicability_task_context,
     assessment_task_contexts,
@@ -389,11 +390,23 @@ def create_web_application(
         assert browser_session.authentication is not None
         try:
             view = gateway.practitioner_home(browser_session.authentication)
+            prospective = gateway.slice_h_home(browser_session.authentication)
+            case_titles = {
+                str(case_id): gateway.slice_h_case(browser_session.authentication, case_id).title
+                for case_id in prospective.visible_case_ids
+            }
         except AccessDenied:
             registry.invalidate(request.cookies.get(COOKIE_NAME))
             return RedirectResponse("/login?reason=session", status_code=303)
         return render(
-            request, "home.html", {"view": view, "csrf_token": browser_session.csrf_secret}
+            request,
+            "home.html",
+            {
+                "view": view,
+                "prospective": prospective,
+                "case_titles": case_titles,
+                "csrf_token": browser_session.csrf_secret,
+            },
         )
 
     @app.get("/cases", response_class=HTMLResponse)
@@ -403,8 +416,20 @@ def create_web_application(
             return browser_session
         assert browser_session.authentication is not None
         view = gateway.practitioner_cases(browser_session.authentication, search_text=q[:200])
+        prospective_home = gateway.slice_h_home(browser_session.authentication)
+        prospective_cases = tuple(
+            gateway.slice_h_case(browser_session.authentication, case_id)
+            for case_id in prospective_home.visible_case_ids
+        )
         return render(
-            request, "cases.html", {"view": view, "csrf_token": browser_session.csrf_secret}
+            request,
+            "cases.html",
+            {
+                "view": view,
+                "prospective_cases": prospective_cases,
+                "prospective_case_ids": tuple(str(item.case_id) for item in prospective_cases),
+                "csrf_token": browser_session.csrf_secret,
+            },
         )
 
     @app.get("/cases/new", response_class=HTMLResponse)
@@ -434,6 +459,29 @@ def create_web_application(
         except ValueError:
             return render(
                 request, "not_found.html", {"csrf_token": browser_session.csrf_secret}, 404
+            )
+        try:
+            prospective_view = gateway.slice_h_case(browser_session.authentication, identity)
+        except AccessDenied:
+            prospective_view = None
+        if prospective_view is not None:
+            if area == "history":
+                return RedirectResponse(f"/cases/{case_id}/history-decisions", status_code=303)
+            if area not in {"overview", "configuration", "evidence", "assessment", "decision"}:
+                return render(
+                    request, "not_found.html", {"csrf_token": browser_session.csrf_secret}, 404
+                )
+            home_view = gateway.slice_h_home(browser_session.authentication)
+            attention = tuple(item for item in home_view.items if item.case_id == identity)
+            return render(
+                request,
+                "slice_h_case.html",
+                {
+                    "view": prospective_view,
+                    "attention": attention,
+                    "csrf_token": browser_session.csrf_secret,
+                    "authenticated": True,
+                },
             )
         view = gateway.practitioner_workspace(browser_session.authentication, identity)
         if view is None:
@@ -501,6 +549,16 @@ def create_web_application(
                 "assessment_task_contexts": assessment_task_contexts(view),
             },
         )
+
+    register_slice_h_routes(
+        app,
+        gateway=gateway,
+        registry=registry,
+        render=render,
+        require_session=require_session,
+        same_origin=same_origin,
+        now=clock,
+    )
 
     @app.get("/cases/{case_id}", response_class=HTMLResponse)
     def case_overview(request: Request, case_id: str) -> Response:

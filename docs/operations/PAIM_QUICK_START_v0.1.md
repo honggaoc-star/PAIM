@@ -1,9 +1,10 @@
 # PAIM v0.1 Quick Start
 
 This guide takes a clean PAIM checkout to a healthy local instance and a first Case with a
-finalized candidate Managed Configuration. It uses the released local CLI; it does not bypass or
-replace PAIM's governing semantics. PAIM v0.1 is a local governed CLI plus a typed Python gateway,
-not a polished self-service workflow. Continue with the
+finalized candidate Managed Configuration. It uses the released local commands; on current
+post-v0.1 development `main`, it also describes the prospective Slice-H browser entry point. The
+tagged v0.1.0 release boundary remains the CLI and typed gateway recorded in its release notes.
+Neither path bypasses or replaces PAIM's governing semantics. Continue with the
 [Practitioner Pathways](PAIM_V0_1_PRACTITIONER_PATHWAYS_v0.1.md) for governing designation and the
 full management lifecycles.
 
@@ -230,6 +231,34 @@ These layers do not substitute for one another. Inspect current grants before ap
 append only missing exact facts. Use exact Record and Version identities for all later temporal and
 historical work. On any unexpected denial or failed postcondition, stop and preserve the output,
 audit evidence, database, and operator artifacts before diagnosing the cause.
+
+## 7. Open the practitioner browser on current development `main`
+
+For a prospective Case established through the current Case-continuity contract, launch the local
+browser application from the repository root with the same external configuration and credential
+environment variable:
+
+```powershell
+uv run --locked paim-web --config C:\secure\paim-local.json
+```
+
+Open the loopback URL printed at startup. **Home** and **Cases** are the only ordinary primary
+navigation. Home shows only exact visible work that legitimately needs the signed-in practitioner
+and remains quiet when no such work exists. A Case carries recognizable purpose, independent
+Value and Risk positions, the current Decision, continuing review, people/responsibilities, and
+History & decisions when their complete exact source basis is visible.
+
+The browser carries exact context from durable Case, Responsibility, Assignment, Work, and source
+facts; it does not ask the practitioner for Record or Version IDs. Technical source provenance is
+available through progressive disclosure for an authorized audit purpose. Opening a disclosure
+does not grant access, accountability, or substantive authority. A stale, tampered, or no-longer-
+visible task fails closed without retargeting or partial mutation.
+
+Starting a prospective Case in the browser requires an applicable pre-Case initiation mandate and
+the separately configured software access to use it. Later actions appear only from exact current
+Responsibility and Assignment facts and still revalidate software access, source visibility,
+accountability, and substantive authority at commit. The browser does not infer missing governance
+or turn visibility into authority.
 
 For the conceptual model, read the [PAIM v0.1 Conceptual Guide](../PAIM_CONCEPTUAL_GUIDE_v0.1.md).
 For complete operation and recovery, use the

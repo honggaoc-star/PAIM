@@ -3,23 +3,35 @@
 {% block content %}
 <section aria-labelledby="home-heading">
   <h1 id="home-heading">Management home</h1>
-  <div class="summary-card">
-    <span class="summary-label">Your Cases</span>
-    <strong class="summary-value">{{ view.visible_case_count }}</strong>
-    <p><a href="/cases">Open your Case list</a></p>
-  </div>
-</section>
-<section aria-labelledby="recent-heading">
-  <h2 id="recent-heading">Continue Case work</h2>
-  {% if view.cases %}
-  <ul class="card-list">
-    {% for case in view.cases %}
-    <li><a href="/cases/{{ case.case_id }}">{{ case.title }}</a></li>
+  <h2>What needs me?</h2>
+  {% if prospective.items %}
+  <ul class="card-list" aria-label="Current attention">
+    {% for item in prospective.items %}
+    <li>
+      <article class="attention-card">
+        <p class="eyebrow">{{ case_titles.get(item.case_id|string, 'Bounded AI use') }}</p>
+        <h3>{{ item.question }}</h3>
+        <p><strong>Why:</strong> {{ item.consequence }}</p>
+        {% if item.work_version_id %}
+        <a class="button-link" href="/cases/{{ item.case_id }}/tasks/{{ item.work_version_id }}">Continue this work</a>
+        {% elif item.responsibility_version_id %}
+        <a class="button-link" href="/cases/{{ item.case_id }}/actions/{{ item.responsibility_version_id }}">Continue this work</a>
+        {% else %}
+        <a class="button-link" href="/cases/{{ item.case_id }}#continuing-review">Review this change</a>
+        {% endif %}
+      </article>
+    </li>
     {% endfor %}
   </ul>
   {% else %}
-  <div class="empty-state"><h3>No Cases available</h3><p>No Case is currently available in your workspace.</p></div>
+  <div class="empty-state"><p><strong>Nothing currently needs your attention.</strong></p></div>
   {% endif %}
 </section>
+<p><a href="/cases">Open Cases</a></p>
+<details class="system-status">
+  <summary>Earlier Case workspaces</summary>
+  <p><strong>Your Cases</strong> <span>{{ view.cases | length }}</span> from the earlier application remain available for compatibility and are not prospective Slice-H attention.</p>
+  {% if view.cases %}<ul>{% for case in view.cases %}<li><a href="/cases/{{ case.case_id }}">{{ case.title }}</a></li>{% endfor %}</ul>{% endif %}
+</details>
 <details class="system-status"><summary>Local system status</summary><p><strong>{{ view.health }}</strong>{% if view.health_reasons %}: {{ view.health_reasons | join(', ') }}{% else %}. Required local checks passed.{% endif %}</p></details>
 {% endblock %}
