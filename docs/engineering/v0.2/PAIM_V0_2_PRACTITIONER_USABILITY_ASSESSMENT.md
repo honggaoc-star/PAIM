@@ -2,7 +2,7 @@
 
 ## Assessment outcome
 
-**Recommendation: READY FOR TARGETED POLISH**
+**Pre-polish recommendation: READY FOR TARGETED POLISH**
 
 The integrated application preserves the accepted PAIM semantics and provides a
 coherent route through the ordinary management cycle. No blocker was found in
@@ -217,6 +217,64 @@ post-v0.2 scope.
 
 After that bounded polish and an owner browser check, PAIM can be reassessed for
 `READY FOR CLOSURE`.
+
+## Issue #165 post-polish reassessment
+
+**Recommendation: READY FOR OWNER BROWSER CHECK**
+
+The bounded presentation pass resolves U-01 through U-06 without changing a
+governed act, source-selection rule, authority boundary, or separately
+committed fact. The application now asks lane-specific business questions,
+derives the authorization identity from the exact current authority source,
+uses action-specific review screens, and leads History with the management
+story. Exact IDs, time reconstruction, and provenance remain available under
+advanced or audit disclosure.
+
+The refreshed friction measurements for the same representative path are:
+
+| Measure | Post-polish count | Change and disposition |
+| --- | ---: | --- |
+| Distinct ordinary surface types | 9 | Unchanged; no new workflow or surface was introduced. |
+| Forms | 12 | Unchanged; separately governed acts remain separate. |
+| Confirmation steps | 12 | Unchanged; each is now action-specific and states both effect and non-effect. |
+| Required entries | 32 | Reduced by one: the known Decision-authority identity is no longer re-entered. |
+| Optional entries | 14 | Unchanged; optional limits, tensions, alternatives, and dissent remain available. |
+| Common-path transitions | about 39–40 | Unchanged; this pass improves presentation rather than weakening commit boundaries. |
+
+Re-entry was reduced without hiding a genuine practitioner judgment. PAIM now
+carries the Case, Configuration, exact information basis, Responsibility,
+Assignment, and authority identity. The Value and Risk forms ask for the
+practitioner's substantive benefit/limitation or concern/control judgment, not
+for those carried identities. Proposal, authorization, confirmation, and
+focused-review completion deliberately remain distinct clicks because each
+creates a different governed fact.
+
+### Finding disposition and burden-test result
+
+| Finding | Disposition | Six-burden-test result on the corrected surface |
+| --- | --- | --- |
+| U-01 architecture vocabulary | Resolved for ordinary Level-1 Home, Cases, New Case, Case, Task, and action surfaces; exact technical material remains under audit disclosure. | PASS — ordinary copy now leads with the practitioner's purpose and stays quiet about absent facts. |
+| U-02 generic Value/Risk forms | Resolved with distinct Value-benefit and Risk-concern/control prompts while retaining independent records and commits. | PASS — each prompt asks for a material lane judgment needed now; carried context is not re-entered. |
+| U-03 authority identity re-entry | Resolved by deriving identity from the one exact current substantive-authority source and revalidating at commit. | PASS — the authorization click creates value; the known identity does not become another input. |
+| U-04 generic confirmation | Resolved with a compact action-specific consequence, non-effect, and confirmation label. | PASS — confirmation remains only at the accepted semantic boundary and explains why it matters. |
+| U-05 audit-first History | Resolved with a manager-first timeline and “what was known then” presentation; exact cutoffs and source identities are progressively disclosed. | PASS — ordinary History answers the management question first while preserving full reconstruction. |
+| U-06 unclear Case start | Resolved with natural labels, examples, and explicit differentiation of AI use, management question, and starting scope/setup. | PASS — all requested facts are new and necessary to start the Case, and their purpose is visible. |
+
+Hard-oracle coverage confirms that browser authorization cannot supply or
+retarget authority identity, selectively hidden authority fails closed, a
+superseded authority source invalidates an already reviewed intent without
+mutation, Value and Risk remain independent, and manager-first History retains
+dual-time and source-level non-disclosure. A real Chromium/no-JavaScript proof
+also crosses the revised Value action and its action-specific review boundary.
+The focused Slice-H/browser proof passed **13 tests**, and the complete
+repository regression gate passed **384 tests**. No schema or migration change
+was made; the complete gate includes the existing migration/schema regression.
+Lock verification, Ruff format/lint, strict mypy, tracked-source secret scan,
+and diff checks also passed.
+
+This recommendation is bounded. It supports the planned owner browser check;
+it is not a release verdict, an empirical usefulness claim, or permission to
+add post-v0.2 capabilities.
 
 ## Human-judgment boundary
 

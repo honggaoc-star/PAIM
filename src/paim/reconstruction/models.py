@@ -151,6 +151,9 @@ class TimelineItem:
     recorded_at: datetime
     description: str
     source_manifest: SourceManifest
+    action: str | None = None
+    rationale: str | None = None
+    conditions: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)

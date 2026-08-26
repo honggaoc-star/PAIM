@@ -7,7 +7,8 @@
   <h2>What you are recording</h2>
   <dl>{% for field in confirmation.fields %}<dt>{{ field[0] }}</dt><dd>{{ field[1] }}</dd>{% endfor %}</dl>
   <div class="consequence-note"><strong>What this does:</strong> {{ confirmation.consequence }}</div>
-  <details><summary>See the governance boundary</summary><p>PAIM will recheck sign-in identity, software access, exact governed context, accountability, and substantive authority where each is required. These checks are not interchangeable.</p></details>
+  <p><strong>What this does not change:</strong> {{ confirmation.non_effect }}</p>
+  <details><summary>See checks and authority basis</summary><p>Before recording, PAIM separately rechecks identity, access, the visible Case information, responsibility, and substantive authority where required.</p></details>
   <form action="{{ commit_path }}" method="post" data-submit-lock><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button type="submit">{{ confirmation.button }}</button></form>
   <p><a href="{{ return_path }}">Cancel without changing PAIM</a></p>
 </section>

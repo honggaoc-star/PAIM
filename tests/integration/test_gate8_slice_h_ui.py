@@ -4,11 +4,13 @@ import json
 from dataclasses import replace
 from datetime import timedelta
 
+from paim.application import Increment3ApplicationService
 from paim.assessment_review import (
     AssessmentContent,
     AssessmentLane,
     AssessmentReviewService,
 )
+from paim.audit import ActorResolution
 from paim.case_continuity import CaseContinuityService
 from paim.continuing_review import (
     ContinuingReviewService,
@@ -16,7 +18,8 @@ from paim.continuing_review import (
     ReviewFocus,
     ReviewRecordFacts,
 )
-from paim.integrity import FixedClock, RecordId, RecordVersionId
+from paim.domain import AuthorityVersionInput, CommandMeta
+from paim.integrity import CommandId, EffectiveInterval, FixedClock, RecordId, RecordVersionId
 from paim.operational import (
     AccessEffect,
     AccessGrantInput,
@@ -48,7 +51,9 @@ from tests.integration.test_gate8_slice_c_assessment_review import (
     fixture as slice_c_fixture,
 )
 from tests.integration.test_gate8_slice_d_integration_decision import (
+    SliceDFixture,
     integration_command,
+    proposal_command,
     slice_d_fixture,
 )
 from tests.integration.test_gate8_slice_e_continuing_review import (
@@ -265,6 +270,47 @@ def _establish_value_work(web_fixture: WebFixture, fx: object, key: str) -> obje
     return work
 
 
+def _prepare_authorization_action(
+    web_fixture: WebFixture, key: str
+) -> tuple[SliceDFixture, RecordId, RecordId, str]:
+    fx = slice_d_fixture(web_fixture.operational.domain_store, key)
+    integration = integration_command(fx, f"{key}-integration")
+    fx.service.integrate_value_risk(integration)
+    proposal = proposal_command(fx, integration, f"{key}-proposal")
+    fx.service.propose_decision(proposal)
+    source = fx.source
+    case_id = source.opened.facts.case_id
+    configuration_id = source.opened.facts.configuration_id
+    web_fixture.now.value = RECORDED + timedelta(seconds=10)
+    _use_fixture_clock(web_fixture)
+    web_fixture.operational.provision_principal(
+        web_fixture.admin_session,
+        principal_id="principal:web-practitioner",
+        token=TOKEN,
+        actor_id=source.actor_a,
+        status=PrincipalStatus.ENABLED,
+    )
+    web_fixture.admin_session = web_fixture.operational.authenticate(
+        "principal:web-practitioner", TOKEN
+    )
+    grant(web_fixture, Permission.CASE_READ, "read", ScopeType.CASE, case_id)
+    grant(web_fixture, Permission.OPERATIONAL_ADMIN, "source-access.manage")
+    grant(
+        web_fixture,
+        Permission.COMMAND,
+        "decision.authorize",
+        ScopeType.CASE,
+        case_id,
+    )
+    _grant_all_case_sources(web_fixture, case_id, configuration_id)
+    _, logged_in = login(web_fixture.client)
+    assert logged_in.status_code == 303
+    responsibility = fx.responsibilities[
+        ObligationKind.AUTHORIZE_MANAGEMENT_DECISION
+    ].responsibility_version_id
+    return fx, case_id, configuration_id, f"/cases/{case_id}/actions/{responsibility}"
+
+
 def test_harborlight_integrated_decision_path_uses_contextual_production_commands(
     web_fixture: WebFixture,
 ) -> None:
@@ -373,12 +419,16 @@ def test_harborlight_integrated_decision_path_uses_contextual_production_command
     authorization_responsibility = fx.responsibilities[
         ObligationKind.AUTHORIZE_MANAGEMENT_DECISION
     ].responsibility_version_id
+    authorization_path = f"/cases/{case_id}/actions/{authorization_responsibility}"
+    authorization_page = web_fixture.client.get(authorization_path)
+    assert authorization_page.status_code == 200
+    assert 'name="authority_identity"' not in authorization_page.text
     _submit_action(
         web_fixture,
         case_id=case_id,
         responsibility_version_id=authorization_responsibility,
         payload={
-            "authority_identity": "Harborlight bounded Decision mandate",
+            "authority_identity": "browser input must not control authority",
             "authority_limits": "Harborlight Scenario A only.",
             "conditions": "Human review remains required.",
             "dissent": "",
@@ -391,13 +441,16 @@ def test_harborlight_integrated_decision_path_uses_contextual_production_command
     assert "Proceed with bounded assistance and human review." in case_page.text
     assert "The exact independent positions support a bounded proposal." in case_page.text
     assert "Human review remains required." in case_page.text
-    assert "Value and Risk remain independent" in case_page.text
+    assert "Value and Risk are assessed separately" in case_page.text
     assert "value score" not in case_page.text.casefold()
     assert "risk score" not in case_page.text.casefold()
     web_fixture.operational.slice_h_timeline(web_fixture.admin_session, case_id)
     history = web_fixture.client.get(f"/cases/{case_id}/history-decisions")
     assert history.status_code == 200
-    assert "What happened, what was known, and why" in history.text
+    assert "What happened?" in history.text
+    assert "Why:" in history.text
+    assert "Proceed with bounded assistance and human review." in history.text
+    assert "Advanced time reconstruction and audit sources" in history.text
     reconstructed = web_fixture.client.get(
         f"/cases/{case_id}/history-decisions",
         params={
@@ -411,6 +464,154 @@ def test_harborlight_integrated_decision_path_uses_contextual_production_command
     with web_fixture.operational.domain_store.read_transaction() as tx:
         assert tx.count_rows("prospective_integration_versions") == 1
         assert tx.count_rows("prospective_decision_versions") == 2
+        authorization_rows = tx.projection_rows("prospective_decision_authorization_versions")
+        assert len(authorization_rows) == 1
+        authorization_source = tx.get_version(
+            RecordVersionId.parse(str(authorization_rows[0]["version_id"]))
+        )
+        assert authorization_source is not None
+        assert authorization_source.content["authority_identity"] == str(source.actor_a)
+        assert "browser input must not control authority" not in str(authorization_source.content)
+
+
+def test_hidden_decision_authority_fails_closed_without_semantic_mutation(
+    web_fixture: WebFixture,
+) -> None:
+    fx, case_id, _configuration_id, action_path = _prepare_authorization_action(
+        web_fixture, "slice-h-hidden-authority"
+    )
+    action = web_fixture.client.get(action_path)
+    assert action.status_code == 200
+    assert 'name="authority_identity"' not in action.text
+    reviewed = web_fixture.client.post(
+        f"{action_path}/review",
+        data={
+            "csrf_token": csrf_from(action.text),
+            "authority_identity": "tampered browser authority",
+            "authority_limits": "Scenario A only.",
+            "conditions": "Human review remains required.",
+            "dissent": "",
+        },
+        headers={"Origin": ORIGIN},
+        follow_redirects=False,
+    )
+    assert reviewed.status_code == 303
+    confirmation = web_fixture.client.get(reviewed.headers["location"])
+    assert confirmation.status_code == 200
+    assert "tampered browser authority" not in confirmation.text
+    with web_fixture.operational.domain_store.read_transaction() as tx:
+        authority_source = tx.get_version(fx.decision_authority)
+        before_decisions = tx.count_rows("prospective_decision_versions")
+        before_authorizations = tx.count_rows("prospective_decision_authorization_versions")
+    assert authority_source is not None
+    web_fixture.operational.grant_source_access(
+        web_fixture.admin_session,
+        principal_id="principal:web-practitioner",
+        grant=SourceAccessGrantInput(
+            "source.read",
+            case_id,
+            fx.decision_authority,
+            authority_source.family,
+            AccessEffect.DENY,
+            web_fixture.now.value,
+        ),
+    )
+    denied = web_fixture.client.post(
+        confirmation.url.path.replace("/confirm/", "/commit/"),
+        data={"csrf_token": csrf_from(confirmation.text)},
+        headers={"Origin": ORIGIN},
+        follow_redirects=False,
+    )
+    assert denied.status_code == 409
+    assert str(fx.decision_authority) not in denied.text
+    with web_fixture.operational.domain_store.read_transaction() as tx:
+        assert tx.count_rows("prospective_decision_versions") == before_decisions
+        assert (
+            tx.count_rows("prospective_decision_authorization_versions")
+            == before_authorizations
+            == 0
+        )
+
+
+def test_stale_reviewed_authority_source_fails_closed_without_retarget(
+    web_fixture: WebFixture,
+) -> None:
+    fx, case_id, configuration_id, action_path = _prepare_authorization_action(
+        web_fixture, "slice-h-stale-authority"
+    )
+    action = web_fixture.client.get(action_path)
+    reviewed = web_fixture.client.post(
+        f"{action_path}/review",
+        data={
+            "csrf_token": csrf_from(action.text),
+            "authority_limits": "Scenario A only.",
+            "conditions": "Human review remains required.",
+            "dissent": "",
+        },
+        headers={"Origin": ORIGIN},
+        follow_redirects=False,
+    )
+    confirmation = web_fixture.client.get(reviewed.headers["location"])
+    assert confirmation.status_code == 200
+    with web_fixture.operational.domain_store.read_transaction() as tx:
+        prior = tx.get_version(fx.decision_authority)
+        before_decisions = tx.count_rows("prospective_decision_versions")
+    assert prior is not None
+    successor_id = RecordVersionId.new()
+    Increment3ApplicationService(
+        web_fixture.operational.domain_store,
+        FixedClock(web_fixture.now.value + timedelta(seconds=1)),
+    ).commit_authority_record(
+        CommandMeta(
+            CommandId.new(),
+            "slice-h-practitioner-action",
+            "slice-h-stale-authority-successor",
+            "principal:web-practitioner",
+            str(fx.source.actor_a),
+            ActorResolution.PROVIDED,
+        ),
+        AuthorityVersionInput(
+            prior.record_id,
+            successor_id,
+            case_id,
+            configuration_id,
+            fx.source.opened.facts.configuration_version_id,
+            str(prior.content["category"]),
+            str(prior.content["source"]),
+            dict(prior.content["provenance"]),
+            str(prior.content["scope"]),
+            str(prior.content["requirement"]),
+            {
+                "prospective_substantive_authority": dict(
+                    prior.content["prospective_substantive_authority"]
+                )
+            },
+            EffectiveInterval(web_fixture.now.value),
+            expected_version_id=fx.decision_authority,
+            relationship_reason="current authority source successor",
+        ),
+    )
+    reviewed_effective_at = web_fixture.now.value
+    _grant_all_case_sources(
+        web_fixture,
+        case_id,
+        configuration_id,
+        effective_from=reviewed_effective_at,
+    )
+    web_fixture.now.advance(timedelta(seconds=2))
+    _use_fixture_clock(web_fixture)
+    stale = web_fixture.client.post(
+        confirmation.url.path.replace("/confirm/", "/commit/"),
+        data={"csrf_token": csrf_from(confirmation.text)},
+        headers={"Origin": ORIGIN},
+        follow_redirects=False,
+    )
+    assert stale.status_code == 409
+    assert str(fx.decision_authority) not in stale.text
+    assert str(successor_id) not in stale.text
+    with web_fixture.operational.domain_store.read_transaction() as tx:
+        assert tx.count_rows("prospective_decision_versions") == before_decisions
+        assert tx.count_rows("prospective_decision_authorization_versions") == 0
 
 
 def test_slice_h_primary_navigation_and_quiet_home_are_burden_bounded(
@@ -607,6 +808,15 @@ def test_minimal_case_start_uses_h0_authority_and_creates_no_later_governance(
     assert logged_in.status_code == 303
     new_case = web_fixture.client.get("/cases/new")
     assert new_case.status_code == 200
+    for expected in (
+        "Case name",
+        "AI use",
+        "Decision or management question",
+        "Starting scope or setup",
+        "draft replies for customer-service agents",
+        "suggestions only, with an agent reviewing every reply",
+    ):
+        assert expected in new_case.text
     for prohibited in (
         "risk tier",
         "review cadence",
@@ -649,7 +859,7 @@ def test_minimal_case_start_uses_h0_authority_and_creates_no_later_governance(
     assert reviewed.status_code == 303
     confirmation = web_fixture.client.get(reviewed.headers["location"])
     assert confirmation.status_code == 200
-    assert "does not grant Value, Risk, Decision" in confirmation.text
+    assert "does not complete Value or Risk assessments" in confirmation.text
     assert "Should Harborlight use bounded AI assistance in its lending review?" in (
         confirmation.text
     )

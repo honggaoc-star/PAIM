@@ -56,7 +56,7 @@ def perform_no_javascript_path(page: Page, origin: str, hidden_case_id: str) -> 
     assert page.get_by_role("heading", name="Management home").is_visible()
     page.get_by_role("link", name="Cases", exact=True).click()
     page.wait_for_url(f"{origin}/cases")
-    assert page.get_by_role("heading", name="Cases").is_visible()
+    assert page.get_by_role("heading", name="Cases", exact=True).is_visible()
     assert "Protected hidden service" not in page.content()
     assert hidden_case_id not in page.content()
     page.get_by_role("button", name="Sign out").click()

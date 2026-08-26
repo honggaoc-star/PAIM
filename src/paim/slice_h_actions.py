@@ -48,6 +48,7 @@ class SliceHActionContext:
     responsibility_version_id: RecordVersionId
     assignment_version_id: RecordVersionId
     authority_source_version_id: RecordVersionId
+    authority_identity: str | None
     decision_use: str
     bounded_scope: str
     information_basis_version_ids: tuple[RecordVersionId, ...]
@@ -132,6 +133,7 @@ class SliceHActionContextResolver:
                 tx, "assignment_basis_versions", basis_id, effective_at, known_at
             )
             authority_id = RecordVersionId.parse(str(basis["basis_source_version_id"]))
+            authority_identity: str | None = None
             required_authority_action = {
                 ObligationKind.COMPLETE_VALUE_RISK_INTEGRATION: "INTEGRATE_VALUE_RISK",
                 ObligationKind.AUTHORIZE_MANAGEMENT_DECISION: "AUTHORIZE_DECISION",
@@ -186,6 +188,21 @@ class SliceHActionContextResolver:
                 if len(candidates) != 1:
                     raise ValueError("one exact substantive authority source is not established")
                 authority_id = candidates[0]
+                if obligation is ObligationKind.AUTHORIZE_MANAGEMENT_DECISION:
+                    authority_source = tx.get_version(authority_id)
+                    authority = (
+                        authority_source.content.get("prospective_substantive_authority")
+                        if authority_source is not None
+                        else None
+                    )
+                    source_actor = (
+                        authority.get("actor_id") if isinstance(authority, dict) else None
+                    )
+                    if not isinstance(source_actor, str) or not source_actor.strip():
+                        raise ValueError(
+                            "the authoritative Decision authority identity is unavailable"
+                        )
+                    authority_identity = source_actor
             content = responsibility_source.content
             decision_use = str(
                 content.get("use_discriminator")
@@ -580,6 +597,7 @@ class SliceHActionContextResolver:
                 responsibility_version_id,
                 assignment_version_id,
                 authority_id,
+                authority_identity,
                 decision_use,
                 bounded_scope,
                 information,
