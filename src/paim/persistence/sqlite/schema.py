@@ -3377,6 +3377,91 @@ Index(
     software_access_grants.c.sequence,
 )
 
+# Exact source visibility refines navigation access. These facts govern only
+# software disclosure; they never establish Responsibility or authority.
+source_access_grants = Table(
+    "source_access_grants",
+    metadata,
+    Column("grant_id", String(36), primary_key=True),
+    Column(
+        "principal_id",
+        Text,
+        ForeignKey("operational_principals.principal_id"),
+        nullable=False,
+    ),
+    Column("sequence", BigInteger, nullable=False),
+    Column("action", Text, nullable=False),
+    Column("case_id", String(36), ForeignKey("paim_cases.case_id"), nullable=False),
+    Column(
+        "configuration_id",
+        String(36),
+        ForeignKey("managed_configurations.configuration_id"),
+        nullable=True,
+    ),
+    Column(
+        "source_version_id",
+        String(36),
+        ForeignKey("record_versions.version_id"),
+        nullable=False,
+    ),
+    Column("source_family", Text, nullable=False),
+    Column("effect", Text, nullable=False),
+    Column("effective_from_us", BigInteger, nullable=False),
+    Column("effective_to_us", BigInteger, nullable=True),
+    Column("recorded_at_us", BigInteger, nullable=False),
+    Column("recorded_by", Text, nullable=False),
+    UniqueConstraint(
+        "principal_id",
+        "action",
+        "source_version_id",
+        "sequence",
+        name="uq_source_access_grant_sequence",
+    ),
+    CheckConstraint("effect IN ('ALLOW','DENY')", name="ck_source_access_effect"),
+    CheckConstraint("sequence > 0", name="ck_source_access_sequence"),
+    CheckConstraint(
+        "effective_to_us IS NULL OR effective_to_us > effective_from_us",
+        name="ck_source_access_effective_interval",
+    ),
+)
+Index(
+    "ix_source_access_resolution",
+    source_access_grants.c.principal_id,
+    source_access_grants.c.action,
+    source_access_grants.c.source_version_id,
+    source_access_grants.c.recorded_at_us,
+    source_access_grants.c.effective_from_us,
+)
+
+# Pre-Case organizational mandates are authoritative sources that exist before
+# any Case-specific identity or context can legitimately exist.
+case_initiation_authority_versions = Table(
+    "case_initiation_authority_versions",
+    metadata,
+    Column("version_id", String(36), ForeignKey("record_versions.version_id"), primary_key=True),
+    Column("record_id", String(36), ForeignKey("records.record_id"), nullable=False),
+    Column("authorized_actor_id", String(36), ForeignKey("paim_actors.actor_id"), nullable=False),
+    Column("organization_scope", Text, nullable=False),
+    Column("allowed_use_prefixes_json", Text, nullable=False),
+    Column("provenance_json", Text, nullable=False),
+    Column("state", Text, nullable=False),
+    Column(
+        "predecessor_version_id",
+        String(36),
+        ForeignKey("case_initiation_authority_versions.version_id"),
+        nullable=True,
+    ),
+    Column("recorded_at_us", BigInteger, nullable=False),
+    CheckConstraint("state IN ('ACTIVE','WITHDRAWN')", name="ck_case_initiation_authority_state"),
+)
+Index(
+    "ix_case_initiation_authority_selection",
+    case_initiation_authority_versions.c.authorized_actor_id,
+    case_initiation_authority_versions.c.organization_scope,
+    case_initiation_authority_versions.c.state,
+    case_initiation_authority_versions.c.recorded_at_us,
+)
+
 operational_audit_facts = Table(
     "operational_audit_facts",
     metadata,

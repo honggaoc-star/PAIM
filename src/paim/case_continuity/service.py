@@ -9,6 +9,8 @@ from typing import Protocol, cast
 
 from paim.audit.models import ActorResolution, AuditFact
 from paim.case_continuity.models import (
+    CaseInitiationAuthorityCommand,
+    CaseInitiationAuthorityState,
     CommandIdentity,
     ConfigurationSuccessorCommand,
     ContinuitySelection,
@@ -17,7 +19,9 @@ from paim.case_continuity.models import (
     DeterminationKind,
     DeterminationOutcome,
     LegacyLifecycleView,
+    MinimalOpenCaseCommand,
     OpenCaseCommand,
+    OpeningFacts,
     TransitionCaseCommand,
     TransitionFacts,
 )
@@ -37,7 +41,12 @@ from paim.integrity.selection import (
     SelectionFound,
     SelectionQuery,
 )
-from paim.integrity.semantics import ExactContextSet, SemanticContractRef
+from paim.integrity.semantics import (
+    ContextMemberKind,
+    ExactContextMember,
+    ExactContextSet,
+    SemanticContractRef,
+)
 from paim.integrity.time import Clock, EffectiveInterval, to_epoch_microseconds
 from paim.persistence.ports import CommandOutcome, IdempotencyFact, RecordHistory
 from paim.responsibility.models import ObligationKind, responsibility_signature
@@ -97,6 +106,9 @@ class ContinuityAccessPolicy(Protocol):
         write: bool,
         source_version_id: RecordVersionId | None = None,
         source_family: str | None = None,
+        effective_at: datetime | None = None,
+        known_at: datetime | None = None,
+        configuration_id: RecordId | None = None,
     ) -> bool: ...
 
 
@@ -143,9 +155,232 @@ class CaseContinuityService:
         self._clock = clock
         self._access = access_policy
 
+    def record_case_initiation_authority(
+        self, command: CaseInitiationAuthorityCommand
+    ) -> CommandOutcome:
+        """Record an externally grounded pre-Case organizational mandate."""
+
+        action = "case.initiation-authority.record"
+        digest = canonical_command_digest(
+            {
+                "action": action,
+                "record_id": str(command.record_id),
+                "version_id": str(command.version_id),
+                "authorized_actor_id": str(command.authorized_actor_id),
+                "organization_scope": command.organization_scope,
+                "allowed_use_prefixes": list(command.allowed_use_prefixes),
+                "provenance": command.provenance,
+                "state": command.state.value,
+                "expected_version_id": (
+                    str(command.expected_version_id) if command.expected_version_id else None
+                ),
+                "effective_at": command.effective_at.isoformat(),
+                "contract": command.contract.key,
+                "context": command.context.digest,
+            }
+        )
+        self._require_access(
+            command.identity.principal_id,
+            command.identity.actor_id,
+            action,
+            command.record_id,
+            True,
+        )
+        recorded_at = self._clock.now()
+        with self._store.semantic_transaction() as tx:
+            replay = self._replay(
+                tx, command.identity.idempotency_scope, command.identity.idempotency_key, digest
+            )
+            if replay is not None:
+                return replay
+            self._require_access(
+                command.identity.principal_id,
+                command.identity.actor_id,
+                action,
+                command.record_id,
+                True,
+            )
+            relationships: tuple[RelationshipId, ...] = ()
+            relationship: VersionRelationship | None = None
+            if command.expected_version_id is None:
+                observed = tx.select_current(
+                    SelectionQuery(
+                        "case-initiation-authority",
+                        f"organization:{command.organization_scope}",
+                        command.effective_at,
+                        recorded_at,
+                        command.record_id,
+                    )
+                )
+                if not isinstance(observed, SelectionAbsent):
+                    raise CaseContinuityConflict("expected absent Case-initiation authority")
+            else:
+                predecessor = tx.get_version(command.expected_version_id)
+                selected = tx.select_current(
+                    SelectionQuery(
+                        "case-initiation-authority",
+                        f"organization:{command.organization_scope}",
+                        command.effective_at,
+                        recorded_at,
+                        command.record_id,
+                    )
+                )
+                if (
+                    predecessor is None
+                    or not isinstance(selected, SelectionFound)
+                    or selected.candidate.version_id != command.expected_version_id
+                ):
+                    raise CaseContinuityConflict("stale Case-initiation authority predecessor")
+                relationship = VersionRelationship(
+                    RelationshipId.new(),
+                    command.expected_version_id,
+                    command.version_id,
+                    RelationshipType.SUPERSESSION,
+                    recorded_at,
+                    "Case-initiation authority succession",
+                )
+                relationships = (relationship.relationship_id,)
+            self._ensure_contract_context(tx, command.contract, command.context, recorded_at)
+            self._add_version(
+                tx,
+                command.record_id,
+                command.version_id,
+                "case-initiation-authority",
+                f"organization:{command.organization_scope}",
+                {
+                    "case_initiation_authority": {
+                        "authorized_actor_id": str(command.authorized_actor_id),
+                        "organization_scope": command.organization_scope,
+                        "permitted_acts": ["CREATE_OPEN_CASE"],
+                        "allowed_use_prefixes": list(command.allowed_use_prefixes),
+                        "initial_responsibility": "DETERMINE_CASE_CONTINUITY",
+                        "initial_assignment_limits": {
+                            "continuity_actions": [value.value for value in DeterminationKind]
+                        },
+                        "initial_assignment_max_active": 1,
+                        "downstream_authority_granted": False,
+                    },
+                    "provenance": command.provenance,
+                    "state": command.state.value,
+                },
+                command.effective_at,
+                recorded_at,
+                command.identity.actor_id,
+                command.contract,
+                command.context,
+            )
+            if relationship is not None:
+                tx.add_relationship(relationship)
+            tx.insert_projection(
+                "case_initiation_authority_versions",
+                {
+                    "version_id": str(command.version_id),
+                    "record_id": str(command.record_id),
+                    "authorized_actor_id": str(command.authorized_actor_id),
+                    "organization_scope": command.organization_scope,
+                    "allowed_use_prefixes_json": json.dumps(list(command.allowed_use_prefixes)),
+                    "provenance_json": json.dumps(
+                        command.provenance, sort_keys=True, separators=(",", ":")
+                    ),
+                    "state": command.state.value,
+                    "predecessor_version_id": (
+                        str(command.expected_version_id) if command.expected_version_id else None
+                    ),
+                    "recorded_at_us": to_epoch_microseconds(recorded_at),
+                },
+            )
+            return self._finish(
+                tx,
+                command.identity,
+                digest,
+                command.record_id,
+                (command.version_id,),
+                (),
+                relationships,
+                command.effective_at,
+                recorded_at,
+                command.context,
+                ("PRE_CASE_INITIATION_AUTHORITY_RECORDED", command.state.value),
+            )
+
+    def initiate_case(self, request: MinimalOpenCaseCommand) -> CommandOutcome:
+        """Open one Case without exposing generated semantic identities to the caller."""
+
+        digest = canonical_command_digest(
+            {
+                "action": "CREATE_OPEN_CASE",
+                "organization_scope": request.organization_scope,
+                "contract": request.contract.key,
+                "title": request.title,
+                "bounded_use": request.bounded_use,
+                "management_question": request.management_question,
+                "configuration": request.configuration_content,
+                "configuration_maturity": request.configuration_maturity,
+                "configuration_purpose": request.configuration_purpose,
+                "effective_at": request.effective_at.isoformat(),
+                "knowledge_cutoff": request.knowledge_cutoff.isoformat(),
+                "actor": str(request.identity.actor_id),
+                "principal": request.identity.principal_id,
+            }
+        )
+        with self._store.read_transaction() as tx:
+            replay = self._replay(
+                tx,
+                request.identity.idempotency_scope,
+                request.identity.idempotency_key,
+                digest,
+            )
+        if replay is not None:
+            self._require_access(
+                request.identity.principal_id,
+                request.identity.actor_id,
+                "case.create_open",
+                RecordId.parse(replay.record_id),
+                True,
+            )
+            return replay
+        facts = OpeningFacts.new()
+        context = ExactContextSet.create(
+            (
+                ExactContextMember("case", ContextMemberKind.RECORD, str(facts.case_id)),
+                ExactContextMember(
+                    "configuration_version",
+                    ContextMemberKind.VERSION,
+                    str(facts.configuration_version_id),
+                ),
+                ExactContextMember("bounded_use", ContextMemberKind.LITERAL, request.bounded_use),
+            )
+        )
+        authority_id = self._select_case_initiation_authority(
+            actor_id=request.identity.actor_id,
+            organization_scope=request.organization_scope,
+            bounded_use=request.bounded_use,
+            effective_at=request.effective_at,
+        )
+        command = OpenCaseCommand(
+            request.identity,
+            facts,
+            request.contract,
+            context,
+            request.title,
+            request.bounded_use,
+            request.management_question,
+            request.configuration_content,
+            request.configuration_maturity,
+            request.configuration_purpose,
+            authority_id,
+            authority_id,
+            request.effective_at,
+            request.knowledge_cutoff,
+            request.organization_scope,
+        )
+        return self._open_case(command, digest)
+
     def open_case(self, command: OpenCaseCommand) -> CommandOutcome:
+        return self._open_case(command, canonical_command_digest(self._open_payload(command)))
+
+    def _open_case(self, command: OpenCaseCommand, digest: str) -> CommandOutcome:
         action = "case.create_open"
-        digest = canonical_command_digest(self._open_payload(command))
         self._require_access(
             command.identity.principal_id,
             command.identity.actor_id,
@@ -169,30 +404,49 @@ class CaseContinuityService:
             )
             if tx.case_exists(command.facts.case_id):
                 raise CaseContinuityConflict("prospective Case identity already exists")
-            self._require_authority_source(
-                tx,
-                version_id=command.authority_source_version_id,
-                actor_id=command.identity.actor_id,
-                case_id=command.facts.case_id,
-                action="CREATE_OPEN_CASE",
-                context=command.context,
-                effective_at=command.effective_at,
-                known_at=recorded_at,
-            )
+            if command.initiation_scope is not None:
+                self._require_case_initiation_authority(
+                    tx,
+                    version_id=command.authority_source_version_id,
+                    actor_id=command.identity.actor_id,
+                    organization_scope=command.initiation_scope,
+                    bounded_use=command.bounded_use,
+                    effective_at=command.effective_at,
+                    known_at=recorded_at,
+                )
+            else:
+                self._require_authority_source(
+                    tx,
+                    version_id=command.authority_source_version_id,
+                    actor_id=command.identity.actor_id,
+                    case_id=command.facts.case_id,
+                    action="CREATE_OPEN_CASE",
+                    context=command.context,
+                    effective_at=command.effective_at,
+                    known_at=recorded_at,
+                )
             self._ensure_contract_context(tx, command.contract, command.context, recorded_at)
             f = command.facts
             versions: list[RecordVersionId] = []
+            case_content: dict[str, JsonValue] = {
+                "title": command.title,
+                "bounded_use": command.bounded_use,
+                "management_question": command.management_question,
+            }
+            if command.initiation_scope is not None:
+                case_content["case_initiation"] = {
+                    "authority_source_version_id": str(command.authority_source_version_id),
+                    "responsibility_version_id": str(f.responsibility_version_id),
+                    "assignment_basis_version_id": str(f.assignment_basis_version_id),
+                    "assignment_version_id": str(f.assignment_version_id),
+                }
             self._add_version(
                 tx,
                 f.case_id,
                 f.case_version_id,
                 "prospective-case",
                 f"case:{f.case_id}",
-                {
-                    "title": command.title,
-                    "bounded_use": command.bounded_use,
-                    "management_question": command.management_question,
-                },
+                case_content,
                 command.effective_at,
                 recorded_at,
                 command.identity.actor_id,
@@ -872,7 +1126,11 @@ class CaseContinuityService:
             f.assignment_basis_version_id,
             "assignment-basis",
             f"case:{f.case_id}",
-            {"authority_source_version_id": str(command.assignment_authority_source_version_id)},
+            {
+                "authority_source_version_id": str(command.assignment_authority_source_version_id),
+                "responsibility_signature": signature,
+                "responsibility_version_id": str(f.responsibility_version_id),
+            },
             command.effective_at,
             command.contract,
             command.context,
@@ -957,6 +1215,8 @@ class CaseContinuityService:
             {
                 "responsibility_version_id": str(f.responsibility_version_id),
                 "actor_id": str(command.identity.actor_id),
+                "responsibility_signature": signature,
+                "assignment_basis_version_id": str(f.assignment_basis_version_id),
             },
             command.effective_at,
             command.contract,
@@ -1227,6 +1487,85 @@ class CaseContinuityService:
             }
         )
 
+    def _select_case_initiation_authority(
+        self,
+        *,
+        actor_id: RecordId,
+        organization_scope: str,
+        bounded_use: str,
+        effective_at: datetime,
+    ) -> RecordVersionId:
+        known_at = self._clock.now()
+        matches: list[RecordVersionId] = []
+        with self._store.read_transaction() as tx:
+            rows = tx.projection_rows(
+                "case_initiation_authority_versions",
+                authorized_actor_id=str(actor_id),
+                organization_scope=organization_scope,
+            )
+            for row in rows:
+                if row["state"] != CaseInitiationAuthorityState.ACTIVE.value:
+                    continue
+                version_id = RecordVersionId.parse(str(row["version_id"]))
+                version = tx.get_version(version_id)
+                if version is None:
+                    continue
+                selected = tx.select_current(
+                    SelectionQuery(
+                        version.family,
+                        version.scope,
+                        effective_at,
+                        known_at,
+                        version.record_id,
+                    )
+                )
+                prefixes = cast(
+                    "list[str]", json.loads(cast(str, row["allowed_use_prefixes_json"]))
+                )
+                if (
+                    isinstance(selected, SelectionFound)
+                    and selected.candidate.version_id == version_id
+                    and (not prefixes or any(bounded_use.startswith(value) for value in prefixes))
+                ):
+                    matches.append(version_id)
+        if len(matches) != 1:
+            raise CaseContinuityConflict(
+                "exact current pre-Case initiation authority not established"
+            )
+        return matches[0]
+
+    @staticmethod
+    def _require_case_initiation_authority(
+        tx: ContinuityTransaction,
+        *,
+        version_id: RecordVersionId,
+        actor_id: RecordId,
+        organization_scope: str,
+        bounded_use: str,
+        effective_at: datetime,
+        known_at: datetime,
+    ) -> None:
+        source = tx.get_version(version_id)
+        rows = tx.projection_rows("case_initiation_authority_versions", version_id=str(version_id))
+        if source is None or source.family != "case-initiation-authority" or len(rows) != 1:
+            raise CaseContinuityConflict("pre-Case initiation authority is not established")
+        row = rows[0]
+        selected = tx.select_current(
+            SelectionQuery(source.family, source.scope, effective_at, known_at, source.record_id)
+        )
+        prefixes = cast("list[str]", json.loads(cast(str, row["allowed_use_prefixes_json"])))
+        if (
+            not isinstance(selected, SelectionFound)
+            or selected.candidate.version_id != version_id
+            or row["state"] != CaseInitiationAuthorityState.ACTIVE.value
+            or row["authorized_actor_id"] != str(actor_id)
+            or row["organization_scope"] != organization_scope
+            or (prefixes and not any(bounded_use.startswith(value) for value in prefixes))
+        ):
+            raise CaseContinuityConflict(
+                "pre-Case initiation authority is stale, withdrawn, or out of scope"
+            )
+
     def _require_authority_source(
         self,
         tx: ContinuityTransaction,
@@ -1239,6 +1578,10 @@ class CaseContinuityService:
         known_at: datetime,
     ) -> None:
         version = tx.get_version(version_id)
+        if version is not None and version.family == "case-initiation-authority":
+            raise CaseContinuityConflict(
+                "pre-Case initiation authority grants no post-Case substantive authority"
+            )
         if version is None or version.family not in {
             "authority-record",
             "decision-authorization-basis",

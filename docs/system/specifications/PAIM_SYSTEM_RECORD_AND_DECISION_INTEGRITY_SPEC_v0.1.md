@@ -627,6 +627,34 @@ result where they differ. Historical and technical/audit views expose additional
 explicit authorization. Gate 1 does not redesign identity, authentication, sessions, software
 permission, or deployment.
 
+#### 3A.10A Durable exact-source visibility
+
+Prospective read composition uses a durable exact-source visibility decision in addition to
+navigation-level Case or Configuration access. One source decision binds principal/Actor, read
+purpose, Case, optional governing Configuration, exact source Version, source family, effect,
+effective interval, recorded time, and append-only succession history. It is software disclosure
+policy only: it establishes no Responsibility, accountability, Applicability, adequacy, reliance,
+or substantive authority.
+
+Case visibility permits navigation but is never proof that every source inside that Case is
+visible. For `source.read`, an exact eligible source access fact is required; exact denial or
+restriction overrides broader navigation visibility and there is no fallback from source denial
+to Case allow. Selection is deterministic at the requested effective/known boundary. Missing,
+stale, withdrawn, mismatched-family, mismatched-context, or denied source access returns the same
+bounded non-disclosing result and reveals no source existence.
+
+Every source-aware practitioner or reconstruction read supplies its requested `effective_at` and
+`known_at` boundary to source-access resolution. The production adapter must fail closed when
+either cutoff is absent and must never substitute its current clock for a historical query. A
+later allow or denial therefore cannot be projected backward into an earlier knowledge-time view.
+
+Filtering occurs before aggregation, selection explanation, counts, labels, ordering, action
+availability, timing, or manifests. A hidden source therefore cannot become false absence, false
+conflict, a request to redo hidden completed work, or a derived date/status clue. Commands still
+revalidate all access and semantic sources at commit and fail with zero mutation. Existing
+GLOBAL/CASE/CONFIGURATION facts remain navigation policy; no migration invents exact historical
+source grants.
+
 ### 3A.11 Product-to-integrity discipline and later ownership
 
 | Common concept | Practitioner/product need | Why common | Explicitly does not mean | Later substantive owner | Do not ordinarily expose |

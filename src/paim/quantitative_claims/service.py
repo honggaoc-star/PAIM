@@ -448,7 +448,14 @@ class QuantitativeClaimService:
                     hidden = True
                     continue
                 if all(
-                    self._source_visible(principal_id, actor_id, case_id, source_id)
+                    self._source_visible(
+                        principal_id,
+                        actor_id,
+                        case_id,
+                        source_id,
+                        effective_at,
+                        known_at,
+                    )
                     for source_id in bases
                 ):
                     visible.append(candidate.version_id)
@@ -475,7 +482,14 @@ class QuantitativeClaimService:
             if left_bases is None or right_bases is None:
                 raise QuantitativeClaimAccessDenied()
             if not all(
-                self._source_visible(principal_id, actor_id, case_id, version_id)
+                self._source_visible(
+                    principal_id,
+                    actor_id,
+                    case_id,
+                    version_id,
+                    effective_at,
+                    known_at,
+                )
                 for version_id in left_bases | right_bases
             ):
                 raise QuantitativeClaimAccessDenied()
@@ -538,7 +552,14 @@ class QuantitativeClaimService:
             }
             self._expand_assignment_sources(tx, basis_sources)
             if not all(
-                self._source_visible(principal_id, actor_id, case_id, version_id)
+                self._source_visible(
+                    principal_id,
+                    actor_id,
+                    case_id,
+                    version_id,
+                    effective_at,
+                    known_at,
+                )
                 for version_id in basis_sources
             ):
                 raise QuantitativeClaimAccessDenied()
@@ -601,7 +622,14 @@ class QuantitativeClaimService:
             for version_id in claim_version_ids:
                 closure = self._claim_read_closure(tx, version_id)
                 if closure is None or not all(
-                    self._source_visible(principal_id, actor_id, case_id, source_id)
+                    self._source_visible(
+                        principal_id,
+                        actor_id,
+                        case_id,
+                        source_id,
+                        effective_at,
+                        known_at,
+                    )
                     for source_id in closure
                 ):
                     return ClaimReadPopulation("NOT_SAFELY_AVAILABLE", ())
@@ -927,6 +955,8 @@ class QuantitativeClaimService:
                 command.identity.actor_id,
                 command.case_id,
                 version_id,
+                command.effective_at,
+                known_at,
             ):
                 raise QuantitativeClaimAccessDenied()
         for version_id in set(version_ids) - {
@@ -1052,7 +1082,13 @@ class QuantitativeClaimService:
             )
 
     def _source_visible(
-        self, principal_id: str, actor_id: RecordId, case_id: RecordId, version_id: RecordVersionId
+        self,
+        principal_id: str,
+        actor_id: RecordId,
+        case_id: RecordId,
+        version_id: RecordVersionId,
+        effective_at: datetime,
+        known_at: datetime,
     ) -> bool:
         return self._access.authorize(
             principal_id=principal_id,
@@ -1062,6 +1098,8 @@ class QuantitativeClaimService:
             write=False,
             source_version_id=version_id,
             source_family=None,
+            effective_at=effective_at,
+            known_at=known_at,
         )
 
     def _require_access(self, command: QuantitativeCommand, action: str) -> None:

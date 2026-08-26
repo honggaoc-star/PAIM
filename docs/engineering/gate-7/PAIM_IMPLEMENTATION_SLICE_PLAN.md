@@ -147,7 +147,8 @@ replay/source digest.
 
 ## Slice H — integrated user-centric expression and Harborlight runtime validation
 
-**Entry:** A–G independently accepted; fresh prospective fixture authorization; no mutation of
+**Entry:** A–G independently accepted; Slice-H0 production Case-initiation authority and exact-
+source visibility contracts accepted; fresh prospective fixture authorization; no mutation of
 historical Harborlight environments; the
 [Practitioner UI Contract v1.0](../../design/practitioner-ux/PAIM_PRACTITIONER_UI_CONTRACT_V1.md)
 is the controlling presentation and interaction contract.

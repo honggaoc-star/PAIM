@@ -10,7 +10,7 @@ semantics.
 |---|---|---|
 | New to PAIM / conceptual understanding | [Repository README](../README.md) | [PAIM v0.1 Conceptual Guide](PAIM_CONCEPTUAL_GUIDE_v0.1.md) |
 | Understand PAIM's product direction | [PAIM Product Design Foundation](design/practitioner-ux/PAIM_PRODUCT_DESIGN_FOUNDATION.md) | [Practitioner Operating Model](design/practitioner-ux/PAIM_PRACTITIONER_OPERATING_MODEL.md) and its bounded companion documents |
-| Implement or review Gate 8 Slice-H practitioner UI | [PAIM Practitioner UI Contract v1.0](design/practitioner-ux/PAIM_PRACTITIONER_UI_CONTRACT_V1.md) | Accepted Gate 8 Slices A–G and current system specifications remain controlling semantic contracts |
+| Implement or review Gate 8 Slice-H practitioner UI | [PAIM Practitioner UI Contract v1.0](design/practitioner-ux/PAIM_PRACTITIONER_UI_CONTRACT_V1.md) | Accepted Gate 8 Slices A–G, the [Slice-H0 prerequisite contracts](engineering/gate-8/PAIM_GATE8_SLICE_H0_PREREQUISITE_CONTRACTS.md), and current system specifications remain controlling |
 | Review the proposed target normative model | [PAIM Normative Model Redesign](design/normative-model/) | [Downstream Specification Plan](design/normative-model/PAIM_DOWNSTREAM_SPECIFICATION_PLAN.md); current system specifications remain controlling |
 | Want to try PAIM | [PAIM v0.1 Quick Start](operations/PAIM_QUICK_START_v0.1.md) | [Local Operational Application](operations/PAIM_LOCAL_OPERATIONAL_APPLICATION_v0.1.md) for full operation and recovery |
 | Follow the practitioner pathways | [PAIM v0.1 Practitioner Pathways](operations/PAIM_V0_1_PRACTITIONER_PATHWAYS_v0.1.md) | Validation evidence for the three pathways below |

@@ -151,7 +151,7 @@ class ContinuingReviewService:
             )
             if command.planning_authority_source_version_id is not None:
                 sources.add(command.planning_authority_source_version_id)
-            self._validate_sources_visible(tx, command, sources)
+            self._validate_sources_visible(tx, command, sources, recorded_at)
             self._ensure_contract_context(tx, command.contract, command.context, recorded_at)
             scope = self._planned_scope(command)
             selected = tx.select_current(
@@ -242,7 +242,7 @@ class ContinuingReviewService:
                 command.responsibility_version_id,
                 command.assignment_version_id,
             }
-            self._validate_sources_visible(tx, command, sources)
+            self._validate_sources_visible(tx, command, sources, recorded_at)
             self._ensure_contract_context(tx, command.contract, command.context, recorded_at)
             scope = self._constraint_scope(command)
             selected = tx.select_current(
@@ -374,6 +374,7 @@ class ContinuingReviewService:
                     command.responsibility_version_id,
                     command.assignment_version_id,
                 },
+                recorded_at,
             )
             predecessor = tx.get_version(command.constraint_version_id)
             if predecessor is None:
@@ -485,6 +486,7 @@ class ContinuingReviewService:
                     command.responsibility_version_id,
                     command.assignment_version_id,
                 },
+                recorded_at,
             )
             self._ensure_contract_context(tx, command.contract, command.context, recorded_at)
             scope = self._event_scope(command)
@@ -625,7 +627,7 @@ class ContinuingReviewService:
                     command.assignment_version_id,
                 }
             )
-            self._validate_sources_visible(tx, command, sources)
+            self._validate_sources_visible(tx, command, sources, recorded_at)
             self._ensure_contract_context(tx, command.contract, command.context, recorded_at)
             scope = self._episode_scope(
                 command.case_id, command.configuration_version_id, command.context
@@ -781,7 +783,7 @@ class ContinuingReviewService:
                     command.assignment_version_id,
                 }
             )
-            self._validate_sources_visible(tx, command, sources)
+            self._validate_sources_visible(tx, command, sources, recorded_at)
             predecessor = tx.get_version(command.episode_version_id)
             if predecessor is None:
                 raise ContinuingReviewConflict("Review Episode predecessor is unavailable")
@@ -1061,6 +1063,8 @@ class ContinuingReviewService:
                         principal_id,
                         actor_id,
                         case_id,
+                        effective_at,
+                        known_at,
                         row,
                         (
                             "version_id",
@@ -1192,6 +1196,8 @@ class ContinuingReviewService:
                     principal_id,
                     actor_id,
                     case_id,
+                    effective_at,
+                    known_at,
                     row,
                     (
                         "version_id",
@@ -1251,6 +1257,8 @@ class ContinuingReviewService:
                 principal_id,
                 actor_id,
                 case_id,
+                effective_at,
+                known_at,
                 rows[0],
                 (
                     "version_id",
@@ -1335,6 +1343,8 @@ class ContinuingReviewService:
                     principal_id,
                     actor_id,
                     case_id,
+                    effective_at,
+                    known_at,
                     rows[0],
                     ("version_id", *scalar_source_fields),
                     json_source_fields,
@@ -1789,6 +1799,7 @@ class ContinuingReviewService:
         tx: ContinuityTransaction,
         command: ReviewCommand,
         version_ids: set[RecordVersionId],
+        known_at: datetime,
     ) -> None:
         self._expand_assignment_sources(tx, version_ids)
         for version_id in version_ids:
@@ -1797,6 +1808,8 @@ class ContinuingReviewService:
                 command.identity.actor_id,
                 command.case_id,
                 version_id,
+                command.effective_at,
+                known_at,
             ):
                 raise ContinuingReviewAccessDenied()
 
@@ -1806,6 +1819,8 @@ class ContinuingReviewService:
         principal_id: str,
         actor_id: RecordId,
         case_id: RecordId,
+        effective_at: datetime,
+        known_at: datetime,
         row: dict[str, object],
         scalar_fields: tuple[str, ...],
         json_fields: tuple[str, ...],
@@ -1824,7 +1839,14 @@ class ContinuingReviewService:
         except (ValueError, TypeError, json.JSONDecodeError):
             return False
         return all(
-            self._source_visible(principal_id, actor_id, case_id, version_id)
+            self._source_visible(
+                principal_id,
+                actor_id,
+                case_id,
+                version_id,
+                effective_at,
+                known_at,
+            )
             for version_id in values
         )
 
@@ -1834,6 +1856,8 @@ class ContinuingReviewService:
         actor_id: RecordId,
         case_id: RecordId,
         version_id: RecordVersionId,
+        effective_at: datetime,
+        known_at: datetime,
     ) -> bool:
         return self._access.authorize(
             principal_id=principal_id,
@@ -1843,6 +1867,8 @@ class ContinuingReviewService:
             write=False,
             source_version_id=version_id,
             source_family=None,
+            effective_at=effective_at,
+            known_at=known_at,
         )
 
     def _require_access(self, command: ReviewCommand, action: str) -> None:
