@@ -773,6 +773,7 @@ class OperationalApplication:
                 context.current_decision_version_id is None
                 or context.current_decision_status != "PROPOSED"
                 or context.current_integration_version_id is None
+                or context.authority_identity is None
             ):
                 raise AccessDenied("one exact current proposal is required")
             return self._prospective_decision.authorize_decision(
@@ -790,7 +791,7 @@ class OperationalApplication:
                     context.responsibility_version_id,
                     context.assignment_version_id,
                     context.authority_source_version_id,
-                    payload["authority_identity"],
+                    context.authority_identity,
                     context.bounded_scope,
                     lines("authority_limits"),
                     lines("conditions"),

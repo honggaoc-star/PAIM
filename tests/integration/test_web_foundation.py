@@ -51,7 +51,7 @@ def test_login_rotation_home_cases_no_js_paths_and_security_headers(
     home = client.get("/home")
     assert home.status_code == 200
     assert "M1A Practitioner" in home.text
-    assert "Your Cases" in home.text
+    assert "Your earlier Cases" in home.text
     assert ">1<" in home.text
     assert "Visible governed service" in home.text
     assert "Protected hidden service" not in home.text

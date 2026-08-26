@@ -3,10 +3,11 @@
 {% block content %}
 <nav aria-label="Breadcrumb"><a href="/cases">Cases</a> / <a href="/cases/{{ view.case_id }}">{{ view.title }}</a> / <span>Current task</span></nav>
 <section class="narrow" aria-labelledby="task-heading">
-  <h1 id="task-heading">Complete the current judgment</h1>
-  <h2>Why</h2><p>This exact responsibility is currently assigned to you for the bounded Case context.</p>
+  <h1 id="task-heading">{{ presentation.title }}</h1>
+  <p>{{ presentation.introduction }}</p>
+  <h2>Why this is with you</h2><p>You are currently responsible for this work on the Case.</p>
   <h2>What you need to know</h2>
-  {% if context.lane %}<p>This is an independent {{ context.lane.value.title() }} judgment. The other analytical lane is not changed by this action.</p>{% else %}<p>PAIM has carried the exact current Case, governing setup, and accountable assignment into this task.</p>{% endif %}
+  {% if context.lane %}<p>This is an independent {{ context.lane.value.title() }} judgment. The other assessment is not changed by this action.</p>{% else %}<p>PAIM has carried the current Case, setup, and your responsibility into this task.</p>{% endif %}
   <h2>Your judgment or action</h2>
   <form action="{{ review_path }}" method="post">
     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
@@ -16,12 +17,13 @@
       {% elif field.type == 'select' %}<select id="{{ field.name }}" name="{{ field.name }}" required>{% for option in field.options %}<option value="{{ option[0] }}">{{ option[1] }}</option>{% endfor %}</select>
       {% else %}<input id="{{ field.name }}" name="{{ field.name }}" type="{{ field.type }}" maxlength="1000"{% if field.required | default(true) %} required{% endif %}>
       {% endif %}
+      {% if field.help | default('') %}<span class="field-help">{{ field.help }}</span>{% endif %}
     </label>
     {% endfor %}
-    <h2>Finish</h2><p>Review the consequence before recording. PAIM will recheck software access, exact visible context, accountability, and substantive authority separately.</p>
-    <button type="submit">Review this judgment</button>
+    <h2>Finish</h2><p>You will have a short opportunity to check the practical consequence before recording this action.</p>
+    <button type="submit">{{ presentation.button }}</button>
   </form>
   <p><a href="/cases/{{ view.case_id }}">Return without changing PAIM</a></p>
-  <details><summary>Audit and provenance</summary><p>The exact source manifest contains {{ context.source_version_ids | length }} authorized source Versions. Technical identities are withheld from ordinary task fields.</p></details>
+  <details><summary>Audit details</summary><p>This action is tied to {{ context.source_version_ids | length }} authorized source records. Their technical identities are kept out of the ordinary form.</p></details>
 </section>
 {% endblock %}

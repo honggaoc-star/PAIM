@@ -714,6 +714,9 @@ class ReconstructionService:
                         continue
                     item_manifest = self._manifest(tx, closure, effective_at, known_at)
                     manifest_ids.update(closure)
+                    action, rationale, conditions = self._timeline_management_detail(
+                        family, version
+                    )
                     items.append(
                         TimelineItem(
                             family,
@@ -723,6 +726,9 @@ class ReconstructionService:
                             version.recorded_at,
                             self._timeline_description(family, version),
                             item_manifest,
+                            action,
+                            rationale,
+                            conditions,
                         )
                     )
             items.sort(key=lambda item: (item.effective_at, item.recorded_at, str(item.version_id)))
@@ -1709,22 +1715,47 @@ class ReconstructionService:
     def _timeline_description(family: str, version: FinalizedRecordVersion) -> str:
         content = version.content
         label = {
-            "case-continuity-status": "Case continuity recorded",
-            "governing-configuration": "Governing Configuration recorded",
+            "case-continuity-status": "Case position recorded",
+            "governing-configuration": "Case setup recorded",
             "assessment-candidate": "Assessment completed",
-            "assessment-adequacy": "Assessment adequacy recorded",
-            "assessment-reliance": "Assessment reliance recorded",
-            "prospective-integration": "Value and Risk integrated",
+            "assessment-adequacy": "Assessment suitability reviewed",
+            "assessment-reliance": "Assessment selected for this decision",
+            "prospective-integration": "Value and Risk considered together",
             "prospective-decision": "Decision recorded",
-            "planned-review-point": "Planned review point recorded",
-            "required-review-constraint": "Required review constraint recorded",
-            "review-attention-event": "Review attention recorded",
-            "review-episode": "Review episode recorded",
+            "planned-review-point": "Next review planned",
+            "required-review-constraint": "Review requirement recorded",
+            "review-attention-event": "A change needs review",
+            "review-episode": "Focused review recorded",
             "quantitative-claim": "Quantitative claim recorded",
             "quantitative-comparability": "Comparability recorded",
         }[family]
         state = content.get("status") or content.get("outcome")
         return f"{label}: {state}" if isinstance(state, str) else label
+
+    @staticmethod
+    def _timeline_management_detail(
+        family: str, version: FinalizedRecordVersion
+    ) -> tuple[str | None, str | None, tuple[str, ...]]:
+        if family != "prospective-decision":
+            return None, None, ()
+        content = version.content
+        action = content.get("proposed_action")
+        rationale = content.get("rationale")
+        raw_conditions = (
+            content.get("authorization_conditions")
+            if content.get("authorization_conditions")
+            else content.get("conditions_and_limits")
+        )
+        conditions = (
+            tuple(value for value in raw_conditions if isinstance(value, str))
+            if isinstance(raw_conditions, list)
+            else ()
+        )
+        return (
+            action if isinstance(action, str) else None,
+            rationale if isinstance(rationale, str) else None,
+            conditions,
+        )
 
     @staticmethod
     def _optional_text(value: object) -> str | None:

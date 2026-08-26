@@ -30,6 +30,14 @@ class SliceHConfirmation:
     introduction: str
     fields: tuple[tuple[str, str], ...]
     consequence: str
+    non_effect: str
+    button: str
+
+
+@dataclass(frozen=True, slots=True)
+class SliceHActionPresentation:
+    title: str
+    introduction: str
     button: str
 
 
@@ -53,37 +61,91 @@ _OBLIGATION_ACTION = {
 def _action_fields(
     action: str, context: SliceHActionContext | None = None
 ) -> tuple[dict[str, object], ...]:
-    if action.startswith("assessment.finish"):
+    if action == "assessment.finish.value":
         return (
             {
                 "name": "finding",
-                "label": "What is the assessment's main finding?",
+                "label": "What improvement or benefit are we expecting?",
                 "type": "textarea",
+                "help": "Describe the practical result that matters to this management decision.",
             },
             {
                 "name": "boundary",
-                "label": "What exact use and boundary does it cover?",
+                "label": "How is this AI use expected to contribute, and where might it not?",
                 "type": "textarea",
-            },
-            {"name": "uncertainty", "label": "What remains uncertain?", "type": "textarea"},
-            {
-                "name": "implication",
-                "label": "What does this mean for this bounded decision?",
-                "type": "textarea",
+                "help": (
+                    "State the substantive limits of the expectation; PAIM already carries "
+                    "the Case and setup."
+                ),
             },
             {
                 "name": "provenance",
-                "label": "What information supports or limits it?",
+                "label": "What information supports or limits that expectation?",
+                "type": "textarea",
+            },
+            {
+                "name": "uncertainty",
+                "label": "What important uncertainty should the decision maker understand?",
+                "type": "textarea",
+            },
+            {
+                "name": "implication",
+                "label": "What does this imply for the management decision?",
                 "type": "textarea",
             },
             {
                 "name": "rationale",
-                "label": "Why is it ready for independent review?",
+                "label": "Why is this Value assessment ready for independent review?",
                 "type": "textarea",
             },
             {
                 "name": "limitations",
-                "label": "Limitations (one per line)",
+                "label": "Other important limitations (one per line)",
+                "type": "textarea",
+                "required": False,
+            },
+        )
+    if action == "assessment.finish.risk":
+        return (
+            {
+                "name": "finding",
+                "label": "What could go wrong or require attention?",
+                "type": "textarea",
+                "help": "Describe the concern without turning it into a score or ranking.",
+            },
+            {
+                "name": "boundary",
+                "label": "Under what conditions or circumstances does it matter?",
+                "type": "textarea",
+                "help": (
+                    "State the substantive conditions; PAIM already carries the Case and setup."
+                ),
+            },
+            {
+                "name": "rationale",
+                "label": "What safeguards or controls reduce or manage the concern?",
+                "type": "textarea",
+            },
+            {
+                "name": "provenance",
+                "label": "What information supports or limits this assessment?",
+                "type": "textarea",
+            },
+            {
+                "name": "uncertainty",
+                "label": (
+                    "What uncertainty or residual concern should the decision maker understand?"
+                ),
+                "type": "textarea",
+            },
+            {
+                "name": "implication",
+                "label": "What does this imply for the management decision?",
+                "type": "textarea",
+            },
+            {
+                "name": "limitations",
+                "label": "Other important limitations (one per line)",
                 "type": "textarea",
                 "required": False,
             },
@@ -199,25 +261,20 @@ def _action_fields(
     if action == "decision.authorize":
         return (
             {
-                "name": "authority_identity",
-                "label": "What exact authority are you exercising?",
-                "type": "text",
-            },
-            {
                 "name": "authority_limits",
-                "label": "Authority limits (one per line)",
+                "label": "What limits apply to this authorization? (one per line)",
                 "type": "textarea",
                 "required": False,
             },
             {
                 "name": "conditions",
-                "label": "Authorization conditions (one per line)",
+                "label": "What conditions apply? (one per line)",
                 "type": "textarea",
                 "required": False,
             },
             {
                 "name": "dissent",
-                "label": "Recorded dissent (one per line)",
+                "label": "Is there any dissent to record? (one per line)",
                 "type": "textarea",
                 "required": False,
             },
@@ -259,6 +316,242 @@ def _action_fields(
             },
         )
     raise ValueError("unsupported contextual action")
+
+
+def _action_presentation(action: str) -> SliceHActionPresentation:
+    presentations = {
+        "assessment.finish.value": SliceHActionPresentation(
+            "Finish the Value assessment",
+            (
+                "Describe the expected benefit, its support, and what the decision maker "
+                "should understand."
+            ),
+            "Review the Value assessment",
+        ),
+        "assessment.finish.risk": SliceHActionPresentation(
+            "Finish the Risk assessment",
+            (
+                "Describe the concerns, safeguards, evidence, and residual uncertainty "
+                "for this AI use."
+            ),
+            "Review the Risk assessment",
+        ),
+        "assessment.adequacy.value": SliceHActionPresentation(
+            "Review whether the Value assessment is suitable",
+            (
+                "Decide whether this assessment is suitable for the management decision "
+                "in front of you."
+            ),
+            "Review the adequacy judgment",
+        ),
+        "assessment.adequacy.risk": SliceHActionPresentation(
+            "Review whether the Risk assessment is suitable",
+            (
+                "Decide whether this assessment is suitable for the management decision "
+                "in front of you."
+            ),
+            "Review the adequacy judgment",
+        ),
+        "assessment.reliance.value": SliceHActionPresentation(
+            "Choose the Value assessment to use",
+            "Make the accountable choice only when more than one suitable assessment is available.",
+            "Review the Value choice",
+        ),
+        "assessment.reliance.risk": SliceHActionPresentation(
+            "Choose the Risk assessment to use",
+            "Make the accountable choice only when more than one suitable assessment is available.",
+            "Review the Risk choice",
+        ),
+        "integration.complete": SliceHActionPresentation(
+            "Consider Value and Risk together",
+            (
+                "Relate the independent Value and Risk positions in preparation for a "
+                "management decision."
+            ),
+            "Review this consideration",
+        ),
+        "decision.propose": SliceHActionPresentation(
+            "Propose a management decision",
+            "State the proposed action, operating position, reasons, and any conditions.",
+            "Review the proposal",
+        ),
+        "decision.authorize": SliceHActionPresentation(
+            "Authorize the proposed decision",
+            (
+                "Record the limits, conditions, or dissent that belong with this separate "
+                "authorization."
+            ),
+            "Review the authorization",
+        ),
+        "decision.confirm": SliceHActionPresentation(
+            "Confirm the current decision",
+            "Explain why the current decision remains appropriate after review.",
+            "Review the confirmation",
+        ),
+        "review.plan": SliceHActionPresentation(
+            "Plan the next review",
+            "Choose a proportionate time to revisit this Case and explain why.",
+            "Review the plan",
+        ),
+        "review.episode.begin": SliceHActionPresentation(
+            "Begin a focused review",
+            (
+                "Open only the review needed for the visible change; no substantive "
+                "conclusion is assumed."
+            ),
+            "Review this step",
+        ),
+        "review.episode.complete": SliceHActionPresentation(
+            "Complete the focused review",
+            "Explain why the focused review is complete with the current decision unchanged.",
+            "Review the completion",
+        ),
+    }
+    return presentations[action]
+
+
+def _action_confirmation(action: str, payload: dict[str, str]) -> SliceHConfirmation:
+    labels: dict[str, dict[str, str]] = {
+        "assessment.finish.value": {
+            "finding": "Expected improvement or benefit",
+            "implication": "Implication for the decision",
+            "uncertainty": "Important uncertainty",
+        },
+        "assessment.finish.risk": {
+            "finding": "Concern requiring attention",
+            "implication": "Implication for the decision",
+            "uncertainty": "Residual uncertainty",
+        },
+        "assessment.adequacy.value": {"outcome": "Suitability", "rationale": "Why"},
+        "assessment.adequacy.risk": {"outcome": "Suitability", "rationale": "Why"},
+        "assessment.reliance.value": {
+            "candidate_choice": "Assessment choice",
+            "rationale": "Why",
+        },
+        "assessment.reliance.risk": {
+            "candidate_choice": "Assessment choice",
+            "rationale": "Why",
+        },
+        "integration.complete": {
+            "rationale": "How Value and Risk were considered",
+            "uncertainty": "Remaining uncertainty",
+        },
+        "decision.propose": {
+            "proposed_action": "Proposed action",
+            "rationale": "Why",
+            "conditions": "Conditions and limits",
+        },
+        "decision.authorize": {
+            "authority_limits": "Authorization limits",
+            "conditions": "Conditions",
+            "dissent": "Dissent",
+        },
+        "decision.confirm": {"rationale": "Why the decision remains unchanged"},
+        "review.plan": {"review_at": "Next review", "rationale": "Why"},
+        "review.episode.begin": {"acknowledgment": "Focused review"},
+        "review.episode.complete": {"rationale": "Why the review is complete"},
+    }
+    copy = {
+        "assessment.finish.value": (
+            "Record this Value assessment?",
+            "Check the expected benefit and the implication for the decision.",
+            "The Value assessment becomes ready for a separate suitability review.",
+            "Risk, suitability, reliance, and the management decision are not changed.",
+            "Record Value assessment",
+        ),
+        "assessment.finish.risk": (
+            "Record this Risk assessment?",
+            "Check the concern and the implication for the decision.",
+            "The Risk assessment becomes ready for a separate suitability review.",
+            "Value, suitability, reliance, and the management decision are not changed.",
+            "Record Risk assessment",
+        ),
+        "assessment.adequacy.value": (
+            "Record the Value suitability judgment?",
+            "Check whether the Value assessment is suitable for this decision.",
+            "This records a separate suitability judgment for the Value assessment.",
+            "It does not endorse the Case or alter the assessment or Risk position.",
+            "Record Value suitability",
+        ),
+        "assessment.adequacy.risk": (
+            "Record the Risk suitability judgment?",
+            "Check whether the Risk assessment is suitable for this decision.",
+            "This records a separate suitability judgment for the Risk assessment.",
+            "It does not endorse the Case or alter the assessment or Value position.",
+            "Record Risk suitability",
+        ),
+        "assessment.reliance.value": (
+            "Use this Value assessment?",
+            "Check the accountable assessment choice and its reason.",
+            "The chosen Value assessment will be used for this decision purpose.",
+            "The assessment itself and the Risk position are not changed.",
+            "Record Value choice",
+        ),
+        "assessment.reliance.risk": (
+            "Use this Risk assessment?",
+            "Check the accountable assessment choice and its reason.",
+            "The chosen Risk assessment will be used for this decision purpose.",
+            "The assessment itself and the Value position are not changed.",
+            "Record Risk choice",
+        ),
+        "integration.complete": (
+            "Record how Value and Risk were considered?",
+            "Check the management judgment that relates the independent positions.",
+            "This prepares the Value and Risk basis for a separate decision proposal.",
+            "It does not combine the assessments or authorize a decision.",
+            "Record consideration",
+        ),
+        "decision.propose": (
+            "Record this decision proposal?",
+            "Check the proposed action, reasons, and important conditions.",
+            "This creates a proposal for separate authorization.",
+            "It does not authorize the proposal or change the Value and Risk assessments.",
+            "Record proposal",
+        ),
+        "decision.authorize": (
+            "Authorize this proposed decision?",
+            (
+                "Check the limits, conditions, and any dissent. PAIM will use the established "
+                "authority source."
+            ),
+            "This records a separate authorization of the current proposal.",
+            "It does not change the proposal, Value, Risk, or the source of authority.",
+            "Authorize decision",
+        ),
+        "decision.confirm": (
+            "Confirm the current decision?",
+            "Check why the decision remains unchanged after review.",
+            "This records the accountable unchanged-decision confirmation.",
+            "It does not create a replacement decision.",
+            "Confirm decision",
+        ),
+        "review.plan": (
+            "Record this review plan?",
+            "Check the next review time and why it is proportionate.",
+            "This establishes the next planned review point.",
+            "It does not create a review conclusion or change the decision.",
+            "Record review plan",
+        ),
+        "review.episode.begin": (
+            "Begin this focused review?",
+            "Check that the visible change calls for this focused review.",
+            "This opens a review limited to the stated focus.",
+            "It does not assert a finding or change the decision.",
+            "Begin focused review",
+        ),
+        "review.episode.complete": (
+            "Complete this focused review?",
+            "Check why the focused review is complete.",
+            "This closes the focused review with the current decision unchanged.",
+            "It does not create a new decision or a full reassessment.",
+            "Complete focused review",
+        ),
+    }
+    title, introduction, consequence, non_effect, button = copy[action]
+    shown = tuple(
+        (label, payload[name]) for name, label in labels[action].items() if payload.get(name)
+    )
+    return SliceHConfirmation(title, introduction, shown, consequence, non_effect, button)
 
 
 def _timestamp(value: str) -> datetime:
@@ -353,7 +646,7 @@ def register_slice_h_routes(
                 request,
                 session,
                 title="Required information is missing",
-                message="Complete the bounded Case description before reviewing it.",
+                message="Complete the Case name, AI use, management question, and starting scope.",
                 return_path="/cases/new",
                 status=400,
             )
@@ -394,16 +687,15 @@ def register_slice_h_routes(
             )
         confirmation = SliceHConfirmation(
             "Start this Case?",
-            "Review the bounded AI use. PAIM will create the exact Case context and initial "
-            "continuity responsibility through the accepted production command.",
+            "Check that this is the AI use and management question you want PAIM to follow.",
             (
                 ("Case", intent.payload["title"]),
                 ("AI use", intent.payload["bounded_use"]),
                 ("Decision or question", intent.payload["management_question"]),
                 ("Starting setup or scope", intent.payload["setup_description"]),
             ),
-            "This opens one continuing Case and its first governing setup. It does not grant "
-            "Value, Risk, Decision, or later operating authority.",
+            "This opens a continuing Case and records its starting setup.",
+            "It does not complete Value or Risk assessments, make a decision, or grant authority.",
             "Start Case",
         )
         return render(
@@ -580,6 +872,7 @@ def register_slice_h_routes(
                 "view": case_view,
                 "context": context,
                 "action": action,
+                "presentation": _action_presentation(action),
                 "fields": _action_fields(action, context),
                 "csrf_token": session.csrf_secret,
                 "review_path": (f"/cases/{case_id}/actions/{responsibility_version_id}/review"),
@@ -670,19 +963,7 @@ def register_slice_h_routes(
                 return_path=f"/cases/{case_id}",
                 status=409,
             )
-        shown = tuple(
-            (key.replace("_", " ").title(), value)
-            for key, value in intent.payload.items()
-            if key not in {"case_id", "responsibility_version_id", "effective_at"} and value
-        )
-        confirmation = SliceHConfirmation(
-            "Record this judgment?",
-            "Review the practitioner judgment before PAIM revalidates the exact governed context.",
-            shown,
-            "Only the named governed act is recorded. Related Value, Risk, responsibility, "
-            "access, authority, and history facts remain separate.",
-            "Record judgment",
-        )
+        confirmation = _action_confirmation(intent.action, intent.payload)
         return render(
             request,
             "slice_h_confirm.html",

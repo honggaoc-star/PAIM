@@ -7,10 +7,10 @@
   <h2>Why</h2><p>{{ view.consequence }}</p>
   <h2>What you need to know</h2><p>{{ view.instruction }}</p>
   <h2>Your judgment or action</h2><p>{{ view.permitted_action }}</p>
-  <h2>Finish</h2><div class="consequence-note">{{ view.authority_boundary }}</div>
+  <h2>Before you continue</h2><div class="consequence-note">{{ view.authority_boundary }}</div>
   {% if action_path %}<p><a class="button-link" href="{{ action_path }}">Continue to this action</a></p>
-  {% else %}<p>This action is not safely available. Return to the Case to reconstruct current work.</p>{% endif %}
+  {% else %}<p>This action is not safely available. Return to the Case to review the current work.</p>{% endif %}
   <p><a class="button-link" href="/cases/{{ view.case_id }}">Return to the Case</a></p>
-  <details><summary>Audit and provenance</summary><p>This task was reconstructed from durable Case work. It was not recovered from a browser-only variable.</p><ul>{% for version_id in view.source_manifest.version_ids %}<li class="mono">{{ version_id }}</li>{% endfor %}</ul></details>
+  <details><summary>Audit details</summary><p>This task comes from the recorded Case work, not temporary browser state.</p><ul>{% for version_id in view.source_manifest.version_ids %}<li class="mono">{{ version_id }}</li>{% endfor %}</ul></details>
 </section>
 {% endblock %}
