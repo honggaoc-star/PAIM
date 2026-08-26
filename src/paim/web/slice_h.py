@@ -9,7 +9,8 @@ from datetime import UTC, datetime
 from fastapi import FastAPI, Request
 from fastapi.responses import RedirectResponse, Response
 
-from paim.case_continuity import CaseContinuityConflict
+from paim.assessment_review import AssessmentLane
+from paim.case_continuity import CaseContinuityAccessDenied, CaseContinuityConflict
 from paim.integrity import RecordId, RecordVersionId
 from paim.operational import OperationalApplication
 from paim.operational.models import AccessDenied
@@ -338,7 +339,13 @@ def register_slice_h_routes(
             )
         payload = {
             name: str(form.get(name, "")).strip()
-            for name in ("title", "bounded_use", "setup_description", "effective_at")
+            for name in (
+                "title",
+                "bounded_use",
+                "management_question",
+                "setup_description",
+                "effective_at",
+            )
         }
         missing = tuple(name for name, value in payload.items() if not value)
         if missing:
@@ -392,6 +399,7 @@ def register_slice_h_routes(
             (
                 ("Case", intent.payload["title"]),
                 ("AI use", intent.payload["bounded_use"]),
+                ("Decision or question", intent.payload["management_question"]),
                 ("Starting setup or scope", intent.payload["setup_description"]),
             ),
             "This opens one continuing Case and its first governing setup. It does not grant "
@@ -451,9 +459,7 @@ def register_slice_h_routes(
                 idempotency_key=intent.idempotency_key,
                 title=intent.payload["title"],
                 bounded_use=intent.payload["bounded_use"],
-                management_question=(
-                    "What continuing management attention does this bounded AI use require?"
-                ),
+                management_question=intent.payload["management_question"],
                 setup_description=intent.payload["setup_description"],
                 effective_at=effective_at,
             )
@@ -496,7 +502,7 @@ def register_slice_h_routes(
                 RecordVersionId.parse(work_version_id),
             )
             case_view = gateway.slice_h_case(session.authentication, RecordId.parse(case_id))
-        except (AccessDenied, ValueError):
+        except (AccessDenied, CaseContinuityAccessDenied, ValueError):
             return error(
                 request,
                 session,
@@ -505,12 +511,26 @@ def register_slice_h_routes(
                 return_path=f"/cases/{case_id}",
                 status=409,
             )
+        try:
+            action_context = gateway.slice_h_action_context(
+                session.authentication,
+                RecordId.parse(case_id),
+                view.responsibility_version_id,
+            )
+            action_path = (
+                f"/cases/{case_id}/actions/{view.responsibility_version_id}"
+                if action_context.obligation in _OBLIGATION_ACTION
+                else None
+            )
+        except AccessDenied:
+            action_path = None
         return render(
             request,
             "slice_h_task.html",
             {
                 "view": view,
                 "case_view": case_view,
+                "action_path": action_path,
                 "csrf_token": session.csrf_secret,
                 "authenticated": True,
             },
@@ -746,6 +766,40 @@ def register_slice_h_routes(
                 return_path=f"/cases/{case_id}",
                 status=409,
             )
+        if intent.action in {"assessment.adequacy.value", "assessment.adequacy.risk"}:
+            lane = AssessmentLane.VALUE if intent.action.endswith("value") else AssessmentLane.RISK
+            try:
+                carried = gateway.slice_h_carry_single_reliance(
+                    session.authentication,
+                    case_id=RecordId.parse(case_id),
+                    lane=lane,
+                    effective_at=effective_at,
+                    idempotency_key=f"{intent.idempotency_key}-single-reliance",
+                )
+                if carried is not None:
+                    gateway.slice_h_establish_result_visibility(
+                        session.authentication,
+                        carried,
+                        case_id=RecordId.parse(case_id),
+                        effective_at=effective_at,
+                    )
+            except (AccessDenied, KeyError, RuntimeError, ValueError) as exc:
+                return render(
+                    request,
+                    "action_error.html",
+                    {
+                        "view": None,
+                        "csrf_token": session.csrf_secret,
+                        "title": "Assessment recorded; next basis was not carried",
+                        "message": str(exc),
+                        "details": (
+                            "The adequacy judgment remains recorded.",
+                            "No assessment basis was inferred or partially substituted.",
+                        ),
+                        "return_path": f"/cases/{case_id}",
+                    },
+                    409,
+                )
         outcome_path = f"/cases/{case_id}"
         registry.record_intent_outcome(identifier, intent_id, outcome_path=outcome_path)
         return RedirectResponse(outcome_path, status_code=303)

@@ -17,11 +17,14 @@ substantive authority at commit.
 ## Production interaction paths
 
 - Minimal Case start uses the Slice-H0 pre-Case mandate and atomic Case-continuity command. The
-  practitioner supplies recognizable title, bounded AI use, and starting scope—not PAIM IDs or a
-  full governance questionnaire.
+  practitioner supplies recognizable title, bounded AI use, the actual decision or question to
+  address, and starting scope—not PAIM IDs or a full governance questionnaire. PAIM carries that
+  management question unchanged through confirmation and the authoritative Case-start command.
 - Contextual Work and Responsibility routes reconstruct durable state from the database on every
-  request. Browser-session intents contain an exact source manifest only for confirmation and are
-  never continuity authority.
+  request. Durable Task pages lead to the exact owning action when its Responsibility remains
+  current and visible; hidden or stale Responsibility removes the action without retargeting.
+  Browser-session intents contain an exact source manifest only for confirmation and are never
+  continuity authority.
 - Independent Value and Risk assessment completion, adequacy, and Reliance use the Slice-C
   services. One eligible adequate assessment is carried deterministically. Multiple legitimate
   candidates require an explicit ordinary-language choice and rationale; display order creates no
@@ -55,7 +58,7 @@ browser-only identifier.
 | Ordinary surface | Already-known context | Immediate need / hidden detail | Practitioner-value click | Better than document handoff | Natural combination | Quiet behavior |
 |---|---|---|---|---|---|---|
 | Home | Case, reason, action, and justified timing are carried | IDs, provenance, ranking, and setup are absent | One natural continuation link | Work survives restart and actor handoff | Exact assigned attention is composed in one list | Exact positive empty state |
-| Cases / Start Case | PAIM generates all semantic identities | Only title, bounded use, and starting scope are asked | One review and one consequential commit | Atomic Case/configuration/continuity setup replaces duplicate setup records | Initial legitimate setup is one atomic command | No generic setup suggestions |
+| Cases / Start Case | PAIM generates all semantic identities | Only title, bounded use, actual management question, and starting scope are asked | One review and one consequential commit | Atomic Case/configuration/continuity setup replaces duplicate setup records | Initial legitimate setup is one atomic command | No generic setup suggestions or software-authored management question |
 | Case | Current Value, Risk, Decision, review, and responsibility basis are composed | Audit mechanics use disclosure | Links go only to legitimate work or history | One current view replaces manual cross-document reconciliation | Independent positions share a page without being netted | Hidden/absent states do not manufacture action |
 | Contextual Task | Exact Case, configuration, assignment, and sources are carried | Only evidence needed for the judgment is shown | Review/commit records a real governed act | Consequence and return path stay with durable work | Common structure is shared; independent facts remain separate | No action appears without exact assigned work |
 | Value / Risk / adequacy | Lane, use, sources, and current predecessor are carried | Measures remain optional; IDs remain hidden | Inputs are substantive findings, adequacy, or rationale | Separate histories remain auditable without duplicate forms | Consistent paired presentation, separate authoritative judgments | No score, ranking, netting, or inferred conclusion |
@@ -75,8 +78,10 @@ failure boundary.
 The integrated browser suite creates fresh temporary prospective databases and Scenario-A facts;
 it never opens, repairs, or mutates historical Harborlight evidence. It proves:
 
-- quiet Home, minimal Case initiation, recognizable Case purpose, and no later governance created
-  during start;
+- quiet Home, minimal Case initiation with the practitioner's replay-bound management question,
+  recognizable Case purpose, and no later governance created during start;
+- durable Home-to-Task-to-action continuity across restart, with hidden/stale Responsibility
+  failing closed without retargeting;
 - independent Value and Risk completion/adequacy, one-practitioner work, and a real second Actor
   handoff;
 - automatic exact Reliance carriage plus explicit bounded choice among multiple legitimate
@@ -103,11 +108,11 @@ scoring/ranking, mandatory quantification, generic workflow engine, or post-Slic
 ## Validation evidence
 
 - locked dependency graph: PASS (`uv lock --check`);
-- focused Gate 8 A–H regression: PASS (87 tests);
-- complete repository suite: PASS (380 tests, including the new Chromium/no-JavaScript proof);
+- focused Gate 8 A–H regression: PASS (85 tests);
+- complete repository suite: PASS (381 tests, including the Chromium/no-JavaScript proof);
 - dedicated fresh disposable Slice-H browser proof: PASS (1 test);
 - migration and schema regression: PASS (26 tests, empty and prior-revision paths included);
-- Ruff format and lint: PASS (124 files);
+- Ruff format and lint: PASS (142 tracked Python files);
 - strict mypy over `src/paim`: PASS (83 source files);
 - tracked-source high-confidence credential scan: PASS; and
 - `git diff --check`: PASS.

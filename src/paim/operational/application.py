@@ -143,6 +143,7 @@ from paim.prospective_decision import (
     ReliedLaneBasis,
 )
 from paim.reconstruction import CaseTimeline, ReconstructionService, ThenNowComparison
+from paim.responsibility.models import ObligationKind
 from paim.responsibility.service import OperationalSliceAAccessPolicy
 from paim.slice_h_actions import (
     SliceHActionContext,
@@ -925,6 +926,101 @@ class OperationalApplication:
                 )
             )
         raise ValueError("unsupported contextual Slice-H action")
+
+    def slice_h_carry_single_reliance(
+        self,
+        session: AuthenticatedSession,
+        *,
+        case_id: RecordId,
+        lane: AssessmentLane,
+        effective_at: datetime,
+        idempotency_key: str,
+    ) -> CommandOutcome | None:
+        """Carry one deterministic eligible assessment without a Level-1 choice.
+
+        Reliance remains its own authoritative command and audit outcome. Carriage
+        occurs only when the signed-in Actor is the one exact accountable assignee,
+        has the exact command permission and source visibility, and one (not zero or
+        multiple) eligible adequate assessment exists. Otherwise no fact is written
+        and the owning-domain state remains available for explicit resolution.
+        """
+
+        action = f"assessment.reliance.{lane.value.lower()}"
+        if not self.operational_store.permission_allowed(
+            session.principal_id,
+            Permission.COMMAND,
+            action,
+            ScopeType.CASE,
+            case_id,
+        ):
+            return None
+        obligation = (
+            ObligationKind.DESIGNATE_VALUE_ASSESSMENT_RELIANCE
+            if lane is AssessmentLane.VALUE
+            else ObligationKind.DESIGNATE_RISK_ASSESSMENT_RELIANCE
+        )
+        with self.domain_store.read_transaction() as transaction:
+            rows = transaction.projection_rows(
+                "responsibility_versions",
+                owning_case_id=str(case_id),
+                obligation_kind=obligation.value,
+            )
+            current_ids: list[RecordVersionId] = []
+            for row in rows:
+                version_id = RecordVersionId.parse(str(row["version_id"]))
+                source = transaction.get_version(version_id)
+                if source is None:
+                    continue
+                selected = transaction.select_current(
+                    SelectionQuery(
+                        source.family,
+                        source.scope,
+                        effective_at,
+                        self.clock.now(),
+                        source.record_id,
+                    )
+                )
+                if (
+                    isinstance(selected, SelectionFound)
+                    and selected.candidate.version_id == version_id
+                ):
+                    current_ids.append(version_id)
+        contexts: list[SliceHActionContext] = []
+        for responsibility_id in current_ids:
+            try:
+                context = self.slice_h_action_context(
+                    session,
+                    case_id,
+                    responsibility_id,
+                    effective_at=effective_at,
+                    known_at=self.clock.now(),
+                )
+            except AccessDenied:
+                continue
+            if (
+                context.lane is lane
+                and context.current_reliance_version_id is None
+                and len(context.reliance_candidate_version_ids) == 1
+            ):
+                contexts.append(context)
+        if len(contexts) != 1:
+            return None
+        context = contexts[0]
+        return self.slice_h_commit_action(
+            session,
+            case_id=case_id,
+            responsibility_version_id=context.responsibility_version_id,
+            expected_source_version_ids=context.source_version_ids,
+            action=action,
+            payload={
+                "rationale": (
+                    "Carried deterministically because exactly one eligible adequate "
+                    f"{lane.value.title()} assessment is established for this decision use."
+                )
+            },
+            idempotency_key=idempotency_key,
+            effective_at=effective_at,
+        )
 
     def _slice_h_relied_basis(
         self, context: SliceHActionContext, lane: AssessmentLane

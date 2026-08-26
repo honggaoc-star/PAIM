@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from dataclasses import replace
 from datetime import timedelta
 
@@ -28,9 +29,16 @@ from paim.operational import (
 from paim.prospective_decision import ProspectiveDecisionService
 from paim.quantitative_claims import QuantitativeClaimService, QuantitativeClaimType
 from paim.responsibility.models import ObligationKind
-from paim.responsibility.service import OperationalSliceAAccessPolicy
+from paim.responsibility.service import (
+    OperationalSliceAAccessPolicy,
+    ProjectionFact,
+    ResponsibilityWorkService,
+)
+from tests.integration.test_gate8_slice_a_responsibility_work import (
+    command as slice_a_command,
+)
 from tests.integration.test_gate8_slice_b_case_continuity import NOW as PROSPECTIVE_NOW
-from tests.integration.test_gate8_slice_b_case_continuity import RECORDED
+from tests.integration.test_gate8_slice_b_case_continuity import RECORDED, ExactAccess
 from tests.integration.test_gate8_slice_c_assessment_review import (
     adequacy_command,
     finish_command,
@@ -73,6 +81,7 @@ _PROSPECTIVE_VERSION_TABLES = (
     "responsibility_versions",
     "assignment_basis_versions",
     "responsibility_assignment_versions",
+    "case_work_versions",
     "assessment_candidate_versions",
     "assessment_readiness_versions",
     "assessment_adequacy_versions",
@@ -198,6 +207,62 @@ def _submit_action(
     )
     assert committed.status_code == 303, committed.text
     assert committed.headers["location"] == f"/cases/{case_id}"
+
+
+def _establish_value_work(web_fixture: WebFixture, fx: object, key: str) -> object:
+    opened = fx.opened  # type: ignore[attr-defined]
+    actor = fx.actor_a  # type: ignore[attr-defined]
+    responsibility = fx.responsibilities[(AssessmentLane.VALUE, "finish")]  # type: ignore[attr-defined]
+    work = slice_a_command(
+        case_id=opened.facts.case_id,
+        actor_id=actor,
+        exact_context=opened.context,
+        family="case-work",
+        key=key,
+        projections=(),
+    )
+    work = replace(
+        work,
+        effective_at=PROSPECTIVE_NOW,
+        content={
+            "question": "What Value could this bounded AI use create?",
+            "instruction": "Use the exact visible information to finish the Value assessment.",
+            "consequence": "The assessment will become ready for independent review.",
+            "permitted_action": "Finish the independent Value assessment.",
+        },
+        projections=(
+            ProjectionFact("case_work_records", {"record_id": str(work.record_id)}),
+            ProjectionFact(
+                "case_work_versions",
+                {
+                    "version_id": str(work.version_id),
+                    "record_id": str(work.record_id),
+                    "owning_case_id": str(opened.facts.case_id),
+                    "context_digest": opened.context.digest,
+                    "responsibility_version_id": str(responsibility.responsibility_version_id),
+                    "assignment_version_id": str(responsibility.assignment_version_id),
+                    "requester_actor_id": str(actor),
+                    "assignee_actor_id": str(actor),
+                    "state": "READY",
+                    "reason": "Finish the independent Value assessment.",
+                    "prerequisites_json": json.dumps(
+                        [str(responsibility.responsibility_version_id)]
+                    ),
+                    "expected_result_family": "assessment-candidate",
+                    "due_at_us": None,
+                    "result_version_id": None,
+                    "return_context_digest": opened.context.digest,
+                    "predecessor_version_id": None,
+                },
+            ),
+        ),
+    )
+    ResponsibilityWorkService(
+        web_fixture.operational.domain_store,
+        FixedClock(RECORDED + timedelta(seconds=3)),
+        ExactAccess(),
+    ).commit(work)
+    return work
 
 
 def test_harborlight_integrated_decision_path_uses_contextual_production_commands(
@@ -370,6 +435,161 @@ def test_slice_h_primary_navigation_and_quiet_home_are_burden_bounded(
         assert prohibited not in home.text.casefold()
 
 
+def test_durable_work_leads_to_action_and_hidden_or_stale_responsibility_never_retargets(
+    web_fixture: WebFixture,
+) -> None:
+    """Home -> durable Task -> action survives restart and fails closed on exact source change."""
+
+    fx = slice_c_fixture(web_fixture.operational.domain_store, "slice-h-durable-work")
+    case_id = fx.opened.facts.case_id
+    configuration_id = fx.opened.facts.configuration_id
+    responsibility = fx.responsibilities[(AssessmentLane.VALUE, "finish")]
+    work = _establish_value_work(web_fixture, fx, "slice-h-value-work")
+    web_fixture.now.value = RECORDED + timedelta(seconds=10)
+    _use_fixture_clock(web_fixture)
+    web_fixture.operational.provision_principal(
+        web_fixture.admin_session,
+        principal_id="principal:web-practitioner",
+        token=TOKEN,
+        actor_id=fx.actor_a,
+        status=PrincipalStatus.ENABLED,
+    )
+    web_fixture.admin_session = web_fixture.operational.authenticate(
+        "principal:web-practitioner", TOKEN
+    )
+    grant(web_fixture, Permission.CASE_READ, "read", ScopeType.CASE, case_id)
+    grant(web_fixture, Permission.OPERATIONAL_ADMIN, "source-access.manage")
+    grant(
+        web_fixture,
+        Permission.COMMAND,
+        "assessment.finish.value",
+        ScopeType.CASE,
+        case_id,
+    )
+    _grant_all_case_sources(web_fixture, case_id, configuration_id)
+    _, logged_in = login(web_fixture.client)
+    assert logged_in.status_code == 303
+
+    task_path = f"/cases/{case_id}/tasks/{work.version_id}"  # type: ignore[attr-defined]
+    action_path = f"/cases/{case_id}/actions/{responsibility.responsibility_version_id}"
+    home = web_fixture.client.get("/home")
+    assert task_path in home.text
+    task = web_fixture.client.get(task_path)
+    assert task.status_code == 200
+    assert action_path in task.text
+    assert "Continue to this action" in task.text
+
+    with OperationalApplication(web_fixture.config, FixedClock(web_fixture.now.value)) as restarted:
+        restarted_session = restarted.authenticate("principal:web-practitioner", TOKEN)
+        reconstructed = restarted.slice_h_task(
+            restarted_session,
+            case_id,
+            work.version_id,  # type: ignore[attr-defined]
+        )
+        assert reconstructed.responsibility_version_id == (responsibility.responsibility_version_id)
+        assert reconstructed.return_path == fx.opened.context.digest
+
+    action = web_fixture.client.get(action_path)
+    assert action.status_code == 200
+    reviewed = web_fixture.client.post(
+        f"{action_path}/review",
+        data={
+            "csrf_token": csrf_from(action.text),
+            "finding": "Bounded assistance may improve review consistency.",
+            "boundary": "Harborlight Scenario A only.",
+            "uncertainty": "Observed outcomes remain limited.",
+            "implication": "Retain accountable human lending judgment.",
+            "provenance": "Exact visible bounded information.",
+            "rationale": "Ready for independent review.",
+            "limitations": "No autonomous lending Decision.",
+        },
+        headers={"Origin": ORIGIN},
+        follow_redirects=False,
+    )
+    confirmation = web_fixture.client.get(reviewed.headers["location"])
+    committed = web_fixture.client.post(
+        confirmation.url.path.replace("/confirm/", "/commit/"),
+        data={"csrf_token": csrf_from(confirmation.text)},
+        headers={"Origin": ORIGIN},
+        follow_redirects=False,
+    )
+    assert committed.status_code == 303
+    assert committed.headers["location"] == f"/cases/{case_id}"
+
+    web_fixture.operational.grant_source_access(
+        web_fixture.admin_session,
+        principal_id="principal:web-practitioner",
+        grant=SourceAccessGrantInput(
+            "source.read",
+            case_id,
+            responsibility.responsibility_version_id,
+            "responsibility",
+            AccessEffect.DENY,
+            web_fixture.now.value,
+        ),
+    )
+    hidden_task = web_fixture.client.get(task_path)
+    assert hidden_task.status_code == 409
+    assert str(responsibility.responsibility_version_id) not in hidden_task.text
+    web_fixture.operational.grant_source_access(
+        web_fixture.admin_session,
+        principal_id="principal:web-practitioner",
+        grant=SourceAccessGrantInput(
+            "source.read",
+            case_id,
+            responsibility.responsibility_version_id,
+            "responsibility",
+            AccessEffect.ALLOW,
+            web_fixture.now.value,
+        ),
+    )
+
+    with web_fixture.operational.domain_store.read_transaction() as tx:
+        responsibility_row = tx.projection_rows(
+            "responsibility_versions",
+            version_id=str(responsibility.responsibility_version_id),
+        )[0]
+        responsibility_source = tx.get_version(responsibility.responsibility_version_id)
+    assert responsibility_source is not None
+    successor = slice_a_command(
+        case_id=case_id,
+        actor_id=fx.actor_a,
+        exact_context=fx.opened.context,
+        family="responsibility",
+        key="slice-h-stale-responsibility",
+        projections=(),
+    )
+    successor = replace(
+        successor,
+        record_id=responsibility_source.record_id,
+        expected_version_id=responsibility.responsibility_version_id,
+        effective_at=web_fixture.now.value,
+        content=dict(responsibility_source.content),
+        projections=(
+            ProjectionFact(
+                "responsibility_versions",
+                {
+                    **responsibility_row,
+                    "version_id": str(successor.version_id),
+                    "record_id": str(responsibility_source.record_id),
+                },
+            ),
+        ),
+    )
+    ResponsibilityWorkService(
+        web_fixture.operational.domain_store,
+        FixedClock(web_fixture.now.value),
+        ExactAccess(),
+    ).commit(successor)
+    stale_task = web_fixture.client.get(task_path)
+    assert stale_task.status_code == 200
+    assert action_path not in stale_task.text
+    assert "This action is not safely available" in stale_task.text
+    stale_action = web_fixture.client.get(action_path)
+    assert stale_action.status_code == 409
+    assert str(successor.version_id) not in stale_action.text
+
+
 def test_minimal_case_start_uses_h0_authority_and_creates_no_later_governance(
     web_fixture: WebFixture,
 ) -> None:
@@ -395,12 +615,31 @@ def test_minimal_case_start_uses_h0_authority_and_creates_no_later_governance(
         "authority mapping",
     ):
         assert prohibited not in new_case.text.casefold()
+    missing_question = web_fixture.client.post(
+        "/cases/start/review",
+        data={
+            "csrf_token": csrf_from(new_case.text),
+            "title": "Harborlight Assist — incomplete request",
+            "bounded_use": "small-business lending assistance",
+            "management_question": "",
+            "setup_description": "Bounded assistance only.",
+            "effective_at": H0_NOW.isoformat(),
+        },
+        headers={"Origin": ORIGIN},
+        follow_redirects=False,
+    )
+    assert missing_question.status_code == 400
+    with web_fixture.operational.domain_store.read_transaction() as tx:
+        assert tx.count_rows("case_continuity_status_versions") == 0
     reviewed = web_fixture.client.post(
         "/cases/start/review",
         data={
             "csrf_token": csrf_from(new_case.text),
             "title": "Harborlight Assist — disposable Slice H Case",
             "bounded_use": "small-business lending assistance",
+            "management_question": (
+                "Should Harborlight use bounded AI assistance in its lending review?"
+            ),
             "setup_description": "Assistance only; accountable human lending judgment remains.",
             "effective_at": H0_NOW.isoformat(),
         },
@@ -411,6 +650,9 @@ def test_minimal_case_start_uses_h0_authority_and_creates_no_later_governance(
     confirmation = web_fixture.client.get(reviewed.headers["location"])
     assert confirmation.status_code == 200
     assert "does not grant Value, Risk, Decision" in confirmation.text
+    assert "Should Harborlight use bounded AI assistance in its lending review?" in (
+        confirmation.text
+    )
     committed = web_fixture.client.post(
         confirmation.url.path.replace("/confirm/", "/commit/"),
         data={"csrf_token": csrf_from(confirmation.text)},
@@ -418,13 +660,19 @@ def test_minimal_case_start_uses_h0_authority_and_creates_no_later_governance(
         follow_redirects=False,
     )
     assert committed.status_code == 303
+    replayed = web_fixture.client.post(
+        confirmation.url.path.replace("/confirm/", "/commit/"),
+        data={"csrf_token": csrf_from(confirmation.text)},
+        headers={"Origin": ORIGIN},
+        follow_redirects=False,
+    )
+    assert replayed.status_code == 303
+    assert replayed.headers["location"] == committed.headers["location"]
     case_page = web_fixture.client.get(committed.headers["location"])
     assert case_page.status_code == 200
     assert "Harborlight Assist" in case_page.text
     assert "small-business lending assistance" in case_page.text
-    assert "What continuing management attention does this bounded AI use require?" in (
-        case_page.text
-    )
+    assert "Should Harborlight use bounded AI assistance in its lending review?" in case_page.text
     with web_fixture.operational.domain_store.read_transaction() as tx:
         assert tx.count_rows("case_continuity_status_versions") == 1
         assert tx.count_rows("governing_configuration_designations") == 1
@@ -504,11 +752,12 @@ def test_value_risk_tasks_preserve_independence_and_real_practitioner_handoff(
         )
 
     value_reliance = fx.responsibilities[(AssessmentLane.VALUE, "reliance")]
-    _submit_action(
-        web_fixture,
-        case_id=case_id,
-        responsibility_version_id=value_reliance.responsibility_version_id,
-        payload={"rationale": "Use this exact adequate Value assessment."},
+    home_after_adequacy = web_fixture.client.get("/home")
+    assert "Which adequate Value assessment" not in home_after_adequacy.text
+    case_after_adequacy = web_fixture.client.get(f"/cases/{case_id}")
+    assert (
+        f"/cases/{case_id}/actions/{value_reliance.responsibility_version_id}"
+        not in case_after_adequacy.text
     )
     risk_reliance = fx.responsibilities[(AssessmentLane.RISK, "reliance")]
     unavailable = web_fixture.client.get(
@@ -593,6 +842,11 @@ def test_value_risk_tasks_preserve_independence_and_real_practitioner_handoff(
         assert len(value) == len(risk) == 1
         assert value[0]["assignment_version_id"] == str(value_reliance.assignment_version_id)
         assert risk[0]["assignment_version_id"] == str(risk_reliance.assignment_version_id)
+        value_source = tx.get_version(RecordVersionId.parse(str(value[0]["version_id"])))
+        assert value_source is not None
+        assert "exactly one eligible adequate Value assessment" in str(
+            value_source.content["rationale"]
+        )
 
 
 def test_multiple_adequate_candidates_present_bounded_reliance_choice(
@@ -656,6 +910,8 @@ def test_multiple_adequate_candidates_present_bounded_reliance_choice(
     _grant_all_case_sources(web_fixture, case_id, configuration_id)
     _, logged_in = login(web_fixture.client)
     assert logged_in.status_code == 303
+    with web_fixture.operational.domain_store.read_transaction() as tx:
+        assert tx.count_rows("assessment_reliance_versions") == 0
     responsibility = fx.responsibilities[(AssessmentLane.VALUE, "reliance")]
     action_path = f"/cases/{case_id}/actions/{responsibility.responsibility_version_id}"
     action = web_fixture.client.get(action_path)
