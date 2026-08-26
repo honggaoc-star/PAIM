@@ -119,7 +119,15 @@ class ReconstructionService:
                 return self._empty_position(
                     ReconstructionState.ABSENT, case_id, effective_at, known_at
                 )
-            if not self._source_visible(tx, principal_id, actor_id, case_id, decision_version_id):
+            if not self._source_visible(
+                tx,
+                principal_id,
+                actor_id,
+                case_id,
+                decision_version_id,
+                effective_at,
+                known_at,
+            ):
                 return self._empty_position(
                     ReconstructionState.NOT_SAFELY_AVAILABLE,
                     case_id,
@@ -166,7 +174,9 @@ class ReconstructionService:
                     None,
                     self._manifest(tx, {decision_version_id}, effective_at, known_at),
                 )
-            if not self._closure_visible(tx, principal_id, actor_id, case_id, closure):
+            if not self._closure_visible(
+                tx, principal_id, actor_id, case_id, closure, effective_at, known_at
+            ):
                 return self._empty_position(
                     ReconstructionState.NOT_SAFELY_AVAILABLE,
                     case_id,
@@ -490,7 +500,13 @@ class ReconstructionService:
                     if closure is None or not self._closure_knowable(tx, closure, current.known_at):
                         continue
                     if not self._closure_visible(
-                        tx, principal_id, actor_id, current.case_id, closure
+                        tx,
+                        principal_id,
+                        actor_id,
+                        current.case_id,
+                        closure,
+                        current.effective_at,
+                        current.known_at,
                     ):
                         continue
                     manifest = self._manifest(tx, closure, current.effective_at, current.known_at)
@@ -597,7 +613,15 @@ class ReconstructionService:
                     or not candidate_version.effective.contains(current.effective_at)
                     or closure is None
                     or not self._closure_knowable(tx, closure, current.known_at)
-                    or not self._closure_visible(tx, principal_id, actor_id, prior.case_id, closure)
+                    or not self._closure_visible(
+                        tx,
+                        principal_id,
+                        actor_id,
+                        prior.case_id,
+                        closure,
+                        current.effective_at,
+                        current.known_at,
+                    )
                 ):
                     continue
                 successors.append(candidate_id)
@@ -679,7 +703,13 @@ class ReconstructionService:
                         continue
                     closure = self._source_closure(tx, version_id)
                     if closure is None or not self._closure_visible(
-                        tx, principal_id, actor_id, case_id, closure
+                        tx,
+                        principal_id,
+                        actor_id,
+                        case_id,
+                        closure,
+                        effective_at,
+                        known_at,
                     ):
                         continue
                     item_manifest = self._manifest(tx, closure, effective_at, known_at)
@@ -1197,6 +1227,8 @@ class ReconstructionService:
                 actor_id,
                 case_id,
                 set(lane_position.source_manifest.version_ids),
+                effective_at,
+                known_at,
             ):
                 result.append(
                     self._empty_component(
@@ -1295,7 +1327,9 @@ class ReconstructionService:
             if source_closure is None:
                 return self._empty_component(ReconstructionState.MALFORMED, effective_at, known_at)
             closure.update(source_closure)
-        if not self._closure_visible(tx, principal_id, actor_id, case_id, closure):
+        if not self._closure_visible(
+            tx, principal_id, actor_id, case_id, closure, effective_at, known_at
+        ):
             return self._empty_component(
                 ReconstructionState.NOT_SAFELY_AVAILABLE, effective_at, known_at
             )
@@ -1502,9 +1536,19 @@ class ReconstructionService:
         actor_id: RecordId,
         case_id: RecordId,
         closure: set[RecordVersionId],
+        effective_at: datetime,
+        known_at: datetime,
     ) -> bool:
         return all(
-            self._source_visible(tx, principal_id, actor_id, case_id, source_id)
+            self._source_visible(
+                tx,
+                principal_id,
+                actor_id,
+                case_id,
+                source_id,
+                effective_at,
+                known_at,
+            )
             for source_id in closure
         )
 
@@ -1524,6 +1568,8 @@ class ReconstructionService:
         actor_id: RecordId,
         case_id: RecordId,
         source_id: RecordVersionId,
+        effective_at: datetime,
+        known_at: datetime,
     ) -> bool:
         source = tx.get_version(source_id)
         return bool(
@@ -1536,6 +1582,8 @@ class ReconstructionService:
                 write=False,
                 source_version_id=source_id,
                 source_family=source.family,
+                effective_at=effective_at,
+                known_at=known_at,
             )
         )
 

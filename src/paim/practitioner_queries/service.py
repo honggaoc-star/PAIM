@@ -116,7 +116,9 @@ class PractitionerQueryService:
             title = "Bounded PAIM Case"
             manifest: set[RecordVersionId] = set()
             continuity_visible = all(
-                self._source_visible(tx, principal_id, actor_id, case_id, value)
+                self._source_visible(
+                    tx, principal_id, actor_id, case_id, value, effective_at, known_at
+                )
                 for value in continuity.version_ids
             )
             continuity_kind = (
@@ -130,7 +132,13 @@ class PractitionerQueryService:
             if len(case_versions) == 1:
                 source = tx.get_version(case_versions[0])
                 if source is not None and self._source_visible(
-                    tx, principal_id, actor_id, case_id, source.version_id
+                    tx,
+                    principal_id,
+                    actor_id,
+                    case_id,
+                    source.version_id,
+                    effective_at,
+                    known_at,
                 ):
                     title = cast(str, source.content.get("title", title))
                     manifest.add(source.version_id)
@@ -146,7 +154,9 @@ class PractitionerQueryService:
                 if len(rows) == 1:
                     candidate_id = RecordVersionId.parse(str(rows[0]["configuration_version_id"]))
                     if all(
-                        self._source_visible(tx, principal_id, actor_id, case_id, value)
+                        self._source_visible(
+                            tx, principal_id, actor_id, case_id, value, effective_at, known_at
+                        )
                         for value in (governing[0], candidate_id)
                     ):
                         governing_id = candidate_id
@@ -156,7 +166,9 @@ class PractitionerQueryService:
                         governing_state = "GOVERNING CONFIGURATION STATUS NOT SAFELY AVAILABLE"
             elif len(governing) > 1:
                 if all(
-                    self._source_visible(tx, principal_id, actor_id, case_id, value)
+                    self._source_visible(
+                        tx, principal_id, actor_id, case_id, value, effective_at, known_at
+                    )
                     for value in governing
                 ):
                     governing_state = "GOVERNING CONFIGURATION CONFLICT — UNRESOLVED"
@@ -297,7 +309,13 @@ class PractitionerQueryService:
             row = rows[0]
             exact = tx.get_version(work_version_id)
             if exact is None or not self._source_visible(
-                tx, principal_id, actor_id, case_id, work_version_id
+                tx,
+                principal_id,
+                actor_id,
+                case_id,
+                work_version_id,
+                effective_at,
+                known_at,
             ):
                 raise CaseContinuityAccessDenied()
             selected = tx.select_current(
@@ -311,7 +329,13 @@ class PractitionerQueryService:
             responsibility_id = RecordVersionId.parse(str(row["responsibility_version_id"]))
             responsibility = tx.get_version(responsibility_id)
             if responsibility is None or not self._source_visible(
-                tx, principal_id, actor_id, case_id, responsibility_id
+                tx,
+                principal_id,
+                actor_id,
+                case_id,
+                responsibility_id,
+                effective_at,
+                known_at,
             ):
                 raise CaseContinuityAccessDenied()
             content = exact.content
@@ -594,6 +618,8 @@ class PractitionerQueryService:
             principal_id,
             actor_id,
             case_id,
+            effective_at,
+            known_at,
             plan_raw,
             (
                 "configuration_version_id",
@@ -630,6 +656,8 @@ class PractitionerQueryService:
             principal_id,
             actor_id,
             case_id,
+            effective_at,
+            known_at,
             constraint_raw,
             (
                 "configuration_version_id",
@@ -680,6 +708,8 @@ class PractitionerQueryService:
             principal_id,
             actor_id,
             case_id,
+            effective_at,
+            known_at,
             episode_raw,
             (
                 "configuration_version_id",
@@ -741,6 +771,8 @@ class PractitionerQueryService:
             principal_id,
             actor_id,
             case_id,
+            effective_at,
+            known_at,
             event_raw,
             (
                 "configuration_version_id",
@@ -787,6 +819,8 @@ class PractitionerQueryService:
         principal_id: str,
         actor_id: RecordId,
         case_id: RecordId,
+        effective_at: datetime,
+        known_at: datetime,
         rows: tuple[dict[str, object], ...],
         scalar_fields: tuple[str, ...],
         json_fields: tuple[str, ...],
@@ -795,7 +829,15 @@ class PractitionerQueryService:
         for row in rows:
             required = self._review_required_versions(tx, row, scalar_fields, json_fields)
             if required is not None and all(
-                self._source_visible(tx, principal_id, actor_id, case_id, version_id)
+                self._source_visible(
+                    tx,
+                    principal_id,
+                    actor_id,
+                    case_id,
+                    version_id,
+                    effective_at,
+                    known_at,
+                )
                 for version_id in required
             ):
                 visible.append(row)
@@ -1035,6 +1077,8 @@ class PractitionerQueryService:
             principal_id,
             actor_id,
             case_id,
+            effective_at,
+            known_at,
             raw_assessment,
         )
         if len(raw_assessment) != len(assessment):
@@ -1050,7 +1094,9 @@ class PractitionerQueryService:
             )
             if str(row["assessment_version_id"]) in assessment_ids
         )
-        readiness = self._visible_slice_c_rows(tx, principal_id, actor_id, case_id, raw_readiness)
+        readiness = self._visible_slice_c_rows(
+            tx, principal_id, actor_id, case_id, effective_at, known_at, raw_readiness
+        )
         if len(raw_readiness) != len(readiness):
             unavailable.update(("readiness", "adequacy", "reliance"))
         readiness_ids = {str(row["version_id"]) for row in readiness}
@@ -1065,7 +1111,9 @@ class PractitionerQueryService:
             if str(row["assessment_version_id"]) in assessment_ids
             and str(row["readiness_version_id"]) in readiness_ids
         )
-        adequacy = self._visible_slice_c_rows(tx, principal_id, actor_id, case_id, raw_adequacy)
+        adequacy = self._visible_slice_c_rows(
+            tx, principal_id, actor_id, case_id, effective_at, known_at, raw_adequacy
+        )
         if len(raw_adequacy) != len(adequacy):
             unavailable.update(("adequacy", "reliance"))
         adequate_ids = {
@@ -1083,7 +1131,9 @@ class PractitionerQueryService:
             and str(row["readiness_version_id"]) in readiness_ids
             and str(row["adequacy_version_id"]) in adequate_ids
         )
-        reliance = self._visible_slice_c_rows(tx, principal_id, actor_id, case_id, raw_reliance)
+        reliance = self._visible_slice_c_rows(
+            tx, principal_id, actor_id, case_id, effective_at, known_at, raw_reliance
+        )
         if len(raw_reliance) != len(reliance):
             unavailable.add("reliance")
         return _SliceCLaneRows(
@@ -1100,13 +1150,23 @@ class PractitionerQueryService:
         principal_id: str,
         actor_id: RecordId,
         case_id: RecordId,
+        effective_at: datetime,
+        known_at: datetime,
         rows: tuple[dict[str, object], ...],
     ) -> tuple[dict[str, object], ...]:
         visible: list[dict[str, object]] = []
         for row in rows:
             required = self._slice_c_required_versions(tx, row)
             if required is None or not all(
-                self._source_visible(tx, principal_id, actor_id, case_id, version_id)
+                self._source_visible(
+                    tx,
+                    principal_id,
+                    actor_id,
+                    case_id,
+                    version_id,
+                    effective_at,
+                    known_at,
+                )
                 for version_id in required
             ):
                 continue
@@ -1205,6 +1265,8 @@ class PractitionerQueryService:
                 case_id,
                 integration_rows,
                 "integration",
+                effective_at,
+                known_at,
             ),
             established="COMPLETED",
         )
@@ -1242,6 +1304,8 @@ class PractitionerQueryService:
                 case_id,
                 decision_rows,
                 "decision",
+                effective_at,
+                known_at,
             ),
             established=None,
         )
@@ -1290,6 +1354,8 @@ class PractitionerQueryService:
                     actor_id,
                     case_id,
                     version_id,
+                    effective_at,
+                    known_at,
                 )
                 for version_id in required
             ):
@@ -1320,6 +1386,8 @@ class PractitionerQueryService:
         case_id: RecordId,
         rows: tuple[dict[str, object], ...],
         kind: str,
+        effective_at: datetime,
+        known_at: datetime,
     ) -> bool:
         for row in rows:
             required = self._slice_d_required_versions(tx, row, kind)
@@ -1330,6 +1398,8 @@ class PractitionerQueryService:
                     actor_id,
                     case_id,
                     version_id,
+                    effective_at,
+                    known_at,
                 )
                 for version_id in required
             ):
@@ -1521,6 +1591,8 @@ class PractitionerQueryService:
                 actor_id,
                 case_id,
                 RecordVersionId.parse(str(row["version_id"])),
+                effective_at,
+                known_at,
             )
         )
 
@@ -1538,7 +1610,15 @@ class PractitionerQueryService:
         for row in PractitionerQueryService._latest_rows(tx, rows, effective_at, known_at):
             required = self._slice_c_required_versions(tx, row)
             if required is not None and all(
-                self._source_visible(tx, principal_id, actor_id, case_id, version_id)
+                self._source_visible(
+                    tx,
+                    principal_id,
+                    actor_id,
+                    case_id,
+                    version_id,
+                    effective_at,
+                    known_at,
+                )
                 for version_id in required
             ):
                 visible.append(row)
@@ -1590,7 +1670,15 @@ class PractitionerQueryService:
                 row["state"] == "ASSIGNED"
                 and required is not None
                 and all(
-                    self._source_visible(tx, principal_id, actor_id, case_id, version_id)
+                    self._source_visible(
+                        tx,
+                        principal_id,
+                        actor_id,
+                        case_id,
+                        version_id,
+                        effective_at,
+                        known_at,
+                    )
                     for version_id in required
                 )
             ):
@@ -1663,6 +1751,8 @@ class PractitionerQueryService:
         action: str,
         source_version_id: RecordVersionId | None = None,
         source_family: str | None = None,
+        effective_at: datetime | None = None,
+        known_at: datetime | None = None,
     ) -> bool:
         return self._access.authorize(
             principal_id=principal_id,
@@ -1672,6 +1762,8 @@ class PractitionerQueryService:
             write=False,
             source_version_id=source_version_id,
             source_family=source_family,
+            effective_at=effective_at,
+            known_at=known_at,
         )
 
     def _source_visible(
@@ -1681,6 +1773,8 @@ class PractitionerQueryService:
         actor_id: RecordId,
         case_id: RecordId,
         version_id: RecordVersionId,
+        effective_at: datetime,
+        known_at: datetime,
     ) -> bool:
         source = tx.get_version(version_id)
         return bool(
@@ -1692,5 +1786,7 @@ class PractitionerQueryService:
                 "source.read",
                 version_id,
                 source.family,
+                effective_at,
+                known_at,
             )
         )

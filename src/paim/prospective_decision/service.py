@@ -1127,6 +1127,8 @@ class ProspectiveDecisionService:
                 write=False,
                 source_version_id=version_id,
                 source_family=None,
+                effective_at=command.effective_at,
+                known_at=command.knowledge_cutoff,
             ):
                 raise ProspectiveDecisionAccessDenied()
 

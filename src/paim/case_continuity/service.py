@@ -106,6 +106,9 @@ class ContinuityAccessPolicy(Protocol):
         write: bool,
         source_version_id: RecordVersionId | None = None,
         source_family: str | None = None,
+        effective_at: datetime | None = None,
+        known_at: datetime | None = None,
+        configuration_id: RecordId | None = None,
     ) -> bool: ...
 
 
@@ -251,6 +254,10 @@ class CaseContinuityService:
                         "permitted_acts": ["CREATE_OPEN_CASE"],
                         "allowed_use_prefixes": list(command.allowed_use_prefixes),
                         "initial_responsibility": "DETERMINE_CASE_CONTINUITY",
+                        "initial_assignment_limits": {
+                            "continuity_actions": [value.value for value in DeterminationKind]
+                        },
+                        "initial_assignment_max_active": 1,
                         "downstream_authority_granted": False,
                     },
                     "provenance": command.provenance,
@@ -421,17 +428,25 @@ class CaseContinuityService:
             self._ensure_contract_context(tx, command.contract, command.context, recorded_at)
             f = command.facts
             versions: list[RecordVersionId] = []
+            case_content: dict[str, JsonValue] = {
+                "title": command.title,
+                "bounded_use": command.bounded_use,
+                "management_question": command.management_question,
+            }
+            if command.initiation_scope is not None:
+                case_content["case_initiation"] = {
+                    "authority_source_version_id": str(command.authority_source_version_id),
+                    "responsibility_version_id": str(f.responsibility_version_id),
+                    "assignment_basis_version_id": str(f.assignment_basis_version_id),
+                    "assignment_version_id": str(f.assignment_version_id),
+                }
             self._add_version(
                 tx,
                 f.case_id,
                 f.case_version_id,
                 "prospective-case",
                 f"case:{f.case_id}",
-                {
-                    "title": command.title,
-                    "bounded_use": command.bounded_use,
-                    "management_question": command.management_question,
-                },
+                case_content,
                 command.effective_at,
                 recorded_at,
                 command.identity.actor_id,
@@ -1111,7 +1126,11 @@ class CaseContinuityService:
             f.assignment_basis_version_id,
             "assignment-basis",
             f"case:{f.case_id}",
-            {"authority_source_version_id": str(command.assignment_authority_source_version_id)},
+            {
+                "authority_source_version_id": str(command.assignment_authority_source_version_id),
+                "responsibility_signature": signature,
+                "responsibility_version_id": str(f.responsibility_version_id),
+            },
             command.effective_at,
             command.contract,
             command.context,
@@ -1119,10 +1138,9 @@ class CaseContinuityService:
             "responsibility.assignment-basis.create",
             (ProjectionFact("assignment_basis_versions", basis_row),),
         )
-        if command.initiation_scope is None:
-            ResponsibilityWorkService.validate_assignment_basis(
-                tx, basis_validation, basis_row, recorded_at
-            )
+        ResponsibilityWorkService.validate_assignment_basis(
+            tx, basis_validation, basis_row, recorded_at
+        )
         self._add_version(
             tx,
             f.responsibility_record_id,
@@ -1197,6 +1215,8 @@ class CaseContinuityService:
             {
                 "responsibility_version_id": str(f.responsibility_version_id),
                 "actor_id": str(command.identity.actor_id),
+                "responsibility_signature": signature,
+                "assignment_basis_version_id": str(f.assignment_basis_version_id),
             },
             command.effective_at,
             command.contract,
@@ -1205,10 +1225,9 @@ class CaseContinuityService:
             "responsibility.assignment.create",
             (ProjectionFact("responsibility_assignment_versions", assignment_row),),
         )
-        if command.initiation_scope is None:
-            ResponsibilityWorkService.validate_responsibility_assignment(
-                tx, assignment_validation, assignment_row, recorded_at
-            )
+        ResponsibilityWorkService.validate_responsibility_assignment(
+            tx, assignment_validation, assignment_row, recorded_at
+        )
         self._add_version(
             tx,
             f.assignment_record_id,

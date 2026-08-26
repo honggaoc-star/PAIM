@@ -32,13 +32,12 @@ from paim.integrity.semantics import ExactContextSet, SemanticContractRef
 from paim.integrity.time import (
     Clock,
     EffectiveInterval,
-    SystemClock,
     require_utc,
     to_epoch_microseconds,
 )
 from paim.operational.models import Permission, PrincipalStatus, ScopeType
 from paim.operational.store import OperationalStore
-from paim.persistence.ports import CommandOutcome, IdempotencyFact
+from paim.persistence.ports import CommandOutcome, IdempotencyFact, RecordHistory
 from paim.responsibility.models import (
     ObligationKind,
     ResponsibilityResolution,
@@ -55,6 +54,7 @@ class SliceATransaction(Protocol):
     def add_status_event(self, event: StatusEvent) -> None: ...
     def add_relationship(self, relationship: VersionRelationship) -> None: ...
     def get_version(self, version_id: RecordVersionId) -> FinalizedRecordVersion | None: ...
+    def get_history(self, record_id: RecordId) -> RecordHistory: ...
     def select_current(self, query: SelectionQuery) -> object: ...
     def insert_projection(self, table_name: str, values: dict[str, object]) -> None: ...
     def projection_rows(
@@ -79,15 +79,17 @@ class SliceAAccessPolicy(Protocol):
         write: bool,
         source_version_id: RecordVersionId | None = None,
         source_family: str | None = None,
+        effective_at: datetime | None = None,
+        known_at: datetime | None = None,
+        configuration_id: RecordId | None = None,
     ) -> bool: ...
 
 
 class OperationalSliceAAccessPolicy:
     """Adapter to the current durable principal and software-access boundary."""
 
-    def __init__(self, store: OperationalStore, clock: Clock | None = None) -> None:
+    def __init__(self, store: OperationalStore) -> None:
         self._store = store
-        self._clock = clock or SystemClock()
 
     def authorize(
         self,
@@ -123,10 +125,11 @@ class OperationalSliceAAccessPolicy:
         if not visible:
             return False
         if source_version_id is not None:
+            if effective_at is None or known_at is None:
+                return False
             resolved_family = source_family or self._store.source_family(source_version_id)
             if resolved_family is None:
                 return False
-            now = self._clock.now()
             return self._store.source_access_allowed(
                 principal_id=principal_id,
                 action=action,
@@ -134,8 +137,8 @@ class OperationalSliceAAccessPolicy:
                 configuration_id=configuration_id,
                 source_version_id=source_version_id,
                 source_family=resolved_family,
-                effective_at=effective_at or now,
-                known_at=known_at or now,
+                effective_at=effective_at,
+                known_at=known_at,
             )
         return not write or self._store.permission_allowed(
             principal_id, Permission.COMMAND, action, ScopeType.CASE, case_id
@@ -555,6 +558,7 @@ class ResponsibilityWorkService:
         if source is None or source.family not in {
             "authority-record",
             "decision-authorization-basis",
+            "case-initiation-authority",
         }:
             raise SliceAConflict("ASSIGNMENT AUTHORITY SOURCE NOT ESTABLISHED")
         cls._require_exact_current(
@@ -564,16 +568,21 @@ class ResponsibilityWorkService:
             known_at=recorded_at,
             reason="ASSIGNMENT AUTHORITY SOURCE NOT CURRENT",
         )
-        content = json.loads(source.content_json)
-        authority = content.get("assignment_authority")
-        if not isinstance(authority, dict):
-            raise SliceAConflict("ASSIGNMENT AUTHORITY NOT ESTABLISHED")
         allowed_kinds = cls._json_string_set(
             row["allowed_obligation_kinds_json"], field="basis obligation kinds"
         )
         allowed_cases = cls._json_string_set(row["allowed_case_ids_json"], field="basis Cases")
         allowed_signatures = cls._json_string_set(
             row["allowed_signature_digests_json"], field="basis signatures"
+        )
+        authority = cls._assignment_authority(
+            transaction=transaction,
+            source=source,
+            command=command,
+            row=row,
+            allowed_kinds=allowed_kinds,
+            allowed_cases=allowed_cases,
+            allowed_signatures=allowed_signatures,
         )
         source_kinds = frozenset(cast(list[str], authority.get("allowed_obligation_kinds", [])))
         source_cases = frozenset(cast(list[str], authority.get("allowed_case_ids", [])))
@@ -655,6 +664,7 @@ class ResponsibilityWorkService:
         if source is None or source.family not in {
             "authority-record",
             "decision-authorization-basis",
+            "case-initiation-authority",
         }:
             raise SliceAConflict("ASSIGNMENT AUTHORITY SOURCE NOT ESTABLISHED")
         cls._require_exact_current(
@@ -664,7 +674,24 @@ class ResponsibilityWorkService:
             known_at=recorded_at,
             reason="ASSIGNMENT AUTHORITY SOURCE NOT CURRENT",
         )
-        source_authority = json.loads(source.content_json).get("assignment_authority")
+        allowed_kinds = cls._json_string_set(
+            basis_row["allowed_obligation_kinds_json"], field="basis obligation kinds"
+        )
+        allowed_cases = cls._json_string_set(
+            basis_row["allowed_case_ids_json"], field="basis Cases"
+        )
+        allowed_signatures = cls._json_string_set(
+            basis_row["allowed_signature_digests_json"], field="basis signatures"
+        )
+        source_authority = cls._assignment_authority(
+            transaction=transaction,
+            source=source,
+            command=command,
+            row=basis_row,
+            allowed_kinds=allowed_kinds,
+            allowed_cases=allowed_cases,
+            allowed_signatures=allowed_signatures,
+        )
         if not isinstance(source_authority, dict) or (
             source_authority.get("assigning_actor_id") != basis_row["assigning_actor_id"]
             or source_authority.get("context_digest") != basis_row["context_digest"]
@@ -680,15 +707,6 @@ class ResponsibilityWorkService:
         basis_from = cast(int, basis_row["effective_from_us"])
         basis_to = cast(int | None, basis_row["effective_to_us"])
         effective_us = to_epoch_microseconds(command.effective_at)
-        allowed_kinds = cls._json_string_set(
-            basis_row["allowed_obligation_kinds_json"], field="basis obligation kinds"
-        )
-        allowed_cases = cls._json_string_set(
-            basis_row["allowed_case_ids_json"], field="basis Cases"
-        )
-        allowed_signatures = cls._json_string_set(
-            basis_row["allowed_signature_digests_json"], field="basis signatures"
-        )
         if (
             basis_row["assigning_actor_id"] != command.actor_id
             or basis_row["owning_case_id"] != str(command.owning_case_id)
@@ -719,6 +737,101 @@ class ResponsibilityWorkService:
         )
         if active_count >= cast(int, basis_row["max_active_assignments"]):
             raise SliceAConflict("ASSIGNMENT BASIS ACTIVE-ASSIGNMENT LIMIT EXCEEDED")
+
+    @classmethod
+    def _assignment_authority(
+        cls,
+        *,
+        transaction: SliceATransaction,
+        source: FinalizedRecordVersion,
+        command: SliceACommand,
+        row: dict[str, object],
+        allowed_kinds: frozenset[str],
+        allowed_cases: frozenset[str],
+        allowed_signatures: frozenset[str],
+    ) -> dict[str, object]:
+        content = json.loads(source.content_json)
+        authority = content.get("assignment_authority")
+        if source.family != "case-initiation-authority":
+            if not isinstance(authority, dict):
+                raise SliceAConflict("ASSIGNMENT AUTHORITY NOT ESTABLISHED")
+            return cast("dict[str, object]", authority)
+
+        initiation = content.get("case_initiation_authority")
+        if not isinstance(initiation, dict):
+            raise SliceAConflict("CASE-INITIATION ASSIGNMENT AUTHORITY NOT ESTABLISHED")
+        members = {member.slot: member for member in command.context.members}
+        case_member = members.get("case")
+        configuration_member = members.get("configuration_version")
+        bounded_use_member = members.get("bounded_use")
+        prefixes = initiation.get("allowed_use_prefixes")
+        limits = initiation.get("initial_assignment_limits")
+        limit = initiation.get("initial_assignment_max_active")
+        exact_case = str(command.owning_case_id)
+        case_versions = tuple(
+            version
+            for version in transaction.get_history(command.owning_case_id).versions
+            if version.family == "prospective-case"
+        )
+        case_version = case_versions[0] if len(case_versions) == 1 else None
+        initiation_plan = (
+            case_version.content.get("case_initiation") if case_version is not None else None
+        )
+        if not isinstance(initiation_plan, dict):
+            raise SliceAConflict("EXACT CASE-INITIATION ASSIGNMENT PLAN NOT ESTABLISHED")
+        planned_responsibility = initiation_plan.get("responsibility_version_id")
+        planned_basis = initiation_plan.get("assignment_basis_version_id")
+        planned_assignment = initiation_plan.get("assignment_version_id")
+        plan_matches_command = (
+            command.family == "assignment-basis"
+            and str(command.version_id) == planned_basis
+            and command.content.get("responsibility_version_id") == planned_responsibility
+        ) or (
+            command.family == "responsibility-assignment"
+            and str(command.version_id) == planned_assignment
+            and command.content.get("responsibility_version_id") == planned_responsibility
+            and command.content.get("assignment_basis_version_id") == planned_basis
+        )
+        if (
+            initiation.get("authorized_actor_id") != command.actor_id
+            or initiation.get("permitted_acts") != ["CREATE_OPEN_CASE"]
+            or initiation.get("initial_responsibility")
+            != ObligationKind.DETERMINE_CASE_CONTINUITY.value
+            or initiation.get("downstream_authority_granted") is not False
+            or initiation_plan.get("authority_source_version_id") != str(source.version_id)
+            or not plan_matches_command
+            or not isinstance(prefixes, list)
+            or not all(isinstance(value, str) and value for value in prefixes)
+            or case_member is None
+            or case_member.kind.value != "RECORD"
+            or case_member.identity != exact_case
+            or configuration_member is None
+            or configuration_member.kind.value != "VERSION"
+            or bounded_use_member is None
+            or bounded_use_member.kind.value != "LITERAL"
+            or (
+                prefixes
+                and not any(bounded_use_member.identity.startswith(value) for value in prefixes)
+            )
+            or allowed_kinds != frozenset({ObligationKind.DETERMINE_CASE_CONTINUITY.value})
+            or allowed_cases != frozenset({exact_case})
+            or allowed_signatures
+            != frozenset({str(command.content.get("responsibility_signature"))})
+            or row.get("assigning_actor_id") != command.actor_id
+            or row.get("context_digest") != command.context.digest
+            or not isinstance(limits, dict)
+            or limit != 1
+        ):
+            raise SliceAConflict("CASE-INITIATION ASSIGNMENT AUTHORITY MISMATCH")
+        return {
+            "assigning_actor_id": command.actor_id,
+            "context_digest": command.context.digest,
+            "allowed_obligation_kinds": sorted(allowed_kinds),
+            "allowed_case_ids": sorted(allowed_cases),
+            "allowed_signature_digests": sorted(allowed_signatures),
+            "limits": limits,
+            "max_active_assignments": limit,
+        }
 
     def resolve_responsibility(
         self,

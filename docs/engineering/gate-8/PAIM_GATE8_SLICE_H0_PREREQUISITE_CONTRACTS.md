@@ -21,6 +21,12 @@ Configuration/designation, `OPEN` status, and the initial continuity Responsibil
 Basis, and assignment. Exact replay preserves the first identities. The mandate cannot authorize
 any post-Case substantive act.
 
+The initial Assignment Basis and Responsibility Assignment pass the same canonical Slice-A
+validators used by every other prospective assignment. The validators recognize the pre-Case
+mandate only for the exact initial `DETERMINE_CASE_CONTINUITY` obligation, derive no downstream
+authority, and reject any Actor, Case, context, signature, basis-source, or assignment/basis
+mismatch inside the atomic Case transaction.
+
 The prior exact Case-bound `open_case` path remains available for compatibility and retains its
 existing hard oracles. No legacy or prospective fact is backfilled or reinterpreted.
 
@@ -36,6 +42,12 @@ denied exact-source decision.
 prospective services. Non-source navigation and write behavior retain the existing bounded
 GLOBAL/CASE/CONFIGURATION model. Exact-source administration records software visibility only and
 cannot grant PAIM Responsibility or authority.
+
+Source-aware production reads must also supply their exact requested `effective_at` and `known_at`
+cutoffs. The adapter fails closed when either cutoff is absent; it never substitutes its current
+clock for a historical reconstruction. Practitioner composition, quantitative/review selection,
+prospective source validation, and then-versus-now reconstruction all forward their governing
+cutoffs explicitly.
 
 ## Persistence and compatibility
 
@@ -66,10 +78,10 @@ Slices A–G remain unchanged.
 ## Validation evidence
 
 - locked dependency graph: PASS (`uv lock --check`);
-- focused Slice-H0 hard oracles: PASS (8 tests);
-- accepted Slices A–G plus Slice H0: PASS (66 tests);
+- focused Slice-H0 hard oracles: PASS (14 tests);
+- accepted Slices A–G plus Slice H0: PASS (72 tests);
 - operational, recovery, practitioner-query, Increment-9, and migration assurance: PASS (56 tests);
-- complete repository suite: PASS (365 tests);
+- complete repository suite: PASS (371 tests);
 - Ruff format and lint: PASS;
 - strict mypy over `src/paim`: PASS (81 source files);
 - additive migration from an empty database and exact prior revision `0016`: PASS;

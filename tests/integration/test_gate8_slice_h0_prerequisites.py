@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from dataclasses import replace
 
 import pytest
@@ -23,7 +24,12 @@ from paim.integrity.semantics import (
 from paim.operational import AccessEffect, Permission, ScopeType, SourceAccessGrantInput
 from paim.operational.application import OperationalApplication
 from paim.practitioner_queries import PractitionerQueryService
-from paim.responsibility.service import OperationalSliceAAccessPolicy
+from paim.reconstruction import ReconstructionService
+from paim.responsibility.service import (
+    OperationalSliceAAccessPolicy,
+    ResponsibilityWorkService,
+    SliceAConflict,
+)
 from tests.helpers import utc
 from tests.web_support import WebFixture, grant
 
@@ -130,6 +136,92 @@ def test_minimal_case_initiation_is_atomic_exact_replay_and_grants_no_downstream
         assert source.content["case_initiation_authority"]["downstream_authority_granted"] is False  # type: ignore[index]
 
     assert len(outcome.version_ids) == 7
+
+
+@pytest.mark.parametrize(
+    ("validation_stage", "malformed_field"),
+    (
+        ("basis", "actor"),
+        ("basis", "owning_case"),
+        ("basis", "context"),
+        ("basis", "obligation_signature"),
+        ("basis", "basis_source"),
+        ("assignment", "assignment_basis"),
+    ),
+)
+def test_case_initiation_uses_canonical_assignment_validators_with_atomic_rejection(
+    web_fixture: WebFixture,
+    monkeypatch: pytest.MonkeyPatch,
+    validation_stage: str,
+    malformed_field: str,
+) -> None:
+    prepare_permissions(web_fixture)
+    service = CaseContinuityService(
+        web_fixture.operational.domain_store,
+        FixedClock(NOW),
+        OperationalSliceAAccessPolicy(web_fixture.operational.operational_store),
+    )
+    establish_authority(web_fixture, service)
+    before = web_fixture.operational.operational_store.table_counts(
+        (
+            "paim_cases",
+            "record_versions",
+            "responsibility_versions",
+            "assignment_basis_versions",
+            "responsibility_assignment_versions",
+            "idempotency_facts",
+        )
+    )
+
+    if validation_stage == "basis":
+        canonical = ResponsibilityWorkService.validate_assignment_basis
+
+        def malformed_basis(
+            transaction: object,
+            command: object,
+            row: dict[str, object],
+            recorded_at: object,
+        ) -> None:
+            malformed = dict(row)
+            if malformed_field == "actor":
+                malformed["assigning_actor_id"] = str(RecordId.new())
+            elif malformed_field == "owning_case":
+                malformed["owning_case_id"] = str(RecordId.new())
+            elif malformed_field == "context":
+                malformed["context_digest"] = "0" * 64
+            elif malformed_field == "obligation_signature":
+                malformed["allowed_signature_digests_json"] = json.dumps(["malformed"])
+            elif malformed_field == "basis_source":
+                malformed["basis_source_version_id"] = str(RecordVersionId.new())
+            canonical(transaction, command, malformed, recorded_at)  # type: ignore[arg-type]
+
+        monkeypatch.setattr(
+            ResponsibilityWorkService,
+            "validate_assignment_basis",
+            staticmethod(malformed_basis),
+        )
+    else:
+        canonical_assignment = ResponsibilityWorkService.validate_responsibility_assignment
+
+        def malformed_assignment(
+            transaction: object,
+            command: object,
+            row: dict[str, object],
+            recorded_at: object,
+        ) -> None:
+            malformed = dict(row)
+            malformed["assignment_basis_version_id"] = str(RecordVersionId.new())
+            canonical_assignment(transaction, command, malformed, recorded_at)  # type: ignore[arg-type]
+
+        monkeypatch.setattr(
+            ResponsibilityWorkService,
+            "validate_responsibility_assignment",
+            staticmethod(malformed_assignment),
+        )
+
+    with pytest.raises(SliceAConflict):
+        service.initiate_case(minimal(web_fixture.actor_id))
+    assert web_fixture.operational.operational_store.table_counts(tuple(before)) == before
 
 
 @pytest.mark.parametrize(
@@ -305,6 +397,8 @@ def test_production_source_access_is_exact_durable_and_composition_is_neutral(
             write=False,
             source_version_id=responsibility_version_id,
             source_family="responsibility",
+            effective_at=NOW,
+            known_at=NOW,
         )
         is False
     )
@@ -316,6 +410,8 @@ def test_production_source_access_is_exact_durable_and_composition_is_neutral(
         write=False,
         source_version_id=visible_case_version_id,
         source_family=None,
+        effective_at=NOW,
+        known_at=NOW,
     )
 
     with OperationalApplication(web_fixture.config, FixedClock(NOW)) as restarted:
@@ -346,6 +442,41 @@ def test_source_access_successor_is_dual_time_exact_and_family_bound(
     case_id = RecordId.parse(outcome.record_id)
     source_id = RecordVersionId.parse(outcome.version_ids[0])
     grant(web_fixture, Permission.CASE_READ, "read", ScopeType.CASE, case_id)
+    continuity_id = service.select_status(
+        principal_id=PRINCIPAL,
+        actor_id=web_fixture.actor_id,
+        case_id=case_id,
+        effective_at=NOW,
+        known_at=NOW,
+    ).version_ids[0]
+    with web_fixture.operational.domain_store.read_transaction() as tx:
+        designation = tx.projection_rows(
+            "governing_configuration_designations", case_id=str(case_id)
+        )[0]
+        designation_id = RecordVersionId.parse(str(designation["version_id"]))
+        configuration_id = RecordVersionId.parse(str(designation["configuration_version_id"]))
+        designation_source = tx.get_version(designation_id)
+        configuration_source = tx.get_version(configuration_id)
+        assert designation_source is not None
+        assert configuration_source is not None
+        continuity_row = tx.projection_rows(
+            "case_continuity_status_versions", version_id=str(continuity_id)
+        )[0]
+        assignment_id = RecordVersionId.parse(str(continuity_row["assignment_version_id"]))
+        assignment = tx.projection_rows(
+            "responsibility_assignment_versions", version_id=str(assignment_id)
+        )[0]
+        reconstruction_basis_ids = {
+            configuration_id,
+            RecordVersionId.parse(str(continuity_row["responsibility_version_id"])),
+            assignment_id,
+            RecordVersionId.parse(str(assignment["assignment_basis_version_id"])),
+            RecordVersionId.parse(str(continuity_row["authority_basis_version_id"])),
+        }
+        reconstruction_basis = tuple(
+            (version_id, tx.get_version(version_id)) for version_id in reconstruction_basis_ids
+        )
+        assert all(version is not None for _, version in reconstruction_basis)
     source = SourceAccessGrantInput(
         "source.read",
         case_id,
@@ -357,12 +488,62 @@ def test_source_access_successor_is_dual_time_exact_and_family_bound(
     web_fixture.operational.grant_source_access(
         web_fixture.admin_session, principal_id=PRINCIPAL, grant=source
     )
+    web_fixture.operational.grant_source_access(
+        web_fixture.admin_session,
+        principal_id=PRINCIPAL,
+        grant=SourceAccessGrantInput(
+            "source.read",
+            case_id,
+            continuity_id,
+            "case-continuity-status",
+            AccessEffect.ALLOW,
+            NOW,
+        ),
+    )
+    for basis_id, basis_source in reconstruction_basis:
+        assert basis_source is not None
+        web_fixture.operational.grant_source_access(
+            web_fixture.admin_session,
+            principal_id=PRINCIPAL,
+            grant=SourceAccessGrantInput(
+                "source.read",
+                case_id,
+                basis_id,
+                basis_source.family,
+                AccessEffect.ALLOW,
+                NOW,
+            ),
+        )
     later = utc(2026, 8, 26)
     web_fixture.operational.clock = FixedClock(later)
     web_fixture.operational.grant_source_access(
         web_fixture.admin_session,
         principal_id=PRINCIPAL,
         grant=replace(source, effect=AccessEffect.DENY, effective_from=later),
+    )
+    web_fixture.operational.grant_source_access(
+        web_fixture.admin_session,
+        principal_id=PRINCIPAL,
+        grant=SourceAccessGrantInput(
+            "source.read",
+            case_id,
+            continuity_id,
+            "case-continuity-status",
+            AccessEffect.DENY,
+            later,
+        ),
+    )
+    web_fixture.operational.grant_source_access(
+        web_fixture.admin_session,
+        principal_id=PRINCIPAL,
+        grant=SourceAccessGrantInput(
+            "source.read",
+            case_id,
+            designation_id,
+            designation_source.family,
+            AccessEffect.ALLOW,
+            NOW,
+        ),
     )
     store = web_fixture.operational.operational_store
     assert store.source_access_allowed(
@@ -392,3 +573,113 @@ def test_source_access_successor_is_dual_time_exact_and_family_bound(
         effective_at=NOW,
         known_at=NOW,
     )
+    assert not policy.authorize(
+        principal_id=PRINCIPAL,
+        actor_id=str(web_fixture.actor_id),
+        action="source.read",
+        case_id=case_id,
+        write=False,
+        source_version_id=source_id,
+        source_family="prospective-case",
+    )
+
+    queries = PractitionerQueryService(web_fixture.operational.domain_store, service, policy)
+    early = queries.case(
+        principal_id=PRINCIPAL,
+        actor_id=web_fixture.actor_id,
+        case_id=case_id,
+        effective_at=NOW,
+        known_at=NOW,
+    )
+    current = queries.case(
+        principal_id=PRINCIPAL,
+        actor_id=web_fixture.actor_id,
+        case_id=case_id,
+        effective_at=later,
+        known_at=later,
+    )
+    assert early.title.startswith("Harborlight Assist")
+    assert source_id in early.source_manifest.version_ids
+    assert continuity_id in early.source_manifest.version_ids
+    assert early.continuity_status is not None
+    assert early.continuity_status.value == "OPEN"
+    assert designation_id not in early.source_manifest.version_ids
+    assert early.governing_configuration_state.endswith("NOT SAFELY AVAILABLE")
+    assert current.title == "Bounded PAIM Case"
+    assert source_id not in current.source_manifest.version_ids
+    assert continuity_id not in current.source_manifest.version_ids
+    assert current.continuity_kind.value.endswith("NOT SAFELY AVAILABLE")
+    assert designation_id in current.source_manifest.version_ids
+    assert configuration_id in current.source_manifest.version_ids
+    assert current.governing_configuration_state == "ONE"
+
+    reconstruction = ReconstructionService(web_fixture.operational.domain_store, policy)
+    early_timeline = reconstruction.timeline(
+        principal_id=PRINCIPAL,
+        actor_id=web_fixture.actor_id,
+        case_id=case_id,
+        effective_at=NOW,
+        known_at=NOW,
+    )
+    current_timeline = reconstruction.timeline(
+        principal_id=PRINCIPAL,
+        actor_id=web_fixture.actor_id,
+        case_id=case_id,
+        effective_at=later,
+        known_at=later,
+    )
+    assert continuity_id in early_timeline.source_manifest.version_ids
+    assert designation_id not in early_timeline.source_manifest.version_ids
+    assert continuity_id not in current_timeline.source_manifest.version_ids
+    assert designation_id in current_timeline.source_manifest.version_ids
+    assert configuration_id in current_timeline.source_manifest.version_ids
+
+    with OperationalApplication(web_fixture.config, FixedClock(later)) as restarted:
+        restarted_policy = OperationalSliceAAccessPolicy(restarted.operational_store)
+        restarted_service = CaseContinuityService(
+            restarted.domain_store, FixedClock(later), restarted_policy
+        )
+        restarted_queries = PractitionerQueryService(
+            restarted.domain_store, restarted_service, restarted_policy
+        )
+        assert (
+            restarted_queries.case(
+                principal_id=PRINCIPAL,
+                actor_id=web_fixture.actor_id,
+                case_id=case_id,
+                effective_at=NOW,
+                known_at=NOW,
+            )
+            == early
+        )
+        assert (
+            restarted_queries.case(
+                principal_id=PRINCIPAL,
+                actor_id=web_fixture.actor_id,
+                case_id=case_id,
+                effective_at=later,
+                known_at=later,
+            )
+            == current
+        )
+        restarted_reconstruction = ReconstructionService(restarted.domain_store, restarted_policy)
+        assert (
+            restarted_reconstruction.timeline(
+                principal_id=PRINCIPAL,
+                actor_id=web_fixture.actor_id,
+                case_id=case_id,
+                effective_at=NOW,
+                known_at=NOW,
+            )
+            == early_timeline
+        )
+        assert (
+            restarted_reconstruction.timeline(
+                principal_id=PRINCIPAL,
+                actor_id=web_fixture.actor_id,
+                case_id=case_id,
+                effective_at=later,
+                known_at=later,
+            )
+            == current_timeline
+        )

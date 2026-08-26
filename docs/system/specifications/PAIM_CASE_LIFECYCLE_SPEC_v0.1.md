@@ -437,6 +437,13 @@ Assignment Basis binds the exact pre-Case mandate while its Case, context, oblig
 and Actor are made exact inside that same transaction. A practitioner supplies no generated IDs,
 context digest, Assignment Basis, predecessor, or transaction member.
 
+The resulting initial Assignment Basis and Responsibility Assignment remain subject to the
+canonical Responsibility validation contract. The pre-Case mandate is an allowed authority-source
+family only for this exact initial obligation; it does not bypass Actor, owning-Case, exact-context,
+obligation-signature, authority-source, Assignment-Basis, or assignment-coherence validation. Any
+malformed initial responsibility plan rejects the complete Case-initiation transaction with zero
+semantic mutation.
+
 Case-initiation authority grants no later Value, Risk, adequacy, reliance, Integration, Decision,
 review, closure, reopening, supersession, or other substantive authority. Those bases remain
 just-in-time and independently governed. Login, practical role, Case coordination, authorship,

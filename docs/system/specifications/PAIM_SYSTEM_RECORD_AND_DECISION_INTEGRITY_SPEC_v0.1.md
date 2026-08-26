@@ -643,6 +643,11 @@ to Case allow. Selection is deterministic at the requested effective/known bound
 stale, withdrawn, mismatched-family, mismatched-context, or denied source access returns the same
 bounded non-disclosing result and reveals no source existence.
 
+Every source-aware practitioner or reconstruction read supplies its requested `effective_at` and
+`known_at` boundary to source-access resolution. The production adapter must fail closed when
+either cutoff is absent and must never substitute its current clock for a historical query. A
+later allow or denial therefore cannot be projected backward into an earlier knowledge-time view.
+
 Filtering occurs before aggregation, selection explanation, counts, labels, ordering, action
 availability, timing, or manifests. A hidden source therefore cannot become false absence, false
 conflict, a request to redo hidden completed work, or a derived date/status clue. Commands still
