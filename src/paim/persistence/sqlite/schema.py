@@ -48,6 +48,12 @@ Index(
     record_versions.c.effective_to_us,
     record_versions.c.recorded_at_us,
 )
+Index(
+    "ix_versions_reconstruction_cutoff",
+    record_versions.c.recorded_at_us,
+    record_versions.c.effective_from_us,
+    record_versions.c.record_id,
+)
 
 status_events = Table(
     "status_events",
