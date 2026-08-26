@@ -12,7 +12,7 @@ from paim.assessment_review import (
     RelianceFacts,
 )
 from paim.continuing_review import ReviewConstraintOperator
-from paim.integrity import FixedClock, RecordVersionId
+from paim.integrity import FixedClock, RecordId, RecordVersionId
 from paim.prospective_decision import (
     AuthorizationFacts,
     AuthorizeDecisionCommand,
@@ -20,7 +20,12 @@ from paim.prospective_decision import (
     ProspectiveDecisionService,
     ReliedLaneBasis,
 )
-from paim.quantitative_claims import QuantitativeClaimType
+from paim.quantitative_claims import (
+    ComparabilityFacts,
+    ComparisonState,
+    QuantitativeClaimService,
+    QuantitativeClaimType,
+)
 from paim.reconstruction import ReconstructionService, ReconstructionState
 from paim.responsibility.models import ObligationKind
 from tests.integration.test_gate8_slice_b_case_continuity import RECORDED
@@ -59,6 +64,17 @@ from tests.integration.test_increment_2_foundation import (
     add_configuration,
     designate,
 )
+
+
+def _authorized_decision_id(store: object, case_id: RecordId) -> RecordVersionId:
+    with store.read_transaction() as tx:  # type: ignore[attr-defined]
+        rows = tuple(
+            row
+            for row in tx.projection_rows("prospective_decision_versions", case_id=str(case_id))
+            if row["status"] == "AUTHORIZED"
+        )
+    assert len(rows) == 1
+    return RecordVersionId.parse(str(rows[0]["version_id"]))
 
 
 def test_exact_decision_time_current_comparison_audit_and_timeline(
@@ -270,7 +286,11 @@ def test_optional_quantitative_change_requires_explicit_comparability_and_no_dec
     )
     observed = claim_command(fx, "slice-g-observed", QuantitativeClaimType.OBSERVED_RESULT, "24")
     fx.service.record_claim(expected)
-    fx.service.record_claim(observed)
+    later_claims = QuantitativeClaimService(
+        sqlite_store,  # type: ignore[arg-type]
+        FixedClock(KNOWN + timedelta(seconds=1)),
+        fx.access,
+    )
     comparison_basis = comparability_command(
         fx, expected.facts.version_id, observed.facts.version_id, "slice-g-comparable"
     )
@@ -289,8 +309,11 @@ def test_optional_quantitative_change_requires_explicit_comparability_and_no_dec
         case_id=fx.case_id,
         decision_version_id=decision_id,
         effective_at=NOW,
-        known_at=RECORDED + timedelta(seconds=10),
+        known_at=KNOWN,
     )
+    assert prior.quantitative_claims is not None
+    assert prior.quantitative_claims.version_ids == (expected.facts.version_id,)
+    later_claims.record_claim(observed)
     not_comparable = service.current_position(
         principal_id="principal:slice-c",
         actor_id=fx.actor_id,
@@ -304,9 +327,11 @@ def test_optional_quantitative_change_requires_explicit_comparability_and_no_dec
         if change.component == "quantitative_claims"
     )
     assert not unsupported_change.changed
+    assert unsupported_change.source_set_changed
     assert unsupported_change.quantitative_comparison_established is False
+    assert not unsupported_change.quantitative_pair_changes
 
-    fx.service.establish_comparability(comparison_basis)
+    later_claims.establish_comparability(comparison_basis)
     current = service.current_position(
         principal_id="principal:slice-c",
         actor_id=fx.actor_id,
@@ -315,8 +340,6 @@ def test_optional_quantitative_change_requires_explicit_comparability_and_no_dec
         known_at=KNOWN + timedelta(seconds=1),
     )
     assert prior.state is ReconstructionState.AVAILABLE
-    assert prior.quantitative_claims is not None
-    assert prior.quantitative_claims.state is ReconstructionState.ABSENT
     assert current.state is ReconstructionState.AVAILABLE, "|".join(
         f"{name}:{getattr(current, name).state}"
         for name in (
@@ -334,7 +357,6 @@ def test_optional_quantitative_change_requires_explicit_comparability_and_no_dec
     assert set(current.quantitative_claims.version_ids) == {
         expected.facts.version_id,
         observed.facts.version_id,
-        comparison_basis.facts.version_id,
     }
     delta = service.compare(prior, current)
     quantitative_change = next(
@@ -342,9 +364,225 @@ def test_optional_quantitative_change_requires_explicit_comparability_and_no_dec
     )
     assert quantitative_change.changed
     assert quantitative_change.quantitative_comparison_established is True
+    assert len(quantitative_change.quantitative_pair_changes) == 1
+    pair = quantitative_change.quantitative_pair_changes[0]
+    assert pair.left_claim_version_id == expected.facts.version_id
+    assert pair.right_claim_version_id == observed.facts.version_id
+    assert pair.comparability_version_id == comparison_basis.facts.version_id
+    assert pair.difference == "-6"
+    assert comparison_basis.facts.version_id in pair.source_manifest.version_ids
     assert not quantitative_change.decision_requirement_inferred
     assert not delta.decision_quality_inferred
     assert not delta.value_risk_netted
+
+    hidden_service = ReconstructionService(
+        sqlite_store,
+        SelectiveSourceAccess(frozenset({comparison_basis.facts.version_id})),
+    )
+    hidden_prior = hidden_service.decision_time_position(
+        principal_id="principal:slice-c",
+        actor_id=fx.actor_id,
+        case_id=fx.case_id,
+        decision_version_id=decision_id,
+        effective_at=NOW,
+        known_at=KNOWN,
+    )
+    hidden_current = hidden_service.current_position(
+        principal_id="principal:slice-c",
+        actor_id=fx.actor_id,
+        case_id=fx.case_id,
+        effective_at=NOW,
+        known_at=KNOWN + timedelta(seconds=1),
+    )
+    assert hidden_prior.state is hidden_current.state is ReconstructionState.AVAILABLE
+    hidden_change = next(
+        change
+        for change in hidden_service.compare(hidden_prior, hidden_current).changes
+        if change.component == "quantitative_claims"
+    )
+    assert hidden_change.source_set_changed
+    assert not hidden_change.changed
+    assert not hidden_change.quantitative_comparison_established
+    assert not hidden_change.quantitative_pair_changes
+    assert comparison_basis.facts.version_id not in hidden_current.source_manifest.version_ids
+
+    successor = replace(
+        comparison_basis,
+        identity=identity(fx.actor_id, "slice-g-not-comparable-successor"),
+        facts=ComparabilityFacts(
+            comparison_basis.facts.record_id,
+            RecordVersionId.new(),
+        ),
+        outcome=ComparisonState.NOT_COMPARABLE,
+        rationale="Later accountable review rejects exact substantive comparability.",
+        expected_current_version_id=comparison_basis.facts.version_id,
+        knowledge_cutoff=KNOWN + timedelta(seconds=2),
+    )
+    QuantitativeClaimService(
+        sqlite_store,  # type: ignore[arg-type]
+        FixedClock(KNOWN + timedelta(seconds=2)),
+        fx.access,
+    ).establish_comparability(successor)
+    later_current = service.current_position(
+        principal_id="principal:slice-c",
+        actor_id=fx.actor_id,
+        case_id=fx.case_id,
+        effective_at=NOW,
+        known_at=KNOWN + timedelta(seconds=2),
+    )
+    stale_change = next(
+        change
+        for change in service.compare(prior, later_current).changes
+        if change.component == "quantitative_claims"
+    )
+    assert stale_change.source_set_changed
+    assert not stale_change.changed
+    assert not stale_change.quantitative_pair_changes
+
+
+def test_unrelated_quantitative_comparability_never_authorizes_another_pair(
+    sqlite_store: object,
+) -> None:
+    fx, _assessment_id, _episode_id, _unrelated_id = review_linked_fixture(
+        sqlite_store, "slice-g-unrelated-quantitative"
+    )
+    target_expected = claim_command(
+        fx,
+        "slice-g-target-expected",
+        QuantitativeClaimType.ESTIMATE_EXPECTATION,
+        "30",
+        metric="target-metric",
+    )
+    other_expected = claim_command(
+        fx,
+        "slice-g-other-expected",
+        QuantitativeClaimType.ESTIMATE_EXPECTATION,
+        "20",
+        metric="other-metric",
+    )
+    fx.service.record_claim(target_expected)
+    fx.service.record_claim(other_expected)
+    service = ReconstructionService(sqlite_store, fx.access)  # type: ignore[arg-type]
+    decision_id = _authorized_decision_id(sqlite_store, fx.case_id)
+    prior = service.decision_time_position(
+        principal_id="principal:slice-c",
+        actor_id=fx.actor_id,
+        case_id=fx.case_id,
+        decision_version_id=decision_id,
+        effective_at=NOW,
+        known_at=KNOWN,
+    )
+
+    target_observed = claim_command(
+        fx,
+        "slice-g-target-observed",
+        QuantitativeClaimType.OBSERVED_RESULT,
+        "24",
+        metric="target-metric",
+    )
+    other_observed = claim_command(
+        fx,
+        "slice-g-other-observed",
+        QuantitativeClaimType.OBSERVED_RESULT,
+        "19",
+        metric="other-metric",
+    )
+    later = QuantitativeClaimService(
+        sqlite_store,  # type: ignore[arg-type]
+        FixedClock(KNOWN + timedelta(seconds=1)),
+        fx.access,
+    )
+    later.record_claim(target_observed)
+    later.record_claim(other_observed)
+    unrelated_basis = comparability_command(
+        fx,
+        other_expected.facts.version_id,
+        other_observed.facts.version_id,
+        "slice-g-only-other-pair-comparable",
+    )
+    later.establish_comparability(unrelated_basis)
+    current = service.current_position(
+        principal_id="principal:slice-c",
+        actor_id=fx.actor_id,
+        case_id=fx.case_id,
+        effective_at=NOW,
+        known_at=KNOWN + timedelta(seconds=1),
+    )
+    change = next(
+        item
+        for item in service.compare(prior, current).changes
+        if item.component == "quantitative_claims"
+    )
+    pairs = {
+        (item.left_claim_version_id, item.right_claim_version_id)
+        for item in change.quantitative_pair_changes
+    }
+    assert pairs == {(other_expected.facts.version_id, other_observed.facts.version_id)}
+    assert (
+        target_expected.facts.version_id,
+        target_observed.facts.version_id,
+    ) not in pairs
+
+
+def test_reversed_then_now_claim_orientation_does_not_authorize_quantitative_change(
+    sqlite_store: object,
+) -> None:
+    fx, _assessment_id, _episode_id, _unrelated_id = review_linked_fixture(
+        sqlite_store, "slice-g-reversed-quantitative"
+    )
+    observed_then = claim_command(
+        fx,
+        "slice-g-observed-then",
+        QuantitativeClaimType.OBSERVED_RESULT,
+        "24",
+    )
+    fx.service.record_claim(observed_then)
+    service = ReconstructionService(sqlite_store, fx.access)  # type: ignore[arg-type]
+    decision_id = _authorized_decision_id(sqlite_store, fx.case_id)
+    prior = service.decision_time_position(
+        principal_id="principal:slice-c",
+        actor_id=fx.actor_id,
+        case_id=fx.case_id,
+        decision_version_id=decision_id,
+        effective_at=NOW,
+        known_at=KNOWN,
+    )
+
+    expected_now = claim_command(
+        fx,
+        "slice-g-expected-now",
+        QuantitativeClaimType.ESTIMATE_EXPECTATION,
+        "30",
+    )
+    later = QuantitativeClaimService(
+        sqlite_store,  # type: ignore[arg-type]
+        FixedClock(KNOWN + timedelta(seconds=1)),
+        fx.access,
+    )
+    later.record_claim(expected_now)
+    orientation_basis = comparability_command(
+        fx,
+        expected_now.facts.version_id,
+        observed_then.facts.version_id,
+        "slice-g-forward-orientation-only",
+    )
+    later.establish_comparability(orientation_basis)
+    current = service.current_position(
+        principal_id="principal:slice-c",
+        actor_id=fx.actor_id,
+        case_id=fx.case_id,
+        effective_at=NOW,
+        known_at=KNOWN + timedelta(seconds=1),
+    )
+    change = next(
+        item
+        for item in service.compare(prior, current).changes
+        if item.component == "quantitative_claims"
+    )
+    assert change.source_set_changed
+    assert not change.changed
+    assert not change.quantitative_comparison_established
+    assert not change.quantitative_pair_changes
 
 
 def test_each_decision_basis_source_is_required_but_unrelated_hidden_source_is_not(

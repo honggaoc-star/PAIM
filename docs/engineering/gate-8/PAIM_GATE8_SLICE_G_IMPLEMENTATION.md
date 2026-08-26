@@ -48,7 +48,11 @@ changed. It never says the later state is better or worse, attributes cause, jud
 quality, requires a successor Decision, nets Value and Risk, or creates retrospective attention.
 Optional quantitative history includes explicit comparability Versions; numeric differences remain
 governed by the Slice-F comparison contract. A differing quantitative source set is not reported
-as a quantitative change unless an explicit visible Slice-F comparability basis is established.
+as a quantitative change unless the exact historical-claim/current-claim pair passes the Slice-F
+orientation, mechanical-compatibility, currentness, knowledge-cutoff, substantive-comparability,
+and complete-source-access contract. An unrelated, reversed, stale, superseded, not-comparable, or
+hidden comparability basis cannot authorize a pair result. The non-substantive fact that the visible
+claim source set differs remains separate from a comparable quantitative change.
 
 ## Timeline, narrative, and provenance
 

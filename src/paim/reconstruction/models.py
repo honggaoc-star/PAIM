@@ -76,6 +76,19 @@ class ManagementPosition:
     responsibility_work: PositionComponent | None
     source_manifest: SourceManifest
     authoritative_master_status_persisted: bool = False
+    reader_principal_id: str = ""
+    reader_actor_id: RecordId | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class QuantitativePairChange:
+    left_claim_version_id: RecordVersionId
+    right_claim_version_id: RecordVersionId
+    comparability_version_id: RecordVersionId
+    difference: str | None
+    ratio: str | None
+    percentage_change: str | None
+    source_manifest: SourceManifest
 
 
 @dataclass(frozen=True, slots=True)
@@ -84,10 +97,12 @@ class PositionChange:
     prior_version_ids: tuple[RecordVersionId, ...]
     current_version_ids: tuple[RecordVersionId, ...]
     changed: bool
+    source_set_changed: bool = False
     better_or_worse_inferred: bool = False
     causality_inferred: bool = False
     decision_requirement_inferred: bool = False
     quantitative_comparison_established: bool | None = None
+    quantitative_pair_changes: tuple[QuantitativePairChange, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)

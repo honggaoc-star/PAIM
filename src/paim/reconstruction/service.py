@@ -15,7 +15,13 @@ from paim.case_continuity.service import (
 from paim.integrity.ids import RecordId, RecordVersionId
 from paim.integrity.records import FinalizedRecordVersion
 from paim.integrity.selection import SelectionConflict, SelectionFound, SelectionQuery
-from paim.integrity.time import require_utc
+from paim.integrity.time import FixedClock, require_utc
+from paim.quantitative_claims import (
+    ComparisonState,
+    QuantitativeClaimAccessDenied,
+    QuantitativeClaimConflict,
+    QuantitativeClaimService,
+)
 from paim.reconstruction.models import (
     CaseHistoryView,
     CaseTimeline,
@@ -24,6 +30,7 @@ from paim.reconstruction.models import (
     ManagementPosition,
     PositionChange,
     PositionComponent,
+    QuantitativePairChange,
     ReconstructionState,
     SourceManifest,
     SourceReference,
@@ -365,6 +372,8 @@ class ReconstructionService:
                 quantitative,
                 responsibility_work,
                 self._manifest(tx, manifest_ids, effective_at, known_at),
+                reader_principal_id=principal_id,
+                reader_actor_id=actor_id,
             )
 
     def compare(self, prior: ManagementPosition, current: ManagementPosition) -> ThenNowComparison:
@@ -372,7 +381,15 @@ class ReconstructionService:
 
         if prior.case_id != current.case_id:
             raise ValueError("then-versus-now positions must belong to the same Case")
-        if prior.state is ReconstructionState.MALFORMED:
+        same_reader = (
+            bool(prior.reader_principal_id)
+            and prior.reader_principal_id == current.reader_principal_id
+            and prior.reader_actor_id is not None
+            and prior.reader_actor_id == current.reader_actor_id
+        )
+        if not same_reader:
+            state = ReconstructionState.NOT_SAFELY_AVAILABLE
+        elif prior.state is ReconstructionState.MALFORMED:
             state = ReconstructionState.MALFORMED
         elif (
             prior.state is not ReconstructionState.AVAILABLE
@@ -404,14 +421,17 @@ class ReconstructionService:
             prior_ids = self._component_ids(prior, name)
             current_ids = self._component_ids(current, name)
             if name == "quantitative_claims":
-                comparable = self._quantitative_comparison_established(prior, current)
+                pair_changes = self._quantitative_pair_changes(prior, current)
+                source_set_changed = prior_ids != current_ids
                 changes.append(
                     PositionChange(
                         name,
                         prior_ids,
                         current_ids,
-                        prior_ids != current_ids and comparable,
-                        quantitative_comparison_established=comparable,
+                        source_set_changed and bool(pair_changes),
+                        source_set_changed=source_set_changed,
+                        quantitative_comparison_established=bool(pair_changes),
+                        quantitative_pair_changes=pair_changes,
                     )
                 )
             else:
@@ -425,15 +445,88 @@ class ReconstructionService:
             current.source_manifest,
         )
 
-    @staticmethod
-    def _quantitative_comparison_established(
-        prior: ManagementPosition, current: ManagementPosition
-    ) -> bool:
-        return any(
-            source.family == "quantitative-comparability"
-            for position in (prior, current)
-            for source in position.source_manifest.sources
+    def _quantitative_pair_changes(
+        self, prior: ManagementPosition, current: ManagementPosition
+    ) -> tuple[QuantitativePairChange, ...]:
+        """Reuse Slice-F exact pair comparison at the current side's explicit cutoff."""
+
+        principal_id = current.reader_principal_id
+        actor_id = current.reader_actor_id
+        if not principal_id or actor_id is None:
+            return ()
+        prior_ids = self._quantitative_claim_ids(prior)
+        current_ids = self._quantitative_claim_ids(current)
+        if not prior_ids or not current_ids:
+            return ()
+        quantitative = QuantitativeClaimService(
+            self._store,
+            FixedClock(current.known_at),
+            self._access,
         )
+        results: list[QuantitativePairChange] = []
+        for left_id in prior_ids:
+            for right_id in current_ids:
+                if left_id == right_id:
+                    continue
+                try:
+                    comparison = quantitative.compare(
+                        principal_id=principal_id,
+                        actor_id=actor_id,
+                        case_id=current.case_id,
+                        left_claim_version_id=left_id,
+                        right_claim_version_id=right_id,
+                        effective_at=current.effective_at,
+                        known_at=current.known_at,
+                    )
+                except (QuantitativeClaimAccessDenied, QuantitativeClaimConflict):
+                    continue
+                if (
+                    comparison.state is not ComparisonState.COMPARABLE
+                    or comparison.comparability_version_id is None
+                ):
+                    continue
+                with self._store.read_transaction() as tx:
+                    closure = self._source_closure(tx, comparison.comparability_version_id)
+                    if closure is None or not self._closure_knowable(tx, closure, current.known_at):
+                        continue
+                    if not self._closure_visible(
+                        tx, principal_id, actor_id, current.case_id, closure
+                    ):
+                        continue
+                    manifest = self._manifest(tx, closure, current.effective_at, current.known_at)
+                results.append(
+                    QuantitativePairChange(
+                        left_id,
+                        right_id,
+                        comparison.comparability_version_id,
+                        comparison.difference,
+                        comparison.ratio,
+                        comparison.percentage_change,
+                        manifest,
+                    )
+                )
+        return tuple(
+            sorted(
+                results,
+                key=lambda result: (
+                    str(result.left_claim_version_id),
+                    str(result.right_claim_version_id),
+                    str(result.comparability_version_id),
+                ),
+            )
+        )
+
+    @staticmethod
+    def _quantitative_claim_ids(position: ManagementPosition) -> tuple[RecordVersionId, ...]:
+        if position.quantitative_claims is None:
+            return ()
+        claim_ids = {
+            source.version_id
+            for source in position.quantitative_claims.source_manifest.sources
+            if source.family == "quantitative-claim"
+            and source.version_id in position.quantitative_claims.version_ids
+        }
+        return tuple(sorted(claim_ids, key=str))
 
     def decision_audit(
         self,
@@ -744,6 +837,8 @@ class ReconstructionService:
             quantitative,
             responsibility_work,
             self._manifest(tx, manifest_ids, effective_at, known_at),
+            reader_principal_id=principal_id,
+            reader_actor_id=actor_id,
         )
 
     def _current_component(
@@ -966,10 +1061,7 @@ class ReconstructionService:
     ) -> PositionComponent:
         ids: set[RecordVersionId] = set()
         conflict = False
-        for family, table in (
-            ("quantitative-claim", "quantitative_claim_versions"),
-            ("quantitative-comparability", "quantitative_comparability_versions"),
-        ):
+        for family, table in (("quantitative-claim", "quantitative_claim_versions"),):
             filters: dict[str, object] = {"case_id": str(case_id)}
             if configuration_version_id is not None:
                 filters["configuration_version_id"] = str(configuration_version_id)
@@ -1533,7 +1625,7 @@ class ReconstructionService:
         prior: tuple[RecordVersionId, ...],
         current: tuple[RecordVersionId, ...],
     ) -> PositionChange:
-        return PositionChange(name, prior, current, prior != current)
+        return PositionChange(name, prior, current, prior != current, prior != current)
 
     @staticmethod
     def _component_ids(position: ManagementPosition, name: str) -> tuple[RecordVersionId, ...]:
