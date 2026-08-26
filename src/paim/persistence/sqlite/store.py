@@ -252,6 +252,7 @@ _PROSPECTIVE_PROJECTION_TABLES = frozenset(
         "case_continuity_determination_versions",
         "case_continuity_relationships",
         "configuration_continuity_links",
+        "case_initiation_authority_versions",
         "assessment_candidate_records",
         "assessment_candidate_versions",
         "assessment_readiness_records",

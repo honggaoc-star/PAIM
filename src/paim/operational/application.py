@@ -74,6 +74,7 @@ from paim.operational.models import (
     Permission,
     PrincipalStatus,
     ScopeType,
+    SourceAccessGrantInput,
     UnsupportedCapability,
 )
 from paim.operational.recovery import create_backup, health_report, restore_backup
@@ -243,6 +244,56 @@ class OperationalApplication:
                 "scope_id": str(grant.scope_id) if grant.scope_id else None,
                 "effect": grant.effect.value,
             },
+        )
+
+    def grant_source_access(
+        self,
+        session: AuthenticatedSession,
+        *,
+        principal_id: str,
+        grant: SourceAccessGrantInput,
+    ) -> None:
+        """Append exact-source visibility without conferring substantive authority."""
+
+        self._require(session, Permission.OPERATIONAL_ADMIN, "source-access.manage")
+        if not self.operational_store.principal_exists(principal_id):
+            raise ValueError("access subject principal is not established")
+        with self.domain_store.read_transaction() as transaction:
+            source = transaction.get_version(grant.source_version_id)
+        if source is None or source.family != grant.source_family:
+            raise ValueError("exact source context is not established")
+        if grant.case_id not in self.operational_store.all_case_ids():
+            raise ValueError("source-access Case is not established")
+        if grant.configuration_id is not None and (
+            self.operational_store.configuration_case(grant.configuration_id) != grant.case_id
+        ):
+            raise ValueError("source-access Configuration is not in the exact Case")
+        self.operational_store.add_source_access_grant(
+            grant_id=str(RecordId.new()),
+            principal_id=principal_id,
+            value=grant,
+            recorded_at=self.clock.now(),
+            recorded_by=session.principal_id,
+        )
+        self._audit_session(
+            session,
+            category="ADMIN",
+            outcome="SUCCESS",
+            action="source-access.manage",
+            reason="SOURCE_ACCESS_FACT_APPENDED",
+            details={
+                "subject_principal": principal_id,
+                "action": grant.action,
+                "case_id": str(grant.case_id),
+                "configuration_id": (
+                    str(grant.configuration_id) if grant.configuration_id else None
+                ),
+                "source_version_id": str(grant.source_version_id),
+                "source_family": grant.source_family,
+                "effect": grant.effect.value,
+            },
+            case_id=grant.case_id,
+            configuration_id=grant.configuration_id,
         )
 
     def authenticate(

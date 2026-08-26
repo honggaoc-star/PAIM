@@ -1,6 +1,8 @@
 """Prospective continuing Case capability."""
 
 from paim.case_continuity.models import (
+    CaseInitiationAuthorityCommand,
+    CaseInitiationAuthorityState,
     ClosureGuardManifest,
     CommandIdentity,
     ConfigurationSuccessorCommand,
@@ -11,6 +13,7 @@ from paim.case_continuity.models import (
     DeterminationKind,
     DeterminationOutcome,
     LegacyLifecycleView,
+    MinimalOpenCaseCommand,
     OpenCaseCommand,
     OpeningFacts,
     TransitionCaseCommand,
@@ -26,6 +29,8 @@ __all__ = [
     "CaseContinuityAccessDenied",
     "CaseContinuityConflict",
     "CaseContinuityService",
+    "CaseInitiationAuthorityCommand",
+    "CaseInitiationAuthorityState",
     "ClosureGuardManifest",
     "CommandIdentity",
     "ConfigurationSuccessorCommand",
@@ -36,6 +41,7 @@ __all__ = [
     "DeterminationKind",
     "DeterminationOutcome",
     "LegacyLifecycleView",
+    "MinimalOpenCaseCommand",
     "OpenCaseCommand",
     "OpeningFacts",
     "TransitionCaseCommand",

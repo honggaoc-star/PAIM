@@ -418,6 +418,34 @@ causes prospective revalidation; it does not retarget an Assessment, Responsibil
 Adequacy Determination, or Reliance Designation. `CLOSED`/`SUPERSEDED` behavior remains governed by
 Gate 3.
 
+### 3A.17 Pre-Case initiation authority
+
+A prospective Case may be opened from a minimal practitioner request only through one exact,
+current **Case-initiation authority** Version that already exists before the Case. This source is
+an externally grounded organizational mandate, not a Case-specific authority fabricated in
+anticipation of a generated Case identity. It preserves the authorized Actor, bounded
+organizational/local scope, permitted act `CREATE_OPEN_CASE`, any allowed management-use
+constraints, authoritative provenance, effective and recorded time, immutable succession or
+withdrawal history, and its exact Semantic Contract/context.
+
+The natural Case-initiation command validates software create access and exactly one eligible
+Case-initiation authority, then generates the Case and initial context identities internally. In
+one semantic transaction it appends the Case, initial governing Configuration and designation,
+`OPEN` continuity fact, and only the minimum `DETERMINE_CASE_CONTINUITY` Responsibility,
+Assignment Basis, and Responsibility Assignment needed to coordinate the new Case. The resulting
+Assignment Basis binds the exact pre-Case mandate while its Case, context, obligation signature,
+and Actor are made exact inside that same transaction. A practitioner supplies no generated IDs,
+context digest, Assignment Basis, predecessor, or transaction member.
+
+Case-initiation authority grants no later Value, Risk, adequacy, reliance, Integration, Decision,
+review, closure, reopening, supersession, or other substantive authority. Those bases remain
+just-in-time and independently governed. Login, practical role, Case coordination, authorship,
+software create permission, Decision authority, or assessment authority cannot substitute for the
+initiation mandate. Absent, plural, stale, withdrawn, inaccessible, Actor-mismatched, or
+out-of-scope initiation authority rejects the natural command with zero semantic mutation. Exact
+replay returns the original identities; changed management-use or other material payload is an
+idempotency conflict.
+
 ## 4. State: OPEN
 
 ### Meaning

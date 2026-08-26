@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import cast
 
+from paim.case_continuity.models import ContinuitySelectionKind
 from paim.case_continuity.service import (
     CaseContinuityAccessDenied,
     CaseContinuityService,
@@ -113,10 +114,24 @@ class PractitionerQueryService:
                 tx, "prospective-case", f"case:{case_id}", effective_at, known_at
             )
             title = "Bounded PAIM Case"
-            manifest: set[RecordVersionId] = set(continuity.version_ids)
+            manifest: set[RecordVersionId] = set()
+            continuity_visible = all(
+                self._source_visible(tx, principal_id, actor_id, case_id, value)
+                for value in continuity.version_ids
+            )
+            continuity_kind = (
+                continuity.kind
+                if continuity_visible
+                else ContinuitySelectionKind.NOT_SAFELY_AVAILABLE
+            )
+            continuity_status = continuity.status if continuity_visible else None
+            if continuity_visible:
+                manifest.update(continuity.version_ids)
             if len(case_versions) == 1:
                 source = tx.get_version(case_versions[0])
-                if source is not None:
+                if source is not None and self._source_visible(
+                    tx, principal_id, actor_id, case_id, source.version_id
+                ):
                     title = cast(str, source.content.get("title", title))
                     manifest.add(source.version_id)
             governing = self._current_family(
@@ -129,16 +144,43 @@ class PractitionerQueryService:
                     "governing_configuration_designations", version_id=str(governing[0])
                 )
                 if len(rows) == 1:
-                    governing_id = RecordVersionId.parse(str(rows[0]["configuration_version_id"]))
-                    governing_state = "ONE"
-                    manifest.update((governing[0], governing_id))
+                    candidate_id = RecordVersionId.parse(str(rows[0]["configuration_version_id"]))
+                    if all(
+                        self._source_visible(tx, principal_id, actor_id, case_id, value)
+                        for value in (governing[0], candidate_id)
+                    ):
+                        governing_id = candidate_id
+                        governing_state = "ONE"
+                        manifest.update((governing[0], governing_id))
+                    else:
+                        governing_state = "GOVERNING CONFIGURATION STATUS NOT SAFELY AVAILABLE"
             elif len(governing) > 1:
-                governing_state = "GOVERNING CONFIGURATION CONFLICT — UNRESOLVED"
-                manifest.update(governing)
+                if all(
+                    self._source_visible(tx, principal_id, actor_id, case_id, value)
+                    for value in governing
+                ):
+                    governing_state = "GOVERNING CONFIGURATION CONFLICT — UNRESOLVED"
+                    manifest.update(governing)
+                else:
+                    governing_state = "GOVERNING CONFIGURATION STATUS NOT SAFELY AVAILABLE"
+            all_responsibilities = self._latest_rows(
+                tx,
+                tx.projection_rows("responsibility_versions", owning_case_id=str(case_id)),
+                effective_at,
+                known_at,
+            )
+            all_work = self._latest_rows(
+                tx,
+                tx.projection_rows("case_work_versions", owning_case_id=str(case_id)),
+                effective_at,
+                known_at,
+            )
             responsibilities = self._current_responsibilities(
                 tx, principal_id, actor_id, case_id, effective_at, known_at
             )
             work = self._current_work(tx, principal_id, actor_id, case_id, effective_at, known_at)
+            responsibility_hidden = len(responsibilities) != len(all_responsibilities)
+            work_hidden = len(work) != len(all_work)
             value_position = self._lane_position(
                 tx,
                 principal_id,
@@ -191,28 +233,40 @@ class PractitionerQueryService:
                 manifest.update(review_position.source_version_ids)
             position = (
                 "Case continuity: "
-                f"{continuity.status.value if continuity.status else continuity.kind.value}",
+                f"{continuity_status.value if continuity_status else continuity_kind.value}",
                 f"Governing configuration: {governing_state}",
-                f"Responsibilities: {len(responsibilities)} visible exact source(s)",
-                f"Durable work: {len(work)} visible exact source(s)",
+                (
+                    "Responsibilities: status not safely available"
+                    if responsibility_hidden
+                    else f"Responsibilities: {len(responsibilities)} visible exact source(s)"
+                ),
+                (
+                    "Durable work: status not safely available"
+                    if work_hidden
+                    else f"Durable work: {len(work)} visible exact source(s)"
+                ),
             )
             return CaseView(
                 case_id,
                 title,
-                continuity.kind,
-                continuity.status,
+                continuity_kind,
+                continuity_status,
                 governing_id,
                 governing_state,
-                self._responsibility_state(
-                    tx,
-                    principal_id,
-                    actor_id,
-                    case_id,
-                    responsibilities,
-                    effective_at,
-                    known_at,
+                (
+                    "RESPONSIBILITY STATUS NOT SAFELY AVAILABLE"
+                    if responsibility_hidden
+                    else self._responsibility_state(
+                        tx,
+                        principal_id,
+                        actor_id,
+                        case_id,
+                        responsibilities,
+                        effective_at,
+                        known_at,
+                    )
                 ),
-                self._work_state(work),
+                "WORK STATUS NOT SAFELY AVAILABLE" if work_hidden else self._work_state(work),
                 position,
                 SourceManifest(tuple(sorted(manifest, key=str)), effective_at, known_at),
                 value_position=value_position,

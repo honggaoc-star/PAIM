@@ -7,7 +7,7 @@ from datetime import datetime
 from enum import StrEnum
 from pathlib import Path
 
-from paim.integrity import RecordId, require_utc
+from paim.integrity import RecordId, RecordVersionId, require_utc
 from paim.integrity.records import JsonValue
 
 
@@ -154,8 +154,31 @@ class AccessGrantInput:
     permission: Permission
     action: str
     scope_type: ScopeType
-    scope_id: RecordId | None
+    scope_id: RecordId | RecordVersionId | None
     effect: AccessEffect
+
+
+@dataclass(frozen=True, slots=True)
+class SourceAccessGrantInput:
+    """One durable exact-source visibility fact; never substantive authority."""
+
+    action: str
+    case_id: RecordId
+    source_version_id: RecordVersionId
+    source_family: str
+    effect: AccessEffect
+    effective_from: datetime
+    effective_to: datetime | None = None
+    configuration_id: RecordId | None = None
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "effective_from", require_utc(self.effective_from))
+        if self.effective_to is not None:
+            object.__setattr__(self, "effective_to", require_utc(self.effective_to))
+            if self.effective_to <= self.effective_from:
+                raise ValueError("source-access effective end must follow its start")
+        if not self.action.strip() or not self.source_family.strip():
+            raise ValueError("source-access action and family are required")
 
 
 @dataclass(frozen=True, slots=True)

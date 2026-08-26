@@ -40,6 +40,7 @@ class ContinuitySelectionKind(StrEnum):
     ONE = "ONE"
     ABSENT = "CASE CONTINUITY STATUS NOT ESTABLISHED"
     CONFLICT = "CASE CONTINUITY STATUS CONFLICT — UNRESOLVED"
+    NOT_SAFELY_AVAILABLE = "CASE CONTINUITY STATUS NOT SAFELY AVAILABLE"
 
 
 @dataclass(frozen=True, slots=True)
@@ -129,6 +130,7 @@ class OpenCaseCommand:
     assignment_authority_source_version_id: RecordVersionId
     effective_at: datetime
     knowledge_cutoff: datetime
+    initiation_scope: str | None = None
 
     def __post_init__(self) -> None:
         require_utc(self.effective_at)
@@ -139,6 +141,67 @@ class OpenCaseCommand:
             or not self.management_question.strip()
         ):
             raise ValueError("Case title, bounded use, and management question are required")
+
+
+class CaseInitiationAuthorityState(StrEnum):
+    ACTIVE = "ACTIVE"
+    WITHDRAWN = "WITHDRAWN"
+
+
+@dataclass(frozen=True, slots=True)
+class CaseInitiationAuthorityCommand:
+    """Record an externally grounded organizational mandate before a Case exists."""
+
+    identity: CommandIdentity
+    record_id: RecordId
+    version_id: RecordVersionId
+    authorized_actor_id: RecordId
+    organization_scope: str
+    allowed_use_prefixes: tuple[str, ...]
+    provenance: dict[str, JsonValue]
+    state: CaseInitiationAuthorityState
+    effective_at: datetime
+    contract: SemanticContractRef
+    context: ExactContextSet
+    expected_version_id: RecordVersionId | None = None
+
+    def __post_init__(self) -> None:
+        require_utc(self.effective_at)
+        if not self.organization_scope.strip() or not self.provenance:
+            raise ValueError("organizational scope and authoritative provenance are required")
+        if any(not value.strip() for value in self.allowed_use_prefixes):
+            raise ValueError("allowed management-use prefixes must be non-empty")
+
+
+@dataclass(frozen=True, slots=True)
+class MinimalOpenCaseCommand:
+    """Natural practitioner request; all PAIM identities are generated internally."""
+
+    identity: CommandIdentity
+    contract: SemanticContractRef
+    organization_scope: str
+    title: str
+    bounded_use: str
+    management_question: str
+    configuration_content: dict[str, JsonValue]
+    configuration_maturity: str
+    configuration_purpose: str
+    effective_at: datetime
+    knowledge_cutoff: datetime
+
+    def __post_init__(self) -> None:
+        require_utc(self.effective_at)
+        require_utc(self.knowledge_cutoff)
+        if not all(
+            value.strip()
+            for value in (
+                self.organization_scope,
+                self.title,
+                self.bounded_use,
+                self.management_question,
+            )
+        ):
+            raise ValueError("minimal Case initiation fields are required")
 
 
 @dataclass(frozen=True, slots=True)

@@ -29,7 +29,13 @@ from paim.integrity.records import (
 )
 from paim.integrity.selection import SelectionAbsent, SelectionFound, SelectionQuery
 from paim.integrity.semantics import ExactContextSet, SemanticContractRef
-from paim.integrity.time import Clock, EffectiveInterval, require_utc, to_epoch_microseconds
+from paim.integrity.time import (
+    Clock,
+    EffectiveInterval,
+    SystemClock,
+    require_utc,
+    to_epoch_microseconds,
+)
 from paim.operational.models import Permission, PrincipalStatus, ScopeType
 from paim.operational.store import OperationalStore
 from paim.persistence.ports import CommandOutcome, IdempotencyFact
@@ -71,14 +77,17 @@ class SliceAAccessPolicy(Protocol):
         action: str,
         case_id: RecordId,
         write: bool,
+        source_version_id: RecordVersionId | None = None,
+        source_family: str | None = None,
     ) -> bool: ...
 
 
 class OperationalSliceAAccessPolicy:
     """Adapter to the current durable principal and software-access boundary."""
 
-    def __init__(self, store: OperationalStore) -> None:
+    def __init__(self, store: OperationalStore, clock: Clock | None = None) -> None:
         self._store = store
+        self._clock = clock or SystemClock()
 
     def authorize(
         self,
@@ -88,6 +97,11 @@ class OperationalSliceAAccessPolicy:
         action: str,
         case_id: RecordId,
         write: bool,
+        source_version_id: RecordVersionId | None = None,
+        source_family: str | None = None,
+        effective_at: datetime | None = None,
+        known_at: datetime | None = None,
+        configuration_id: RecordId | None = None,
     ) -> bool:
         principal = self._store.current_principal(principal_id)
         if (
@@ -97,14 +111,34 @@ class OperationalSliceAAccessPolicy:
             or str(principal.actor_id) != actor_id
         ):
             return False
+        if action == "case.initiation-authority.record":
+            return self._store.permission_allowed(
+                principal_id, Permission.OPERATIONAL_ADMIN, action
+            )
+        if action == "case.create_open" and write:
+            return self._store.permission_allowed(principal_id, Permission.COMMAND, action)
         visible = self._store.permission_allowed(
             principal_id, Permission.CASE_READ, "read", ScopeType.CASE, case_id
         )
-        return visible and (
-            not write
-            or self._store.permission_allowed(
-                principal_id, Permission.COMMAND, action, ScopeType.CASE, case_id
+        if not visible:
+            return False
+        if source_version_id is not None:
+            resolved_family = source_family or self._store.source_family(source_version_id)
+            if resolved_family is None:
+                return False
+            now = self._clock.now()
+            return self._store.source_access_allowed(
+                principal_id=principal_id,
+                action=action,
+                case_id=case_id,
+                configuration_id=configuration_id,
+                source_version_id=source_version_id,
+                source_family=resolved_family,
+                effective_at=effective_at or now,
+                known_at=known_at or now,
             )
+        return not write or self._store.permission_allowed(
+            principal_id, Permission.COMMAND, action, ScopeType.CASE, case_id
         )
 
 

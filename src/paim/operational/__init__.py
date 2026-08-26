@@ -27,6 +27,7 @@ from paim.operational.models import (
     ReadinessState,
     RecoveryRejected,
     ScopeType,
+    SourceAccessGrantInput,
     UnsupportedCapability,
 )
 
@@ -56,6 +57,7 @@ __all__ = [
     "ReadinessState",
     "RecoveryRejected",
     "ScopeType",
+    "SourceAccessGrantInput",
     "UnsupportedCapability",
     "credential_from_environment",
     "load_configuration",

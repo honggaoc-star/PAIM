@@ -11,7 +11,7 @@ from typing import Any, cast
 
 from sqlalchemy import Connection, Engine, and_, create_engine, event, func, insert, select
 
-from paim.integrity import RecordId, to_epoch_microseconds
+from paim.integrity import RecordId, RecordVersionId, to_epoch_microseconds
 from paim.integrity.records import JsonValue
 from paim.operational.models import (
     AccessEffect,
@@ -22,6 +22,7 @@ from paim.operational.models import (
     PrincipalStatus,
     PrincipalVersion,
     ScopeType,
+    SourceAccessGrantInput,
 )
 from paim.persistence.sqlite.schema import (
     adapter_intakes,
@@ -32,9 +33,12 @@ from paim.persistence.sqlite.schema import (
     operational_principals,
     operational_register_rebuild_bases,
     paim_cases,
+    record_versions,
+    records,
     register_notification_intents,
     register_output_manifests,
     software_access_grants,
+    source_access_grants,
 )
 
 
@@ -260,7 +264,134 @@ class OperationalStore:
             ),
             reverse=True,
         )
-        return candidates[0]["effect"] == AccessEffect.ALLOW.value
+        return bool(candidates[0]["effect"] == AccessEffect.ALLOW.value)
+
+    def add_source_access_grant(
+        self,
+        *,
+        grant_id: str,
+        principal_id: str,
+        value: SourceAccessGrantInput,
+        recorded_at: datetime,
+        recorded_by: str,
+    ) -> None:
+        """Append one exact-source disclosure decision.
+
+        The caller's administrative software permission is checked by the
+        application boundary. This fact grants visibility only; it carries no
+        PAIM Responsibility or substantive authority.
+        """
+
+        with self.transaction() as connection:
+            sequence = (
+                int(
+                    connection.scalar(
+                        select(func.max(source_access_grants.c.sequence)).where(
+                            and_(
+                                source_access_grants.c.principal_id == principal_id,
+                                source_access_grants.c.action == value.action,
+                                source_access_grants.c.source_version_id
+                                == str(value.source_version_id),
+                            )
+                        )
+                    )
+                    or 0
+                )
+                + 1
+            )
+            connection.execute(
+                insert(source_access_grants).values(
+                    grant_id=grant_id,
+                    principal_id=principal_id,
+                    sequence=sequence,
+                    action=value.action,
+                    case_id=str(value.case_id),
+                    configuration_id=(
+                        str(value.configuration_id) if value.configuration_id else None
+                    ),
+                    source_version_id=str(value.source_version_id),
+                    source_family=value.source_family,
+                    effect=value.effect.value,
+                    effective_from_us=to_epoch_microseconds(value.effective_from),
+                    effective_to_us=(
+                        to_epoch_microseconds(value.effective_to)
+                        if value.effective_to is not None
+                        else None
+                    ),
+                    recorded_at_us=to_epoch_microseconds(recorded_at),
+                    recorded_by=recorded_by,
+                )
+            )
+
+    def source_access_allowed(
+        self,
+        *,
+        principal_id: str,
+        action: str,
+        case_id: RecordId,
+        source_version_id: RecordVersionId,
+        source_family: str,
+        effective_at: datetime,
+        known_at: datetime,
+        configuration_id: RecordId | None = None,
+    ) -> bool:
+        """Resolve one exact source without revealing whether it exists."""
+
+        effective_us = to_epoch_microseconds(effective_at)
+        known_us = to_epoch_microseconds(known_at)
+        with self.read() as connection:
+            rows = tuple(
+                connection.execute(
+                    select(source_access_grants).where(
+                        and_(
+                            source_access_grants.c.principal_id == principal_id,
+                            source_access_grants.c.action.in_((action, "*")),
+                            source_access_grants.c.source_version_id == str(source_version_id),
+                            source_access_grants.c.recorded_at_us <= known_us,
+                            source_access_grants.c.effective_from_us <= effective_us,
+                            (
+                                source_access_grants.c.effective_to_us.is_(None)
+                                | (source_access_grants.c.effective_to_us > effective_us)
+                            ),
+                        )
+                    )
+                ).mappings()
+            )
+        candidates = [
+            row
+            for row in rows
+            if row["case_id"] == str(case_id)
+            and row["source_family"] == source_family
+            and row["configuration_id"]
+            == (str(configuration_id) if configuration_id is not None else None)
+        ]
+        if not candidates:
+            return False
+        candidates.sort(
+            key=lambda row: (
+                row["action"] == action,
+                int(row["recorded_at_us"]),
+                int(row["sequence"]),
+                str(row["grant_id"]),
+            ),
+            reverse=True,
+        )
+        return bool(candidates[0]["effect"] == AccessEffect.ALLOW.value)
+
+    def source_family(self, version_id: RecordVersionId) -> str | None:
+        """Resolve the exact persisted family without exposing it to the caller."""
+
+        with self.read() as connection:
+            value = connection.scalar(
+                select(records.c.family)
+                .select_from(
+                    record_versions.join(
+                        records, record_versions.c.record_id == records.c.record_id
+                    )
+                )
+                .where(record_versions.c.version_id == str(version_id))
+            )
+        return cast("str | None", value)
 
     def accessible_case_ids(self, principal_id: str) -> frozenset[RecordId]:
         if self.permission_allowed(principal_id, Permission.CASE_READ, "read"):
