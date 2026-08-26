@@ -9,8 +9,10 @@ specification, runtime change, or empirical validation claim.
 Issue #123 established the accepted Practitioner Operating Model checkpoint, and Issue #125
 established the accepted Product Design Foundation above it. Issue #127 now records the proposed
 Normative Model Redesign checkpoint. Issue #139 validates the completed Gates 1–6 contracts through
-a non-mutating Harborlight normative simulation. Further practitioner-UI implementation remains
-paused. These design packages propose no domain, persistence, deployment, fixture, or UI change.
+a non-mutating Harborlight normative simulation. Issue #157 freezes the implementation-independent
+Practitioner UI Contract v1.0 that controls any separately authorized Gate 8 Slice-H expression.
+These design packages and the UI contract make no runtime, persistence, deployment, or fixture
+change by themselves.
 
 The current contracts under [`docs/system/`](../../system/) remain authoritative. If a proposal here
 cannot preserve those contracts, it requires explicit semantic review before implementation.
@@ -25,6 +27,16 @@ Value/Risk semantics underneath. The interaction layer should carry known contex
 choices, and reveal machinery only when it helps a governance, audit, or diagnostic task.
 
 ## Design set
+
+### Controlling Slice-H practitioner UI contract
+
+- [PAIM Practitioner UI Contract v1.0](PAIM_PRACTITIONER_UI_CONTRACT_V1.md) freezes the Home,
+  Case, Task, and History & decisions experience; progressive disclosure; practitioner language;
+  burden tests; behavioral wire contracts; and Harborlight validation boundary for Slice H.
+
+The contract is normative for Slice-H presentation and interaction. Authoritative system and
+prospective semantic contracts remain controlling whenever UI simplification would change
+substantive behavior.
 
 ### Product Design Foundation
 

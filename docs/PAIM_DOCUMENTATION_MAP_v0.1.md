@@ -10,6 +10,7 @@ semantics.
 |---|---|---|
 | New to PAIM / conceptual understanding | [Repository README](../README.md) | [PAIM v0.1 Conceptual Guide](PAIM_CONCEPTUAL_GUIDE_v0.1.md) |
 | Understand PAIM's product direction | [PAIM Product Design Foundation](design/practitioner-ux/PAIM_PRODUCT_DESIGN_FOUNDATION.md) | [Practitioner Operating Model](design/practitioner-ux/PAIM_PRACTITIONER_OPERATING_MODEL.md) and its bounded companion documents |
+| Implement or review Gate 8 Slice-H practitioner UI | [PAIM Practitioner UI Contract v1.0](design/practitioner-ux/PAIM_PRACTITIONER_UI_CONTRACT_V1.md) | Accepted Gate 8 Slices A–G and current system specifications remain controlling semantic contracts |
 | Review the proposed target normative model | [PAIM Normative Model Redesign](design/normative-model/) | [Downstream Specification Plan](design/normative-model/PAIM_DOWNSTREAM_SPECIFICATION_PLAN.md); current system specifications remain controlling |
 | Want to try PAIM | [PAIM v0.1 Quick Start](operations/PAIM_QUICK_START_v0.1.md) | [Local Operational Application](operations/PAIM_LOCAL_OPERATIONAL_APPLICATION_v0.1.md) for full operation and recovery |
 | Follow the practitioner pathways | [PAIM v0.1 Practitioner Pathways](operations/PAIM_V0_1_PRACTITIONER_PATHWAYS_v0.1.md) | Validation evidence for the three pathways below |
@@ -49,6 +50,10 @@ authority, and bounded Case Work should support that purpose.
 
 These are non-normative product-design references. They guide separately authorized normative and
 UI work but do not amend the exact contracts under `docs/system/` or authorize implementation.
+
+The [PAIM Practitioner UI Contract v1.0](design/practitioner-ux/PAIM_PRACTITIONER_UI_CONTRACT_V1.md)
+is the implementation-independent normative presentation and interaction contract for a separately
+authorized Gate 8 Slice H. It does not amend the semantic contracts or authorize Slice H by itself.
 
 The [Normative Model Redesign package](design/normative-model/) is the prospective semantic bridge
 between the accepted product/operating model and any later coordinated specification revision. It

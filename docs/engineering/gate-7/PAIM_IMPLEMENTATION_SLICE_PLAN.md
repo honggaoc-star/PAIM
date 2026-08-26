@@ -148,10 +148,13 @@ replay/source digest.
 ## Slice H — integrated user-centric expression and Harborlight runtime validation
 
 **Entry:** A–G independently accepted; fresh prospective fixture authorization; no mutation of
-historical Harborlight environments.
+historical Harborlight environments; the
+[Practitioner UI Contract v1.0](../../design/practitioner-ux/PAIM_PRACTITIONER_UI_CONTRACT_V1.md)
+is the controlling presentation and interaction contract.
 
 **Implement:** only the coherent browser expression and bounded integration wiring needed for the
-accepted 15-step journey. Do not add UX-4/M1D scope by label; scope follows accepted commands.
+accepted journey and UI contract. Do not add UX-4/M1D scope by label; scope follows accepted
+commands and must preserve their exact semantic boundaries.
 
 **User-visible proof:** create a fresh disposable prospective Harborlight Scenario-A journey and run
 the Gate-7 acceptance criteria with owner/practitioner review. Technical terms remain progressive
