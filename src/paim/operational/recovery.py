@@ -29,7 +29,7 @@ from paim.persistence.sqlite import SQLiteIntegrityStore
 if TYPE_CHECKING:
     from paim.operational.application import OperationalApplication
 
-_EXPECTED_REVISION = "0015_gate8_quantitative_claims"
+_EXPECTED_REVISION = "0016_gate8_reconstruction_support"
 _APPLICATION_VERSION = "0.1.0"
 _OPERATIONAL_TABLES = (
     "operational_principals",
