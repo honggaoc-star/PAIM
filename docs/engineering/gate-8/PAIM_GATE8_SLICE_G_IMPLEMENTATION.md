@@ -62,7 +62,11 @@ hidden item is omitted together with its entire source closure and leaves no red
 count. The practitioner narrative uses only visible Decision content and exact accountable and
 authority sources. It carries the Decision effective/recorded times, exact Responsibility,
 Assignment, Assignment Basis, authority, Integration, relied lanes, visible successor, subsequent
-change, and continuing-review provenance. Missing rationale is not invented.
+change, and continuing-review provenance. A successor is disclosed only when its exact Version and
+complete source closure are visible, known by the current reconstruction cutoff, and applicable at
+the current effective time. Every disclosed successor and its closure are included in the audit
+manifest; a hidden, later-recorded, or future/non-applicable successor leaves no identifier, count,
+label, or provenance trace. Missing rationale is not invented.
 
 Legacy history is neither backfilled nor reinterpreted. Prospective reconstruction does not fall
 back to legacy Acceptance/Fitness/Selection semantics. Harborlight is not mutated by Slice G.

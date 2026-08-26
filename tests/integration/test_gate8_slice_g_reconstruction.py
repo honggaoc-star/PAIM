@@ -952,6 +952,185 @@ def test_lane_change_requires_explicit_integration_and_decision_successors(
         current=current,
     )
     assert successor_proposal.facts.version_id in audit.successor_decision_version_ids
+    assert successor_proposal.facts.version_id in audit.source_manifest.version_ids
     with sqlite_store.read_transaction() as tx:  # type: ignore[attr-defined]
         assert tx.get_version(fx.integration_version_id) is not None
         assert tx.get_version(fx.decision_version_id) is not None
+
+
+def test_decision_audit_successor_is_dual_time_bounded_and_provenance_complete(
+    sqlite_store: object,
+) -> None:
+    fx = slice_e_fixture(sqlite_store, "slice-g-successor-dual-time")
+    source = fx.source.source
+    case_id = source.opened.facts.case_id  # type: ignore[attr-defined]
+    service = ReconstructionService(sqlite_store, source.access)  # type: ignore[arg-type]
+    prior = service.decision_time_position(
+        principal_id="principal:slice-c",
+        actor_id=source.actor_a,
+        case_id=case_id,
+        decision_version_id=fx.decision_version_id,
+        effective_at=NOW,
+        known_at=RECORDED + timedelta(seconds=10),
+    )
+    current_before = service.current_position(
+        principal_id="principal:slice-c",
+        actor_id=source.actor_a,
+        case_id=case_id,
+        effective_at=NOW,
+        known_at=RECORDED + timedelta(seconds=10),
+    )
+    assert prior.state is ReconstructionState.AVAILABLE
+    assert current_before.state is ReconstructionState.AVAILABLE
+    original_basis = prior.source_manifest
+
+    integration_reference = integration_command(fx.source, "slice-g-successor-reference")
+    integration_reference = replace(
+        integration_reference,
+        facts=replace(
+            integration_reference.facts,
+            version_id=fx.integration_version_id,
+        ),
+    )
+    proposal = proposal_command(
+        fx.source,
+        integration_reference,
+        "slice-g-later-successor-proposal",
+    )
+    proposal = replace(
+        proposal,
+        predecessor_decision_version_id=fx.decision_version_id,
+        expected_current_decision_version_id=fx.decision_version_id,
+    )
+    ProspectiveDecisionService(
+        sqlite_store,  # type: ignore[arg-type]
+        FixedClock(RECORDED + timedelta(seconds=12)),
+        source.access,
+    ).propose_decision(proposal)
+
+    before = service.decision_audit(
+        principal_id="principal:slice-c",
+        actor_id=source.actor_a,
+        prior=prior,
+        current=current_before,
+    )
+    assert before.successor_decision_version_ids == ()
+    assert proposal.facts.version_id not in before.source_manifest.version_ids
+    assert prior.source_manifest == original_basis
+
+    current_after = service.current_position(
+        principal_id="principal:slice-c",
+        actor_id=source.actor_a,
+        case_id=case_id,
+        effective_at=NOW,
+        known_at=RECORDED + timedelta(seconds=12),
+    )
+    assert current_after.state is ReconstructionState.AVAILABLE
+    after = service.decision_audit(
+        principal_id="principal:slice-c",
+        actor_id=source.actor_a,
+        prior=prior,
+        current=current_after,
+    )
+    assert after.successor_decision_version_ids == (proposal.facts.version_id,)
+    assert set(after.successor_decision_version_ids) <= set(after.source_manifest.version_ids)
+    assert proposal.facts.version_id in after.source_manifest.version_ids
+    assert fx.integration_version_id in after.source_manifest.version_ids
+    assert prior.source_manifest == original_basis
+
+    hidden = ReconstructionService(
+        sqlite_store,  # type: ignore[arg-type]
+        SelectiveSourceAccess(frozenset({proposal.facts.version_id})),
+    ).decision_audit(
+        principal_id="principal:slice-c",
+        actor_id=source.actor_a,
+        prior=prior,
+        current=current_after,
+    )
+    assert hidden.successor_decision_version_ids == ()
+    assert proposal.facts.version_id not in hidden.source_manifest.version_ids
+    assert hidden.source_manifest.version_ids == tuple(
+        sorted(
+            set(prior.source_manifest.version_ids) | set(current_after.source_manifest.version_ids),
+            key=str,
+        )
+    )
+    assert hidden.decision_version_id == before.decision_version_id == fx.decision_version_id
+    assert hidden.integration_version_id == before.integration_version_id
+    assert hidden.value_reliance_version_id == before.value_reliance_version_id
+    assert hidden.risk_reliance_version_id == before.risk_reliance_version_id
+    assert prior.source_manifest == original_basis
+
+
+def test_decision_audit_excludes_successor_before_its_effective_interval(
+    sqlite_store: object,
+) -> None:
+    fx = slice_e_fixture(sqlite_store, "slice-g-future-successor")
+    source = fx.source.source
+    case_id = source.opened.facts.case_id  # type: ignore[attr-defined]
+    service = ReconstructionService(sqlite_store, source.access)  # type: ignore[arg-type]
+    future_effective = NOW + timedelta(days=1)
+    prior = service.decision_time_position(
+        principal_id="principal:slice-c",
+        actor_id=source.actor_a,
+        case_id=case_id,
+        decision_version_id=fx.decision_version_id,
+        effective_at=NOW,
+        known_at=RECORDED + timedelta(seconds=10),
+    )
+    integration_reference = integration_command(fx.source, "slice-g-future-reference")
+    integration_reference = replace(
+        integration_reference,
+        facts=replace(
+            integration_reference.facts,
+            version_id=fx.integration_version_id,
+        ),
+    )
+    proposal = proposal_command(
+        fx.source,
+        integration_reference,
+        "slice-g-future-later-successor-proposal",
+    )
+    proposal = replace(
+        proposal,
+        predecessor_decision_version_id=fx.decision_version_id,
+        expected_current_decision_version_id=fx.decision_version_id,
+        effective_at=future_effective,
+    )
+    ProspectiveDecisionService(
+        sqlite_store,  # type: ignore[arg-type]
+        FixedClock(RECORDED + timedelta(seconds=12)),
+        source.access,
+    ).propose_decision(proposal)
+
+    current_before = service.current_position(
+        principal_id="principal:slice-c",
+        actor_id=source.actor_a,
+        case_id=case_id,
+        effective_at=NOW,
+        known_at=RECORDED + timedelta(seconds=12),
+    )
+    before = service.decision_audit(
+        principal_id="principal:slice-c",
+        actor_id=source.actor_a,
+        prior=prior,
+        current=current_before,
+    )
+    assert before.successor_decision_version_ids == ()
+    assert proposal.facts.version_id not in before.source_manifest.version_ids
+
+    current_when_effective = service.current_position(
+        principal_id="principal:slice-c",
+        actor_id=source.actor_a,
+        case_id=case_id,
+        effective_at=future_effective,
+        known_at=RECORDED + timedelta(seconds=12),
+    )
+    when_effective = service.decision_audit(
+        principal_id="principal:slice-c",
+        actor_id=source.actor_a,
+        prior=prior,
+        current=current_when_effective,
+    )
+    assert when_effective.successor_decision_version_ids == (proposal.facts.version_id,)
+    assert proposal.facts.version_id in when_effective.source_manifest.version_ids

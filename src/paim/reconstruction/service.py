@@ -582,17 +582,26 @@ class ReconstructionService:
                 str(assignments[0]["assignment_basis_version_id"])
             )
             successors: list[RecordVersionId] = []
+            successor_source_ids: set[RecordVersionId] = set()
             for candidate in tx.projection_rows(
                 "prospective_decision_versions", case_id=str(prior.case_id)
             ):
                 if candidate.get("predecessor_version_id") != str(decision_id):
                     continue
                 candidate_id = RecordVersionId.parse(str(candidate["version_id"]))
+                candidate_version = tx.get_version(candidate_id)
                 closure = self._source_closure(tx, candidate_id)
-                if closure is not None and self._closure_visible(
-                    tx, principal_id, actor_id, prior.case_id, closure
+                if (
+                    candidate_version is None
+                    or not self._has_prospective_semantics(tx, candidate_id)
+                    or not candidate_version.effective.contains(current.effective_at)
+                    or closure is None
+                    or not self._closure_knowable(tx, closure, current.known_at)
+                    or not self._closure_visible(tx, principal_id, actor_id, prior.case_id, closure)
                 ):
-                    successors.append(candidate_id)
+                    continue
+                successors.append(candidate_id)
+                successor_source_ids.update(closure)
             content = version.content
             conditions = content.get("conditions") or content.get("conditions_and_limits") or []
             return DecisionAuditNarrative(
@@ -631,7 +640,13 @@ class ReconstructionService:
                     change for change in comparison.changes if change.changed
                 ),
                 source_manifest=self._merge_manifests(
-                    prior.source_manifest, current.source_manifest
+                    self._merge_manifests(prior.source_manifest, current.source_manifest),
+                    self._manifest(
+                        tx,
+                        successor_source_ids,
+                        current.effective_at,
+                        current.known_at,
+                    ),
                 ),
             )
 
