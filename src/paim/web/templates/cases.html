@@ -19,6 +19,6 @@
   <div class="empty-state"><h2>No Cases are available yet</h2><p>Start a Case when your organization is considering or managing an AI use.</p></div>
   {% endif %}
   {% set legacy = namespace(count=0) %}{% for case in view.cases %}{% if case.case_id not in prospective_case_ids %}{% set legacy.count = legacy.count + 1 %}{% endif %}{% endfor %}
-  {% if legacy.count %}<section class="system-status" aria-labelledby="earlier-cases-heading"><h2 id="earlier-cases-heading">Earlier Cases</h2><p>These Cases remain available in their original experience.</p><ul>{% for case in view.cases %}{% if case.case_id not in prospective_case_ids %}<li><a href="/cases/{{ case.case_id }}">{{ case.title }}</a></li>{% endif %}{% endfor %}</ul></section>{% endif %}
+  {% if legacy.count %}<section aria-labelledby="earlier-cases-heading"><h2 id="earlier-cases-heading">Cases from an earlier PAIM version</h2><p>These Cases remain available for reference and may use the earlier workflow.</p><ul>{% for case in view.cases %}{% if case.case_id not in prospective_case_ids %}<li><a href="/cases/{{ case.case_id }}">{{ case.title }}</a></li>{% endif %}{% endfor %}</ul></section>{% endif %}
 </section>
 {% endblock %}

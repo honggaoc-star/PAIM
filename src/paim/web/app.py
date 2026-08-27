@@ -24,7 +24,7 @@ from paim.operational.models import AccessDenied, AuthenticationFailed, LocalCon
 from paim.web.m1b import register_m1b_routes
 from paim.web.m1c import register_m1c_routes
 from paim.web.sessions import BrowserSession, SessionRegistry
-from paim.web.slice_h import register_slice_h_routes
+from paim.web.slice_h import MAX_CASE_START_DEPENDENCIES, register_slice_h_routes
 from paim.web.ux3a import (
     applicability_task_context,
     assessment_task_contexts,
@@ -474,6 +474,8 @@ def create_web_application(
                 "effective_at": clock().astimezone(UTC).isoformat(),
                 "initiation_available": initiation_available,
                 "form_values": {},
+                "dependencies": (),
+                "max_dependencies": MAX_CASE_START_DEPENDENCIES,
             },
         )
 

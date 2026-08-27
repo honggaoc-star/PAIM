@@ -832,7 +832,7 @@ def test_minimal_case_start_uses_h0_authority_and_creates_no_later_governance(
         "Decision or management question",
         "Starting operating context",
         "Add AI details",
-        "Add dependencies",
+        "Add dependency",
     ):
         assert expected in new_case.text
     for prohibited in (

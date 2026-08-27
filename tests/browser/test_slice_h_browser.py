@@ -69,12 +69,31 @@ def test_slice_h_disposable_harborlight_case_start_survives_no_javascript(
         page.get_by_label("Starting operating context").fill(
             "Scenario A assistance only; no autonomous lending Decision."
         )
+        page.get_by_text("Add dependency", exact=True).click()
+        page.get_by_role("button", name="Add another dependency").click()
+        page.locator('[name="dependency_1_name"]').fill("Application data service")
+        page.locator('[name="dependency_1_type"]').select_option("INTERNAL")
+        page.locator('[name="dependency_1_why"]').fill("Provides bounded application facts.")
+        page.get_by_role("button", name="Add another dependency").click()
+        page.locator('[name="dependency_2_name"]').fill("Commercial AI API")
+        page.locator('[name="dependency_2_type"]').select_option("EXTERNAL")
+        page.locator('[name="dependency_2_why"]').fill("Provides the assistance capability.")
+        page.get_by_role("button", name="Add another dependency").click()
+        page.locator('[name="dependency_3_name"]').fill("Human lending review")
+        page.locator('[name="dependency_3_type"]').select_option("MIXED")
+        page.locator('[name="dependency_3_why"]').fill("Retains accountable judgment.")
         page.get_by_role("button", name="Review Case").click()
         assert page.get_by_role("heading", name="Review Case").is_visible()
         assert page.get_by_text(
             "Should Harborlight use bounded AI assistance in lending review?"
         ).is_visible()
         page.get_by_role("link", name="Back to edit").click()
+        assert page.locator('[name^="dependency_"][name$="_name"]').count() == 3
+        assert page.locator('[name="dependency_1_name"]').input_value() == (
+            "Application data service"
+        )
+        assert page.locator('[name="dependency_2_name"]').input_value() == "Commercial AI API"
+        assert page.locator('[name="dependency_3_name"]').input_value() == ("Human lending review")
         page.get_by_label("Case name").fill("Harborlight Assist - edited disposable browser proof")
         page.get_by_role("button", name="Review Case").click()
         assert page.get_by_text("Harborlight Assist - edited disposable browser proof").is_visible()
@@ -93,6 +112,9 @@ def test_slice_h_disposable_harborlight_case_start_survives_no_javascript(
         assert page.get_by_role("heading", name="Potential Value").is_visible()
         assert page.get_by_role("heading", name="Risks and safeguards").is_visible()
         assert page.get_by_role("heading", name="AI", exact=True).is_visible()
+        assert page.get_by_text("Application data service", exact=False).is_visible()
+        assert page.get_by_text("Commercial AI API", exact=False).is_visible()
+        assert page.get_by_text("Human lending review", exact=False).is_visible()
         assert page.get_by_text("PAIM-", exact=False).first.is_visible()
         page.reload()
         assert page.get_by_role(

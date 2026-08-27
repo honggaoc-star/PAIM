@@ -30,15 +30,17 @@
     <label for="bounded-use">AI use<textarea id="bounded-use" name="bounded_use" maxlength="1200" required>{{ form_values.get('bounded_use', '') }}</textarea><span class="field-help">What the AI will do, for whom, and in which process.</span></label>
     <label for="management-question">Decision or management question<textarea id="management-question" name="management_question" maxlength="1200" required>{{ form_values.get('management_question', '') }}</textarea></label>
     <label for="setup-description">Starting operating context<textarea id="setup-description" name="setup_description" maxlength="2000" required>{{ form_values.get('setup_description', '') }}</textarea><span class="field-help">The operating limits and setup that matter at the start.</span></label>
-    <details><summary>Add dependencies</summary><p class="field-help">Record factual services, data, people, or systems the AI use depends on. PAIM does not infer Value or Risk from these facts.</p>
-      {% for index in (1, 2) %}{% set dependency = (dependencies | default([]))[index - 1] if (dependencies | default([])) | length >= index else {} %}
+    <details{% if dependencies | default([]) %} open{% endif %}><summary>Add dependency</summary><p class="field-help">Record factual services, data, people, or systems the AI use depends on. PAIM does not infer Value or Risk from these facts.</p>
+      <input type="hidden" name="dependency_count" value="{{ dependencies | default([]) | length }}">
+      {% for dependency in dependencies | default([]) %}{% set index = loop.index %}
       <fieldset><legend>Dependency {{ index }}</legend>
         <label>Name<input name="dependency_{{ index }}_name" maxlength="300" value="{{ dependency.get('name', '') }}"></label>
         <label>Relationship<select name="dependency_{{ index }}_type"><option value="">Choose if used</option>{% for value in ('INTERNAL', 'EXTERNAL', 'MIXED') %}<option value="{{ value }}"{% if dependency.get('relationship_type') == value %} selected{% endif %}>{{ value.title() }}</option>{% endfor %}</select></label>
         <label>Why it matters<textarea name="dependency_{{ index }}_why" maxlength="500">{{ dependency.get('why_it_matters', '') }}</textarea></label>
       </fieldset>{% endfor %}
+      {% if (dependencies | default([]) | length) < max_dependencies %}<button type="submit" name="form_action" value="add_dependency" class="secondary">Add another dependency</button>{% else %}<p class="field-help">This Case-start form supports up to {{ max_dependencies }} dependencies. Additional evidence can be recorded after the Case starts.</p>{% endif %}
     </details>
-    <button type="submit">Review Case</button>
+    <button type="submit" name="form_action" value="review">Review Case</button>
   </form>
   {% endif %}
 </section>

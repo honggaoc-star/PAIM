@@ -29,9 +29,4 @@
   {% endif %}
 </section>
 <p><a href="/cases">Open Cases</a></p>
-{% if view.cases %}<details class="system-status">
-  <summary>Earlier Cases</summary>
-  <p><strong>Your earlier Cases</strong> <span>{{ view.cases | length }}</span> remain available in their original experience.</p>
-  {% if view.cases %}<ul>{% for case in view.cases %}<li><a href="/cases/{{ case.case_id }}">{{ case.title }}</a></li>{% endfor %}</ul>{% endif %}
-</details>{% endif %}
 {% endblock %}

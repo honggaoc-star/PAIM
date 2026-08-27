@@ -23,6 +23,7 @@ from paim.web.sessions import BrowserSession, SessionRegistry
 Render = Callable[[Request, str, dict[str, object], int], Response]
 RequireSession = Callable[[Request], BrowserSession | Response]
 SameOrigin = Callable[[Request], bool]
+MAX_CASE_START_DEPENDENCIES = 8
 
 
 @dataclass(frozen=True, slots=True)
@@ -634,7 +635,7 @@ def register_slice_h_routes(
                 return_path="/cases",
                 status=403,
             )
-        form = await request.form(max_fields=30, max_files=0, max_part_size=4_096)
+        form = await request.form(max_fields=50, max_files=0, max_part_size=4_096)
         if not registry.verify_csrf(session, str(form.get("csrf_token", ""))):
             return error(
                 request,
@@ -674,6 +675,67 @@ def register_slice_h_routes(
                     status=400,
                 )
             payload[name] = value
+        dependency_count_text = str(form.get("dependency_count", "0")).strip()
+        if not dependency_count_text.isdecimal():
+            return error(
+                request,
+                session,
+                title="Dependency information is invalid",
+                message="Return to Start a Case and add dependencies again.",
+                return_path="/cases/new",
+                status=400,
+            )
+        dependency_count = int(dependency_count_text)
+        if dependency_count > MAX_CASE_START_DEPENDENCIES:
+            return error(
+                request,
+                session,
+                title="Too many dependencies",
+                message=(
+                    f"Record up to {MAX_CASE_START_DEPENDENCIES} dependencies when starting "
+                    "the Case. Additional evidence can be recorded after it starts."
+                ),
+                return_path="/cases/new",
+                status=400,
+            )
+        raw_dependencies: list[dict[str, str]] = []
+        for index in range(1, dependency_count + 1):
+            raw_dependencies.append(
+                {
+                    "name": str(form.get(f"dependency_{index}_name", "")).strip(),
+                    "relationship_type": str(form.get(f"dependency_{index}_type", "")).strip(),
+                    "why_it_matters": str(form.get(f"dependency_{index}_why", "")).strip(),
+                }
+            )
+        prior_intent_id = str(form.get("intent_id", "")).strip()
+        if str(form.get("form_action", "review")) == "add_dependency":
+            if dependency_count >= MAX_CASE_START_DEPENDENCIES:
+                return error(
+                    request,
+                    session,
+                    title="Dependency limit reached",
+                    message=(
+                        f"This Case-start form supports up to "
+                        f"{MAX_CASE_START_DEPENDENCIES} dependencies."
+                    ),
+                    return_path="/cases/new",
+                    status=400,
+                )
+            return render(
+                request,
+                "case_new.html",
+                {
+                    "view": gateway.practitioner_cases(session.authentication),
+                    "csrf_token": session.csrf_secret,
+                    "effective_at": payload["effective_at"],
+                    "initiation_available": True,
+                    "form_values": payload,
+                    "dependencies": (*raw_dependencies, {}),
+                    "max_dependencies": MAX_CASE_START_DEPENDENCIES,
+                    "intent_id": prior_intent_id,
+                },
+                200,
+            )
         required = (
             "title",
             "ai_name",
@@ -726,10 +788,10 @@ def register_slice_h_routes(
                 status=403,
             )
         dependencies: list[dict[str, str]] = []
-        for index in (1, 2):
-            name = str(form.get(f"dependency_{index}_name", "")).strip()
-            relationship = str(form.get(f"dependency_{index}_type", "")).strip()
-            why = str(form.get(f"dependency_{index}_why", "")).strip()
+        for dependency in raw_dependencies:
+            name = dependency["name"]
+            relationship = dependency["relationship_type"]
+            why = dependency["why_it_matters"]
             if any((name, relationship, why)):
                 if (
                     not all((name, relationship, why))
@@ -751,7 +813,6 @@ def register_slice_h_routes(
         payload["dependencies_json"] = json.dumps(
             dependencies, sort_keys=True, separators=(",", ":")
         )
-        prior_intent_id = str(form.get("intent_id", "")).strip()
         intent = registry.create_intent(
             identifier,
             action="case.create_open",
@@ -823,6 +884,7 @@ def register_slice_h_routes(
                 ),
                 "form_values": intent.payload,
                 "dependencies": json.loads(intent.payload["dependencies_json"]),
+                "max_dependencies": MAX_CASE_START_DEPENDENCIES,
                 "intent_id": intent_id,
             },
             200,
