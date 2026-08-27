@@ -2,7 +2,8 @@
 {% block title %}Home — PAIM{% endblock %}
 {% block content %}
 <section aria-labelledby="home-heading">
-  <h1 id="home-heading">Management home</h1>
+  <h1 id="home-heading">Home</h1>
+  <p class="lead">Make informed decisions about AI—with Value and Risk in view.</p>
   <h2>What needs me?</h2>
   {% if prospective.items %}
   <ul class="card-list" aria-label="Current attention">
@@ -28,10 +29,9 @@
   {% endif %}
 </section>
 <p><a href="/cases">Open Cases</a></p>
-<details class="system-status">
+{% if view.cases %}<details class="system-status">
   <summary>Earlier Cases</summary>
   <p><strong>Your earlier Cases</strong> <span>{{ view.cases | length }}</span> remain available in their original experience.</p>
   {% if view.cases %}<ul>{% for case in view.cases %}<li><a href="/cases/{{ case.case_id }}">{{ case.title }}</a></li>{% endfor %}</ul>{% endif %}
-</details>
-<details class="system-status"><summary>Local system status</summary><p><strong>{{ view.health }}</strong>{% if view.health_reasons %}: {{ view.health_reasons | join(', ') }}{% else %}. Required local checks passed.{% endif %}</p></details>
+</details>{% endif %}
 {% endblock %}

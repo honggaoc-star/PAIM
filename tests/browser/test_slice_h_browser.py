@@ -43,8 +43,8 @@ def test_slice_h_disposable_harborlight_case_start_survives_no_javascript(
         context = browser.new_context(java_script_enabled=False)
         page = context.new_page()
         page.goto(f"{origin}/login")
-        page.get_by_label("Principal ID").fill("principal:web-practitioner")
-        page.get_by_label("Protected credential").fill(TOKEN)
+        page.get_by_label("User ID").fill("principal:web-practitioner")
+        page.get_by_label("Password or access credential").fill(TOKEN)
         page.get_by_role("button", name="Sign in").click()
         assert page.url == f"{origin}/home", page.content()
         assert page.get_by_text("Nothing currently needs your attention.").is_visible()
@@ -52,26 +52,37 @@ def test_slice_h_disposable_harborlight_case_start_survives_no_javascript(
         page.get_by_role("link", name="Cases", exact=True).click()
         page.get_by_role("link", name="Start a Case").click()
         page.get_by_label("Case name").fill("Harborlight Assist - disposable browser proof")
+        page.get_by_label("AI name").fill("Harborlight Assist")
+        page.get_by_label("What is this AI?").fill(
+            "A commercial assistance service for bounded lending-review support."
+        )
+        page.get_by_label("Source or provider type").fill("Commercial AI service")
+        page.get_by_label("Relevant capabilities").fill(
+            "Summarizes application material for accountable staff."
+        )
         page.locator("#bounded-use").fill(
             "small-business lending assistance with accountable human judgment."
         )
         page.get_by_label("Decision or management question").fill(
             "Should Harborlight use bounded AI assistance in lending review?"
         )
-        page.get_by_label("Starting scope or setup").fill(
+        page.get_by_label("Starting operating context").fill(
             "Scenario A assistance only; no autonomous lending Decision."
         )
-        page.get_by_role("button", name="Review Case start").click()
-        assert page.get_by_role("heading", name="Start this Case?").is_visible()
-        assert page.get_by_text("does not complete Value or Risk assessments").is_visible()
+        page.get_by_role("button", name="Review Case").click()
+        assert page.get_by_role("heading", name="Review Case").is_visible()
         assert page.get_by_text(
             "Should Harborlight use bounded AI assistance in lending review?"
         ).is_visible()
+        page.get_by_role("link", name="Back to edit").click()
+        page.get_by_label("Case name").fill("Harborlight Assist - edited disposable browser proof")
+        page.get_by_role("button", name="Review Case").click()
+        assert page.get_by_text("Harborlight Assist - edited disposable browser proof").is_visible()
         page.get_by_role("button", name="Start Case", exact=True).click()
         assert "/start/commit/" not in page.url, page.content()
 
         assert page.get_by_role(
-            "heading", name="Harborlight Assist - disposable browser proof"
+            "heading", name="Harborlight Assist - edited disposable browser proof"
         ).is_visible()
         assert page.get_by_text(
             "small-business lending assistance with accountable human judgment."
@@ -81,9 +92,11 @@ def test_slice_h_disposable_harborlight_case_start_survives_no_javascript(
         ).is_visible()
         assert page.get_by_role("heading", name="Potential Value").is_visible()
         assert page.get_by_role("heading", name="Risks and safeguards").is_visible()
+        assert page.get_by_role("heading", name="AI", exact=True).is_visible()
+        assert page.get_by_text("PAIM-", exact=False).first.is_visible()
         page.reload()
         assert page.get_by_role(
-            "heading", name="Harborlight Assist - disposable browser proof"
+            "heading", name="Harborlight Assist - edited disposable browser proof"
         ).is_visible()
         page.get_by_role("link", name="Open History & decisions").click()
         assert page.get_by_role("heading", name="History & decisions").is_visible()
@@ -129,8 +142,8 @@ def test_slice_h_value_action_is_practitioner_specific_in_a_real_browser(
         context = browser.new_context(java_script_enabled=False)
         page = context.new_page()
         page.goto(f"{origin}/login")
-        page.get_by_label("Principal ID").fill("principal:web-practitioner")
-        page.get_by_label("Protected credential").fill(TOKEN)
+        page.get_by_label("User ID").fill("principal:web-practitioner")
+        page.get_by_label("Password or access credential").fill(TOKEN)
         page.get_by_role("button", name="Sign in").click()
         page.goto(f"{origin}/cases/{case_id}/tasks/{work.version_id}")
         page.get_by_role("link", name="Continue to this action").click()

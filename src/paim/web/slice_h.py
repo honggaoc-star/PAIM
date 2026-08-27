@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -611,6 +612,7 @@ def register_slice_h_routes(
         if isinstance(state, Response):
             return state
         identifier, session = state
+        assert session.authentication is not None
         if not same_origin(request):
             return error(
                 request,
@@ -620,7 +622,19 @@ def register_slice_h_routes(
                 return_path="/cases/new",
                 status=403,
             )
-        form = await request.form(max_fields=6, max_files=0, max_part_size=4_096)
+        if not gateway.slice_h_case_initiation_available(session.authentication):
+            return error(
+                request,
+                session,
+                title="Case start is not available",
+                message=(
+                    "Your current account does not have an active Case-start mandate. "
+                    "Ask a PAIM administrator to establish it before entering Case details."
+                ),
+                return_path="/cases",
+                status=403,
+            )
+        form = await request.form(max_fields=30, max_files=0, max_part_size=4_096)
         if not registry.verify_csrf(session, str(form.get("csrf_token", ""))):
             return error(
                 request,
@@ -630,28 +644,62 @@ def register_slice_h_routes(
                 return_path="/cases/new",
                 status=403,
             )
-        payload = {
-            name: str(form.get(name, "")).strip()
-            for name in (
-                "title",
-                "bounded_use",
-                "management_question",
-                "setup_description",
-                "effective_at",
-            )
+        limits = {
+            "title": 300,
+            "ai_name": 300,
+            "ai_description": 600,
+            "provider_source_type": 300,
+            "capabilities": 600,
+            "bounded_use": 1_200,
+            "management_question": 1_200,
+            "setup_description": 2_000,
+            "version_model_release": 300,
+            "development_context": 400,
+            "operating_characteristics": 400,
+            "known_strengths_limitations": 500,
+            "organizational_experience": 400,
+            "other_identifying_information": 400,
+            "effective_at": 80,
         }
-        missing = tuple(name for name, value in payload.items() if not value)
+        payload: dict[str, str] = {}
+        for name, limit in limits.items():
+            value = str(form.get(name, "")).strip()
+            if len(value) > limit:
+                return error(
+                    request,
+                    session,
+                    title="One entry is too long",
+                    message="Shorten the marked Case information and review it again.",
+                    return_path="/cases/new",
+                    status=400,
+                )
+            payload[name] = value
+        required = (
+            "title",
+            "ai_name",
+            "ai_description",
+            "provider_source_type",
+            "capabilities",
+            "bounded_use",
+            "management_question",
+            "setup_description",
+            "effective_at",
+        )
+        missing = tuple(name for name in required if not payload[name])
         if missing:
             return error(
                 request,
                 session,
                 title="Required information is missing",
-                message="Complete the Case name, AI use, management question, and starting scope.",
+                message=(
+                    "Complete the Case name, AI details, AI use, management question, "
+                    "and starting operating context."
+                ),
                 return_path="/cases/new",
                 status=400,
             )
         try:
-            _timestamp(payload["effective_at"])
+            effective_at = _timestamp(payload["effective_at"])
         except ValueError as exc:
             return error(
                 request,
@@ -661,12 +709,57 @@ def register_slice_h_routes(
                 return_path="/cases/new",
                 status=400,
             )
+        if not gateway.slice_h_case_initiation_available(
+            session.authentication,
+            bounded_use=payload["bounded_use"],
+            effective_at=effective_at,
+        ):
+            return error(
+                request,
+                session,
+                title="This AI use is outside your Case-start mandate",
+                message=(
+                    "No Case was created. Ask a PAIM administrator to confirm the current "
+                    "organizational mandate for this AI use."
+                ),
+                return_path="/cases/new",
+                status=403,
+            )
+        dependencies: list[dict[str, str]] = []
+        for index in (1, 2):
+            name = str(form.get(f"dependency_{index}_name", "")).strip()
+            relationship = str(form.get(f"dependency_{index}_type", "")).strip()
+            why = str(form.get(f"dependency_{index}_why", "")).strip()
+            if any((name, relationship, why)):
+                if (
+                    not all((name, relationship, why))
+                    or relationship not in {"INTERNAL", "EXTERNAL", "MIXED"}
+                    or len(name) > 300
+                    or len(why) > 500
+                ):
+                    return error(
+                        request,
+                        session,
+                        title="Dependency information is incomplete",
+                        message="Give each dependency a name, relationship, and why it matters.",
+                        return_path="/cases/new",
+                        status=400,
+                    )
+                dependencies.append(
+                    {"name": name, "relationship_type": relationship, "why_it_matters": why}
+                )
+        payload["dependencies_json"] = json.dumps(
+            dependencies, sort_keys=True, separators=(",", ":")
+        )
+        prior_intent_id = str(form.get("intent_id", "")).strip()
         intent = registry.create_intent(
             identifier,
             action="case.create_open",
             payload=payload,
             expected_version_ids=(),
         )
+        if prior_intent_id:
+            registry.discard_intent(identifier, prior_intent_id)
         return RedirectResponse(f"/cases/start/confirm/{intent.intent_id}", status_code=303)
 
     @app.get("/cases/start/confirm/{intent_id}")
@@ -685,33 +778,83 @@ def register_slice_h_routes(
                 return_path="/cases/new",
                 status=409,
             )
-        confirmation = SliceHConfirmation(
-            "Start this Case?",
-            "Check that this is the AI use and management question you want PAIM to follow.",
-            (
-                ("Case", intent.payload["title"]),
-                ("AI use", intent.payload["bounded_use"]),
-                ("Decision or question", intent.payload["management_question"]),
-                ("Starting setup or scope", intent.payload["setup_description"]),
-            ),
-            "This opens a continuing Case and records its starting setup.",
-            "It does not complete Value or Risk assessments, make a decision, or grant authority.",
-            "Start Case",
-        )
         return render(
             request,
-            "slice_h_confirm.html",
+            "case_start_review.html",
             {
                 "view": None,
                 "csrf_token": session.csrf_secret,
                 "intent": intent,
-                "confirmation": confirmation,
                 "commit_path": f"/cases/start/commit/{intent_id}",
-                "return_path": "/cases/new",
+                "edit_path": f"/cases/start/edit/{intent_id}",
+                "cancel_path": f"/cases/start/cancel/{intent_id}",
+                "dependencies": json.loads(intent.payload["dependencies_json"]),
                 "authenticated": True,
             },
             200,
         )
+
+    @app.get("/cases/start/edit/{intent_id}")
+    def edit_case_start(request: Request, intent_id: str) -> Response:
+        state = current(request)
+        if isinstance(state, Response):
+            return state
+        identifier, session = state
+        intent = registry.intent(identifier, intent_id, action="case.create_open")
+        if intent is None:
+            return error(
+                request,
+                session,
+                title="Case-start review expired",
+                message="Return to Cases and enter the Case information again.",
+                return_path="/cases/new",
+                status=409,
+            )
+        assert session.authentication is not None
+        return render(
+            request,
+            "case_new.html",
+            {
+                "view": gateway.practitioner_cases(session.authentication),
+                "csrf_token": session.csrf_secret,
+                "effective_at": intent.payload["effective_at"],
+                "initiation_available": gateway.slice_h_case_initiation_available(
+                    session.authentication
+                ),
+                "form_values": intent.payload,
+                "dependencies": json.loads(intent.payload["dependencies_json"]),
+                "intent_id": intent_id,
+            },
+            200,
+        )
+
+    @app.post("/cases/start/cancel/{intent_id}")
+    async def cancel_case_start(request: Request, intent_id: str) -> Response:
+        state = current(request)
+        if isinstance(state, Response):
+            return state
+        identifier, session = state
+        if not same_origin(request):
+            return error(
+                request,
+                session,
+                title="Request rejected",
+                message="The request origin could not be verified.",
+                return_path="/cases",
+                status=403,
+            )
+        form = await request.form(max_fields=1, max_files=0, max_part_size=1_024)
+        if not registry.verify_csrf(session, str(form.get("csrf_token", ""))):
+            return error(
+                request,
+                session,
+                title="Request rejected",
+                message="The form token was missing or invalid.",
+                return_path="/cases",
+                status=403,
+            )
+        registry.discard_intent(identifier, intent_id)
+        return RedirectResponse("/cases", status_code=303)
 
     @app.post("/cases/start/commit/{intent_id}")
     async def commit_case_start(request: Request, intent_id: str) -> Response:
@@ -754,16 +897,38 @@ def register_slice_h_routes(
                 management_question=intent.payload["management_question"],
                 setup_description=intent.payload["setup_description"],
                 effective_at=effective_at,
+                ai_profile={
+                    "name": intent.payload["ai_name"],
+                    "description": intent.payload["ai_description"],
+                    "provider_source_type": intent.payload["provider_source_type"],
+                    "capabilities": intent.payload["capabilities"],
+                    **{
+                        name: value
+                        for name in (
+                            "version_model_release",
+                            "development_context",
+                            "operating_characteristics",
+                            "known_strengths_limitations",
+                            "organizational_experience",
+                            "other_identifying_information",
+                        )
+                        if (value := intent.payload[name])
+                    },
+                },
+                dependencies=tuple(json.loads(intent.payload["dependencies_json"])),
             )
             gateway.slice_h_establish_creator_visibility(
                 session.authentication, outcome, effective_at=effective_at
             )
-        except AccessDenied as exc:
+        except AccessDenied:
             return error(
                 request,
                 session,
-                title="Case initiation authority is not established",
-                message=str(exc),
+                title="Case start is no longer available",
+                message=(
+                    "Your Case-start mandate changed before the Case was started. "
+                    "No Case was created; ask a PAIM administrator to confirm your current mandate."
+                ),
                 return_path="/cases/new",
                 status=403,
             )

@@ -69,6 +69,27 @@ class ContinuingReviewPosition:
 
 
 @dataclass(frozen=True, slots=True)
+class AIProfile:
+    name: str
+    description: str | None = None
+    provider_source_type: str | None = None
+    capabilities: str | None = None
+    version_model_release: str | None = None
+    development_context: str | None = None
+    operating_characteristics: str | None = None
+    known_strengths_limitations: str | None = None
+    organizational_experience: str | None = None
+    other_identifying_information: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class DependencyFact:
+    name: str
+    relationship_type: str
+    why_it_matters: str
+
+
+@dataclass(frozen=True, slots=True)
 class CaseView:
     case_id: RecordId
     title: str
@@ -88,6 +109,9 @@ class CaseView:
     continuing_review_position: ContinuingReviewPosition | None = None
     bounded_use: str | None = None
     management_question: str | None = None
+    case_number: str | None = None
+    ai_profile: AIProfile | None = None
+    dependencies: tuple[DependencyFact, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)

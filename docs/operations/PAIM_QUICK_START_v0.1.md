@@ -234,13 +234,44 @@ audit evidence, database, and operator artifacts before diagnosing the cause.
 
 ## 7. Open the practitioner browser on current development `main`
 
-For a prospective Case established through the current Case-continuity contract, launch the local
-browser application from the repository root with the same external configuration and credential
-environment variable:
+Before the ordinary browser can offer **Start a Case**, establish both the software permission to
+attempt Case initiation and one externally grounded organizational mandate for the mapped Actor.
+Neither fact grants downstream Decision authority or substitutes for a PAIM Responsibility:
+
+```powershell
+uv run --locked paim-local --config C:\secure\paim-local.json access-grant `
+  --principal principal:local-owner `
+  --subject-principal principal:local-owner `
+  --permission COMMAND `
+  --action case.create_open `
+  --scope-type GLOBAL `
+  --effect ALLOW
+
+uv run --locked paim-local --config C:\secure\paim-local.json case-initiation-authority-record `
+  --principal principal:local-owner `
+  --authorized-actor-id <returned-actor-id> `
+  --organization-scope "organization:local" `
+  --authoritative-source "<approved organizational mandate>" `
+  --source-version "<exact source version or date>" `
+  --effective-at 2026-08-21T00:00:00+00:00 `
+  --idempotency-key "local-owner-case-initiation-v1"
+```
+
+An empty `--allowed-use-prefix` set permits the mandate's exact Actor and organization scope to be
+considered for any entered AI-use text. Repeat that flag only when the authoritative mandate itself
+limits initiation to explicit text prefixes. The browser checks this prerequisite before presenting
+a usable form and revalidates the exact mandate at commit.
+
+Launch the local browser application from the repository root with the same external configuration
+and credential environment variable:
 
 ```powershell
 uv run --locked paim-web --config C:\secure\paim-local.json
 ```
+
+The process currently runs under the operator's terminal and has no application-owned safe shutdown
+hook. Stop it with `Ctrl+C` in that terminal. A desktop launcher and application-owned stop control
+remain packaging work; the browser does not issue an unsafe process-termination command.
 
 Open the loopback URL printed at startup. **Home** and **Cases** are the only ordinary primary
 navigation. Home shows only exact visible work that legitimately needs the signed-in practitioner

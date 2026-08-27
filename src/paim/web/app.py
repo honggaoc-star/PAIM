@@ -199,10 +199,16 @@ def create_web_application(
     def render(
         request: Request, name: str, context: dict[str, object], status: int = 200
     ) -> Response:
+        browser_session = registry.get(request.cookies.get(COOKIE_NAME), touch=False)
+        signed_in_user = (
+            browser_session.authentication.principal_id
+            if browser_session is not None and browser_session.authentication is not None
+            else None
+        )
         return templates.TemplateResponse(
             request=request,
             name=name,
-            context={"request": request, **context},
+            context={"request": request, "signed_in_user": signed_in_user, **context},
             status_code=status,
         )
 
@@ -409,6 +415,23 @@ def create_web_application(
             },
         )
 
+    @app.get("/account", response_class=HTMLResponse)
+    def account(request: Request) -> Response:
+        browser_session = require_session(request)
+        if isinstance(browser_session, Response):
+            return browser_session
+        assert browser_session.authentication is not None
+        view = gateway.practitioner_home(browser_session.authentication)
+        return render(
+            request,
+            "account.html",
+            {
+                "view": view,
+                "csrf_token": browser_session.csrf_secret,
+                "health_normal": gateway.health().state.value == "READY",
+            },
+        )
+
     @app.get("/cases", response_class=HTMLResponse)
     def cases(request: Request, q: str = "") -> Response:
         browser_session = require_session(request)
@@ -439,6 +462,9 @@ def create_web_application(
             return browser_session
         assert browser_session.authentication is not None
         view = gateway.practitioner_cases(browser_session.authentication)
+        initiation_available = gateway.slice_h_case_initiation_available(
+            browser_session.authentication
+        )
         return render(
             request,
             "case_new.html",
@@ -446,6 +472,8 @@ def create_web_application(
                 "view": view,
                 "csrf_token": browser_session.csrf_secret,
                 "effective_at": clock().astimezone(UTC).isoformat(),
+                "initiation_available": initiation_available,
+                "form_values": {},
             },
         )
 

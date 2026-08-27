@@ -50,7 +50,9 @@ def test_login_rotation_home_cases_no_js_paths_and_security_headers(
 
     home = client.get("/home")
     assert home.status_code == 200
-    assert "M1A Practitioner" in home.text
+    assert "Account" in home.text
+    account = client.get("/account")
+    assert "M1A Practitioner" in account.text
     assert "Your earlier Cases" in home.text
     assert ">1<" in home.text
     assert "Visible governed service" in home.text
@@ -80,7 +82,7 @@ def test_login_rotation_home_cases_no_js_paths_and_security_headers(
 
     logout_result = client.post(
         "/logout",
-        data={"csrf_token": csrf_from(home.text)},
+        data={"csrf_token": csrf_from(account.text)},
         headers={"Origin": ORIGIN},
         follow_redirects=False,
     )
@@ -203,9 +205,10 @@ def test_referer_fallback_throttling_autoescape_and_degraded_shell(
     monkeypatch.setattr(web_fixture.operational, "health", lambda: degraded)
     home = client.get("/home")
     assert home.status_code == 200
-    assert "Local system status" in home.text
-    assert "DEGRADED" in home.text
-    assert "REQUIRED_DIRECTORY_UNAVAILABLE" in home.text
+    assert "Local system status" not in home.text
+    account = client.get("/account")
+    assert account.status_code == 200
+    assert "PAIM needs attention." in account.text
 
 
 def test_session_expiry_principal_remap_and_visibility_change_apply_next_request(
@@ -225,7 +228,7 @@ def test_session_expiry_principal_remap_and_visibility_change_apply_next_request
     )
     changed = web_fixture.client.get("/home")
     assert "Visible governed service" not in changed.text
-    assert ">0<" in changed.text
+    assert "Earlier Cases" not in changed.text
 
     replacement = RecordId.new()
     web_fixture.operational.run_command(

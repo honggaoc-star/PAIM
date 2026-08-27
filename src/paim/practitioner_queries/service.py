@@ -18,9 +18,11 @@ from paim.case_continuity.service import (
 from paim.integrity.ids import RecordId, RecordVersionId
 from paim.integrity.selection import SelectionFound, SelectionQuery
 from paim.practitioner_queries.models import (
+    AIProfile,
     AttentionItem,
     CaseView,
     ContinuingReviewPosition,
+    DependencyFact,
     GovernedPosition,
     HomeView,
     LanePosition,
@@ -116,6 +118,9 @@ class PractitionerQueryService:
             title = "Bounded PAIM Case"
             bounded_use: str | None = None
             management_question: str | None = None
+            case_number: str | None = None
+            ai_profile: AIProfile | None = None
+            dependencies: tuple[DependencyFact, ...] = ()
             manifest: set[RecordVersionId] = set()
             continuity_visible = all(
                 self._source_visible(
@@ -149,6 +154,62 @@ class PractitionerQueryService:
                     management_question = (
                         question_value if isinstance(question_value, str) else None
                     )
+                    number_rows = tx.projection_rows(
+                        "case_number_allocations", case_id=str(case_id)
+                    )
+                    if len(number_rows) == 1:
+                        number_value = number_rows[0].get("case_number")
+                        case_number = number_value if isinstance(number_value, str) else None
+                    raw_profile = source.content.get("ai_profile")
+                    if isinstance(raw_profile, dict):
+                        name = raw_profile.get("name")
+                        if isinstance(name, str) and name.strip():
+                            ai_profile = AIProfile(
+                                name=name,
+                                description=self._optional_text(raw_profile.get("description")),
+                                provider_source_type=self._optional_text(
+                                    raw_profile.get("provider_source_type")
+                                ),
+                                capabilities=self._optional_text(raw_profile.get("capabilities")),
+                                version_model_release=self._optional_text(
+                                    raw_profile.get("version_model_release")
+                                ),
+                                development_context=self._optional_text(
+                                    raw_profile.get("development_context")
+                                ),
+                                operating_characteristics=self._optional_text(
+                                    raw_profile.get("operating_characteristics")
+                                ),
+                                known_strengths_limitations=self._optional_text(
+                                    raw_profile.get("known_strengths_limitations")
+                                ),
+                                organizational_experience=self._optional_text(
+                                    raw_profile.get("organizational_experience")
+                                ),
+                                other_identifying_information=self._optional_text(
+                                    raw_profile.get("other_identifying_information")
+                                ),
+                            )
+                    raw_dependencies = source.content.get("dependencies")
+                    if isinstance(raw_dependencies, list):
+                        parsed_dependencies: list[DependencyFact] = []
+                        for item in raw_dependencies:
+                            if not isinstance(item, dict):
+                                continue
+                            name = item.get("name")
+                            relationship_type = item.get("relationship_type")
+                            why = item.get("why_it_matters")
+                            if all(
+                                isinstance(value, str) for value in (name, relationship_type, why)
+                            ):
+                                parsed_dependencies.append(
+                                    DependencyFact(
+                                        cast(str, name),
+                                        cast(str, relationship_type),
+                                        cast(str, why),
+                                    )
+                                )
+                        dependencies = tuple(parsed_dependencies)
                     manifest.add(source.version_id)
             governing = self._current_family(
                 tx, "governing-configuration", f"case:{case_id}", effective_at, known_at
@@ -296,7 +357,14 @@ class PractitionerQueryService:
                 continuing_review_position=review_position,
                 bounded_use=bounded_use,
                 management_question=management_question,
+                case_number=case_number,
+                ai_profile=ai_profile,
+                dependencies=dependencies,
             )
+
+    @staticmethod
+    def _optional_text(value: object) -> str | None:
+        return value if isinstance(value, str) and value.strip() else None
 
     def task(
         self,

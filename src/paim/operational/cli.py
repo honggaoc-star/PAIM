@@ -78,6 +78,15 @@ def _parser() -> argparse.ArgumentParser:
     case.add_argument("--title", required=True)
     case.add_argument("--effective-at", required=True)
 
+    initiation = commands.add_parser("case-initiation-authority-record", parents=[login_parent])
+    initiation.add_argument("--authorized-actor-id", required=True)
+    initiation.add_argument("--organization-scope", required=True)
+    initiation.add_argument("--allowed-use-prefix", action="append", default=[])
+    initiation.add_argument("--authoritative-source", required=True)
+    initiation.add_argument("--source-version", required=True)
+    initiation.add_argument("--effective-at", required=True)
+    initiation.add_argument("--idempotency-key", required=True)
+
     configuration = commands.add_parser("configuration-create", parents=[login_parent])
     configuration.add_argument("--case-id", required=True)
     configuration.add_argument(
@@ -165,6 +174,8 @@ def _bootstrap_grants(args: argparse.Namespace) -> tuple[AccessGrantInput, ...]:
             "backup.create",
             "restore.verify",
             "observability.read",
+            "case.initiation-authority.record",
+            "source-access.manage",
         ):
             grants.append(_grant(Permission.OPERATIONAL_ADMIN, action))
     return tuple(grants)
@@ -260,6 +271,18 @@ def main(argv: list[str] | None = None) -> int:
                 ),
             )
             _json({"case_id": case_id, "outcome": asdict(case_outcome)})
+        elif args.command == "case-initiation-authority-record":
+            result = app.record_case_initiation_authority(
+                session,
+                authorized_actor_id=RecordId.parse(args.authorized_actor_id),
+                organization_scope=args.organization_scope,
+                allowed_use_prefixes=tuple(args.allowed_use_prefix),
+                authoritative_source=args.authoritative_source,
+                source_version=args.source_version,
+                effective_at=datetime.fromisoformat(args.effective_at),
+                idempotency_key=args.idempotency_key,
+            )
+            _json({"status": "CASE_INITIATION_AUTHORITY_RECORDED", "outcome": asdict(result)})
         elif args.command == "configuration-create":
             content = cast(
                 "dict[str, JsonValue]",

@@ -757,4 +757,4 @@ def test_slice_d_facts_prohibit_destructive_migration_downgrade(
     with sqlite_store.engine.connect() as connection:  # type: ignore[attr-defined]
         assert connection.exec_driver_sql(
             "SELECT version_num FROM alembic_version"
-        ).scalar_one() == ("0013_gate8_integration_decision_basis")
+        ).scalar_one() == ("0018_issue167_case_identity")

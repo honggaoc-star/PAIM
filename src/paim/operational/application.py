@@ -49,6 +49,8 @@ from paim.assessment_review import (
 from paim.audit import ActorResolution
 from paim.case_continuity import (
     CaseContinuityService,
+    CaseInitiationAuthorityCommand,
+    CaseInitiationAuthorityState,
     MinimalOpenCaseCommand,
 )
 from paim.case_continuity import (
@@ -89,7 +91,12 @@ from paim.integrity import (
 )
 from paim.integrity.records import JsonValue
 from paim.integrity.selection import SelectionFound, SelectionQuery
-from paim.integrity.semantics import SemanticContractRef
+from paim.integrity.semantics import (
+    ContextMemberKind,
+    ExactContextMember,
+    ExactContextSet,
+    SemanticContractRef,
+)
 from paim.operational.models import (
     UNSUPPORTED_CAPABILITIES,
     AccessDenied,
@@ -1132,6 +1139,8 @@ class OperationalApplication:
         management_question: str,
         setup_description: str,
         effective_at: datetime,
+        ai_profile: dict[str, JsonValue] | None = None,
+        dependencies: tuple[dict[str, JsonValue], ...] = (),
     ) -> CommandOutcome:
         """Use the H0 natural command; no PAIM identity is supplied by the practitioner."""
 
@@ -1166,6 +1175,116 @@ class OperationalApplication:
                 "candidate",
                 effective_at,
                 self.clock.now(),
+                ai_profile,
+                dependencies,
+            )
+        )
+
+    def slice_h_case_initiation_available(
+        self,
+        session: AuthenticatedSession,
+        *,
+        bounded_use: str | None = None,
+        effective_at: datetime | None = None,
+    ) -> bool:
+        """Disclose only whether a usable pre-Case mandate exists for this Actor."""
+
+        self._validate_session(session, "case.create_open")
+        if session.actor_id is None:
+            return False
+        if not self.operational_store.permission_allowed(
+            session.principal_id, Permission.COMMAND, "case.create_open"
+        ):
+            return False
+        effective = effective_at or self.clock.now()
+        if bounded_use is not None:
+            try:
+                self._case_initiation_scope(
+                    actor_id=session.actor_id,
+                    bounded_use=bounded_use,
+                    effective_at=effective,
+                )
+            except AccessDenied:
+                return False
+            return True
+        known_at = self.clock.now()
+        scopes: set[str] = set()
+        with self.domain_store.read_transaction() as transaction:
+            for row in transaction.projection_rows(
+                "case_initiation_authority_versions",
+                authorized_actor_id=str(session.actor_id),
+                state="ACTIVE",
+            ):
+                version_id = RecordVersionId.parse(str(row["version_id"]))
+                version = transaction.get_version(version_id)
+                if version is None:
+                    continue
+                selected = transaction.select_current(
+                    SelectionQuery(
+                        version.family,
+                        version.scope,
+                        effective,
+                        known_at,
+                        version.record_id,
+                    )
+                )
+                if (
+                    isinstance(selected, SelectionFound)
+                    and selected.candidate.version_id == version_id
+                ):
+                    scopes.add(str(row["organization_scope"]))
+        return len(scopes) == 1
+
+    def record_case_initiation_authority(
+        self,
+        session: AuthenticatedSession,
+        *,
+        authorized_actor_id: RecordId,
+        organization_scope: str,
+        allowed_use_prefixes: tuple[str, ...],
+        authoritative_source: str,
+        source_version: str,
+        effective_at: datetime,
+        idempotency_key: str,
+    ) -> CommandOutcome:
+        """Production administrator path for an externally grounded pre-Case mandate."""
+
+        self._validate_session(session, "case.initiation-authority.record")
+        if session.actor_id is None:
+            raise AccessDenied("current Actor mapping is not established")
+        context = ExactContextSet.create(
+            (
+                ExactContextMember(
+                    "authorized_actor", ContextMemberKind.RECORD, str(authorized_actor_id)
+                ),
+                ExactContextMember(
+                    "organization_scope", ContextMemberKind.LITERAL, organization_scope
+                ),
+            )
+        )
+        return self._case_continuity.record_case_initiation_authority(
+            CaseInitiationAuthorityCommand(
+                ContinuityCommandIdentity(
+                    CommandId.new(),
+                    "operational-case-initiation-authority",
+                    idempotency_key,
+                    session.principal_id,
+                    session.actor_id,
+                ),
+                RecordId.new(),
+                RecordVersionId.new(),
+                authorized_actor_id,
+                organization_scope,
+                allowed_use_prefixes,
+                {
+                    "authoritative_source": authoritative_source,
+                    "source_version": source_version,
+                    "scope": organization_scope,
+                },
+                CaseInitiationAuthorityState.ACTIVE,
+                effective_at,
+                SemanticContractRef("paim.case-continuity", "1.0"),
+                context,
             )
         )
 

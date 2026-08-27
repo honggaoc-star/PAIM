@@ -12,7 +12,7 @@
   {% if prospective_cases %}
   <ul class="card-list">
     {% for case in prospective_cases %}
-    <li><article><h2><a href="/cases/{{ case.case_id }}">{{ case.title }}</a></h2><p>{{ case.continuity_status.value.replace('_', ' ').title() if case.continuity_status else 'Current position is not safely available' }}</p></article></li>
+    <li><article><p class="eyebrow">{{ case.case_number or 'Case' }}</p><h2><a href="/cases/{{ case.case_id }}">{{ case.title }}</a></h2><p>{{ case.continuity_status.value.replace('_', ' ').title() if case.continuity_status else 'Current position is not safely available' }}</p></article></li>
     {% endfor %}
   </ul>
   {% else %}

@@ -131,6 +131,8 @@ class OpenCaseCommand:
     effective_at: datetime
     knowledge_cutoff: datetime
     initiation_scope: str | None = None
+    ai_profile: dict[str, JsonValue] | None = None
+    dependencies: tuple[dict[str, JsonValue], ...] = ()
 
     def __post_init__(self) -> None:
         require_utc(self.effective_at)
@@ -141,6 +143,10 @@ class OpenCaseCommand:
             or not self.management_question.strip()
         ):
             raise ValueError("Case title, bounded use, and management question are required")
+        if self.ai_profile is not None and not str(self.ai_profile.get("name", "")).strip():
+            raise ValueError("AI name is required when an AI profile is supplied")
+        if any(not str(item.get("name", "")).strip() for item in self.dependencies):
+            raise ValueError("each dependency requires a name")
 
 
 class CaseInitiationAuthorityState(StrEnum):
@@ -188,6 +194,8 @@ class MinimalOpenCaseCommand:
     configuration_purpose: str
     effective_at: datetime
     knowledge_cutoff: datetime
+    ai_profile: dict[str, JsonValue] | None = None
+    dependencies: tuple[dict[str, JsonValue], ...] = ()
 
     def __post_init__(self) -> None:
         require_utc(self.effective_at)
@@ -202,6 +210,10 @@ class MinimalOpenCaseCommand:
             )
         ):
             raise ValueError("minimal Case initiation fields are required")
+        if self.ai_profile is not None and not str(self.ai_profile.get("name", "")).strip():
+            raise ValueError("AI name is required when an AI profile is supplied")
+        if any(not str(item.get("name", "")).strip() for item in self.dependencies):
+            raise ValueError("each dependency requires a name")
 
 
 @dataclass(frozen=True, slots=True)

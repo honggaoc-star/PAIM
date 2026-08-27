@@ -442,17 +442,34 @@ No generic setup, improvement, percentage, or `all clear` claim is added.
 ```text
 Start a Case
 
-What AI use are you considering?
-[Short purpose or management question]
+Case name
+[Recognizable name]
 
-What setup or scope should this Case begin with?
+AI
+[AI tool, system, model, service, or capability]
+
+AI use
+[How the organization intends to use it, by whom, and in what process]
+
+Decision or management question
+[The actual question the organization wants to address]
+
+Starting scope or operating context
 [Concise bounded description]
 
-[Start Case]
+[Add AI details]  [Add dependency]
+
+[Review Case]
 ```
 
 PAIM establishes safe system facts through the accepted natural Case command. It does not ask for
 IDs, contracts, digests, initial status, or a complete staffing/governance questionnaire.
+
+The AI profile records factual context; it does not become a Case-specific Value or Risk conclusion.
+Dependencies are optional factual context and do not create an inferred dependency graph or an
+automatic management conclusion. After review and successful Case establishment, PAIM assigns an
+immutable organization-local Case number such as `PAIM-0001`. That number is a durable human
+reference, is never reused, and does not replace the authoritative internal Case identity.
 
 ### 17.4 Case current position
 

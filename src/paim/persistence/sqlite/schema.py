@@ -7,6 +7,7 @@ from sqlalchemy import (
     Column,
     ForeignKey,
     Index,
+    Integer,
     MetaData,
     String,
     Table,
@@ -152,6 +153,15 @@ paim_cases = Table(
     "paim_cases",
     metadata,
     Column("case_id", String(36), ForeignKey("records.record_id"), primary_key=True),
+)
+
+case_number_allocations = Table(
+    "case_number_allocations",
+    metadata,
+    Column("sequence_number", Integer, primary_key=True, autoincrement=True),
+    Column("case_id", String(36), nullable=False, unique=True),
+    Column("case_number", String(13), nullable=False, unique=True),
+    sqlite_autoincrement=True,
 )
 
 paim_case_versions = Table(
