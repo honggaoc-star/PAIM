@@ -50,10 +50,13 @@ def test_login_rotation_home_cases_no_js_paths_and_security_headers(
 
     home = client.get("/home")
     assert home.status_code == 200
-    assert "M1A Practitioner" in home.text
-    assert "Your earlier Cases" in home.text
-    assert ">1<" in home.text
-    assert "Visible governed service" in home.text
+    assert "Account" in home.text
+    assert home.text.count('href="/account"') == 1
+    account = client.get("/account")
+    assert "M1A Practitioner" in account.text
+    assert "Earlier Cases" not in home.text
+    assert "original experience" not in home.text
+    assert "Visible governed service" not in home.text
     assert "Protected hidden service" not in home.text
     assert str(web_fixture.hidden_case_id) not in home.text
     assert "script src=" in home.text
@@ -67,6 +70,9 @@ def test_login_rotation_home_cases_no_js_paths_and_security_headers(
     cases = client.get("/cases")
     assert cases.status_code == 200
     assert "Visible governed service" in cases.text
+    assert "Cases from an earlier PAIM version" in cases.text
+    assert "may use the earlier workflow" in cases.text
+    assert "original experience" not in cases.text
     orientation = client.get(f"/cases/{web_fixture.visible_case_id}")
     assert orientation.status_code == 200
     assert "Establish one setup for assessment" in orientation.text
@@ -80,7 +86,7 @@ def test_login_rotation_home_cases_no_js_paths_and_security_headers(
 
     logout_result = client.post(
         "/logout",
-        data={"csrf_token": csrf_from(home.text)},
+        data={"csrf_token": csrf_from(account.text)},
         headers={"Origin": ORIGIN},
         follow_redirects=False,
     )
@@ -203,9 +209,10 @@ def test_referer_fallback_throttling_autoescape_and_degraded_shell(
     monkeypatch.setattr(web_fixture.operational, "health", lambda: degraded)
     home = client.get("/home")
     assert home.status_code == 200
-    assert "Local system status" in home.text
-    assert "DEGRADED" in home.text
-    assert "REQUIRED_DIRECTORY_UNAVAILABLE" in home.text
+    assert "Local system status" not in home.text
+    account = client.get("/account")
+    assert account.status_code == 200
+    assert "PAIM needs attention." in account.text
 
 
 def test_session_expiry_principal_remap_and_visibility_change_apply_next_request(
@@ -213,7 +220,7 @@ def test_session_expiry_principal_remap_and_visibility_change_apply_next_request
 ) -> None:
     _, response = login(web_fixture.client)
     assert response.status_code == 303
-    assert "Visible governed service" in web_fixture.client.get("/home").text
+    assert "Visible governed service" in web_fixture.client.get("/cases").text
 
     grant(
         web_fixture,
@@ -225,7 +232,8 @@ def test_session_expiry_principal_remap_and_visibility_change_apply_next_request
     )
     changed = web_fixture.client.get("/home")
     assert "Visible governed service" not in changed.text
-    assert ">0<" in changed.text
+    assert "Earlier Cases" not in changed.text
+    assert "Visible governed service" not in web_fixture.client.get("/cases").text
 
     replacement = RecordId.new()
     web_fixture.operational.run_command(

@@ -161,6 +161,11 @@ class SessionRegistry:
         self._intents[key] = completed
         return completed
 
+    def discard_intent(self, identifier: str, intent_id: str) -> None:
+        session = self.get(identifier, touch=False)
+        if session is not None:
+            self._intents.pop((session.digest, intent_id), None)
+
     def verify_csrf(self, session: BrowserSession, supplied: str) -> bool:
         return hmac.compare_digest(session.csrf_secret, supplied)
 

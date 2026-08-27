@@ -11,7 +11,7 @@ from paim.assessment_review import (
     AssessmentReviewService,
 )
 from paim.audit import ActorResolution
-from paim.case_continuity import CaseContinuityService
+from paim.case_continuity import CaseContinuityService, CaseInitiationAuthorityState
 from paim.continuing_review import (
     ContinuingReviewService,
     RecordEventReviewAttentionCommand,
@@ -78,6 +78,7 @@ from tests.integration.test_gate8_slice_h0_prerequisites import (
     establish_authority,
     prepare_permissions,
 )
+from tests.integration.test_gate8_slice_h0_prerequisites import identity as h0_identity
 from tests.web_support import ORIGIN, TOKEN, WebFixture, csrf_from, grant, login
 
 _PROSPECTIVE_VERSION_TABLES = (
@@ -791,6 +792,19 @@ def test_durable_work_leads_to_action_and_hidden_or_stale_responsibility_never_r
     assert str(successor.version_id) not in stale_action.text
 
 
+def test_case_start_preflight_blocks_data_entry_without_disclosing_authority_sources(
+    web_fixture: WebFixture,
+) -> None:
+    _, logged_in = login(web_fixture.client)
+    assert logged_in.status_code == 303
+    page = web_fixture.client.get("/cases/new")
+    assert page.status_code == 200
+    assert "Case start is not available" in page.text
+    assert 'name="title"' not in page.text
+    assert "case_initiation_authority" not in page.text
+    assert "version_id" not in page.text
+
+
 def test_minimal_case_start_uses_h0_authority_and_creates_no_later_governance(
     web_fixture: WebFixture,
 ) -> None:
@@ -810,11 +824,15 @@ def test_minimal_case_start_uses_h0_authority_and_creates_no_later_governance(
     assert new_case.status_code == 200
     for expected in (
         "Case name",
+        "AI name",
+        "What is this AI?",
+        "Source or provider type",
+        "Relevant capabilities",
         "AI use",
         "Decision or management question",
-        "Starting scope or setup",
-        "draft replies for customer-service agents",
-        "suggestions only, with an agent reviewing every reply",
+        "Starting operating context",
+        "Add AI details",
+        "Add dependency",
     ):
         assert expected in new_case.text
     for prohibited in (
@@ -825,11 +843,42 @@ def test_minimal_case_start_uses_h0_authority_and_creates_no_later_governance(
         "authority mapping",
     ):
         assert prohibited not in new_case.text.casefold()
+    cancelled_review = web_fixture.client.post(
+        "/cases/start/review",
+        data={
+            "csrf_token": csrf_from(new_case.text),
+            "title": "Harborlight cancelled Case",
+            "ai_name": "Harborlight Assist",
+            "ai_description": "A lending-review assistance service.",
+            "provider_source_type": "Commercial AI service",
+            "capabilities": "Summarizes application information.",
+            "bounded_use": "small-business lending assistance",
+            "management_question": "Should this cancelled request proceed?",
+            "setup_description": "Accountable human review remains required.",
+            "effective_at": H0_NOW.isoformat(),
+        },
+        headers={"Origin": ORIGIN},
+        follow_redirects=False,
+    )
+    cancelled_page = web_fixture.client.get(cancelled_review.headers["location"])
+    cancelled = web_fixture.client.post(
+        cancelled_page.url.path.replace("/confirm/", "/cancel/"),
+        data={"csrf_token": csrf_from(cancelled_page.text)},
+        headers={"Origin": ORIGIN},
+        follow_redirects=False,
+    )
+    assert cancelled.status_code == 303
+    with web_fixture.operational.domain_store.read_transaction() as tx:
+        assert tx.count_rows("case_continuity_status_versions") == 0
     missing_question = web_fixture.client.post(
         "/cases/start/review",
         data={
             "csrf_token": csrf_from(new_case.text),
             "title": "Harborlight Assist — incomplete request",
+            "ai_name": "Harborlight Assist",
+            "ai_description": "A lending-review assistance service.",
+            "provider_source_type": "Commercial AI service",
+            "capabilities": "Summarizes application information.",
             "bounded_use": "small-business lending assistance",
             "management_question": "",
             "setup_description": "Bounded assistance only.",
@@ -846,6 +895,10 @@ def test_minimal_case_start_uses_h0_authority_and_creates_no_later_governance(
         data={
             "csrf_token": csrf_from(new_case.text),
             "title": "Harborlight Assist — disposable Slice H Case",
+            "ai_name": "Harborlight Assist",
+            "ai_description": "A lending-review assistance service.",
+            "provider_source_type": "Commercial AI service",
+            "capabilities": "Summarizes application information.",
             "bounded_use": "small-business lending assistance",
             "management_question": (
                 "Should Harborlight use bounded AI assistance in its lending review?"
@@ -859,7 +912,7 @@ def test_minimal_case_start_uses_h0_authority_and_creates_no_later_governance(
     assert reviewed.status_code == 303
     confirmation = web_fixture.client.get(reviewed.headers["location"])
     assert confirmation.status_code == 200
-    assert "does not complete Value or Risk assessments" in confirmation.text
+    assert "Check the details below before starting this Case." in confirmation.text
     assert "Should Harborlight use bounded AI assistance in its lending review?" in (
         confirmation.text
     )
@@ -881,6 +934,8 @@ def test_minimal_case_start_uses_h0_authority_and_creates_no_later_governance(
     case_page = web_fixture.client.get(committed.headers["location"])
     assert case_page.status_code == 200
     assert "Harborlight Assist" in case_page.text
+    assert "Commercial AI service" in case_page.text
+    assert "PAIM-" in case_page.text
     assert "small-business lending assistance" in case_page.text
     assert "Should Harborlight use bounded AI assistance in its lending review?" in case_page.text
     with web_fixture.operational.domain_store.read_transaction() as tx:
@@ -891,6 +946,61 @@ def test_minimal_case_start_uses_h0_authority_and_creates_no_later_governance(
         assert tx.count_rows("prospective_integration_versions") == 0
         assert tx.count_rows("prospective_decision_versions") == 0
         assert tx.count_rows("review_episode_versions") == 0
+
+
+def test_case_start_revalidates_withdrawn_mandate_and_commits_nothing(
+    web_fixture: WebFixture,
+) -> None:
+    web_fixture.now.value = H0_NOW
+    _use_fixture_clock(web_fixture)
+    prepare_permissions(web_fixture)
+    active = establish_authority(
+        web_fixture,
+        web_fixture.operational._case_continuity,  # type: ignore[attr-defined]
+    )
+    _, logged_in = login(web_fixture.client)
+    assert logged_in.status_code == 303
+    page = web_fixture.client.get("/cases/new")
+    reviewed = web_fixture.client.post(
+        "/cases/start/review",
+        data={
+            "csrf_token": csrf_from(page.text),
+            "title": "Harborlight stale mandate proof",
+            "ai_name": "Harborlight Assist",
+            "ai_description": "A lending-review assistance service.",
+            "provider_source_type": "Commercial AI service",
+            "capabilities": "Summarizes application information.",
+            "bounded_use": "small-business lending assistance",
+            "management_question": "Should this bounded use proceed?",
+            "setup_description": "Accountable human review remains required.",
+            "effective_at": H0_NOW.isoformat(),
+        },
+        headers={"Origin": ORIGIN},
+        follow_redirects=False,
+    )
+    confirmation = web_fixture.client.get(reviewed.headers["location"])
+    withdrawn = replace(
+        active,
+        identity=h0_identity("withdraw-before-browser-commit", web_fixture.actor_id),
+        version_id=RecordVersionId.new(),
+        state=CaseInitiationAuthorityState.WITHDRAWN,
+        expected_version_id=active.version_id,
+    )
+    web_fixture.operational._case_continuity.record_case_initiation_authority(  # type: ignore[attr-defined]
+        withdrawn
+    )
+    before = web_fixture.operational.operational_store.table_counts(
+        ("paim_cases", "case_number_allocations", "case_continuity_status_versions")
+    )
+    result = web_fixture.client.post(
+        confirmation.url.path.replace("/confirm/", "/commit/"),
+        data={"csrf_token": csrf_from(confirmation.text)},
+        headers={"Origin": ORIGIN},
+        follow_redirects=False,
+    )
+    assert result.status_code == 403
+    assert "Case start is no longer available" in result.text
+    assert web_fixture.operational.operational_store.table_counts(tuple(before)) == before
 
 
 def test_value_risk_tasks_preserve_independence_and_real_practitioner_handoff(
@@ -1019,7 +1129,7 @@ def test_value_risk_tasks_preserve_independence_and_real_practitioner_handoff(
         configuration_id,
         principal_id=second_principal,
     )
-    current_page = web_fixture.client.get("/home")
+    current_page = web_fixture.client.get("/account")
     logged_out = web_fixture.client.post(
         "/logout",
         data={"csrf_token": csrf_from(current_page.text)},

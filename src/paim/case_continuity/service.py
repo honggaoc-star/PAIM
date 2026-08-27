@@ -65,6 +65,7 @@ class ContinuityTransaction(Protocol):
     def select_current(self, query: SelectionQuery) -> object: ...
     def case_exists(self, case_id: RecordId) -> bool: ...
     def add_case(self, case_id: RecordId, version_id: RecordVersionId) -> None: ...
+    def allocate_case_number(self, case_id: RecordId) -> str: ...
     def add_configuration(
         self,
         *,
@@ -314,6 +315,8 @@ class CaseContinuityService:
                 "title": request.title,
                 "bounded_use": request.bounded_use,
                 "management_question": request.management_question,
+                "ai_profile": request.ai_profile,
+                "dependencies": list(request.dependencies),
                 "configuration": request.configuration_content,
                 "configuration_maturity": request.configuration_maturity,
                 "configuration_purpose": request.configuration_purpose,
@@ -373,6 +376,8 @@ class CaseContinuityService:
             request.effective_at,
             request.knowledge_cutoff,
             request.organization_scope,
+            request.ai_profile,
+            request.dependencies,
         )
         return self._open_case(command, digest)
 
@@ -428,10 +433,14 @@ class CaseContinuityService:
             self._ensure_contract_context(tx, command.contract, command.context, recorded_at)
             f = command.facts
             versions: list[RecordVersionId] = []
+            case_number = tx.allocate_case_number(f.case_id)
             case_content: dict[str, JsonValue] = {
+                "case_number": case_number,
                 "title": command.title,
                 "bounded_use": command.bounded_use,
                 "management_question": command.management_question,
+                "ai_profile": command.ai_profile,
+                "dependencies": list(command.dependencies),
             }
             if command.initiation_scope is not None:
                 case_content["case_initiation"] = {
@@ -1797,6 +1806,8 @@ class CaseContinuityService:
             "title": command.title,
             "bounded_use": command.bounded_use,
             "management_question": command.management_question,
+            "ai_profile": command.ai_profile,
+            "dependencies": list(command.dependencies),
             "configuration": command.configuration_content,
             "continuity_authority": str(command.authority_source_version_id),
             "assignment_authority": str(command.assignment_authority_source_version_id),

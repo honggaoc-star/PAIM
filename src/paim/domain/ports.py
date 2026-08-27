@@ -19,6 +19,8 @@ class Increment2Transaction(IntegrityTransaction, Protocol):
 
     def add_case(self, case_id: RecordId, version_id: RecordVersionId) -> None: ...
 
+    def allocate_case_number(self, case_id: RecordId) -> str: ...
+
     def add_case_link(
         self,
         *,

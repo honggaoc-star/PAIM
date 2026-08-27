@@ -1,0 +1,3 @@
+{% extends "base.html" %}
+{% block title %}Account — PAIM{% endblock %}
+{% block content %}<section class="narrow" aria-labelledby="account-heading"><h1 id="account-heading">Account</h1><p><strong>Signed in as {{ view.actor.display_name }}</strong></p><p class="mono">{{ signed_in_user }}</p><p><strong>{% if health_normal %}PAIM is running normally.{% else %}PAIM needs attention.{% endif %}</strong></p><form action="/logout" method="post" data-submit-lock><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button type="submit">Sign out</button></form></section>{% endblock %}

@@ -138,6 +138,50 @@ def test_minimal_case_initiation_is_atomic_exact_replay_and_grants_no_downstream
     assert len(outcome.version_ids) == 7
 
 
+def test_case_number_and_declared_ai_context_are_durable_factual_sources(
+    web_fixture: WebFixture,
+) -> None:
+    prepare_permissions(web_fixture)
+    policy = OperationalSliceAAccessPolicy(web_fixture.operational.operational_store)
+    service = CaseContinuityService(web_fixture.operational.domain_store, FixedClock(NOW), policy)
+    establish_authority(web_fixture, service)
+    request = replace(
+        minimal(web_fixture.actor_id, key="identity-context"),
+        ai_profile={
+            "name": "Harborlight Assist",
+            "description": "A sourced assistance system",
+            "provider_source_type": "commercial service",
+            "capabilities": "summarizes exact application information",
+            "version_model_release": "2026.08",
+        },
+        dependencies=(
+            {
+                "name": "Application data service",
+                "relationship_type": "INTERNAL",
+                "why_it_matters": "provides the bounded factual input",
+            },
+        ),
+    )
+    first = service.initiate_case(request)
+    second = service.initiate_case(
+        replace(request, identity=identity("identity-context-2", web_fixture.actor_id))
+    )
+    with web_fixture.operational.domain_store.read_transaction() as tx:
+        first_numbers = tx.projection_rows("case_number_allocations", case_id=first.record_id)
+        second_numbers = tx.projection_rows("case_number_allocations", case_id=second.record_id)
+        source = tx.get_version(RecordVersionId.parse(first.version_ids[0]))
+    first_number = str(first_numbers[0]["case_number"])
+    second_number = str(second_numbers[0]["case_number"])
+    assert first_number.startswith("PAIM-") and len(first_number) == 9
+    assert int(second_number.removeprefix("PAIM-")) == int(first_number.removeprefix("PAIM-")) + 1
+    assert source is not None
+    assert source.content["case_number"] == first_number
+    assert source.content["ai_profile"] == request.ai_profile
+    assert source.content["dependencies"] == list(request.dependencies)
+    assert "value" not in source.content
+    assert "risk" not in source.content
+
+
 @pytest.mark.parametrize(
     ("validation_stage", "malformed_field"),
     (
@@ -165,6 +209,7 @@ def test_case_initiation_uses_canonical_assignment_validators_with_atomic_reject
     before = web_fixture.operational.operational_store.table_counts(
         (
             "paim_cases",
+            "case_number_allocations",
             "record_versions",
             "responsibility_versions",
             "assignment_basis_versions",
@@ -246,7 +291,7 @@ def test_missing_access_withdrawn_or_out_of_scope_initiation_has_zero_mutation(
     service = CaseContinuityService(web_fixture.operational.domain_store, FixedClock(NOW), policy)
     establish_authority(web_fixture, service, state=state)
     before = web_fixture.operational.operational_store.table_counts(
-        ("paim_cases", "record_versions", "assignment_basis_versions")
+        ("paim_cases", "case_number_allocations", "record_versions", "assignment_basis_versions")
     )
     with pytest.raises(RuntimeError, match=reason):
         service.initiate_case(minimal(web_fixture.actor_id, use=use))
@@ -298,7 +343,7 @@ def test_identity_practical_role_and_other_authority_cannot_substitute_for_initi
         OperationalSliceAAccessPolicy(web_fixture.operational.operational_store),
     )
     before = web_fixture.operational.operational_store.table_counts(
-        ("paim_cases", "assignment_basis_versions")
+        ("paim_cases", "case_number_allocations", "assignment_basis_versions")
     )
     with pytest.raises(
         CaseContinuityConflict, match="pre-Case initiation authority not established"
@@ -326,7 +371,7 @@ def test_withdrawn_successor_makes_predecessor_ineligible_without_retarget(
     )
     service.record_case_initiation_authority(withdrawn)
     before = web_fixture.operational.operational_store.table_counts(
-        ("paim_cases", "assignment_basis_versions")
+        ("paim_cases", "case_number_allocations", "assignment_basis_versions")
     )
     with pytest.raises(CaseContinuityConflict, match="not established"):
         service.initiate_case(minimal(web_fixture.actor_id))

@@ -46,8 +46,8 @@ def test_m1b_browser_exact_evidence_and_independent_lane_path(
     with live_server(web_fixture) as origin:
         page = browser.new_page()
         page.goto(f"{origin}/login")
-        page.get_by_label("Principal ID").fill("principal:web-practitioner")
-        page.get_by_label("Protected credential").fill(TOKEN)
+        page.get_by_label("User ID").fill("principal:web-practitioner")
+        page.get_by_label("Password or access credential").fill(TOKEN)
         page.get_by_role("button", name="Sign in").click()
         page.get_by_role("link", name="Cases", exact=True).click()
         page.get_by_role("link", name="Visible governed service").click()

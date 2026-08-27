@@ -276,6 +276,15 @@ This recommendation is bounded. It supports the planned owner browser check;
 it is not a release verdict, an empirical usefulness claim, or permission to
 add post-v0.2 capabilities.
 
+### Learn destination disposition
+
+The optional practitioner **Learn** destination remains planned for the v0.2
+practitioner-documentation and closure step. It is intentionally not implemented
+in the Issue #167 finishing pass: a useful surface requires curated practitioner
+content, while a placeholder or repository-document index would not meet the
+owner-review direction. Primary navigation therefore remains focused on Home and
+Cases; Account remains available separately in the signed-in header area.
+
 ## Human-judgment boundary
 
 This assessment establishes structural browser usability evidence and identifies

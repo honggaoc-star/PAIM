@@ -253,6 +253,7 @@ _PROSPECTIVE_PROJECTION_TABLES = frozenset(
         "case_continuity_relationships",
         "configuration_continuity_links",
         "case_initiation_authority_versions",
+        "case_number_allocations",
         "assessment_candidate_records",
         "assessment_candidate_versions",
         "assessment_readiness_records",
@@ -485,6 +486,10 @@ class SQLiteIntegrityTransaction:
         )
 
     def add_case(self, case_id: RecordId, version_id: RecordVersionId) -> None:
+        # Historical migration tests intentionally operate the current store
+        # against an older schema. The 0018 upgrade backfills those Cases.
+        if self._connection.dialect.has_table(self._connection, "case_number_allocations"):
+            self.allocate_case_number(case_id)
         if not self.case_exists(case_id):
             self._connection.execute(insert(paim_cases).values(case_id=str(case_id)))
         self._connection.execute(
@@ -494,6 +499,21 @@ class SQLiteIntegrityTransaction:
                 initial_lifecycle_state="open",
             )
         )
+
+    def allocate_case_number(self, case_id: RecordId) -> str:
+        table = metadata.tables["case_number_allocations"]
+        existing = self._connection.scalar(
+            select(table.c.case_number).where(table.c.case_id == str(case_id))
+        )
+        if existing is not None:
+            return str(existing)
+        row = self._connection.exec_driver_sql(
+            "INSERT INTO case_number_allocations (case_id, case_number) "
+            "SELECT ?, printf('PAIM-%04d', COALESCE((SELECT seq + 1 FROM sqlite_sequence "
+            "WHERE name = 'case_number_allocations'), 1)) RETURNING case_number",
+            (str(case_id),),
+        ).one()
+        return str(row[0])
 
     def add_case_link(
         self,
