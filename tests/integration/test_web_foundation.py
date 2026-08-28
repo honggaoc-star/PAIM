@@ -52,6 +52,7 @@ def test_login_rotation_home_cases_no_js_paths_and_security_headers(
     assert home.status_code == 200
     assert "Account" in home.text
     assert home.text.count('href="/account"') == 1
+    assert home.text.count('href="/learn"') == 1
     account = client.get("/account")
     assert "M1A Practitioner" in account.text
     assert "Earlier Cases" not in home.text
@@ -93,6 +94,42 @@ def test_login_rotation_home_cases_no_js_paths_and_security_headers(
     assert logout_result.status_code == 303
     assert logout_result.headers["location"] == "/login"
     assert client.get("/home", follow_redirects=False).status_code == 303
+
+
+def test_learn_is_curated_practitioner_guidance_without_technical_leakage(
+    web_fixture: WebFixture,
+) -> None:
+    assert web_fixture.client.get("/learn", follow_redirects=False).status_code == 303
+    _, logged_in = login(web_fixture.client)
+    assert logged_in.status_code == 303
+
+    learn = web_fixture.client.get("/learn")
+    assert learn.status_code == 200
+    for expected in (
+        "What a Case is",
+        "AI characteristics and dependencies",
+        "Value and Risk answer different questions",
+        "Decisions, responsibility, and authority",
+        "Continuing review and history",
+        "Good practices",
+        "Frequently asked questions",
+        "Further reading",
+        "AI Risk Management (AIRM)",
+        "AI Value Management (AIVM)",
+    ):
+        assert expected in learn.text
+    assert learn.text.count('<a href="/home"') == 1
+    assert learn.text.count('<a href="/cases"') == 1
+    assert learn.text.count('<a href="/learn"') == 1
+    for prohibited in (
+        "RecordVersionId",
+        "semantic era",
+        "docs/system",
+        "/src/",
+        "Alembic",
+        "SQLite",
+    ):
+        assert prohibited.casefold() not in learn.text.casefold()
 
 
 def test_hidden_case_search_and_not_found_have_no_existence_leak(
