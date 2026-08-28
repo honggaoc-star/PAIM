@@ -28,5 +28,5 @@
   <div class="empty-state"><p><strong>Nothing currently needs your attention.</strong></p></div>
   {% endif %}
 </section>
-<p><a href="/cases">Open Cases</a></p>
+{% if view.visible_case_count or prospective.visible_case_ids %}<p><a href="/cases">View Existing Cases</a></p>{% endif %}
 {% endblock %}

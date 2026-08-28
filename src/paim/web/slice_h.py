@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
@@ -18,12 +18,82 @@ from paim.operational.models import AccessDenied
 from paim.reconstruction import ReconstructionAccessDenied
 from paim.responsibility.models import ObligationKind
 from paim.slice_h_actions import SliceHActionContext
-from paim.web.sessions import BrowserSession, SessionRegistry
+from paim.web.sessions import CASE_START_RECOVERY_COOKIE, BrowserSession, SessionRegistry
 
 Render = Callable[[Request, str, dict[str, object], int], Response]
 RequireSession = Callable[[Request], BrowserSession | Response]
 SameOrigin = Callable[[Request], bool]
 MAX_CASE_START_DEPENDENCIES = 8
+_CASE_START_LIMITS = {
+    "title": 300,
+    "ai_name": 300,
+    "ai_description": 600,
+    "provider_source_type": 300,
+    "capabilities": 600,
+    "bounded_use": 1_200,
+    "management_question": 1_200,
+    "setup_description": 2_000,
+    "version_model_release": 300,
+    "development_context": 400,
+    "operating_characteristics": 400,
+    "known_strengths_limitations": 500,
+    "organizational_experience": 400,
+    "other_identifying_information": 400,
+    "effective_at": 80,
+}
+
+
+def _case_start_form(
+    form: Mapping[str, object],
+) -> tuple[dict[str, str], list[dict[str, str]], str, str]:
+    payload: dict[str, str] = {}
+    for name, limit in _CASE_START_LIMITS.items():
+        value = str(form.get(name, "")).strip()
+        if len(value) > limit:
+            raise ValueError("One Case entry is too long")
+        payload[name] = value
+    dependency_count_text = str(form.get("dependency_count", "0")).strip()
+    if not dependency_count_text.isdecimal():
+        raise ValueError("Dependency information is invalid")
+    dependency_count = int(dependency_count_text)
+    if dependency_count > MAX_CASE_START_DEPENDENCIES:
+        raise ValueError("Too many dependencies")
+    dependencies = [
+        {
+            "name": str(form.get(f"dependency_{index}_name", "")).strip(),
+            "relationship_type": str(form.get(f"dependency_{index}_type", "")).strip(),
+            "why_it_matters": str(form.get(f"dependency_{index}_why", "")).strip(),
+        }
+        for index in range(1, dependency_count + 1)
+    ]
+    action = str(form.get("form_action", "review")).strip()
+    if action not in {"review", "add_dependency"}:
+        raise ValueError("Case-start action is invalid")
+    return payload, dependencies, str(form.get("intent_id", "")).strip(), action
+
+
+def _complete_dependencies(
+    raw_dependencies: list[dict[str, str]],
+) -> list[dict[str, str]]:
+    dependencies: list[dict[str, str]] = []
+    for dependency in raw_dependencies:
+        name = dependency["name"]
+        relationship = dependency["relationship_type"]
+        why = dependency["why_it_matters"]
+        if any((name, relationship, why)):
+            if (
+                not all((name, relationship, why))
+                or relationship not in {"INTERNAL", "EXTERNAL", "MIXED"}
+                or len(name) > 300
+                or len(why) > 500
+            ):
+                raise ValueError("Dependency information is incomplete")
+            dependencies.append(dependency)
+    return dependencies
+
+
+def _has_complete_dependency(raw_dependencies: list[dict[str, str]]) -> bool:
+    return any(all(dependency.values()) for dependency in raw_dependencies)
 
 
 @dataclass(frozen=True, slots=True)
@@ -611,7 +681,71 @@ def register_slice_h_routes(
     async def review_case_start(request: Request) -> Response:
         state = current(request)
         if isinstance(state, Response):
-            return state
+            expired_identifier = request.cookies.get("paim_session")
+            expired = registry.recoverable_session(expired_identifier)
+            if expired is None or expired.authentication is None:
+                return state
+            if not same_origin(request):
+                return error(
+                    request,
+                    expired,
+                    title="Request rejected",
+                    message="The request origin could not be verified.",
+                    return_path="/login",
+                    status=403,
+                )
+            form = await request.form(max_fields=50, max_files=0, max_part_size=4_096)
+            if not registry.verify_csrf(expired, str(form.get("csrf_token", ""))):
+                return error(
+                    request,
+                    expired,
+                    title="Request rejected",
+                    message="The form token was missing or invalid.",
+                    return_path="/login",
+                    status=403,
+                )
+            try:
+                payload, raw_dependencies, _prior_intent_id, form_action = _case_start_form(form)
+            except ValueError:
+                return error(
+                    request,
+                    expired,
+                    title="The Case draft could not be preserved",
+                    message="Sign in again and return to Start a Case.",
+                    return_path="/login",
+                    status=400,
+                )
+            if form_action == "add_dependency":
+                try:
+                    _complete_dependencies(raw_dependencies)
+                except ValueError:
+                    pass
+                else:
+                    if (
+                        raw_dependencies
+                        and all(raw_dependencies[-1].values())
+                        and len(raw_dependencies) < MAX_CASE_START_DEPENDENCIES
+                    ):
+                        raw_dependencies.append({})
+            payload["dependencies_json"] = json.dumps(
+                raw_dependencies, sort_keys=True, separators=(",", ":")
+            )
+            recovery_token = registry.create_case_start_recovery(
+                expired_identifier or "",
+                payload=payload,
+            )
+            response = RedirectResponse("/login?reason=session&resume=case-start", status_code=303)
+            response.set_cookie(
+                CASE_START_RECOVERY_COOKIE,
+                recovery_token,
+                httponly=True,
+                secure=False,
+                samesite="strict",
+                path="/",
+                max_age=30 * 60,
+            )
+            response.delete_cookie("paim_session", path="/", httponly=True, samesite="strict")
+            return response
         identifier, session = state
         assert session.authentication is not None
         if not same_origin(request):
@@ -645,70 +779,61 @@ def register_slice_h_routes(
                 return_path="/cases/new",
                 status=403,
             )
-        limits = {
-            "title": 300,
-            "ai_name": 300,
-            "ai_description": 600,
-            "provider_source_type": 300,
-            "capabilities": 600,
-            "bounded_use": 1_200,
-            "management_question": 1_200,
-            "setup_description": 2_000,
-            "version_model_release": 300,
-            "development_context": 400,
-            "operating_characteristics": 400,
-            "known_strengths_limitations": 500,
-            "organizational_experience": 400,
-            "other_identifying_information": 400,
-            "effective_at": 80,
-        }
-        payload: dict[str, str] = {}
-        for name, limit in limits.items():
-            value = str(form.get(name, "")).strip()
-            if len(value) > limit:
-                return error(
+        try:
+            payload, raw_dependencies, prior_intent_id, form_action = _case_start_form(form)
+        except ValueError as exc:
+            return error(
+                request,
+                session,
+                title=str(exc),
+                message="Return to Start a Case and check the entered information.",
+                return_path="/cases/new",
+                status=400,
+            )
+        if form_action == "add_dependency":
+            try:
+                _complete_dependencies(raw_dependencies)
+            except ValueError:
+                return render(
                     request,
-                    session,
-                    title="One entry is too long",
-                    message="Shorten the marked Case information and review it again.",
-                    return_path="/cases/new",
-                    status=400,
+                    "case_new.html",
+                    {
+                        "view": gateway.practitioner_cases(session.authentication),
+                        "csrf_token": session.csrf_secret,
+                        "effective_at": payload["effective_at"],
+                        "initiation_available": True,
+                        "form_values": payload,
+                        "dependencies": raw_dependencies or ({},),
+                        "dependency_started": _has_complete_dependency(raw_dependencies),
+                        "max_dependencies": MAX_CASE_START_DEPENDENCIES,
+                        "intent_id": prior_intent_id,
+                        "dependency_error": (
+                            "Complete the current dependency before adding another."
+                        ),
+                    },
+                    400,
                 )
-            payload[name] = value
-        dependency_count_text = str(form.get("dependency_count", "0")).strip()
-        if not dependency_count_text.isdecimal():
-            return error(
-                request,
-                session,
-                title="Dependency information is invalid",
-                message="Return to Start a Case and add dependencies again.",
-                return_path="/cases/new",
-                status=400,
-            )
-        dependency_count = int(dependency_count_text)
-        if dependency_count > MAX_CASE_START_DEPENDENCIES:
-            return error(
-                request,
-                session,
-                title="Too many dependencies",
-                message=(
-                    f"Record up to {MAX_CASE_START_DEPENDENCIES} dependencies when starting "
-                    "the Case. Additional evidence can be recorded after it starts."
-                ),
-                return_path="/cases/new",
-                status=400,
-            )
-        raw_dependencies: list[dict[str, str]] = []
-        for index in range(1, dependency_count + 1):
-            raw_dependencies.append(
-                {
-                    "name": str(form.get(f"dependency_{index}_name", "")).strip(),
-                    "relationship_type": str(form.get(f"dependency_{index}_type", "")).strip(),
-                    "why_it_matters": str(form.get(f"dependency_{index}_why", "")).strip(),
-                }
-            )
-        prior_intent_id = str(form.get("intent_id", "")).strip()
-        if str(form.get("form_action", "review")) == "add_dependency":
+            if not raw_dependencies or not all(raw_dependencies[-1].values()):
+                return render(
+                    request,
+                    "case_new.html",
+                    {
+                        "view": gateway.practitioner_cases(session.authentication),
+                        "csrf_token": session.csrf_secret,
+                        "effective_at": payload["effective_at"],
+                        "initiation_available": True,
+                        "form_values": payload,
+                        "dependencies": raw_dependencies or ({},),
+                        "dependency_started": _has_complete_dependency(raw_dependencies),
+                        "max_dependencies": MAX_CASE_START_DEPENDENCIES,
+                        "intent_id": prior_intent_id,
+                        "dependency_error": (
+                            "Complete the first dependency before adding another."
+                        ),
+                    },
+                    400,
+                )
+            dependency_count = len(raw_dependencies)
             if dependency_count >= MAX_CASE_START_DEPENDENCIES:
                 return error(
                     request,
@@ -731,6 +856,7 @@ def register_slice_h_routes(
                     "initiation_available": True,
                     "form_values": payload,
                     "dependencies": (*raw_dependencies, {}),
+                    "dependency_started": True,
                     "max_dependencies": MAX_CASE_START_DEPENDENCIES,
                     "intent_id": prior_intent_id,
                 },
@@ -787,29 +913,17 @@ def register_slice_h_routes(
                 return_path="/cases/new",
                 status=403,
             )
-        dependencies: list[dict[str, str]] = []
-        for dependency in raw_dependencies:
-            name = dependency["name"]
-            relationship = dependency["relationship_type"]
-            why = dependency["why_it_matters"]
-            if any((name, relationship, why)):
-                if (
-                    not all((name, relationship, why))
-                    or relationship not in {"INTERNAL", "EXTERNAL", "MIXED"}
-                    or len(name) > 300
-                    or len(why) > 500
-                ):
-                    return error(
-                        request,
-                        session,
-                        title="Dependency information is incomplete",
-                        message="Give each dependency a name, relationship, and why it matters.",
-                        return_path="/cases/new",
-                        status=400,
-                    )
-                dependencies.append(
-                    {"name": name, "relationship_type": relationship, "why_it_matters": why}
-                )
+        try:
+            dependencies = _complete_dependencies(raw_dependencies)
+        except ValueError:
+            return error(
+                request,
+                session,
+                title="Dependency information is incomplete",
+                message="Give each dependency a name, relationship, and why it matters.",
+                return_path="/cases/new",
+                status=400,
+            )
         payload["dependencies_json"] = json.dumps(
             dependencies, sort_keys=True, separators=(",", ":")
         )
@@ -884,8 +998,12 @@ def register_slice_h_routes(
                 ),
                 "form_values": intent.payload,
                 "dependencies": json.loads(intent.payload["dependencies_json"]),
+                "dependency_started": _has_complete_dependency(
+                    json.loads(intent.payload["dependencies_json"])
+                ),
                 "max_dependencies": MAX_CASE_START_DEPENDENCIES,
                 "intent_id": intent_id,
+                "recovered": request.query_params.get("recovered") == "1",
             },
             200,
         )

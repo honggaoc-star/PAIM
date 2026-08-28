@@ -82,7 +82,8 @@ def test_login_home_cases_keyboard_logout_and_no_javascript(
         assert page.get_by_text("Visible governed service").is_visible()
         assert "Protected hidden service" not in page.content()
         page.get_by_role("link", name="Account", exact=True).first.click()
-        page.get_by_label("Account").get_by_role("button", name="Sign out").click()
+        assert page.get_by_role("button", name="Sign out").count() == 1
+        page.get_by_role("button", name="Sign out").click()
         page.wait_for_url(f"{origin}/login")
         context.close()
 

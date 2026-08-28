@@ -73,15 +73,14 @@ def test_slice_h_disposable_harborlight_case_start_survives_no_javascript(
         page.get_by_label("Decision or management question").fill(
             "Should Harborlight use bounded AI assistance in lending review?"
         )
-        page.get_by_label("Starting operating context").fill(
+        page.get_by_label("Operating context").fill(
             "Scenario A assistance only; no autonomous lending Decision."
         )
-        page.get_by_text("Add dependency", exact=True).click()
-        page.get_by_role("button", name="Add another dependency").click()
+        page.locator("summary", has_text="Add dependency").click()
         page.locator('[name="dependency_1_name"]').fill("Application data service")
         page.locator('[name="dependency_1_type"]').select_option("INTERNAL")
         page.locator('[name="dependency_1_why"]').fill("Provides bounded application facts.")
-        page.get_by_role("button", name="Add another dependency").click()
+        page.get_by_role("button", name="Add dependency", exact=True).click()
         page.locator('[name="dependency_2_name"]').fill("Commercial AI API")
         page.locator('[name="dependency_2_type"]').select_option("EXTERNAL")
         page.locator('[name="dependency_2_why"]').fill("Provides the assistance capability.")
@@ -89,6 +88,19 @@ def test_slice_h_disposable_harborlight_case_start_survives_no_javascript(
         page.locator('[name="dependency_3_name"]').fill("Human lending review")
         page.locator('[name="dependency_3_type"]').select_option("MIXED")
         page.locator('[name="dependency_3_why"]').fill("Retains accountable judgment.")
+        web_fixture.now.advance(timedelta(minutes=31))
+        page.get_by_role("button", name="Review Case").click()
+        assert page.get_by_role("heading", name="Sign in to PAIM").is_visible()
+        assert "restore the information you entered" in page.locator("main").inner_text()
+        page.get_by_label("User ID").fill("principal:web-practitioner")
+        page.get_by_label("Password or access credential").fill(TOKEN)
+        page.get_by_role("button", name="Sign in").click()
+        assert page.get_by_text("Case information was restored").is_visible()
+        assert page.locator('[name="dependency_1_name"]').input_value() == (
+            "Application data service"
+        )
+        assert page.locator('[name="dependency_2_name"]').input_value() == "Commercial AI API"
+        assert page.locator('[name="dependency_3_name"]').input_value() == "Human lending review"
         page.get_by_role("button", name="Review Case").click()
         assert page.get_by_role("heading", name="Review Case").is_visible()
         assert page.get_by_text(

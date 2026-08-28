@@ -23,7 +23,11 @@ from paim.operational import OperationalApplication
 from paim.operational.models import AccessDenied, AuthenticationFailed, LocalConfiguration
 from paim.web.m1b import register_m1b_routes
 from paim.web.m1c import register_m1c_routes
-from paim.web.sessions import BrowserSession, SessionRegistry
+from paim.web.sessions import (
+    CASE_START_RECOVERY_COOKIE,
+    BrowserSession,
+    SessionRegistry,
+)
 from paim.web.slice_h import MAX_CASE_START_DEPENDENCIES, register_slice_h_routes
 from paim.web.ux3a import (
     applicability_task_context,
@@ -226,6 +230,14 @@ def create_web_application(
     def clear_session_cookie(response: Response) -> None:
         response.delete_cookie(COOKIE_NAME, path="/", httponly=True, samesite="strict")
 
+    def clear_recovery_cookie(response: Response) -> None:
+        response.delete_cookie(
+            CASE_START_RECOVERY_COOKIE,
+            path="/",
+            httponly=True,
+            samesite="strict",
+        )
+
     def same_origin(request: Request) -> bool:
         origin = request.headers.get("origin")
         if origin is not None:
@@ -280,7 +292,11 @@ def create_web_application(
         response = render(
             request,
             "login.html",
-            {"csrf_token": anonymous.csrf_secret, "error": None},
+            {
+                "csrf_token": anonymous.csrf_secret,
+                "error": None,
+                "resume_case_start": request.query_params.get("resume") == "case-start",
+            },
         )
         set_session_cookie(response, identifier)
         return response
@@ -345,8 +361,17 @@ def create_web_application(
         new_identifier, _authenticated = registry.rotate_authenticated(
             identifier or "", authentication
         )
-        response = RedirectResponse("/home", status_code=303)
+        recovery = registry.claim_case_start_recovery(
+            request.cookies.get(CASE_START_RECOVERY_COOKIE),
+            identifier=new_identifier,
+            principal_id=authentication.principal_id,
+        )
+        response = RedirectResponse(
+            f"/cases/start/edit/{recovery.intent_id}?recovered=1" if recovery else "/home",
+            status_code=303,
+        )
         set_session_cookie(response, new_identifier)
+        clear_recovery_cookie(response)
         return response
 
     @app.post("/logout", response_class=HTMLResponse)
@@ -378,6 +403,7 @@ def create_web_application(
         registry.invalidate(identifier)
         response = RedirectResponse("/login", status_code=303)
         clear_session_cookie(response)
+        clear_recovery_cookie(response)
         return response
 
     def require_session(request: Request) -> BrowserSession | Response:
@@ -485,7 +511,8 @@ def create_web_application(
                 "effective_at": clock().astimezone(UTC).isoformat(),
                 "initiation_available": initiation_available,
                 "form_values": {},
-                "dependencies": (),
+                "dependencies": ({},),
+                "dependency_started": False,
                 "max_dependencies": MAX_CASE_START_DEPENDENCIES,
             },
         )

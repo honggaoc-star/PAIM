@@ -55,6 +55,7 @@ def test_login_rotation_home_cases_no_js_paths_and_security_headers(
     assert home.text.count('href="/learn"') == 1
     account = client.get("/account")
     assert "M1A Practitioner" in account.text
+    assert account.text.count(">Sign out<") == 1
     assert "Earlier Cases" not in home.text
     assert "original experience" not in home.text
     assert "Visible governed service" not in home.text
@@ -105,6 +106,11 @@ def test_learn_is_curated_practitioner_guidance_without_technical_leakage(
 
     learn = web_fixture.client.get("/learn")
     assert learn.status_code == 200
+    assert (
+        "PAIM helps people make and revisit accountable decisions about AI use, with Value "
+        "and Risk kept in view."
+    ) in learn.text
+    assert "bounded AI use" not in learn.text
     for expected in (
         "What a Case is",
         "AI characteristics and dependencies",
@@ -270,6 +276,7 @@ def test_session_expiry_principal_remap_and_visibility_change_apply_next_request
     changed = web_fixture.client.get("/home")
     assert "Visible governed service" not in changed.text
     assert "Earlier Cases" not in changed.text
+    assert "View Existing Cases" not in changed.text
     assert "Visible governed service" not in web_fixture.client.get("/cases").text
 
     replacement = RecordId.new()

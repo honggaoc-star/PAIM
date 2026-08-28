@@ -628,6 +628,8 @@ def test_slice_h_primary_navigation_and_quiet_home_are_burden_bounded(
     assert home.text.count('<a href="/home"') == 1
     assert home.text.count('<a href="/cases"') >= 1
     assert home.text.count('<a href="/learn"') == 1
+    assert "View Existing Cases" in home.text
+    assert "Open Cases" not in home.text
     for prohibited in (
         "semantic contract",
         "context digest",
@@ -831,7 +833,7 @@ def test_minimal_case_start_uses_h0_authority_and_creates_no_later_governance(
         "Relevant capabilities",
         "AI use",
         "Decision or management question",
-        "Starting operating context",
+        "Operating context",
         "Add AI details",
         "Add dependency",
     ):
@@ -947,6 +949,129 @@ def test_minimal_case_start_uses_h0_authority_and_creates_no_later_governance(
         assert tx.count_rows("prospective_integration_versions") == 0
         assert tx.count_rows("prospective_decision_versions") == 0
         assert tx.count_rows("review_episode_versions") == 0
+
+
+def test_case_start_form_survives_session_expiry_without_governed_mutation(
+    web_fixture: WebFixture,
+) -> None:
+    """Reauthentication restores exact uncommitted form state for the same principal."""
+
+    web_fixture.now.value = H0_NOW
+    _use_fixture_clock(web_fixture)
+    prepare_permissions(web_fixture)
+    active_authority = establish_authority(
+        web_fixture,
+        web_fixture.operational._case_continuity,  # type: ignore[attr-defined]
+    )
+    _, logged_in = login(web_fixture.client)
+    assert logged_in.status_code == 303
+    page = web_fixture.client.get("/cases/new")
+    csrf_token = csrf_from(page.text)
+    form = {
+        "csrf_token": csrf_token,
+        "title": "Harborlight restored Case",
+        "ai_name": "Harborlight Assist",
+        "ai_description": "A commercial lending-review assistance service.",
+        "provider_source_type": "Commercial service",
+        "capabilities": "Summarizes application information for this AI use.",
+        "bounded_use": "small-business lending assistance",
+        "management_question": "Should Harborlight use AI assistance in lending review?",
+        "setup_description": "Human lending judgment remains required.",
+        "effective_at": H0_NOW.isoformat(),
+        "dependency_count": "3",
+        "dependency_1_name": "Application data",
+        "dependency_1_type": "INTERNAL",
+        "dependency_1_why": "Provides the application facts.",
+        "dependency_2_name": "AI service",
+        "dependency_2_type": "EXTERNAL",
+        "dependency_2_why": "Provides the assistance capability.",
+        "dependency_3_name": "Human review",
+        "dependency_3_type": "MIXED",
+        "dependency_3_why": "Retains accountable judgment.",
+        "form_action": "review",
+        "credential": "must-not-enter-recovery-state",
+    }
+    before = web_fixture.operational.operational_store.table_counts(
+        (
+            "paim_cases",
+            "case_number_allocations",
+            "case_continuity_status_versions",
+            "responsibility_versions",
+        )
+    )
+
+    web_fixture.now.advance(timedelta(minutes=31))
+    expired = web_fixture.client.post(
+        "/cases/start/review",
+        data=form,
+        headers={"Origin": ORIGIN},
+        follow_redirects=False,
+    )
+    assert expired.status_code == 303
+    assert expired.headers["location"] == "/login?reason=session&resume=case-start"
+    assert web_fixture.sessions.recovery_count == 1
+    assert web_fixture.operational.operational_store.table_counts(tuple(before)) == before
+
+    login_page = web_fixture.client.get(expired.headers["location"])
+    assert "restore the information you entered" in login_page.text
+    restored = web_fixture.client.post(
+        "/session",
+        data={
+            "principal_id": "principal:web-practitioner",
+            "credential": TOKEN,
+            "csrf_token": csrf_from(login_page.text),
+        },
+        headers={"Origin": ORIGIN},
+        follow_redirects=False,
+    )
+    assert restored.status_code == 303
+    assert restored.headers["location"].startswith("/cases/start/edit/")
+    restored_page = web_fixture.client.get(restored.headers["location"])
+    assert restored_page.status_code == 200
+    assert "Case information was restored" in restored_page.text
+    assert "must-not-enter-recovery-state" not in restored_page.text
+    for exact_value in (
+        form["title"],
+        form["management_question"],
+        form["dependency_1_name"],
+        form["dependency_2_name"],
+        form["dependency_3_name"],
+    ):
+        assert exact_value in restored_page.text
+    assert web_fixture.sessions.recovery_count == 0
+    assert web_fixture.operational.operational_store.table_counts(tuple(before)) == before
+
+    withdrawn = replace(
+        active_authority,
+        identity=h0_identity("withdraw-restored-case-start", web_fixture.actor_id),
+        version_id=RecordVersionId.new(),
+        state=CaseInitiationAuthorityState.WITHDRAWN,
+        expected_version_id=active_authority.version_id,
+    )
+    web_fixture.operational._case_continuity.record_case_initiation_authority(  # type: ignore[attr-defined]
+        withdrawn
+    )
+    intent_id = restored.headers["location"].split("/edit/", 1)[1].split("?", 1)[0]
+    retry_form = {**form, "csrf_token": csrf_from(restored_page.text), "intent_id": intent_id}
+    denied = web_fixture.client.post(
+        "/cases/start/review",
+        data=retry_form,
+        headers={"Origin": ORIGIN},
+        follow_redirects=False,
+    )
+    assert denied.status_code == 403
+    assert "Case start is not available" in denied.text
+    assert web_fixture.operational.operational_store.table_counts(tuple(before)) == before
+
+    cancelled = web_fixture.client.post(
+        f"/cases/start/cancel/{intent_id}",
+        data={"csrf_token": csrf_from(restored_page.text)},
+        headers={"Origin": ORIGIN},
+        follow_redirects=False,
+    )
+    assert cancelled.status_code == 303
+    assert cancelled.headers["location"] == "/cases"
+    assert web_fixture.operational.operational_store.table_counts(tuple(before)) == before
 
 
 def test_case_start_revalidates_withdrawn_mandate_and_commits_nothing(
