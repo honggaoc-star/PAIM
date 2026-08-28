@@ -49,6 +49,13 @@ def test_slice_h_disposable_harborlight_case_start_survives_no_javascript(
         assert page.url == f"{origin}/home", page.content()
         assert page.get_by_text("Nothing currently needs your attention.").is_visible()
 
+        page.get_by_role("link", name="Learn", exact=True).click()
+        assert page.get_by_role("heading", name="Learn about Practical AI Management").is_visible()
+        assert page.get_by_role(
+            "heading", name="Value and Risk answer different questions"
+        ).is_visible()
+        assert "docs/system" not in page.locator("main").inner_text()
+
         page.get_by_role("link", name="Cases", exact=True).click()
         page.get_by_role("link", name="Start a Case").click()
         page.get_by_label("Case name").fill("Harborlight Assist - disposable browser proof")

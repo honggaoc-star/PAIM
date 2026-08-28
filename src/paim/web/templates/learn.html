@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Learn — PAIM{% endblock %}
+{% block content %}
+<section aria-labelledby="learn-heading">
+  <h1 id="learn-heading">Learn about Practical AI Management</h1>
+  <p class="lead">PAIM helps people make and revisit accountable decisions about a bounded AI use, with potential Value and Risk kept in view.</p>
+</section>
+<section aria-labelledby="how-heading">
+  <h2 id="how-heading">How PAIM works</h2>
+  <ol>
+    <li><strong>Describe the AI use.</strong> Start with the business purpose, management question, operating context, AI characteristics, and factual dependencies.</li>
+    <li><strong>Assess Value and Risk separately.</strong> Develop each view from relevant information without turning them into one score.</li>
+    <li><strong>Bring the views together for a Decision.</strong> Make trade-offs and boundaries explicit, then keep proposal and authorization separate.</li>
+    <li><strong>Continue managing the Case.</strong> Review new information and changed conditions while preserving what was known and decided earlier.</li>
+  </ol>
+</section>
+<section aria-labelledby="case-heading">
+  <h2 id="case-heading">What a Case is</h2>
+  <p>A Case is the continuing management record for one bounded AI use and its management question. Give it a recognizable name and a scope that colleagues can distinguish from other uses of the same AI.</p>
+  <p>The <strong>AI</strong> is the technology or service. The <strong>AI use</strong> is what your organization proposes to do with it, for whom, in which process, and under which limits. One AI can support several different uses, and each use may need its own Case.</p>
+</section>
+<section aria-labelledby="context-heading">
+  <h2 id="context-heading">AI characteristics and dependencies</h2>
+  <p>Record the facts needed to recognize the AI: its source or provider type, relevant capabilities, and other useful characteristics. Record services, data, people, and systems that the use depends on.</p>
+  <p>These facts provide context. PAIM does not infer Value, Risk, priority, or a Decision from a characteristic or dependency.</p>
+</section>
+<section aria-labelledby="lanes-heading">
+  <h2 id="lanes-heading">Value and Risk answer different questions</h2>
+  <p><strong>Value</strong> asks what benefit or useful change the bounded use may support, for whom, and under what conditions. <strong>Risk</strong> asks what adverse pathways, exposures, and safeguards matter for that same use.</p>
+  <p>PAIM preserves the two assessments independently. It does not net them, rank them on a universal scale, or allow a favorable conclusion in one to decide the other.</p>
+</section>
+<section aria-labelledby="decision-heading">
+  <h2 id="decision-heading">Decisions, responsibility, and authority</h2>
+  <p>Software access lets a person see or attempt an action. Responsibility identifies who is expected to do particular work and who is accountable for it. Substantive authority establishes who may make or authorize the governed decision. These are different things.</p>
+  <p>PAIM can present the correct next action and its context, but it must not invent an accountable person, transfer authority, or make the Decision for the practitioner.</p>
+</section>
+<section aria-labelledby="continuing-heading">
+  <h2 id="continuing-heading">Continuing review and history</h2>
+  <p>An AI management Decision is not the end of the Case. New information, operating changes, review timing, or an important event may require attention. PAIM keeps the current position useful while preserving earlier evidence, judgments, and Decisions.</p>
+  <p>History &amp; decisions helps an authorized practitioner understand what was known, what applied, and what was decided at the relevant time. Later facts do not rewrite the earlier record.</p>
+</section>
+<section aria-labelledby="practice-heading">
+  <h2 id="practice-heading">Good practices</h2>
+  <ul>
+    <li>Name the real business or management question instead of using a generic technology question.</li>
+    <li>Describe the use narrowly enough that its people, process, data, and operating limits are clear.</li>
+    <li>Record uncertainty and missing authority openly; do not turn an absence into a favorable conclusion.</li>
+    <li>Keep Value and Risk work independent until explicit integration is appropriate.</li>
+    <li>Use the contextual task PAIM presents, and confirm that you hold the required responsibility and authority before acting.</li>
+    <li>Return when material facts or circumstances change rather than treating an earlier Decision as permanent.</li>
+  </ul>
+</section>
+<section aria-labelledby="faq-heading">
+  <h2 id="faq-heading">Frequently asked questions</h2>
+  <details><summary>Does PAIM decide whether an AI use is good or safe?</summary><p>No. It structures evidence, independent Value and Risk work, authority, Decisions, and continuing review. Accountable people make the substantive judgments.</p></details>
+  <details><summary>Does access to a screen give me authority?</summary><p>No. Visibility and software permission are not substantive authority. PAIM rechecks the relevant responsibility and authority where a governed action requires them.</p></details>
+  <details><summary>Can PAIM combine Value and Risk into one score?</summary><p>No universal score or automatic netting is part of PAIM. Quantitative claims may be recorded when their exact method, scope, sources, and authority are established, but they do not replace accountable judgment.</p></details>
+  <details><summary>What if information or authority is missing?</summary><p>Record the gap. PAIM preserves missing, uncertain, inaccessible, and conflicting states rather than silently treating them as satisfied.</p></details>
+  <details><summary>Why does the Case keep earlier Versions?</summary><p>Management needs to know what was available and decided at the time. Preserving history supports review, accountability, and learning without rewriting the past.</p></details>
+</section>
+<section aria-labelledby="reading-heading">
+  <h2 id="reading-heading">Further reading</h2>
+  <ul>
+    <li><a href="https://github.com/honggaoc-star/PAIM/blob/main/docs/PAIM_CONCEPTUAL_GUIDE_v0.1.md">PAIM Conceptual Guide</a> — the fuller management model and its boundaries.</li>
+    <li><a href="https://github.com/honggaoc-star/PAIM/blob/main/docs/research/PAIM_EMPIRICAL_RESEARCH_AGENDA_v0.1.md">PAIM Empirical Research Agenda</a> — proposed studies, not claims of product proof.</li>
+    <li><a href="https://github.com/honggaoc-star/AI-Risk-Management">AI Risk Management (AIRM)</a> — upstream work relevant to the independent Risk view.</li>
+    <li>AI Value Management (AIVM) — upstream analytical work relevant to the independent Value view. PAIM integrates bounded outputs without absorbing or collapsing either discipline.</li>
+  </ul>
+</section>
+{% endblock %}

@@ -273,11 +273,18 @@ The process currently runs under the operator's terminal and has no application-
 hook. Stop it with `Ctrl+C` in that terminal. A desktop launcher and application-owned stop control
 remain packaging work; the browser does not issue an unsafe process-termination command.
 
-Open the loopback URL printed at startup. **Home** and **Cases** are the only ordinary primary
-navigation. Home shows only exact visible work that legitimately needs the signed-in practitioner
+Open the loopback URL printed at startup. Sign in with the provisioned principal ID and the
+credential held in the environment variable named by the external configuration. The ordinary
+primary navigation is **Home**, **Cases**, and **Learn**; **Account** remains in the signed-in header.
+Home shows only exact visible work that legitimately needs the signed-in practitioner
 and remains quiet when no such work exists. A Case carries recognizable purpose, independent
 Value and Risk positions, the current Decision, continuing review, people/responsibilities, and
 History & decisions when their complete exact source basis is visible.
+
+Learn is the curated practitioner on-ramp. It explains Cases, AI versus AI use, factual AI
+characteristics and dependencies, separate Value and Risk work, Decisions, Responsibility,
+authority, continuing review, history, good practices, and common questions. It does not expose
+operator commands or engineering documentation in the ordinary practitioner experience.
 
 The browser carries exact context from durable Case, Responsibility, Assignment, Work, and source
 facts; it does not ask the practitioner for Record or Version IDs. Technical source provenance is
@@ -290,6 +297,17 @@ the separately configured software access to use it. Later actions appear only f
 Responsibility and Assignment facts and still revalidate software access, source visibility,
 accountability, and substantive authority at commit. The browser does not infer missing governance
 or turn visibility into authority.
+
+Use **Sign out** in the header before leaving the browser. Stop the local process with `Ctrl+C`.
+To resume, return to the repository root, restore the same credential environment variable, and
+run the same locked `paim-web` command against the same external configuration. Sign in again; the
+database and external configuration, rather than browser or PowerShell-session state, preserve the
+governed Case history.
+
+Back up and recover the external database and configured operational directories according to the
+[Local Operational Application guide](PAIM_LOCAL_OPERATIONAL_APPLICATION_v0.1.md). Do not treat a
+browser export or copied page as a database backup, and do not place credentials in configuration,
+backup, or repository files.
 
 For the conceptual model, read the [PAIM v0.1 Conceptual Guide](../PAIM_CONCEPTUAL_GUIDE_v0.1.md).
 For complete operation and recovery, use the

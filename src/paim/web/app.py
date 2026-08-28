@@ -432,6 +432,17 @@ def create_web_application(
             },
         )
 
+    @app.get("/learn", response_class=HTMLResponse)
+    def learn(request: Request) -> Response:
+        browser_session = require_session(request)
+        if isinstance(browser_session, Response):
+            return browser_session
+        return render(
+            request,
+            "learn.html",
+            {"csrf_token": browser_session.csrf_secret, "authenticated": True},
+        )
+
     @app.get("/cases", response_class=HTMLResponse)
     def cases(request: Request, q: str = "") -> Response:
         browser_session = require_session(request)

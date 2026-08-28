@@ -627,6 +627,7 @@ def test_slice_h_primary_navigation_and_quiet_home_are_burden_bounded(
     )
     assert home.text.count('<a href="/home"') == 1
     assert home.text.count('<a href="/cases"') >= 1
+    assert home.text.count('<a href="/learn"') == 1
     for prohibited in (
         "semantic contract",
         "context digest",
