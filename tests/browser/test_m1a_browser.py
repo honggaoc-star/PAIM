@@ -11,6 +11,7 @@ import uvicorn
 from playwright.sync_api import Browser, Page
 
 from paim.web import create_web_application
+from paim.web.lifecycle import LifecycleCoordinator
 from paim.web.sessions import SessionRegistry
 from tests.web_support import TOKEN, WebFixture
 
@@ -45,6 +46,46 @@ def live_server(fixture: WebFixture) -> Iterator[str]:
     finally:
         server.should_exit = True
         thread.join(timeout=10)
+
+
+@contextmanager
+def lifecycle_server(fixture: WebFixture) -> Iterator[tuple[str, threading.Thread]]:
+    with socket.socket() as probe:
+        probe.bind(("127.0.0.1", 0))
+        port = int(probe.getsockname()[1])
+    origin = f"http://127.0.0.1:{port}"
+    lifecycle = LifecycleCoordinator()
+    app = create_web_application(
+        fixture.config,
+        operational=fixture.operational,
+        sessions=SessionRegistry(now=fixture.now),
+        expected_origin=origin,
+        now=fixture.now,
+        lifecycle=lifecycle,
+        instance_fingerprint="browser-stop-oracle",
+    )
+    server = uvicorn.Server(
+        uvicorn.Config(app, host="127.0.0.1", port=port, log_level="warning", access_log=False)
+    )
+    server_thread = threading.Thread(target=server.run, daemon=True)
+    stop_monitor = threading.Thread(
+        target=lambda: (lifecycle.wait_for_stop(), setattr(server, "should_exit", True)),
+        daemon=True,
+    )
+    server_thread.start()
+    stop_monitor.start()
+    deadline = time.monotonic() + 10
+    while not server.started and server_thread.is_alive() and time.monotonic() < deadline:
+        time.sleep(0.01)
+    if not server.started:
+        server.should_exit = True
+        server_thread.join(timeout=5)
+        raise RuntimeError("bounded stop-control browser server did not start")
+    try:
+        yield origin, server_thread
+    finally:
+        server.should_exit = True
+        server_thread.join(timeout=10)
 
 
 def perform_no_javascript_path(page: Page, origin: str, hidden_case_id: str) -> None:
@@ -92,3 +133,28 @@ def test_login_home_cases_keyboard_logout_and_no_javascript(
             no_javascript.new_page(), origin, str(web_fixture.hidden_case_id)
         )
         no_javascript.close()
+
+
+@pytest.mark.browser
+def test_account_distinguishes_sign_out_from_confirmed_application_stop(
+    web_fixture: WebFixture, browser: Browser
+) -> None:
+    with lifecycle_server(web_fixture) as (origin, server_thread):
+        context = browser.new_context()
+        page = context.new_page()
+        page.goto(f"{origin}/login")
+        page.get_by_label("User ID").fill("principal:web-practitioner")
+        page.get_by_label("Password or access credential").fill(TOKEN)
+        page.get_by_role("button", name="Sign in").click()
+        page.get_by_role("link", name="Account", exact=True).first.click()
+        assert page.get_by_role("button", name="Sign out").count() == 1
+        page.get_by_role("link", name="Stop PAIM", exact=True).click()
+        assert page.get_by_role("heading", name="Stop PAIM?").is_visible()
+        page.get_by_role("link", name="Cancel and return to Account").click()
+        assert page.get_by_role("heading", name="Account", exact=True).is_visible()
+        page.get_by_role("link", name="Stop PAIM", exact=True).click()
+        page.get_by_role("button", name="Stop PAIM", exact=True).click()
+        assert page.get_by_role("heading", name="PAIM is stopping").is_visible()
+        server_thread.join(timeout=10)
+        assert not server_thread.is_alive()
+        context.close()

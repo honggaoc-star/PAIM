@@ -97,6 +97,73 @@ def test_login_rotation_home_cases_no_js_paths_and_security_headers(
     assert client.get("/home", follow_redirects=False).status_code == 303
 
 
+def test_account_stop_is_authenticated_confirmed_and_not_a_domain_command(
+    web_fixture: WebFixture,
+) -> None:
+    client = web_fixture.client
+    lifecycle = client.app.state.runtime.lifecycle
+    before_versions = web_fixture.operational.domain_store.count_rows("record_versions")
+
+    health = client.get("/lifecyclez")
+    assert health.json() == {
+        "application": "PAIM",
+        "state": "RUNNING",
+        "instance": "injected-local-instance",
+    }
+    assert client.get("/account/stop", follow_redirects=False).status_code == 303
+    assert client.post("/account/stop", follow_redirects=False).status_code == 303
+    assert lifecycle.state.value == "RUNNING"
+
+    _, logged_in = login(client)
+    assert logged_in.status_code == 303
+    account = client.get("/account")
+    assert "Signing out ends your session but leaves PAIM running" in account.text
+    assert account.text.count(">Sign out<") == 1
+    assert account.text.count(">Stop PAIM<") == 1
+    signed_out = client.post(
+        "/logout",
+        data={"csrf_token": csrf_from(account.text)},
+        headers={"Origin": ORIGIN},
+        follow_redirects=False,
+    )
+    assert signed_out.status_code == 303
+    assert lifecycle.state.value == "RUNNING"
+    _, logged_in_again = login(client)
+    assert logged_in_again.status_code == 303
+    confirmation = client.get("/account/stop")
+    assert "PAIM will close on this computer" in confirmation.text
+    assert "Cancel and return to Account" in confirmation.text
+
+    wrong_origin = client.post(
+        "/account/stop",
+        data={"csrf_token": csrf_from(confirmation.text)},
+        headers={"Origin": "http://example.invalid"},
+    )
+    assert wrong_origin.status_code == 403
+    assert lifecycle.state.value == "RUNNING"
+    wrong_csrf = client.post(
+        "/account/stop",
+        data={"csrf_token": "invalid"},
+        headers={"Origin": ORIGIN},
+    )
+    assert wrong_csrf.status_code == 403
+    assert lifecycle.state.value == "RUNNING"
+    assert client.get("/account").status_code == 200
+
+    stopped = client.post(
+        "/account/stop",
+        data={"csrf_token": csrf_from(confirmation.text)},
+        headers={"Origin": ORIGIN},
+    )
+    assert stopped.status_code == 200
+    assert "PAIM is stopping" in stopped.text
+    assert "Your governed information has been preserved" in stopped.text
+    assert lifecycle.state.value == "STOPPING"
+    assert client.get("/lifecyclez").json()["state"] == "STOPPING"
+    assert client.get("/home", follow_redirects=False).status_code == 303
+    assert web_fixture.operational.domain_store.count_rows("record_versions") == before_versions
+
+
 def test_learn_is_curated_practitioner_guidance_without_technical_leakage(
     web_fixture: WebFixture,
 ) -> None:

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import pytest
 from fastapi.testclient import TestClient
+from uvicorn import Config
 
 from paim.web import cli
 from tests.web_support import WebFixture
@@ -22,13 +23,32 @@ def test_web_cli_runs_one_worker_without_reload_and_announces_url(
     monkeypatch.setattr(cli, "load_configuration", lambda _path: web_fixture.config)
     monkeypatch.setattr(cli, "upgrade_database", lambda _url: None)
     monkeypatch.setattr(cli, "OperationalApplication", lambda _config: web_fixture.operational)
+    monkeypatch.setattr(cli, "configuration_fingerprint", lambda _path: "exact-test-instance")
 
-    def run_server(app, **kwargs):  # type: ignore[no-untyped-def]
-        observed.update(kwargs)
-        with TestClient(app, base_url="http://127.0.0.1:8899") as client:
-            assert client.get("/healthz").json()["state"] == "READY"
+    class TestServer:
+        def __init__(self, configuration: Config) -> None:
+            observed.update(
+                {
+                    "host": configuration.host,
+                    "port": configuration.port,
+                    "workers": configuration.workers,
+                    "reload": configuration.reload,
+                    "access_log": configuration.access_log,
+                }
+            )
+            self.configuration = configuration
+            self.should_exit = False
 
-    monkeypatch.setattr(cli.uvicorn, "run", run_server)
+        def run(self) -> None:
+            with TestClient(self.configuration.app, base_url="http://127.0.0.1:8899") as client:
+                assert client.get("/healthz").json()["state"] == "READY"
+                assert client.get("/lifecyclez").json() == {
+                    "application": "PAIM",
+                    "state": "RUNNING",
+                    "instance": "exact-test-instance",
+                }
+
+    monkeypatch.setattr(cli.uvicorn, "Server", TestServer)
     assert cli.main(["--config", "unused.json", "--port", "8899"]) == 0
     assert observed == {
         "host": "127.0.0.1",
