@@ -247,6 +247,14 @@ uv run --locked paim-local --config C:\secure\paim-local.json access-grant `
   --scope-type GLOBAL `
   --effect ALLOW
 
+uv run --locked paim-local --config C:\secure\paim-local.json access-grant `
+  --principal principal:local-owner `
+  --subject-principal principal:local-owner `
+  --permission OPERATIONAL_ADMIN `
+  --action case.initiation-authority.record `
+  --scope-type GLOBAL `
+  --effect ALLOW
+
 uv run --locked paim-local --config C:\secure\paim-local.json case-initiation-authority-record `
   --principal principal:local-owner `
   --authorized-actor-id <returned-actor-id> `
@@ -256,6 +264,11 @@ uv run --locked paim-local --config C:\secure\paim-local.json case-initiation-au
   --effective-at 2026-08-21T00:00:00+00:00 `
   --idempotency-key "local-owner-case-initiation-v1"
 ```
+
+The `OPERATIONAL_ADMIN / case.initiation-authority.record / GLOBAL / ALLOW` fact is required for
+an existing local environment before the operator can record the organizational mandate. It is
+software permission to perform that administrative operation. It does not create the mandate,
+grant substantive Case-initiation authority, or grant any downstream Decision authority.
 
 An empty `--allowed-use-prefix` set permits the mandate's exact Actor and organization scope to be
 considered for any entered AI-use text. Repeat that flag only when the authoritative mandate itself

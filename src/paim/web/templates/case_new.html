@@ -5,6 +5,7 @@
 <section class="narrow" aria-labelledby="new-case-heading">
   <h1 id="new-case-heading">Start a Case</h1>
   <p>Describe the AI use and the decision or management question you want to address.</p>
+  {% if recovered | default(false) %}<div class="notice"><p>Your Case information was restored after you signed in again. Review it before continuing.</p></div>{% endif %}
   {% if not initiation_available %}
   <div class="empty-state"><h2>Case start is not available</h2><p>Your current account does not have an active Case-start mandate. Ask a PAIM administrator to establish it before entering Case details.</p></div>
   {% else %}
@@ -16,8 +17,8 @@
     <fieldset><legend>AI</legend>
       <label for="ai-name">AI name<input id="ai-name" name="ai_name" maxlength="300" value="{{ form_values.get('ai_name', '') }}" required></label>
       <label for="ai-description">What is this AI?<textarea id="ai-description" name="ai_description" maxlength="600" required>{{ form_values.get('ai_description', '') }}</textarea></label>
-      <label for="provider-source">Source or provider type<input id="provider-source" name="provider_source_type" maxlength="300" value="{{ form_values.get('provider_source_type', '') }}" required><span class="field-help">For example: internal model, commercial service, open-source model, or mixed solution.</span></label>
-      <label for="capabilities">Relevant capabilities<textarea id="capabilities" name="capabilities" maxlength="600" required>{{ form_values.get('capabilities', '') }}</textarea></label>
+      <label for="provider-source">Source or provider type<input id="provider-source" name="provider_source_type" maxlength="300" value="{{ form_values.get('provider_source_type', '') }}" required><span class="field-help">For example: internally developed, commercial service, open-source model, or a combination.</span></label>
+      <label for="capabilities">Relevant capabilities<textarea id="capabilities" name="capabilities" maxlength="600" required>{{ form_values.get('capabilities', '') }}</textarea><span class="field-help">Describe the capabilities that matter for this AI use.</span></label>
       <details><summary>Add AI details</summary>
         <label>Version, model, or release<input name="version_model_release" maxlength="300" value="{{ form_values.get('version_model_release', '') }}"></label>
         <label>Development or sourcing context<textarea name="development_context" maxlength="400">{{ form_values.get('development_context', '') }}</textarea></label>
@@ -29,8 +30,9 @@
     </fieldset>
     <label for="bounded-use">AI use<textarea id="bounded-use" name="bounded_use" maxlength="1200" required>{{ form_values.get('bounded_use', '') }}</textarea><span class="field-help">What the AI will do, for whom, and in which process.</span></label>
     <label for="management-question">Decision or management question<textarea id="management-question" name="management_question" maxlength="1200" required>{{ form_values.get('management_question', '') }}</textarea></label>
-    <label for="setup-description">Starting operating context<textarea id="setup-description" name="setup_description" maxlength="2000" required>{{ form_values.get('setup_description', '') }}</textarea><span class="field-help">The operating limits and setup that matter at the start.</span></label>
-    <details{% if dependencies | default([]) %} open{% endif %}><summary>Add dependency</summary><p class="field-help">Record factual services, data, people, or systems the AI use depends on. PAIM does not infer Value or Risk from these facts.</p>
+    <label for="setup-description">Operating context<textarea id="setup-description" name="setup_description" maxlength="2000" required>{{ form_values.get('setup_description', '') }}</textarea><span class="field-help">The operating limits and setup that matter at the start.</span></label>
+    <details{% if dependency_started | default(false) or dependency_error | default(false) or recovered | default(false) %} open{% endif %}><summary>Add dependency</summary><p class="field-help">Record factual services, data, people, or systems the AI use depends on. PAIM does not infer Value or Risk from these facts.</p>
+      {% if dependency_error | default(false) %}<div class="error-summary" role="alert"><p>{{ dependency_error }}</p></div>{% endif %}
       <input type="hidden" name="dependency_count" value="{{ dependencies | default([]) | length }}">
       {% for dependency in dependencies | default([]) %}{% set index = loop.index %}
       <fieldset><legend>Dependency {{ index }}</legend>
@@ -38,7 +40,7 @@
         <label>Relationship<select name="dependency_{{ index }}_type"><option value="">Choose if used</option>{% for value in ('INTERNAL', 'EXTERNAL', 'MIXED') %}<option value="{{ value }}"{% if dependency.get('relationship_type') == value %} selected{% endif %}>{{ value.title() }}</option>{% endfor %}</select></label>
         <label>Why it matters<textarea name="dependency_{{ index }}_why" maxlength="500">{{ dependency.get('why_it_matters', '') }}</textarea></label>
       </fieldset>{% endfor %}
-      {% if (dependencies | default([]) | length) < max_dependencies %}<button type="submit" name="form_action" value="add_dependency" class="secondary">Add another dependency</button>{% else %}<p class="field-help">This Case-start form supports up to {{ max_dependencies }} dependencies. Additional evidence can be recorded after the Case starts.</p>{% endif %}
+      {% if (dependencies | default([]) | length) < max_dependencies %}<button type="submit" name="form_action" value="add_dependency" class="secondary">{% if dependency_started | default(false) %}Add another dependency{% else %}Add dependency{% endif %}</button>{% else %}<p class="field-help">This Case-start form supports up to {{ max_dependencies }} dependencies. Additional evidence can be recorded after the Case starts.</p>{% endif %}
     </details>
     <button type="submit" name="form_action" value="review">Review Case</button>
   </form>

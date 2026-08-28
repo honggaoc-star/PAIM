@@ -112,3 +112,85 @@ def test_action_intent_binds_exact_payload_reuses_outcome_and_expires() -> None:
     assert completed.outcome_path == "/cases/exact"
     clock.advance(timedelta(minutes=16))
     assert registry.intent(identifier, second.intent_id, action=second.action) is None
+
+
+def test_case_start_recovery_is_short_lived_exact_principal_and_one_time() -> None:
+    clock = MutableNow()
+    registry = SessionRegistry(now=clock)
+    anonymous_id, _ = registry.create_anonymous()
+    identifier, _ = registry.rotate_authenticated(anonymous_id, authenticated())
+    clock.advance(timedelta(minutes=31))
+
+    assert registry.get(identifier) is None
+    payload = {
+        "title": "Restored Case",
+        "dependencies_json": '[{"name":"Exact dependency"}]',
+    }
+    token = registry.create_case_start_recovery(identifier, payload=payload)
+    assert registry.recoverable_session(identifier) is None
+    assert registry.recovery_count == 1
+    assert (
+        registry.claim_case_start_recovery(
+            f"{token}tampered",
+            identifier=identifier,
+            principal_id="principal:test",
+        )
+        is None
+    )
+
+    other_anonymous, _ = registry.create_anonymous()
+    other_authentication = AuthenticatedSession(
+        "principal:other",
+        RecordId.new(),
+        "correlation:other",
+        NOW,
+    )
+    other_identifier, _ = registry.rotate_authenticated(other_anonymous, other_authentication)
+    assert (
+        registry.claim_case_start_recovery(
+            token,
+            identifier=other_identifier,
+            principal_id="principal:other",
+        )
+        is None
+    )
+
+    new_anonymous, _ = registry.create_anonymous()
+    new_identifier, _ = registry.rotate_authenticated(new_anonymous, authenticated())
+    recovered = registry.claim_case_start_recovery(
+        token,
+        identifier=new_identifier,
+        principal_id="principal:test",
+    )
+    assert recovered is not None
+    assert recovered.action == "case.create_open"
+    assert recovered.payload == payload
+    assert registry.recovery_count == 0
+    assert (
+        registry.claim_case_start_recovery(
+            token,
+            identifier=new_identifier,
+            principal_id="principal:test",
+        )
+        is None
+    )
+
+
+def test_expired_authenticated_session_recovery_window_is_bounded() -> None:
+    clock = MutableNow()
+    registry = SessionRegistry(
+        now=clock,
+        inactivity_timeout=timedelta(minutes=1),
+        maximum_sessions=2,
+    )
+    expired_identifiers: list[str] = []
+    for _ in range(3):
+        anonymous_id, _ = registry.create_anonymous()
+        identifier, _ = registry.rotate_authenticated(anonymous_id, authenticated())
+        expired_identifiers.append(identifier)
+        clock.advance(timedelta(minutes=2))
+        assert registry.get(identifier) is None
+
+    assert registry.recoverable_session(expired_identifiers[0]) is None
+    assert registry.recoverable_session(expired_identifiers[1]) is not None
+    assert registry.recoverable_session(expired_identifiers[2]) is not None
