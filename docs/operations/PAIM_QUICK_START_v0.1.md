@@ -275,16 +275,28 @@ considered for any entered AI-use text. Repeat that flag only when the authorita
 limits initiation to explicit text prefixes. The browser checks this prerequisite before presenting
 a usable form and revalidates the exact mandate at commit.
 
-Launch the local browser application from the repository root with the same external configuration
-and credential environment variable:
+For ordinary Windows use, install the PAIM desktop shortcut once from the repository root. Supply
+the same external configuration used by `paim-local`:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\tools\windows\Install-PAIM-DesktopShortcut.ps1 `
+  -ConfigurationPath C:\secure\paim-local.json
+```
+
+The shortcut stores only the repository and configuration paths in the current user's local
+application-data folder. It does not store a credential. Before using the shortcut, make the
+credential environment variable named by the external configuration available to the Windows user
+or launching process. Never put its value in the shortcut, configuration, command arguments,
+repository, or diagnostic log. The launcher prevents a second instance for the same configuration,
+waits for the exact intended PAIM instance to report ready, and then opens the default browser.
+Launch failures are shown in plain language; support detail remains available under
+`%LOCALAPPDATA%\PAIM\logs`.
+
+For an operator-controlled fallback, the existing terminal command remains supported:
 
 ```powershell
 uv run --locked paim-web --config C:\secure\paim-local.json
 ```
-
-The process currently runs under the operator's terminal and has no application-owned safe shutdown
-hook. Stop it with `Ctrl+C` in that terminal. A desktop launcher and application-owned stop control
-remain packaging work; the browser does not issue an unsafe process-termination command.
 
 Open the loopback URL printed at startup. Sign in with the provisioned principal ID and the
 credential held in the environment variable named by the external configuration. The ordinary
@@ -311,11 +323,13 @@ Responsibility and Assignment facts and still revalidate software access, source
 accountability, and substantive authority at commit. The browser does not infer missing governance
 or turn visibility into authority.
 
-Use **Sign out** in the header before leaving the browser. Stop the local process with `Ctrl+C`.
-To resume, return to the repository root, restore the same credential environment variable, and
-run the same locked `paim-web` command against the same external configuration. Sign in again; the
-database and external configuration, rather than browser or PowerShell-session state, preserve the
-governed Case history.
+Use **Sign out** to end only your browser session while leaving PAIM running. Use **Account → Stop
+PAIM** when you intend to close the local application. PAIM asks for explicit confirmation, drains
+the accepted request, and shuts down the owned server and operational resources in order. To resume,
+ensure the configured credential environment variable is available and use the same desktop
+shortcut (or the fallback command) against the same external configuration. Sign in again; the
+database and external configuration, rather than browser, launcher, or PowerShell-session state,
+preserve the governed Case history.
 
 Back up and recover the external database and configured operational directories according to the
 [Local Operational Application guide](PAIM_LOCAL_OPERATIONAL_APPLICATION_v0.1.md). Do not treat a

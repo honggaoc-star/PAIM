@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Stop PAIM — PAIM{% endblock %}
+{% block content %}
+<section class="narrow" aria-labelledby="stop-heading">
+  <nav aria-label="Breadcrumb"><a href="/account">Account</a> / <span>Stop PAIM</span></nav>
+  <h1 id="stop-heading">Stop PAIM?</h1>
+  <div class="warning-summary">
+    <p><strong>PAIM will close on this computer.</strong></p>
+    <p>Your governed information is preserved. To use PAIM again, start it from the desktop.</p>
+  </div>
+  <form action="/account/stop" method="post" data-submit-lock>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <button type="submit" class="danger-button">Stop PAIM</button>
+  </form>
+  <p><a href="/account">Cancel and return to Account</a></p>
+</section>
+{% endblock %}

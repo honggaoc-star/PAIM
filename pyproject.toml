@@ -21,6 +21,7 @@ dependencies = [
 [project.scripts]
 paim-local = "paim.operational.cli:main"
 paim-web = "paim.web.cli:main"
+paim-launcher = "paim.web.launcher:main"
 
 [dependency-groups]
 dev = [

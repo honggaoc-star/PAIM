@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import secrets
+import threading
 from pathlib import Path
 
 import uvicorn
@@ -11,6 +12,7 @@ import uvicorn
 from paim.operational import OperationalApplication, ReadinessState, load_configuration
 from paim.persistence.sqlite import upgrade_database
 from paim.web.app import create_web_application
+from paim.web.lifecycle import LifecycleCoordinator, configuration_fingerprint
 
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 8841
@@ -40,14 +42,17 @@ def main(argv: list[str] | None = None) -> int:
         operational.close()
         raise SystemExit("PAIM required startup health checks did not pass")
     local_url = f"http://{DEFAULT_HOST}:{args.port}"
+    lifecycle = LifecycleCoordinator()
     app = create_web_application(
         config,
         operational=operational,
         expected_origin=local_url,
         startup_announcement=f"PAIM local URL: {local_url}",
+        lifecycle=lifecycle,
+        instance_fingerprint=configuration_fingerprint(args.config),
     )
-    try:
-        uvicorn.run(
+    server = uvicorn.Server(
+        uvicorn.Config(
             app,
             host=DEFAULT_HOST,
             port=args.port,
@@ -55,6 +60,24 @@ def main(argv: list[str] | None = None) -> int:
             reload=False,
             access_log=True,
         )
+    )
+
+    def request_server_exit() -> None:
+        lifecycle.wait_for_stop()
+        server.should_exit = True
+
+    monitor = threading.Thread(
+        target=request_server_exit,
+        name="paim-lifecycle-monitor",
+        daemon=True,
+    )
+    monitor.start()
+    try:
+        server.run()
     finally:
         operational.close()
     return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

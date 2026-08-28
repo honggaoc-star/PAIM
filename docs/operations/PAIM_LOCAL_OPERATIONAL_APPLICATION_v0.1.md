@@ -411,6 +411,30 @@ prints the exact local URL and binds only to `127.0.0.1` with one worker and no 
 binds and failed required startup checks are rejected. M1 does not claim concurrent CLI/web write
 support; use one managed application process for the authoritative domain write boundary.
 
+For ordinary Windows launch, create the supported desktop shortcut once:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\tools\windows\Install-PAIM-DesktopShortcut.ps1 `
+  -ConfigurationPath C:\secure\paim-local.json
+```
+
+The installer stores only exact repository and configuration paths under `%LOCALAPPDATA%\PAIM` and
+in the shortcut. The credential value must remain outside both: make the environment variable named
+by `credential_env` available to the Windows user or launching process. The hidden launcher uses the
+locked repository runtime, holds a configuration-specific single-instance lock, verifies the exact
+PAIM instance and configuration before opening the default browser, and records support detail under
+`%LOCALAPPDATA%\PAIM\logs`. It never places the credential in arguments, settings, the repository,
+or its diagnostic output.
+
+**Sign out** invalidates only the current browser session and leaves the local application running.
+**Account → Stop PAIM** is the separate authenticated, confirmed application control. It uses the
+same-origin and CSRF protections as other consequential browser requests, then asks the owning
+Uvicorn server to drain and stop before operational resources close. It does not create a PAIM
+domain command, audit event, permission, Responsibility, or substantive authority. Restart from the
+same shortcut and configuration; persisted governed state is reconstructed from the external
+database. The terminal command remains the supported diagnostic fallback and may still be stopped
+with `Ctrl+C` when it was used to start PAIM.
+
 Browser sessions are opaque, server-side, and process-local. Inactivity expires a session after 30
 minutes; absolute expiry is eight hours; restart signs out every browser. The loopback HTTP cookie
 is host-only, `HttpOnly`, `SameSite=Strict`, and `Path=/`. It cannot use `Secure` under the

@@ -21,6 +21,7 @@ from starlette.templating import Jinja2Templates
 from paim.integrity import RecordId
 from paim.operational import OperationalApplication
 from paim.operational.models import AccessDenied, AuthenticationFailed, LocalConfiguration
+from paim.web.lifecycle import LifecycleCoordinator
 from paim.web.m1b import register_m1b_routes
 from paim.web.m1c import register_m1c_routes
 from paim.web.sessions import (
@@ -50,6 +51,8 @@ class WebRuntime:
     operational: OperationalApplication
     sessions: SessionRegistry
     expected_origin: str
+    lifecycle: LifecycleCoordinator
+    instance_fingerprint: str
     owns_operational: bool = False
 
 
@@ -101,6 +104,8 @@ def create_web_application(
     expected_origin: str = "http://127.0.0.1:8841",
     now: Callable[[], datetime] | None = None,
     startup_announcement: str | None = None,
+    lifecycle: LifecycleCoordinator | None = None,
+    instance_fingerprint: str = "injected-local-instance",
 ) -> FastAPI:
     """Build the replaceable M1A browser adapter with injected test seams."""
     package_root = Path(__file__).resolve().parent
@@ -112,7 +117,15 @@ def create_web_application(
     clock = now or (lambda: datetime.now(UTC))
     gateway = operational or OperationalApplication(config)
     registry = sessions or SessionRegistry(now=clock)
-    runtime = WebRuntime(gateway, registry, expected_origin, operational is None)
+    coordinator = lifecycle or LifecycleCoordinator()
+    runtime = WebRuntime(
+        gateway,
+        registry,
+        expected_origin,
+        coordinator,
+        instance_fingerprint,
+        operational is None,
+    )
     limiter = AttemptLimiter(now=clock)
     environment = Environment(
         loader=FileSystemLoader(template_root),
@@ -279,6 +292,14 @@ def create_web_application(
         report = gateway.health()
         return {"state": report.state.value, "reasons": report.reasons}
 
+    @app.get("/lifecyclez")
+    def lifecyclez() -> dict[str, str]:
+        return {
+            "application": "PAIM",
+            "state": coordinator.state.value,
+            "instance": instance_fingerprint,
+        }
+
     @app.get("/login", response_class=HTMLResponse)
     def login(request: Request) -> Response:
         current = registry.get(request.cookies.get(COOKIE_NAME), touch=False)
@@ -325,7 +346,10 @@ def create_web_application(
             return render(
                 request,
                 "error.html",
-                {"title": "Request rejected", "message": "The form token was missing or invalid."},
+                {
+                    "title": "Request rejected",
+                    "message": "The form token was missing or invalid.",
+                },
                 403,
             )
         if not principal_id or len(principal_id) > 200 or not credential or len(credential) > 4_096:
@@ -457,6 +481,63 @@ def create_web_application(
                 "health_normal": gateway.health().state.value == "READY",
             },
         )
+
+    @app.get("/account/stop", response_class=HTMLResponse)
+    def stop_confirmation(request: Request) -> Response:
+        browser_session = require_session(request)
+        if isinstance(browser_session, Response):
+            return browser_session
+        assert browser_session.authentication is not None
+        return render(
+            request,
+            "stop_confirmation.html",
+            {
+                "view": gateway.practitioner_home(browser_session.authentication),
+                "csrf_token": browser_session.csrf_secret,
+            },
+        )
+
+    @app.post("/account/stop", response_class=HTMLResponse)
+    async def stop_application(request: Request) -> Response:
+        current = authenticated(request)
+        if current is None:
+            response = RedirectResponse("/login?reason=session", status_code=303)
+            clear_session_cookie(response)
+            return response
+        identifier, session = current
+        if not same_origin(request):
+            return render(
+                request,
+                "error.html",
+                {
+                    "title": "Request rejected",
+                    "message": "The request origin could not be verified.",
+                    "csrf_token": session.csrf_secret,
+                },
+                403,
+            )
+        form = await request.form(max_fields=1, max_files=0, max_part_size=512)
+        if not registry.verify_csrf(session, str(form.get("csrf_token", ""))):
+            return render(
+                request,
+                "error.html",
+                {
+                    "title": "Request rejected",
+                    "message": "The form token was missing or invalid.",
+                    "csrf_token": session.csrf_secret,
+                },
+                403,
+            )
+        coordinator.request_stop()
+        registry.invalidate(identifier)
+        stopping_response = render(
+            request,
+            "stopping.html",
+            {"view": None, "authenticated": False},
+        )
+        clear_session_cookie(stopping_response)
+        clear_recovery_cookie(stopping_response)
+        return stopping_response
 
     @app.get("/learn", response_class=HTMLResponse)
     def learn(request: Request) -> Response:

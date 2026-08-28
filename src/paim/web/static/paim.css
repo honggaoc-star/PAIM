@@ -31,9 +31,12 @@ textarea { min-height: 5rem; resize: vertical; }
 button { padding: .55rem .9rem; border: 1px solid var(--accent); border-radius: .2rem; color: white; background: var(--accent); font: inherit; cursor: pointer; }
 .inline-form { margin-left: auto; }
 .search-row { display: flex; gap: .5rem; }
-.status-panel, .summary-card, .empty-state, .error-summary { margin: 1rem 0; padding: 1rem; border-left: .35rem solid var(--accent); background: var(--surface); }
+.status-panel, .summary-card, .empty-state, .error-summary, .warning-summary { margin: 1rem 0; padding: 1rem; border-left: .35rem solid var(--accent); background: var(--surface); }
 .status-panel { display: flex; gap: .75rem; flex-wrap: wrap; }
 .error-summary { border-color: #a32929; }
+.warning-summary { border-color: var(--focus); }
+.application-control { margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--line); }
+.danger-link, .danger-button { border-color: #8f2424; background: #8f2424; }
 .summary-value { display: block; font-size: 2rem; }
 .summary-label { color: var(--muted); }
 .card-list { padding: 0; list-style: none; }
