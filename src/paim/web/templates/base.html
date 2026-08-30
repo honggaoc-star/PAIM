@@ -16,11 +16,13 @@
     {% if signed_in_user | default(false) %}
     <div class="identity">
       <span>Signed in</span>
-      <a href="/account">Account</a>
-      <form action="/logout" method="post" class="inline-form">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-        <button type="submit" class="link-button">Sign out</button>
-      </form>
+      <div class="account-actions">
+        <a href="/account">Account</a>
+        <form action="/logout" method="post" class="inline-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <button type="submit" class="link-button">Sign out</button>
+        </form>
+      </div>
     </div>
     {% endif %}
   </header>

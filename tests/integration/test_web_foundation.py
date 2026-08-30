@@ -56,6 +56,7 @@ def test_login_rotation_home_cases_no_js_paths_and_security_headers(
     account = client.get("/account")
     assert "M1A Practitioner" in account.text
     assert account.text.count(">Sign out<") == 1
+    assert 'class="account-actions"' in account.text
     assert "Earlier Cases" not in home.text
     assert "original experience" not in home.text
     assert "Visible governed service" not in home.text
