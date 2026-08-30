@@ -5,7 +5,7 @@ from datetime import timedelta
 import pytest
 from playwright.sync_api import Browser
 
-from paim.operational import Permission, PrincipalStatus, ScopeType
+from paim.operational import AccessEffect, Permission, PrincipalStatus, ScopeType
 from tests.browser.test_m1a_browser import live_server
 from tests.integration.test_gate8_slice_b_case_continuity import RECORDED
 from tests.integration.test_gate8_slice_c_assessment_review import (
@@ -33,10 +33,21 @@ def test_slice_h_disposable_harborlight_case_start_survives_no_javascript(
     web_fixture.now.value = NOW
     _use_fixture_clock(web_fixture)
     prepare_permissions(web_fixture)
-    grant(web_fixture, Permission.OPERATIONAL_ADMIN, "access.manage")
     establish_authority(
         web_fixture,
         web_fixture.operational._case_continuity,  # type: ignore[attr-defined]
+    )
+    grant(
+        web_fixture,
+        Permission.OPERATIONAL_ADMIN,
+        "source-access.manage",
+        effect=AccessEffect.DENY,
+    )
+    grant(
+        web_fixture,
+        Permission.OPERATIONAL_ADMIN,
+        "access.manage",
+        effect=AccessEffect.DENY,
     )
 
     with live_server(web_fixture) as origin:
@@ -63,7 +74,7 @@ def test_slice_h_disposable_harborlight_case_start_survives_no_javascript(
         page.get_by_label("What is this AI?").fill(
             "A commercial assistance service for bounded lending-review support."
         )
-        page.get_by_label("Source or provider type").fill("Commercial AI service")
+        page.get_by_label("Source or provider type").select_option("Commercial product or service")
         page.get_by_label("Relevant capabilities").fill(
             "Summarizes application material for accountable staff."
         )
@@ -78,15 +89,12 @@ def test_slice_h_disposable_harborlight_case_start_survives_no_javascript(
         )
         page.locator("summary", has_text="Add dependency").click()
         page.locator('[name="dependency_1_name"]').fill("Application data service")
-        page.locator('[name="dependency_1_type"]').select_option("INTERNAL")
         page.locator('[name="dependency_1_why"]').fill("Provides bounded application facts.")
         page.get_by_role("button", name="Add dependency", exact=True).click()
         page.locator('[name="dependency_2_name"]').fill("Commercial AI API")
-        page.locator('[name="dependency_2_type"]').select_option("EXTERNAL")
         page.locator('[name="dependency_2_why"]').fill("Provides the assistance capability.")
         page.get_by_role("button", name="Add another dependency").click()
         page.locator('[name="dependency_3_name"]').fill("Human lending review")
-        page.locator('[name="dependency_3_type"]').select_option("MIXED")
         page.locator('[name="dependency_3_why"]').fill("Retains accountable judgment.")
         web_fixture.now.advance(timedelta(minutes=31))
         page.get_by_role("button", name="Review Case").click()
@@ -143,6 +151,39 @@ def test_slice_h_disposable_harborlight_case_start_survives_no_javascript(
         assert page.get_by_role("heading", name="History & decisions").is_visible()
         assert page.get_by_role("heading", name="What happened?").is_visible()
         assert page.get_by_text("Advanced time reconstruction and audit sources").is_visible()
+        page.get_by_label("Primary").get_by_role("link", name="Cases", exact=True).click()
+        assert page.get_by_text(
+            "Harborlight Assist - edited disposable browser proof", exact=True
+        ).is_visible()
+        context.close()
+
+
+@pytest.mark.browser
+def test_case_start_reveals_other_provider_description_only_for_other(
+    web_fixture: WebFixture, browser: Browser
+) -> None:
+    web_fixture.now.value = NOW
+    _use_fixture_clock(web_fixture)
+    prepare_permissions(web_fixture)
+    establish_authority(
+        web_fixture,
+        web_fixture.operational._case_continuity,  # type: ignore[attr-defined]
+    )
+    with live_server(web_fixture) as origin:
+        context = browser.new_context()
+        page = context.new_page()
+        page.goto(f"{origin}/login")
+        page.get_by_label("User ID").fill("principal:web-practitioner")
+        page.get_by_label("Password or access credential").fill(TOKEN)
+        page.get_by_role("button", name="Sign in").click()
+        page.goto(f"{origin}/cases/new")
+        source_type = page.get_by_label("Source or provider type")
+        other = page.get_by_label("Please specify (when Other)")
+        assert other.is_hidden()
+        source_type.select_option("Other")
+        assert other.is_visible()
+        source_type.select_option("Internally developed")
+        assert other.is_hidden()
         context.close()
 
 

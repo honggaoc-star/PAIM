@@ -9,3 +9,15 @@ for (const form of document.querySelectorAll("form[data-submit-lock]")) {
     }
   });
 }
+
+for (const sourceType of document.querySelectorAll("select[data-provider-source]")) {
+  const other = document.querySelector("[data-provider-other]");
+  if (!other) {
+    continue;
+  }
+  const refreshOther = () => {
+    other.hidden = sourceType.value !== "Other";
+  };
+  sourceType.addEventListener("change", refreshOther);
+  refreshOther();
+}

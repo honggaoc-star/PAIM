@@ -4,6 +4,8 @@ import json
 from dataclasses import replace
 from datetime import timedelta
 
+import pytest
+
 from paim.application import Increment3ApplicationService
 from paim.assessment_review import (
     AssessmentContent,
@@ -808,6 +810,73 @@ def test_case_start_preflight_blocks_data_entry_without_disclosing_authority_sou
     assert "version_id" not in page.text
 
 
+def test_case_start_provider_classification_and_dependency_description_are_bounded(
+    web_fixture: WebFixture,
+) -> None:
+    web_fixture.now.value = H0_NOW
+    _use_fixture_clock(web_fixture)
+    prepare_permissions(web_fixture)
+    establish_authority(
+        web_fixture,
+        web_fixture.operational._case_continuity,  # type: ignore[attr-defined]
+    )
+    _, logged_in = login(web_fixture.client)
+    assert logged_in.status_code == 303
+    page = web_fixture.client.get("/cases/new")
+    for classification in (
+        "Internally developed",
+        "Commercial product or service",
+        "Open-source",
+        "Combination / mixed",
+        "Other",
+    ):
+        assert f'value="{classification}"' in page.text
+    assert 'name="provider_source_other"' in page.text
+    assert 'name="dependency_1_type"' not in page.text
+    assert "what the AI use receives from, relies on, connects to, or requires" in page.text
+
+    common = {
+        "csrf_token": csrf_from(page.text),
+        "title": "Harborlight classified intake proof",
+        "ai_name": "Harborlight Assist",
+        "ai_description": "A lending-review assistance service.",
+        "provider_source_type": "Other",
+        "capabilities": "Summarizes application information.",
+        "bounded_use": "small-business lending assistance",
+        "management_question": "Should this bounded use proceed?",
+        "setup_description": "Accountable human review remains required.",
+        "effective_at": H0_NOW.isoformat(),
+        "dependency_count": "1",
+        "dependency_1_name": "Lending policy library",
+        "dependency_1_why": (
+            "The AI use retrieves current policy material and depends on its maintained accuracy."
+        ),
+    }
+    missing_other = web_fixture.client.post(
+        "/cases/start/review",
+        data=common,
+        headers={"Origin": ORIGIN},
+        follow_redirects=False,
+    )
+    assert missing_other.status_code == 400
+    assert "needs a description" in missing_other.text
+
+    reviewed = web_fixture.client.post(
+        "/cases/start/review",
+        data={**common, "provider_source_other": "Cooperative industry service"},
+        headers={"Origin": ORIGIN},
+        follow_redirects=False,
+    )
+    assert reviewed.status_code == 303
+    confirmation = web_fixture.client.get(reviewed.headers["location"])
+    assert "Other: Cooperative industry service" in confirmation.text
+    assert "Lending policy library" in confirmation.text
+    assert "(Internal)" not in confirmation.text
+    edited = web_fixture.client.get(confirmation.url.path.replace("/confirm/", "/edit/"))
+    assert 'value="Other" selected' in edited.text
+    assert 'value="Cooperative industry service"' in edited.text
+
+
 def test_minimal_case_start_uses_h0_authority_and_creates_no_later_governance(
     web_fixture: WebFixture,
 ) -> None:
@@ -816,10 +885,21 @@ def test_minimal_case_start_uses_h0_authority_and_creates_no_later_governance(
     web_fixture.now.value = H0_NOW
     _use_fixture_clock(web_fixture)
     prepare_permissions(web_fixture)
-    grant(web_fixture, Permission.OPERATIONAL_ADMIN, "access.manage")
     establish_authority(
         web_fixture,
         web_fixture.operational._case_continuity,  # type: ignore[attr-defined]
+    )
+    grant(
+        web_fixture,
+        Permission.OPERATIONAL_ADMIN,
+        "source-access.manage",
+        effect=AccessEffect.DENY,
+    )
+    grant(
+        web_fixture,
+        Permission.OPERATIONAL_ADMIN,
+        "access.manage",
+        effect=AccessEffect.DENY,
     )
     _, logged_in = login(web_fixture.client)
     assert logged_in.status_code == 303
@@ -853,7 +933,7 @@ def test_minimal_case_start_uses_h0_authority_and_creates_no_later_governance(
             "title": "Harborlight cancelled Case",
             "ai_name": "Harborlight Assist",
             "ai_description": "A lending-review assistance service.",
-            "provider_source_type": "Commercial AI service",
+            "provider_source_type": "Commercial product or service",
             "capabilities": "Summarizes application information.",
             "bounded_use": "small-business lending assistance",
             "management_question": "Should this cancelled request proceed?",
@@ -880,7 +960,7 @@ def test_minimal_case_start_uses_h0_authority_and_creates_no_later_governance(
             "title": "Harborlight Assist — incomplete request",
             "ai_name": "Harborlight Assist",
             "ai_description": "A lending-review assistance service.",
-            "provider_source_type": "Commercial AI service",
+            "provider_source_type": "Commercial product or service",
             "capabilities": "Summarizes application information.",
             "bounded_use": "small-business lending assistance",
             "management_question": "",
@@ -900,7 +980,7 @@ def test_minimal_case_start_uses_h0_authority_and_creates_no_later_governance(
             "title": "Harborlight Assist — disposable Slice H Case",
             "ai_name": "Harborlight Assist",
             "ai_description": "A lending-review assistance service.",
-            "provider_source_type": "Commercial AI service",
+            "provider_source_type": "Commercial product or service",
             "capabilities": "Summarizes application information.",
             "bounded_use": "small-business lending assistance",
             "management_question": (
@@ -937,10 +1017,45 @@ def test_minimal_case_start_uses_h0_authority_and_creates_no_later_governance(
     case_page = web_fixture.client.get(committed.headers["location"])
     assert case_page.status_code == 200
     assert "Harborlight Assist" in case_page.text
-    assert "Commercial AI service" in case_page.text
+    assert "Commercial product or service" in case_page.text
     assert "PAIM-" in case_page.text
     assert "small-business lending assistance" in case_page.text
     assert "Should Harborlight use bounded AI assistance in its lending review?" in case_page.text
+    case_id = RecordId.parse(committed.headers["location"].rsplit("/", 1)[1])
+    visible_cases = web_fixture.client.get("/cases")
+    assert visible_cases.status_code == 200
+    assert "Harborlight Assist" in visible_cases.text
+    assert web_fixture.operational.operational_store.permission_allowed(
+        "principal:web-practitioner",
+        Permission.CASE_READ,
+        "read",
+        ScopeType.CASE,
+        case_id,
+    )
+    assert not web_fixture.operational.operational_store.permission_allowed(
+        "principal:web-practitioner",
+        Permission.CASE_READ,
+        "read",
+        ScopeType.CASE,
+        RecordId.new(),
+    )
+    assert not web_fixture.operational.operational_store.permission_allowed(
+        "principal:web-practitioner",
+        Permission.CASE_READ,
+        "read",
+    )
+    creator_visibility = tuple(
+        row
+        for row in web_fixture.operational.operational_store.audit_rows()
+        if row["reason_category"] == "CASE_CREATOR_EXACT_VISIBILITY_ESTABLISHED"
+    )
+    assert len(creator_visibility) == 1
+    assert creator_visibility[0]["case_id"] == str(case_id)
+    assert creator_visibility[0]["principal_id"] == "principal:web-practitioner"
+    details = json.loads(str(creator_visibility[0]["details_json"]))
+    assert details["scope"] == "EXACT_CREATED_CASE"
+    assert details["substantive_authority_granted"] is False
+    assert len(details["source_version_ids"]) == 8
     with web_fixture.operational.domain_store.read_transaction() as tx:
         assert tx.count_rows("case_continuity_status_versions") == 1
         assert tx.count_rows("governing_configuration_designations") == 1
@@ -949,6 +1064,70 @@ def test_minimal_case_start_uses_h0_authority_and_creates_no_later_governance(
         assert tx.count_rows("prospective_integration_versions") == 0
         assert tx.count_rows("prospective_decision_versions") == 0
         assert tx.count_rows("review_episode_versions") == 0
+
+
+def test_case_start_visibility_failure_rolls_back_the_entire_opening(
+    web_fixture: WebFixture, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Exact creator visibility is one failure-closed Case-start transaction."""
+
+    web_fixture.now.value = H0_NOW
+    _use_fixture_clock(web_fixture)
+    prepare_permissions(web_fixture)
+    establish_authority(
+        web_fixture,
+        web_fixture.operational._case_continuity,  # type: ignore[attr-defined]
+    )
+    _, logged_in = login(web_fixture.client)
+    assert logged_in.status_code == 303
+    page = web_fixture.client.get("/cases/new")
+    reviewed = web_fixture.client.post(
+        "/cases/start/review",
+        data={
+            "csrf_token": csrf_from(page.text),
+            "title": "Atomic visibility failure proof",
+            "ai_name": "Harborlight Assist",
+            "ai_description": "A lending-review assistance service.",
+            "provider_source_type": "Commercial product or service",
+            "capabilities": "Summarizes application information.",
+            "bounded_use": "small-business lending assistance",
+            "management_question": "Should this bounded use proceed?",
+            "setup_description": "Accountable human review remains required.",
+            "effective_at": H0_NOW.isoformat(),
+        },
+        headers={"Origin": ORIGIN},
+        follow_redirects=False,
+    )
+    confirmation = web_fixture.client.get(reviewed.headers["location"])
+    tables = (
+        "paim_cases",
+        "records",
+        "record_versions",
+        "idempotency_facts",
+        "software_access_grants",
+        "source_access_grants",
+        "audit_facts",
+        "operational_audit_facts",
+    )
+    before = web_fixture.operational.operational_store.table_counts(tables)
+
+    def reject_visibility(*_args: object, **_kwargs: object) -> dict[str, object]:
+        raise ValueError("injected exact creator visibility failure")
+
+    monkeypatch.setattr(
+        web_fixture.operational.operational_store,
+        "establish_case_creator_visibility",
+        reject_visibility,
+    )
+    result = web_fixture.client.post(
+        confirmation.url.path.replace("/confirm/", "/commit/"),
+        data={"csrf_token": csrf_from(confirmation.text)},
+        headers={"Origin": ORIGIN},
+        follow_redirects=False,
+    )
+    assert result.status_code == 409
+    assert "exact creator visibility could not be established" in result.text
+    assert web_fixture.operational.operational_store.table_counts(tables) == before
 
 
 def test_case_start_form_survives_session_expiry_without_governed_mutation(
@@ -972,7 +1151,7 @@ def test_case_start_form_survives_session_expiry_without_governed_mutation(
         "title": "Harborlight restored Case",
         "ai_name": "Harborlight Assist",
         "ai_description": "A commercial lending-review assistance service.",
-        "provider_source_type": "Commercial service",
+        "provider_source_type": "Commercial product or service",
         "capabilities": "Summarizes application information for this AI use.",
         "bounded_use": "small-business lending assistance",
         "management_question": "Should Harborlight use AI assistance in lending review?",
@@ -980,13 +1159,10 @@ def test_case_start_form_survives_session_expiry_without_governed_mutation(
         "effective_at": H0_NOW.isoformat(),
         "dependency_count": "3",
         "dependency_1_name": "Application data",
-        "dependency_1_type": "INTERNAL",
         "dependency_1_why": "Provides the application facts.",
         "dependency_2_name": "AI service",
-        "dependency_2_type": "EXTERNAL",
         "dependency_2_why": "Provides the assistance capability.",
         "dependency_3_name": "Human review",
-        "dependency_3_type": "MIXED",
         "dependency_3_why": "Retains accountable judgment.",
         "form_action": "review",
         "credential": "must-not-enter-recovery-state",
@@ -1094,7 +1270,7 @@ def test_case_start_revalidates_withdrawn_mandate_and_commits_nothing(
             "title": "Harborlight stale mandate proof",
             "ai_name": "Harborlight Assist",
             "ai_description": "A lending-review assistance service.",
-            "provider_source_type": "Commercial AI service",
+            "provider_source_type": "Commercial product or service",
             "capabilities": "Summarizes application information.",
             "bounded_use": "small-business lending assistance",
             "management_question": "Should this bounded use proceed?",

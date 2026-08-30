@@ -73,6 +73,7 @@ class AIProfile:
     name: str
     description: str | None = None
     provider_source_type: str | None = None
+    provider_source_other: str | None = None
     capabilities: str | None = None
     version_model_release: str | None = None
     development_context: str | None = None
@@ -85,8 +86,8 @@ class AIProfile:
 @dataclass(frozen=True, slots=True)
 class DependencyFact:
     name: str
-    relationship_type: str
     why_it_matters: str
+    relationship_type: str | None = None
 
 
 @dataclass(frozen=True, slots=True)

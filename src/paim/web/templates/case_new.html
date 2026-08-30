@@ -17,7 +17,8 @@
     <fieldset><legend>AI</legend>
       <label for="ai-name">AI name<input id="ai-name" name="ai_name" maxlength="300" value="{{ form_values.get('ai_name', '') }}" required></label>
       <label for="ai-description">What is this AI?<textarea id="ai-description" name="ai_description" maxlength="600" required>{{ form_values.get('ai_description', '') }}</textarea></label>
-      <label for="provider-source">Source or provider type<input id="provider-source" name="provider_source_type" maxlength="300" value="{{ form_values.get('provider_source_type', '') }}" required><span class="field-help">For example: internally developed, commercial service, open-source model, or a combination.</span></label>
+      <label for="provider-source">Source or provider type<select id="provider-source" name="provider_source_type" required data-provider-source><option value="">Choose a type</option>{% for value in provider_source_types %}<option value="{{ value }}"{% if form_values.get('provider_source_type') == value %} selected{% endif %}>{{ value }}</option>{% endfor %}</select><span class="field-help">Classify where this AI tool, system, service, application, or model comes from.</span></label>
+      <label for="provider-source-other" data-provider-other>Please specify (when Other)<input id="provider-source-other" name="provider_source_other" maxlength="300" value="{{ form_values.get('provider_source_other', '') }}"></label>
       <label for="capabilities">Relevant capabilities<textarea id="capabilities" name="capabilities" maxlength="600" required>{{ form_values.get('capabilities', '') }}</textarea><span class="field-help">Describe the capabilities that matter for this AI use.</span></label>
       <details><summary>Add AI details</summary>
         <label>Version, model, or release<input name="version_model_release" maxlength="300" value="{{ form_values.get('version_model_release', '') }}"></label>
@@ -31,14 +32,13 @@
     <label for="bounded-use">AI use<textarea id="bounded-use" name="bounded_use" maxlength="1200" required>{{ form_values.get('bounded_use', '') }}</textarea><span class="field-help">What the AI will do, for whom, and in which process.</span></label>
     <label for="management-question">Decision or management question<textarea id="management-question" name="management_question" maxlength="1200" required>{{ form_values.get('management_question', '') }}</textarea></label>
     <label for="setup-description">Operating context<textarea id="setup-description" name="setup_description" maxlength="2000" required>{{ form_values.get('setup_description', '') }}</textarea><span class="field-help">The operating limits and setup that matter at the start.</span></label>
-    <details{% if dependency_started | default(false) or dependency_error | default(false) or recovered | default(false) %} open{% endif %}><summary>Add dependency</summary><p class="field-help">Record factual services, data, people, or systems the AI use depends on. PAIM does not infer Value or Risk from these facts.</p>
+    <details{% if dependency_started | default(false) or dependency_error | default(false) or recovered | default(false) %} open{% endif %}><summary>Add dependency</summary><p class="field-help">Record factual services, data, people, systems, or other dependencies the AI use relies on. PAIM does not infer Value or Risk from these facts.</p>
       {% if dependency_error | default(false) %}<div class="error-summary" role="alert"><p>{{ dependency_error }}</p></div>{% endif %}
       <input type="hidden" name="dependency_count" value="{{ dependencies | default([]) | length }}">
       {% for dependency in dependencies | default([]) %}{% set index = loop.index %}
       <fieldset><legend>Dependency {{ index }}</legend>
         <label>Name<input name="dependency_{{ index }}_name" maxlength="300" value="{{ dependency.get('name', '') }}"></label>
-        <label>Relationship<select name="dependency_{{ index }}_type"><option value="">Choose if used</option>{% for value in ('INTERNAL', 'EXTERNAL', 'MIXED') %}<option value="{{ value }}"{% if dependency.get('relationship_type') == value %} selected{% endif %}>{{ value.title() }}</option>{% endfor %}</select></label>
-        <label>Why it matters<textarea name="dependency_{{ index }}_why" maxlength="500">{{ dependency.get('why_it_matters', '') }}</textarea></label>
+        <label>Why it matters<textarea name="dependency_{{ index }}_why" maxlength="500">{{ dependency.get('why_it_matters', '') }}</textarea><span class="field-help">Describe what the AI use receives from, relies on, connects to, or requires from this dependency, and why that matters.</span></label>
       </fieldset>{% endfor %}
       {% if (dependencies | default([]) | length) < max_dependencies %}<button type="submit" name="form_action" value="add_dependency" class="secondary">{% if dependency_started | default(false) %}Add another dependency{% else %}Add dependency{% endif %}</button>{% else %}<p class="field-help">This Case-start form supports up to {{ max_dependencies }} dependencies. Additional evidence can be recorded after the Case starts.</p>{% endif %}
     </details>

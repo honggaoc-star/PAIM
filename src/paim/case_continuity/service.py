@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 from contextlib import AbstractContextManager
 from datetime import datetime
 from typing import Protocol, cast
@@ -89,6 +90,9 @@ class ContinuityTransaction(Protocol):
     def projection_rows(
         self, table_name: str, **equals: object
     ) -> tuple[dict[str, object], ...]: ...
+
+
+CaseOpenCommitHook = Callable[[ContinuityTransaction, CommandOutcome, datetime], None]
 
 
 class ContinuityStore(Protocol):
@@ -304,7 +308,12 @@ class CaseContinuityService:
                 ("PRE_CASE_INITIATION_AUTHORITY_RECORDED", command.state.value),
             )
 
-    def initiate_case(self, request: MinimalOpenCaseCommand) -> CommandOutcome:
+    def initiate_case(
+        self,
+        request: MinimalOpenCaseCommand,
+        *,
+        commit_hook: CaseOpenCommitHook | None = None,
+    ) -> CommandOutcome:
         """Open one Case without exposing generated semantic identities to the caller."""
 
         digest = canonical_command_digest(
@@ -379,12 +388,18 @@ class CaseContinuityService:
             request.ai_profile,
             request.dependencies,
         )
-        return self._open_case(command, digest)
+        return self._open_case(command, digest, commit_hook=commit_hook)
 
     def open_case(self, command: OpenCaseCommand) -> CommandOutcome:
         return self._open_case(command, canonical_command_digest(self._open_payload(command)))
 
-    def _open_case(self, command: OpenCaseCommand, digest: str) -> CommandOutcome:
+    def _open_case(
+        self,
+        command: OpenCaseCommand,
+        digest: str,
+        *,
+        commit_hook: CaseOpenCommitHook | None = None,
+    ) -> CommandOutcome:
         action = "case.create_open"
         self._require_access(
             command.identity.principal_id,
@@ -559,7 +574,7 @@ class CaseContinuityService:
                 },
             )
             versions.append(f.status_version_id)
-            return self._finish(
+            outcome = self._finish(
                 tx,
                 command.identity,
                 digest,
@@ -572,6 +587,9 @@ class CaseContinuityService:
                 command.context,
                 ("PROSPECTIVE_CASE_OPENED", "EXACT_GOVERNING_CONFIGURATION", signature),
             )
+            if commit_hook is not None:
+                commit_hook(tx, outcome, recorded_at)
+            return outcome
 
     def transition_case(self, command: TransitionCaseCommand) -> CommandOutcome:
         action = f"case.continuity.{command.kind.value.casefold()}"
