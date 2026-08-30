@@ -124,6 +124,11 @@ def test_login_home_cases_keyboard_logout_and_no_javascript(
         assert "Protected hidden service" not in page.content()
         page.get_by_role("link", name="Account", exact=True).first.click()
         assert page.get_by_role("button", name="Sign out").count() == 1
+        account_link = page.get_by_role("link", name="Account", exact=True).first.bounding_box()
+        sign_out = page.get_by_role("button", name="Sign out").bounding_box()
+        assert account_link is not None
+        assert sign_out is not None
+        assert sign_out["x"] - (account_link["x"] + account_link["width"]) >= 24
         page.get_by_role("button", name="Sign out").click()
         page.wait_for_url(f"{origin}/login")
         context.close()

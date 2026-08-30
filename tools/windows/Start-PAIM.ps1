@@ -26,7 +26,7 @@ try {
     $uvCommand = Get-Command uv -ErrorAction Stop
 
     Set-Location -LiteralPath $repositoryPath
-    & $uvCommand.Source run --locked paim-launcher --config $configurationPath
+    & $uvCommand.Source run --locked python -m paim.web.launcher --config $configurationPath
     if ($LASTEXITCODE -ne 0) {
         throw 'PAIM did not start. Support details are available in the PAIM local application-data logs folder.'
     }

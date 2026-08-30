@@ -19,7 +19,9 @@ def test_shortcut_installer_persists_paths_only_and_uses_hidden_window() -> None
 
 def test_start_wrapper_uses_locked_launcher_without_secret_or_broad_kill() -> None:
     source = (REPOSITORY / "tools" / "windows" / "Start-PAIM.ps1").read_text(encoding="utf-8")
-    assert "run --locked paim-launcher --config" in source
+    assert "run --locked python -m paim.web.launcher --config" in source
+    assert "run --locked paim-launcher" not in source
+    assert "paim-launcher.exe" not in source
     assert "PresentationFramework" in source
     for prohibited in ("TOKEN", "Password", "taskkill", "Stop-Process", "Get-Process"):
         assert prohibited not in source

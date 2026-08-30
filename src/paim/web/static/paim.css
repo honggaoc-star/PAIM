@@ -18,6 +18,8 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 .product-name { color: var(--ink); font-size: 1.15rem; font-weight: 700; text-decoration: none; }
 .phase, .state { display: inline-block; margin-left: .5rem; padding: .15rem .5rem; border: 1px solid var(--line); border-radius: 1rem; font-size: .85rem; }
 .identity { display: flex; flex-direction: column; align-items: flex-end; font-size: .85rem; }
+.account-actions { display: flex; align-items: center; gap: 1.25rem; margin-top: .35rem; }
+.account-actions .inline-form { margin-left: 0; padding-left: 1.25rem; border-left: 1px solid var(--line); }
 .primary-navigation { font-size: 1.05rem; font-weight: 650; }
 .primary-navigation a { padding: .45rem .7rem; }
 .lead { font-size: 1.15rem; max-width: 48rem; }

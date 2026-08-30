@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import socket
+import subprocess
 import sys
 import threading
+import time
 from pathlib import Path
 
 import httpx2
@@ -115,6 +118,75 @@ def test_production_launcher_safe_stop_restart_and_state_continuity(
     launch_stop_and_verify()
 
     diagnostics = (tmp_path / "local-app-data" / "logs" / "paim-launcher.log").read_text(
+        encoding="utf-8"
+    )
+    assert TOKEN not in diagnostics
+    assert "PAIM local URL:" in diagnostics
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="supported launcher is Windows-only")
+def test_windows_start_script_uses_locked_python_module_and_safe_stop(
+    web_fixture: WebFixture,
+    tmp_path: Path,
+) -> None:
+    config_path = tmp_path / "script-launcher.json"
+    external_configuration(web_fixture, config_path)
+    settings_path = tmp_path / "launcher-settings.json"
+    repository = Path(__file__).resolve().parents[2]
+    settings_path.write_text(
+        json.dumps(
+            {
+                "repository_path": str(repository),
+                "configuration_path": str(config_path),
+            }
+        ),
+        encoding="utf-8",
+    )
+    port = 8841
+    origin = f"http://127.0.0.1:{port}"
+    environment = os.environ.copy()
+    environment[web_fixture.config.credential_env] = TOKEN
+    environment["LOCALAPPDATA"] = str(tmp_path / "local-app-data")
+    environment["BROWSER"] = f"{environment['COMSPEC']} /c echo %s"
+    windows_root = environment.get("SystemRoot", environment.get("WINDIR", r"C:\Windows"))
+    powershell = Path(windows_root) / "System32/WindowsPowerShell/v1.0/powershell.exe"
+    process = subprocess.Popen(
+        (
+            str(powershell),
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-File",
+            str(repository / "tools/windows/Start-PAIM.ps1"),
+            "-SettingsPath",
+            str(settings_path),
+        ),
+        cwd=repository,
+        env=environment,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        creationflags=subprocess.CREATE_NO_WINDOW,
+    )
+    fingerprint = launcher.configuration_fingerprint(config_path)
+    deadline = time.monotonic() + 30
+    try:
+        while time.monotonic() < deadline and not launcher._probe(origin, fingerprint):
+            if process.poll() is not None:
+                output, _ = process.communicate(timeout=5)
+                pytest.fail(f"Start-PAIM.ps1 exited before readiness: {output}")
+            time.sleep(0.2)
+        assert launcher._probe(origin, fingerprint)
+        exercise_and_stop(origin, expected_case="Visible governed service")
+        output, _ = process.communicate(timeout=30)
+        assert process.returncode == 0, output
+        assert TOKEN not in output
+    finally:
+        if process.poll() is None:
+            process.terminate()
+            process.wait(timeout=10)
+
+    diagnostics = (tmp_path / "local-app-data/PAIM/logs/paim-launcher.log").read_text(
         encoding="utf-8"
     )
     assert TOKEN not in diagnostics
