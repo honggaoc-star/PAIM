@@ -175,41 +175,60 @@ class OperationalStore:
         recorded_at: datetime,
         recorded_by: str,
     ) -> None:
-        scope_id = str(value.scope_id) if value.scope_id else None
         with self.transaction() as connection:
-            sequence = (
-                int(
-                    connection.scalar(
-                        select(func.max(software_access_grants.c.sequence)).where(
-                            and_(
-                                software_access_grants.c.principal_id == principal_id,
-                                software_access_grants.c.permission == value.permission.value,
-                                software_access_grants.c.action == value.action,
-                                software_access_grants.c.scope_type == value.scope_type.value,
-                                software_access_grants.c.scope_id.is_(scope_id)
-                                if scope_id is None
-                                else software_access_grants.c.scope_id == scope_id,
-                            )
+            self._insert_access_grant(
+                connection,
+                grant_id=grant_id,
+                principal_id=principal_id,
+                value=value,
+                recorded_at=recorded_at,
+                recorded_by=recorded_by,
+            )
+
+    @staticmethod
+    def _insert_access_grant(
+        connection: Connection,
+        *,
+        grant_id: str,
+        principal_id: str,
+        value: AccessGrantInput,
+        recorded_at: datetime,
+        recorded_by: str,
+    ) -> None:
+        scope_id = str(value.scope_id) if value.scope_id else None
+        sequence = (
+            int(
+                connection.scalar(
+                    select(func.max(software_access_grants.c.sequence)).where(
+                        and_(
+                            software_access_grants.c.principal_id == principal_id,
+                            software_access_grants.c.permission == value.permission.value,
+                            software_access_grants.c.action == value.action,
+                            software_access_grants.c.scope_type == value.scope_type.value,
+                            software_access_grants.c.scope_id.is_(scope_id)
+                            if scope_id is None
+                            else software_access_grants.c.scope_id == scope_id,
                         )
                     )
-                    or 0
                 )
-                + 1
+                or 0
             )
-            connection.execute(
-                insert(software_access_grants).values(
-                    grant_id=grant_id,
-                    principal_id=principal_id,
-                    sequence=sequence,
-                    permission=value.permission.value,
-                    action=value.action,
-                    scope_type=value.scope_type.value,
-                    scope_id=scope_id,
-                    effect=value.effect.value,
-                    recorded_at_us=to_epoch_microseconds(recorded_at),
-                    recorded_by=recorded_by,
-                )
+            + 1
+        )
+        connection.execute(
+            insert(software_access_grants).values(
+                grant_id=grant_id,
+                principal_id=principal_id,
+                sequence=sequence,
+                permission=value.permission.value,
+                action=value.action,
+                scope_type=value.scope_type.value,
+                scope_id=scope_id,
+                effect=value.effect.value,
+                recorded_at_us=to_epoch_microseconds(recorded_at),
+                recorded_by=recorded_by,
             )
+        )
 
     @staticmethod
     def _current_grants(
@@ -283,45 +302,166 @@ class OperationalStore:
         """
 
         with self.transaction() as connection:
-            sequence = (
-                int(
-                    connection.scalar(
-                        select(func.max(source_access_grants.c.sequence)).where(
-                            and_(
-                                source_access_grants.c.principal_id == principal_id,
-                                source_access_grants.c.action == value.action,
-                                source_access_grants.c.source_version_id
-                                == str(value.source_version_id),
-                            )
+            self._insert_source_access_grant(
+                connection,
+                grant_id=grant_id,
+                principal_id=principal_id,
+                value=value,
+                recorded_at=recorded_at,
+                recorded_by=recorded_by,
+            )
+
+    @staticmethod
+    def _insert_source_access_grant(
+        connection: Connection,
+        *,
+        grant_id: str,
+        principal_id: str,
+        value: SourceAccessGrantInput,
+        recorded_at: datetime,
+        recorded_by: str,
+    ) -> None:
+        sequence = (
+            int(
+                connection.scalar(
+                    select(func.max(source_access_grants.c.sequence)).where(
+                        and_(
+                            source_access_grants.c.principal_id == principal_id,
+                            source_access_grants.c.action == value.action,
+                            source_access_grants.c.source_version_id
+                            == str(value.source_version_id),
                         )
                     )
-                    or 0
                 )
-                + 1
+                or 0
             )
+            + 1
+        )
+        connection.execute(
+            insert(source_access_grants).values(
+                grant_id=grant_id,
+                principal_id=principal_id,
+                sequence=sequence,
+                action=value.action,
+                case_id=str(value.case_id),
+                configuration_id=(str(value.configuration_id) if value.configuration_id else None),
+                source_version_id=str(value.source_version_id),
+                source_family=value.source_family,
+                effect=value.effect.value,
+                effective_from_us=to_epoch_microseconds(value.effective_from),
+                effective_to_us=(
+                    to_epoch_microseconds(value.effective_to)
+                    if value.effective_to is not None
+                    else None
+                ),
+                recorded_at_us=to_epoch_microseconds(recorded_at),
+                recorded_by=recorded_by,
+            )
+        )
+
+    def establish_case_creator_visibility(
+        self,
+        connection: Connection,
+        *,
+        principal_id: str,
+        actor_id: RecordId,
+        case_id: RecordId,
+        sources: tuple[tuple[RecordVersionId, str], ...],
+        effective_at: datetime,
+        recorded_at: datetime,
+        correlation_id: str,
+        causation_id: str,
+    ) -> dict[str, object]:
+        """Append exact creator visibility inside the Case-opening transaction.
+
+        This is a deterministic consequence of a successfully authorized Case
+        initiation. It grants software visibility only for the created Case and
+        its exact opening sources; it grants no Responsibility or authority.
+        """
+
+        principal = (
             connection.execute(
-                insert(source_access_grants).values(
-                    grant_id=grant_id,
-                    principal_id=principal_id,
-                    sequence=sequence,
-                    action=value.action,
-                    case_id=str(value.case_id),
-                    configuration_id=(
-                        str(value.configuration_id) if value.configuration_id else None
-                    ),
-                    source_version_id=str(value.source_version_id),
-                    source_family=value.source_family,
-                    effect=value.effect.value,
-                    effective_from_us=to_epoch_microseconds(value.effective_from),
-                    effective_to_us=(
-                        to_epoch_microseconds(value.effective_to)
-                        if value.effective_to is not None
-                        else None
-                    ),
-                    recorded_at_us=to_epoch_microseconds(recorded_at),
-                    recorded_by=recorded_by,
-                )
+                select(operational_principal_versions)
+                .where(operational_principal_versions.c.principal_id == principal_id)
+                .order_by(operational_principal_versions.c.sequence.desc())
+                .limit(1)
             )
+            .mappings()
+            .one_or_none()
+        )
+        if (
+            principal is None
+            or principal["status"] != PrincipalStatus.ENABLED.value
+            or principal["actor_id"] != str(actor_id)
+        ):
+            raise ValueError("initiating principal is no longer mapped to the exact Actor")
+        if not sources:
+            raise ValueError("new Case opening source manifest is empty")
+
+        self._insert_access_grant(
+            connection,
+            grant_id=str(RecordId.new()),
+            principal_id=principal_id,
+            value=AccessGrantInput(
+                Permission.CASE_READ,
+                "read",
+                ScopeType.CASE,
+                case_id,
+                AccessEffect.ALLOW,
+            ),
+            recorded_at=recorded_at,
+            recorded_by=principal_id,
+        )
+        for version_id, family in sources:
+            self._insert_source_access_grant(
+                connection,
+                grant_id=str(RecordId.new()),
+                principal_id=principal_id,
+                value=SourceAccessGrantInput(
+                    "source.read",
+                    case_id,
+                    version_id,
+                    family,
+                    AccessEffect.ALLOW,
+                    effective_at,
+                ),
+                recorded_at=recorded_at,
+                recorded_by=principal_id,
+            )
+
+        details: dict[str, JsonValue] = {
+            "scope": "EXACT_CREATED_CASE",
+            "source_version_ids": [str(version_id) for version_id, _family in sources],
+            "substantive_authority_granted": False,
+        }
+        _validate_safe_details(details)
+        row: dict[str, object] = {
+            "event_id": str(RecordId.new()),
+            "category": "ACCESS",
+            "outcome": "ALLOWED",
+            "principal_id": principal_id,
+            "actor_id": str(actor_id),
+            "action": "case.creator_visibility.establish",
+            "case_id": str(case_id),
+            "configuration_id": None,
+            "correlation_id": correlation_id,
+            "causation_id": causation_id,
+            "reason_category": "CASE_CREATOR_EXACT_VISIBILITY_ESTABLISHED",
+            "details_json": json.dumps(details, sort_keys=True, separators=(",", ":")),
+            "recorded_at_us": to_epoch_microseconds(recorded_at),
+        }
+        connection.execute(insert(operational_audit_facts).values(**row))
+        return row
+
+    def append_audit_log(self, row: Mapping[str, object]) -> None:
+        """Best-effort mirror of a controlling database audit fact."""
+
+        try:
+            self._event_log_path.parent.mkdir(parents=True, exist_ok=True)
+            with self._event_log_path.open("a", encoding="utf-8", newline="\n") as stream:
+                stream.write(json.dumps(dict(row), sort_keys=True, separators=(",", ":")) + "\n")
+        except OSError:
+            pass
 
     def source_access_allowed(
         self,
@@ -555,14 +695,7 @@ class OperationalStore:
         }
         with self.transaction() as connection:
             connection.execute(insert(operational_audit_facts).values(**row))
-        try:
-            self._event_log_path.parent.mkdir(parents=True, exist_ok=True)
-            with self._event_log_path.open("a", encoding="utf-8", newline="\n") as stream:
-                stream.write(json.dumps(row, sort_keys=True, separators=(",", ":")) + "\n")
-        except OSError:
-            # The durable database fact is controlling. Health exposes an
-            # unavailable log destination rather than rolling back evidence.
-            pass
+        self.append_audit_log(row)
         return event_id
 
     def operational_counts(self) -> dict[str, int]:

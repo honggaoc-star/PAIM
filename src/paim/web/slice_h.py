@@ -24,11 +24,19 @@ Render = Callable[[Request, str, dict[str, object], int], Response]
 RequireSession = Callable[[Request], BrowserSession | Response]
 SameOrigin = Callable[[Request], bool]
 MAX_CASE_START_DEPENDENCIES = 8
+CASE_START_PROVIDER_SOURCE_TYPES = (
+    "Internally developed",
+    "Commercial product or service",
+    "Open-source",
+    "Combination / mixed",
+    "Other",
+)
 _CASE_START_LIMITS = {
     "title": 300,
     "ai_name": 300,
     "ai_description": 600,
     "provider_source_type": 300,
+    "provider_source_other": 300,
     "capabilities": 600,
     "bounded_use": 1_200,
     "management_question": 1_200,
@@ -61,7 +69,6 @@ def _case_start_form(
     dependencies = [
         {
             "name": str(form.get(f"dependency_{index}_name", "")).strip(),
-            "relationship_type": str(form.get(f"dependency_{index}_type", "")).strip(),
             "why_it_matters": str(form.get(f"dependency_{index}_why", "")).strip(),
         }
         for index in range(1, dependency_count + 1)
@@ -78,15 +85,9 @@ def _complete_dependencies(
     dependencies: list[dict[str, str]] = []
     for dependency in raw_dependencies:
         name = dependency["name"]
-        relationship = dependency["relationship_type"]
         why = dependency["why_it_matters"]
-        if any((name, relationship, why)):
-            if (
-                not all((name, relationship, why))
-                or relationship not in {"INTERNAL", "EXTERNAL", "MIXED"}
-                or len(name) > 300
-                or len(why) > 500
-            ):
+        if any((name, why)):
+            if not all((name, why)) or len(name) > 300 or len(why) > 500:
                 raise ValueError("Dependency information is incomplete")
             dependencies.append(dependency)
     return dependencies
@@ -806,6 +807,7 @@ def register_slice_h_routes(
                         "dependencies": raw_dependencies or ({},),
                         "dependency_started": _has_complete_dependency(raw_dependencies),
                         "max_dependencies": MAX_CASE_START_DEPENDENCIES,
+                        "provider_source_types": CASE_START_PROVIDER_SOURCE_TYPES,
                         "intent_id": prior_intent_id,
                         "dependency_error": (
                             "Complete the current dependency before adding another."
@@ -826,6 +828,7 @@ def register_slice_h_routes(
                         "dependencies": raw_dependencies or ({},),
                         "dependency_started": _has_complete_dependency(raw_dependencies),
                         "max_dependencies": MAX_CASE_START_DEPENDENCIES,
+                        "provider_source_types": CASE_START_PROVIDER_SOURCE_TYPES,
                         "intent_id": prior_intent_id,
                         "dependency_error": (
                             "Complete the first dependency before adding another."
@@ -858,6 +861,7 @@ def register_slice_h_routes(
                     "dependencies": (*raw_dependencies, {}),
                     "dependency_started": True,
                     "max_dependencies": MAX_CASE_START_DEPENDENCIES,
+                    "provider_source_types": CASE_START_PROVIDER_SOURCE_TYPES,
                     "intent_id": prior_intent_id,
                 },
                 200,
@@ -886,6 +890,27 @@ def register_slice_h_routes(
                 return_path="/cases/new",
                 status=400,
             )
+        if payload["provider_source_type"] not in CASE_START_PROVIDER_SOURCE_TYPES:
+            return error(
+                request,
+                session,
+                title="Source or provider type is invalid",
+                message="Choose one of the available source or provider classifications.",
+                return_path="/cases/new",
+                status=400,
+            )
+        if payload["provider_source_type"] == "Other":
+            if not payload["provider_source_other"]:
+                return error(
+                    request,
+                    session,
+                    title="Source or provider type needs a description",
+                    message="Choose Other and briefly specify the source or provider type.",
+                    return_path="/cases/new",
+                    status=400,
+                )
+        else:
+            payload["provider_source_other"] = ""
         try:
             effective_at = _timestamp(payload["effective_at"])
         except ValueError as exc:
@@ -920,7 +945,7 @@ def register_slice_h_routes(
                 request,
                 session,
                 title="Dependency information is incomplete",
-                message="Give each dependency a name, relationship, and why it matters.",
+                message="Give each dependency a name and explain how it matters.",
                 return_path="/cases/new",
                 status=400,
             )
@@ -1002,6 +1027,7 @@ def register_slice_h_routes(
                     json.loads(intent.payload["dependencies_json"])
                 ),
                 "max_dependencies": MAX_CASE_START_DEPENDENCIES,
+                "provider_source_types": CASE_START_PROVIDER_SOURCE_TYPES,
                 "intent_id": intent_id,
                 "recovered": request.query_params.get("recovered") == "1",
             },
@@ -1091,14 +1117,12 @@ def register_slice_h_routes(
                             "known_strengths_limitations",
                             "organizational_experience",
                             "other_identifying_information",
+                            "provider_source_other",
                         )
                         if (value := intent.payload[name])
                     },
                 },
                 dependencies=tuple(json.loads(intent.payload["dependencies_json"])),
-            )
-            gateway.slice_h_establish_creator_visibility(
-                session.authentication, outcome, effective_at=effective_at
             )
         except AccessDenied:
             return error(

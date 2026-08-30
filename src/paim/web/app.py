@@ -29,7 +29,11 @@ from paim.web.sessions import (
     BrowserSession,
     SessionRegistry,
 )
-from paim.web.slice_h import MAX_CASE_START_DEPENDENCIES, register_slice_h_routes
+from paim.web.slice_h import (
+    CASE_START_PROVIDER_SOURCE_TYPES,
+    MAX_CASE_START_DEPENDENCIES,
+    register_slice_h_routes,
+)
 from paim.web.ux3a import (
     applicability_task_context,
     assessment_task_contexts,
@@ -595,6 +599,7 @@ def create_web_application(
                 "dependencies": ({},),
                 "dependency_started": False,
                 "max_dependencies": MAX_CASE_START_DEPENDENCIES,
+                "provider_source_types": CASE_START_PROVIDER_SOURCE_TYPES,
             },
         )
 

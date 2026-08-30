@@ -170,6 +170,9 @@ class PractitionerQueryService:
                                 provider_source_type=self._optional_text(
                                     raw_profile.get("provider_source_type")
                                 ),
+                                provider_source_other=self._optional_text(
+                                    raw_profile.get("provider_source_other")
+                                ),
                                 capabilities=self._optional_text(raw_profile.get("capabilities")),
                                 version_model_release=self._optional_text(
                                     raw_profile.get("version_model_release")
@@ -197,16 +200,18 @@ class PractitionerQueryService:
                             if not isinstance(item, dict):
                                 continue
                             name = item.get("name")
-                            relationship_type = item.get("relationship_type")
                             why = item.get("why_it_matters")
-                            if all(
-                                isinstance(value, str) for value in (name, relationship_type, why)
-                            ):
+                            relationship_type = item.get("relationship_type")
+                            if isinstance(name, str) and isinstance(why, str):
                                 parsed_dependencies.append(
                                     DependencyFact(
-                                        cast(str, name),
-                                        cast(str, relationship_type),
-                                        cast(str, why),
+                                        name,
+                                        why,
+                                        (
+                                            relationship_type
+                                            if isinstance(relationship_type, str)
+                                            else None
+                                        ),
                                     )
                                 )
                         dependencies = tuple(parsed_dependencies)

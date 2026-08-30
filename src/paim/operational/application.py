@@ -48,6 +48,7 @@ from paim.assessment_review import (
 )
 from paim.audit import ActorResolution
 from paim.case_continuity import (
+    CaseContinuityConflict,
     CaseContinuityService,
     CaseInitiationAuthorityCommand,
     CaseInitiationAuthorityState,
@@ -56,6 +57,7 @@ from paim.case_continuity import (
 from paim.case_continuity import (
     CommandIdentity as ContinuityCommandIdentity,
 )
+from paim.case_continuity.service import ContinuityTransaction
 from paim.continuing_review import (
     BeginReviewEpisodeCommand,
     CompleteReviewEpisodeCommand,
@@ -125,6 +127,7 @@ from paim.operational.recovery import create_backup, health_report, restore_back
 from paim.operational.store import OperationalStore
 from paim.persistence.ports import CommandOutcome, WriterContention
 from paim.persistence.sqlite import SQLiteIntegrityStore
+from paim.persistence.sqlite.store import SQLiteIntegrityTransaction
 from paim.practitioner_queries import (
     CaseView as ProspectiveCaseView,
 )
@@ -1147,12 +1150,54 @@ class OperationalApplication:
         self._validate_session(session, "case.create_open")
         if session.actor_id is None:
             raise AccessDenied("current Actor mapping is not established")
+        initiating_actor_id = session.actor_id
         organization_scope = self._case_initiation_scope(
             actor_id=session.actor_id,
             bounded_use=bounded_use,
             effective_at=effective_at,
         )
-        return self._case_continuity.initiate_case(
+        audit_rows: list[Mapping[str, object]] = []
+
+        def establish_creator_visibility(
+            transaction: ContinuityTransaction,
+            outcome: CommandOutcome,
+            recorded_at: datetime,
+        ) -> None:
+            if not isinstance(transaction, SQLiteIntegrityTransaction):
+                raise CaseContinuityConflict("atomic creator visibility adapter is unavailable")
+            source_ids = {RecordVersionId.parse(value) for value in outcome.version_ids}
+            for basis in transaction.projection_rows("assignment_basis_versions"):
+                if RecordVersionId.parse(str(basis["version_id"])) in source_ids:
+                    source_ids.add(RecordVersionId.parse(str(basis["basis_source_version_id"])))
+            sources = tuple(
+                transaction.get_version(version_id) for version_id in sorted(source_ids, key=str)
+            )
+            if any(source is None for source in sources):
+                raise CaseContinuityConflict("new Case opening source manifest is unavailable")
+            try:
+                audit_rows.append(
+                    self.operational_store.establish_case_creator_visibility(
+                        transaction.connection,
+                        principal_id=session.principal_id,
+                        actor_id=initiating_actor_id,
+                        case_id=RecordId.parse(outcome.record_id),
+                        sources=tuple(
+                            (source.version_id, source.family)
+                            for source in sources
+                            if source is not None
+                        ),
+                        effective_at=effective_at,
+                        recorded_at=recorded_at,
+                        correlation_id=session.correlation_id,
+                        causation_id=outcome.command_id,
+                    )
+                )
+            except (SQLAlchemyError, ValueError) as exc:
+                raise CaseContinuityConflict(
+                    "exact creator visibility could not be established"
+                ) from exc
+
+        outcome = self._case_continuity.initiate_case(
             MinimalOpenCaseCommand(
                 ContinuityCommandIdentity(
                     CommandId.new(),
@@ -1177,8 +1222,12 @@ class OperationalApplication:
                 self.clock.now(),
                 ai_profile,
                 dependencies,
-            )
+            ),
+            commit_hook=establish_creator_visibility,
         )
+        for audit_row in audit_rows:
+            self.operational_store.append_audit_log(audit_row)
+        return outcome
 
     def slice_h_case_initiation_available(
         self,
@@ -1287,73 +1336,6 @@ class OperationalApplication:
                 context,
             )
         )
-
-    def slice_h_establish_creator_visibility(
-        self,
-        session: AuthenticatedSession,
-        outcome: CommandOutcome,
-        *,
-        effective_at: datetime,
-    ) -> None:
-        """Apply separately authorized software visibility to a newly created Case.
-
-        This operation is deliberately separate from Case semantics. It runs only
-        when the signed-in principal already holds both exact operational-admin
-        permissions; it creates no Responsibility or substantive authority.
-        """
-
-        if not (
-            self.operational_store.permission_allowed(
-                session.principal_id, Permission.OPERATIONAL_ADMIN, "access.manage"
-            )
-            and self.operational_store.permission_allowed(
-                session.principal_id,
-                Permission.OPERATIONAL_ADMIN,
-                "source-access.manage",
-            )
-        ):
-            return
-        case_id = RecordId.parse(outcome.record_id)
-        if not self.operational_store.permission_allowed(
-            session.principal_id,
-            Permission.CASE_READ,
-            "read",
-            ScopeType.CASE,
-            case_id,
-        ):
-            self.grant_access(
-                session,
-                principal_id=session.principal_id,
-                grant=AccessGrantInput(
-                    Permission.CASE_READ,
-                    "read",
-                    ScopeType.CASE,
-                    case_id,
-                    AccessEffect.ALLOW,
-                ),
-            )
-        source_ids = {RecordVersionId.parse(value) for value in outcome.version_ids}
-        with self.domain_store.read_transaction() as transaction:
-            for basis in transaction.projection_rows("assignment_basis_versions"):
-                if RecordVersionId.parse(str(basis["version_id"])) in source_ids:
-                    source_ids.add(RecordVersionId.parse(str(basis["basis_source_version_id"])))
-            sources = tuple(transaction.get_version(value) for value in source_ids)
-        if any(source is None for source in sources):
-            raise RuntimeError("new Case source manifest is unavailable")
-        for source in sources:
-            assert source is not None
-            self.grant_source_access(
-                session,
-                principal_id=session.principal_id,
-                grant=SourceAccessGrantInput(
-                    "source.read",
-                    case_id,
-                    source.version_id,
-                    source.family,
-                    AccessEffect.ALLOW,
-                    effective_at,
-                ),
-            )
 
     def slice_h_establish_result_visibility(
         self,
