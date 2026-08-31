@@ -124,6 +124,14 @@ class OperationalSliceAAccessPolicy:
         )
         if not visible:
             return False
+        if action == "case.initial-assessment.setup" and write:
+            # This is an exact post-initiation software-access seam only. The
+            # production setup command separately requires the initiating Actor,
+            # an explicit assignment-authority source, and canonical assignment
+            # validation; Case-creation permission grants none of that substance.
+            return self._store.permission_allowed(
+                principal_id, Permission.COMMAND, "case.create_open"
+            )
         if source_version_id is not None:
             if effective_at is None or known_at is None:
                 return False

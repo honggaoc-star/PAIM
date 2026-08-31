@@ -453,6 +453,96 @@ class OperationalStore:
         connection.execute(insert(operational_audit_facts).values(**row))
         return row
 
+    def establish_initial_assessment_setup_access(
+        self,
+        connection: Connection,
+        *,
+        principal_id: str,
+        actor_id: RecordId,
+        case_id: RecordId,
+        sources: tuple[tuple[RecordVersionId, str], ...],
+        effective_at: datetime,
+        recorded_at: datetime,
+        correlation_id: str,
+        causation_id: str,
+    ) -> dict[str, object]:
+        """Expose only the exact explicit setup results and two lane actions."""
+
+        principal = (
+            connection.execute(
+                select(operational_principal_versions)
+                .where(operational_principal_versions.c.principal_id == principal_id)
+                .order_by(operational_principal_versions.c.sequence.desc())
+                .limit(1)
+            )
+            .mappings()
+            .one_or_none()
+        )
+        if (
+            principal is None
+            or principal["status"] != PrincipalStatus.ENABLED.value
+            or principal["actor_id"] != str(actor_id)
+        ):
+            raise ValueError("setup principal is no longer mapped to the exact Actor")
+        if not sources:
+            raise ValueError("initial assessment setup source manifest is empty")
+        for action in ("assessment.finish.value", "assessment.finish.risk"):
+            self._insert_access_grant(
+                connection,
+                grant_id=str(RecordId.new()),
+                principal_id=principal_id,
+                value=AccessGrantInput(
+                    Permission.COMMAND,
+                    action,
+                    ScopeType.CASE,
+                    case_id,
+                    AccessEffect.ALLOW,
+                ),
+                recorded_at=recorded_at,
+                recorded_by=principal_id,
+            )
+        for version_id, family in sources:
+            self._insert_source_access_grant(
+                connection,
+                grant_id=str(RecordId.new()),
+                principal_id=principal_id,
+                value=SourceAccessGrantInput(
+                    "source.read",
+                    case_id,
+                    version_id,
+                    family,
+                    AccessEffect.ALLOW,
+                    effective_at,
+                ),
+                recorded_at=recorded_at,
+                recorded_by=principal_id,
+            )
+        details: dict[str, JsonValue] = {
+            "actions": ["assessment.finish.risk", "assessment.finish.value"],
+            "scope": "EXACT_CASE",
+            "source_version_ids": [str(version_id) for version_id, _family in sources],
+            "software_access_only": True,
+            "substantive_authority_granted": False,
+        }
+        _validate_safe_details(details)
+        row: dict[str, object] = {
+            "event_id": str(RecordId.new()),
+            "category": "ACCESS",
+            "outcome": "ALLOWED",
+            "principal_id": principal_id,
+            "actor_id": str(actor_id),
+            "action": "case.initial-assessment.setup",
+            "case_id": str(case_id),
+            "configuration_id": None,
+            "correlation_id": correlation_id,
+            "causation_id": causation_id,
+            "reason_category": "EXACT_INITIAL_ASSESSMENT_ACCESS_ESTABLISHED",
+            "details_json": json.dumps(details, sort_keys=True, separators=(",", ":")),
+            "recorded_at_us": to_epoch_microseconds(recorded_at),
+        }
+        connection.execute(insert(operational_audit_facts).values(**row))
+        return row
+
     def append_audit_log(self, row: Mapping[str, object]) -> None:
         """Best-effort mirror of a controlling database audit fact."""
 

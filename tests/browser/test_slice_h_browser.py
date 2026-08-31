@@ -97,6 +97,7 @@ def test_slice_h_disposable_harborlight_case_start_survives_no_javascript(
         page.locator('[name="dependency_3_name"]').fill("Human lending review")
         page.locator('[name="dependency_3_why"]').fill("Retains accountable judgment.")
         web_fixture.now.advance(timedelta(minutes=31))
+        _use_fixture_clock(web_fixture)
         page.get_by_role("button", name="Review Case").click()
         assert page.get_by_role("heading", name="Sign in to PAIM").is_visible()
         assert "restore the information you entered" in page.locator("main").inner_text()
@@ -143,6 +144,31 @@ def test_slice_h_disposable_harborlight_case_start_survives_no_javascript(
         assert page.get_by_text("Commercial AI API", exact=False).is_visible()
         assert page.get_by_text("Human lending review", exact=False).is_visible()
         assert page.get_by_text("PAIM-", exact=False).first.is_visible()
+        setup_card = page.locator("article.attention-card").filter(
+            has_text="Set up responsibility for Value and Risk assessments"
+        )
+        assert setup_card.is_visible()
+        setup_card.get_by_role("link", name="Continue this work").click()
+        assert page.get_by_role(
+            "heading", name="Set up responsibility for Value and Risk assessments"
+        ).is_visible()
+        page.get_by_label("Authority source").fill("Harborlight AI governance charter")
+        page.get_by_label("Source reference").fill("Charter HL-AI-2026 section 4.2")
+        page.get_by_label("Scope of this assignment authority").fill(
+            "This exact Case and its initial independent assessments"
+        )
+        page.get_by_label("Requirement or rule that permits these assignments").fill(
+            "The initiator establishes accountable Value and Risk assessment work."
+        )
+        page.get_by_role("button", name="Review responsibility setup").click()
+        assert page.get_by_role("heading", name="Confirm assessment responsibility").is_visible()
+        page.get_by_role("button", name="Record responsibility setup").click()
+        assert page.get_by_text("Finish the Value assessment", exact=False).is_visible(), (
+            page.locator("main").inner_text()
+        )
+        assert page.get_by_text("Finish the Risk assessment", exact=False).is_visible()
+        assert page.get_by_text("Value assessment — assigned to you").is_visible()
+        assert page.get_by_text("Risk assessment — assigned to you").is_visible()
         page.reload()
         assert page.get_by_role(
             "heading", name="Harborlight Assist - edited disposable browser proof"

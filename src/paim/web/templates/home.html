@@ -13,11 +13,13 @@
         <p class="eyebrow">{{ case_titles.get(item.case_id|string, 'AI use') }}</p>
         <h3>{{ item.question }}</h3>
         <p><strong>Why:</strong> {{ item.consequence }}</p>
-        {% if item.work_version_id %}
+        {% if item.action_path %}
+        <a class="button-link" href="{{ item.action_path }}">Continue this work</a>
+        {% elif item.work_version_id %}
         <a class="button-link" href="/cases/{{ item.case_id }}/tasks/{{ item.work_version_id }}">Continue this work</a>
         {% elif item.responsibility_version_id %}
         <a class="button-link" href="/cases/{{ item.case_id }}/actions/{{ item.responsibility_version_id }}">Continue this work</a>
-        {% else %}
+        {% elif item.kind == 'CONTINUING_REVIEW' %}
         <a class="button-link" href="/cases/{{ item.case_id }}#continuing-review">Review this change</a>
         {% endif %}
       </article>
