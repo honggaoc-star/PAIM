@@ -31,8 +31,10 @@ from paim.operational import (
     ScopeType,
     SourceAccessGrantInput,
 )
+from paim.operational.models import AccessDenied
 from paim.prospective_decision import ProspectiveDecisionService
 from paim.quantitative_claims import QuantitativeClaimService, QuantitativeClaimType
+from paim.responsibility.initial_setup import InitialAssessmentSetupService
 from paim.responsibility.models import ObligationKind
 from paim.responsibility.service import (
     OperationalSliceAAccessPolicy,
@@ -119,6 +121,9 @@ def _use_fixture_clock(fixture: WebFixture) -> None:
     fixture.operational.clock = clock
     fixture.operational._case_continuity = CaseContinuityService(  # type: ignore[attr-defined]
         fixture.operational.domain_store, clock, policy
+    )
+    fixture.operational._initial_assessment_setup = (  # type: ignore[attr-defined]
+        InitialAssessmentSetupService(fixture.operational.domain_store, clock, policy)
     )
     fixture.operational._assessment_review = AssessmentReviewService(  # type: ignore[attr-defined]
         fixture.operational.domain_store, clock, policy
@@ -877,10 +882,10 @@ def test_case_start_provider_classification_and_dependency_description_are_bound
     assert 'value="Cooperative industry service"' in edited.text
 
 
-def test_minimal_case_start_uses_h0_authority_and_creates_no_later_governance(
+def test_new_case_exposes_explicit_assessment_responsibility_setup(
     web_fixture: WebFixture,
 ) -> None:
-    """The ordinary New Case form invokes H0 and asks no later-domain questionnaire."""
+    """A new Case stays minimal, then offers an explicit accountable next step."""
 
     web_fixture.now.value = H0_NOW
     _use_fixture_clock(web_fixture)
@@ -893,12 +898,6 @@ def test_minimal_case_start_uses_h0_authority_and_creates_no_later_governance(
         web_fixture,
         Permission.OPERATIONAL_ADMIN,
         "source-access.manage",
-        effect=AccessEffect.DENY,
-    )
-    grant(
-        web_fixture,
-        Permission.OPERATIONAL_ADMIN,
-        "access.manage",
         effect=AccessEffect.DENY,
     )
     _, logged_in = login(web_fixture.client)
@@ -1021,7 +1020,121 @@ def test_minimal_case_start_uses_h0_authority_and_creates_no_later_governance(
     assert "PAIM-" in case_page.text
     assert "small-business lending assistance" in case_page.text
     assert "Should Harborlight use bounded AI assistance in its lending review?" in case_page.text
+    assert "Set up responsibility for Value and Risk assessments" in case_page.text
+    assert "Case continuity — assigned to you" in case_page.text
+    assert ">One<" not in case_page.text
     case_id = RecordId.parse(committed.headers["location"].rsplit("/", 1)[1])
+    setup_path = f"/cases/{case_id}/setup/initial-assessments"
+    grant(
+        web_fixture,
+        Permission.COMMAND,
+        "case.create_open",
+        effect=AccessEffect.DENY,
+    )
+    blocked_case = web_fixture.client.get(committed.headers["location"])
+    assert "An authorized practitioner must establish" in blocked_case.text
+    assert setup_path not in blocked_case.text
+    blocked_setup = web_fixture.client.get(setup_path)
+    assert blocked_setup.status_code == 409
+    with web_fixture.operational.domain_store.read_transaction() as tx:
+        assert tx.count_rows("responsibility_versions") == 1
+    grant(web_fixture, Permission.COMMAND, "case.create_open")
+    authenticated = web_fixture.operational.authenticate("principal:web-practitioner", TOKEN)
+    exact_setup = web_fixture.operational.slice_h_initial_assessment_setup_context(
+        authenticated, case_id
+    )
+    with pytest.raises(AccessDenied, match="context changed"):
+        web_fixture.operational.slice_h_commit_initial_assessment_setup(
+            authenticated,
+            case_id=case_id,
+            expected_source_version_ids=exact_setup.source_version_ids[:-1],
+            authority_source="Harborlight AI governance charter",
+            authority_provenance="Charter HL-AI-2026 section 4.2",
+            authority_scope="This exact Case and its initial independent assessments",
+            authority_requirement="The initiator establishes accountable assessment work.",
+            effective_at=H0_NOW,
+            idempotency_key="tampered-initial-assessment-setup",
+        )
+    with web_fixture.operational.domain_store.read_transaction() as tx:
+        assert tx.count_rows("responsibility_versions") == 1
+    setup = web_fixture.client.get(setup_path)
+    assert setup.status_code == 200
+    assert "Software access, responsibility, and substantive authority remain separate" in (
+        setup.text
+    )
+    incomplete_setup = web_fixture.client.post(
+        f"{setup_path}/review",
+        data={
+            "csrf_token": csrf_from(setup.text),
+            "authority_source": "",
+            "authority_provenance": "",
+            "authority_scope": "",
+            "authority_requirement": "",
+        },
+        headers={"Origin": ORIGIN},
+        follow_redirects=False,
+    )
+    assert incomplete_setup.status_code == 400
+    with web_fixture.operational.domain_store.read_transaction() as tx:
+        assert tx.count_rows("responsibility_versions") == 1
+    reviewed_setup = web_fixture.client.post(
+        f"{setup_path}/review",
+        data={
+            "csrf_token": csrf_from(setup.text),
+            "authority_source": "Harborlight AI governance charter",
+            "authority_provenance": "Charter HL-AI-2026 section 4.2",
+            "authority_scope": "This exact Case and its initial independent assessments",
+            "authority_requirement": (
+                "The Case initiator establishes accountable Value and Risk assessment work."
+            ),
+        },
+        headers={"Origin": ORIGIN},
+        follow_redirects=False,
+    )
+    assert reviewed_setup.status_code == 303
+    setup_confirmation = web_fixture.client.get(reviewed_setup.headers["location"])
+    assert setup_confirmation.status_code == 200
+    assert "will not" in setup_confirmation.text
+    setup_committed = web_fixture.client.post(
+        setup_confirmation.url.path.replace("/confirm/", "/commit/"),
+        data={"csrf_token": csrf_from(setup_confirmation.text)},
+        headers={"Origin": ORIGIN},
+        follow_redirects=False,
+    )
+    assert setup_committed.status_code == 303, setup_committed.text
+    actionable_case = web_fixture.client.get(setup_committed.headers["location"])
+    assert "Finish the Value assessment" in actionable_case.text
+    assert "Finish the Risk assessment" in actionable_case.text
+    assert "Value assessment — assigned to you" in actionable_case.text
+    assert "Risk assessment — assigned to you" in actionable_case.text
+    for action in ("assessment.finish.value", "assessment.finish.risk"):
+        assert web_fixture.operational.operational_store.permission_allowed(
+            "principal:web-practitioner",
+            Permission.COMMAND,
+            action,
+            ScopeType.CASE,
+            case_id,
+        )
+        assert not web_fixture.operational.operational_store.permission_allowed(
+            "principal:web-practitioner", Permission.COMMAND, action
+        )
+        assert not web_fixture.operational.operational_store.permission_allowed(
+            "principal:web-practitioner",
+            Permission.COMMAND,
+            action,
+            ScopeType.CASE,
+            RecordId.new(),
+        )
+    setup_audit = tuple(
+        row
+        for row in web_fixture.operational.operational_store.audit_rows()
+        if row["reason_category"] == "EXACT_INITIAL_ASSESSMENT_ACCESS_ESTABLISHED"
+    )
+    assert len(setup_audit) == 1
+    setup_details = json.loads(str(setup_audit[0]["details_json"]))
+    assert setup_details["software_access_only"] is True
+    assert setup_details["substantive_authority_granted"] is False
+    assert len(setup_details["source_version_ids"]) == 6
     visible_cases = web_fixture.client.get("/cases")
     assert visible_cases.status_code == 200
     assert "Harborlight Assist" in visible_cases.text
@@ -1059,7 +1172,9 @@ def test_minimal_case_start_uses_h0_authority_and_creates_no_later_governance(
     with web_fixture.operational.domain_store.read_transaction() as tx:
         assert tx.count_rows("case_continuity_status_versions") == 1
         assert tx.count_rows("governing_configuration_designations") == 1
-        assert tx.count_rows("responsibility_versions") == 1
+        assert tx.count_rows("responsibility_versions") == 3
+        assert tx.count_rows("assignment_basis_versions") == 2
+        assert tx.count_rows("responsibility_assignment_versions") == 3
         assert tx.count_rows("assessment_candidate_versions") == 0
         assert tx.count_rows("prospective_integration_versions") == 0
         assert tx.count_rows("prospective_decision_versions") == 0

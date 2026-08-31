@@ -153,6 +153,12 @@ from paim.prospective_decision import (
     ReliedLaneBasis,
 )
 from paim.reconstruction import CaseTimeline, ReconstructionService, ThenNowComparison
+from paim.responsibility import (
+    InitialAssessmentSetupCommand,
+    InitialAssessmentSetupContext,
+    InitialAssessmentSetupFacts,
+    InitialAssessmentSetupService,
+)
 from paim.responsibility.models import ObligationKind
 from paim.responsibility.service import OperationalSliceAAccessPolicy
 from paim.slice_h_actions import (
@@ -188,6 +194,9 @@ class OperationalApplication:
         self._practitioner_queries = PractitionerQueryService(self.domain_store)
         self._prospective_access = OperationalSliceAAccessPolicy(self.operational_store)
         self._case_continuity = CaseContinuityService(
+            self.domain_store, self.clock, self._prospective_access
+        )
+        self._initial_assessment_setup = InitialAssessmentSetupService(
             self.domain_store, self.clock, self._prospective_access
         )
         self._assessment_review = AssessmentReviewService(
@@ -500,6 +509,113 @@ class OperationalApplication:
             effective_at=effective,
             known_at=known,
         )
+
+    def slice_h_initial_assessment_setup_context(
+        self,
+        session: AuthenticatedSession,
+        case_id: RecordId,
+        *,
+        effective_at: datetime | None = None,
+        known_at: datetime | None = None,
+    ) -> InitialAssessmentSetupContext:
+        """Resolve the explicit post-initiation setup boundary without inference."""
+
+        actor_id, effective, known = self._slice_h_context(
+            session, effective_at=effective_at, known_at=known_at
+        )
+        if case_id not in self._prospective_case_ids(session):
+            raise AccessDenied("prospective Case is not visible")
+        try:
+            return self._initial_assessment_setup.resolve(
+                principal_id=session.principal_id,
+                actor_id=actor_id,
+                case_id=case_id,
+                effective_at=effective,
+                known_at=known,
+            )
+        except (RuntimeError, ValueError) as exc:
+            raise AccessDenied(str(exc)) from exc
+
+    def slice_h_commit_initial_assessment_setup(
+        self,
+        session: AuthenticatedSession,
+        *,
+        case_id: RecordId,
+        expected_source_version_ids: tuple[RecordVersionId, ...],
+        authority_source: str,
+        authority_provenance: str,
+        authority_scope: str,
+        authority_requirement: str,
+        effective_at: datetime,
+        idempotency_key: str,
+    ) -> CommandOutcome:
+        """Explicitly establish assignment authority and independent lane Responsibilities."""
+
+        self._validate_session(session, "case.initial-assessment.setup")
+        if session.actor_id is None:
+            raise AccessDenied("current Actor mapping is not established")
+        actor_id = session.actor_id
+        audit_rows: list[Mapping[str, object]] = []
+
+        def establish_exact_access(
+            transaction: object,
+            outcome: CommandOutcome,
+            _context: InitialAssessmentSetupContext,
+            recorded_at: datetime,
+        ) -> None:
+            if not isinstance(transaction, SQLiteIntegrityTransaction):
+                raise RuntimeError("atomic initial assessment setup adapter is unavailable")
+            source_ids = tuple(RecordVersionId.parse(value) for value in outcome.version_ids)
+            sources = tuple(transaction.get_version(value) for value in source_ids)
+            if any(source is None for source in sources):
+                raise RuntimeError("initial assessment setup source manifest is unavailable")
+            try:
+                audit_rows.append(
+                    self.operational_store.establish_initial_assessment_setup_access(
+                        transaction.connection,
+                        principal_id=session.principal_id,
+                        actor_id=actor_id,
+                        case_id=case_id,
+                        sources=tuple(
+                            (source.version_id, source.family)
+                            for source in sources
+                            if source is not None
+                        ),
+                        effective_at=effective_at,
+                        recorded_at=recorded_at,
+                        correlation_id=session.correlation_id,
+                        causation_id=outcome.command_id,
+                    )
+                )
+            except (SQLAlchemyError, ValueError) as exc:
+                raise RuntimeError(
+                    "exact initial assessment access could not be established"
+                ) from exc
+
+        try:
+            outcome = self._initial_assessment_setup.commit(
+                InitialAssessmentSetupCommand(
+                    CommandId.new(),
+                    "slice-h-initial-assessment-setup",
+                    idempotency_key,
+                    session.principal_id,
+                    actor_id,
+                    case_id,
+                    authority_source,
+                    authority_provenance,
+                    authority_scope,
+                    authority_requirement,
+                    effective_at,
+                    expected_source_version_ids,
+                    InitialAssessmentSetupFacts.new(),
+                ),
+                commit_hook=establish_exact_access,
+            )
+        except (RuntimeError, ValueError) as exc:
+            raise AccessDenied(str(exc)) from exc
+        for audit_row in audit_rows:
+            self.operational_store.append_audit_log(audit_row)
+        return outcome
 
     def slice_h_task(
         self,

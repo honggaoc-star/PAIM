@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Confirm assessment responsibility — PAIM{% endblock %}
+{% block content %}
+<section class="narrow" aria-labelledby="confirm-heading">
+  <h1 id="confirm-heading">Confirm assessment responsibility</h1>
+  <p>PAIM will record the cited assignment-authority source, establish independent Value and Risk responsibilities, and assign each to the initiating practitioner for this exact Case.</p>
+  <dl><dt>Authority source</dt><dd>{{ intent.payload.authority_source }}</dd><dt>Source reference</dt><dd>{{ intent.payload.authority_provenance }}</dd><dt>Scope</dt><dd>{{ intent.payload.authority_scope }}</dd><dt>Requirement</dt><dd>{{ intent.payload.authority_requirement }}</dd></dl>
+  <p><strong>This will not:</strong> finish either assessment, combine Value and Risk, make or authorize a Decision, or infer authority from software access.</p>
+  <form action="{{ commit_path }}" method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button type="submit">Record responsibility setup</button></form>
+  <p><a href="{{ return_path }}">Cancel and return to the Case</a></p>
+</section>
+{% endblock %}

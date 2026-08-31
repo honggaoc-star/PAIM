@@ -342,7 +342,7 @@ class PractitionerQueryService:
                 (
                     "RESPONSIBILITY STATUS NOT SAFELY AVAILABLE"
                     if responsibility_hidden
-                    else self._responsibility_state(
+                    else self._responsibility_summary(
                         tx,
                         principal_id,
                         actor_id,
@@ -489,6 +489,19 @@ class PractitionerQueryService:
             effective_at,
             known_at,
         )
+        setup_attention = self._initial_assessment_setup_attention(
+            tx,
+            principal_id,
+            actor_id,
+            case_id,
+            responsibilities,
+            governing,
+            governing_id,
+            effective_at,
+            known_at,
+        )
+        if setup_attention is not None:
+            result.append(setup_attention)
         if review is not None and review.attention_reasons:
             review_obligation: str | None = "BEGIN_CONTINUING_REVIEW"
             if review.current_review_state == "FOCUSED REVIEW OPEN":
@@ -1928,18 +1941,190 @@ class PractitionerQueryService:
         source_family: str | None = None,
         effective_at: datetime | None = None,
         known_at: datetime | None = None,
+        *,
+        write: bool = False,
     ) -> bool:
         return self._access.authorize(
             principal_id=principal_id,
             actor_id=str(actor_id),
             action=action,
             case_id=case_id,
-            write=False,
+            write=write,
             source_version_id=source_version_id,
             source_family=source_family,
             effective_at=effective_at,
             known_at=known_at,
         )
+
+    def _initial_assessment_setup_attention(
+        self,
+        tx: ContinuityTransaction,
+        principal_id: str,
+        actor_id: RecordId,
+        case_id: RecordId,
+        responsibilities: tuple[dict[str, object], ...],
+        governing: tuple[RecordVersionId, ...],
+        governing_id: RecordVersionId | None,
+        effective_at: datetime,
+        known_at: datetime,
+    ) -> AttentionItem | None:
+        """Expose the exact missing setup step without inferring authority."""
+
+        lane_obligations = {
+            "FINISH_VALUE_ASSESSMENT",
+            "FINISH_RISK_ASSESSMENT",
+        }
+        if any(str(row["obligation_kind"]) in lane_obligations for row in responsibilities):
+            return None
+        all_responsibilities = self._latest_rows(
+            tx,
+            tx.projection_rows("responsibility_versions", owning_case_id=str(case_id)),
+            effective_at,
+            known_at,
+        )
+        if len(all_responsibilities) != len(responsibilities):
+            return None
+        continuity = tuple(
+            row for row in responsibilities if row["obligation_kind"] == "DETERMINE_CASE_CONTINUITY"
+        )
+        if len(continuity) != 1 or len(governing) != 1 or governing_id is None:
+            return None
+        if (
+            self._one_responsibility_state(
+                tx,
+                principal_id,
+                actor_id,
+                case_id,
+                continuity[0],
+                effective_at,
+                known_at,
+            )
+            != "ONE"
+        ):
+            return None
+        assignments = self._eligible_assignments(
+            tx,
+            principal_id,
+            actor_id,
+            case_id,
+            continuity[0],
+            effective_at,
+            known_at,
+        )
+        if len(assignments) != 1 or assignments[0]["actor_id"] != str(actor_id):
+            return None
+        responsibility_id = RecordVersionId.parse(str(continuity[0]["version_id"]))
+        assignment_id = RecordVersionId.parse(str(assignments[0]["version_id"]))
+        basis_id = RecordVersionId.parse(str(assignments[0]["assignment_basis_version_id"]))
+        basis_rows = tx.projection_rows("assignment_basis_versions", version_id=str(basis_id))
+        if len(basis_rows) != 1:
+            return None
+        authority_id = RecordVersionId.parse(str(basis_rows[0]["basis_source_version_id"]))
+        case_versions = self._current_family(
+            tx, "prospective-case", f"case:{case_id}", effective_at, known_at
+        )
+        status_versions = self._current_family(
+            tx, "case-continuity-status", f"case:{case_id}", effective_at, known_at
+        )
+        sources = tuple(
+            sorted(
+                {
+                    *case_versions,
+                    *status_versions,
+                    governing[0],
+                    governing_id,
+                    responsibility_id,
+                    assignment_id,
+                    basis_id,
+                    authority_id,
+                },
+                key=str,
+            )
+        )
+        if not sources or not all(
+            self._source_visible(
+                tx,
+                principal_id,
+                actor_id,
+                case_id,
+                source,
+                effective_at,
+                known_at,
+            )
+            for source in sources
+        ):
+            return None
+        can_setup = self._allowed(
+            principal_id,
+            actor_id,
+            case_id,
+            "case.initial-assessment.setup",
+            write=True,
+        )
+        return AttentionItem(
+            case_id,
+            "INITIAL_ASSESSMENT_SETUP",
+            "Set up responsibility for Value and Risk assessments.",
+            (
+                "Record the authority source and confirm who will carry each independent "
+                "assessment before assessment work begins."
+                if can_setup
+                else (
+                    "An authorized practitioner must establish the two independent "
+                    "responsibilities."
+                )
+            ),
+            None,
+            None,
+            SourceManifest(sources, effective_at, known_at),
+            f"/cases/{case_id}/setup/initial-assessments" if can_setup else None,
+        )
+
+    def _responsibility_summary(
+        self,
+        tx: ContinuityTransaction,
+        principal_id: str,
+        actor_id: RecordId,
+        case_id: RecordId,
+        rows: tuple[dict[str, object], ...],
+        effective_at: datetime,
+        known_at: datetime,
+    ) -> str:
+        labels = {
+            "DETERMINE_CASE_CONTINUITY": "Case continuity",
+            "FINISH_VALUE_ASSESSMENT": "Value assessment",
+            "FINISH_RISK_ASSESSMENT": "Risk assessment",
+        }
+        summaries: list[str] = []
+        for row in rows:
+            label = labels.get(
+                str(row["obligation_kind"]),
+                str(row["obligation_kind"]).replace("_", " ").title(),
+            )
+            state = self._one_responsibility_state(
+                tx, principal_id, actor_id, case_id, row, effective_at, known_at
+            )
+            if state == "ONE":
+                assignments = self._eligible_assignments(
+                    tx,
+                    principal_id,
+                    actor_id,
+                    case_id,
+                    row,
+                    effective_at,
+                    known_at,
+                )
+                ownership = (
+                    "assigned to you"
+                    if assignments and assignments[0]["actor_id"] == str(actor_id)
+                    else "assigned to another practitioner"
+                )
+            elif "CONFLICT" in state:
+                ownership = "assignment conflict"
+            else:
+                ownership = "assignment not established"
+            summaries.append(f"{label} — {ownership}")
+        return "; ".join(summaries) if summaries else "No visible responsibility"
 
     def _source_visible(
         self,

@@ -1198,6 +1198,205 @@ def register_slice_h_routes(
             200,
         )
 
+    @app.get("/cases/{case_id}/setup/initial-assessments")
+    def initial_assessment_setup(request: Request, case_id: str) -> Response:
+        state = current(request)
+        if isinstance(state, Response):
+            return state
+        _identifier, session = state
+        assert session.authentication is not None
+        try:
+            context = gateway.slice_h_initial_assessment_setup_context(
+                session.authentication, RecordId.parse(case_id)
+            )
+            case_view = gateway.slice_h_case(session.authentication, RecordId.parse(case_id))
+        except (AccessDenied, ValueError):
+            return error(
+                request,
+                session,
+                title="Assessment responsibility setup is not available",
+                message=(
+                    "Return to the Case to reconstruct the exact current prerequisite. "
+                    "PAIM did not infer or grant responsibility."
+                ),
+                return_path=f"/cases/{case_id}",
+                status=409,
+            )
+        return render(
+            request,
+            "slice_h_initial_setup.html",
+            {
+                "view": case_view,
+                "context": context,
+                "csrf_token": session.csrf_secret,
+                "authenticated": True,
+            },
+            200,
+        )
+
+    @app.post("/cases/{case_id}/setup/initial-assessments/review")
+    async def review_initial_assessment_setup(request: Request, case_id: str) -> Response:
+        state = current(request)
+        if isinstance(state, Response):
+            return state
+        identifier, session = state
+        if not same_origin(request):
+            return error(
+                request,
+                session,
+                title="Request rejected",
+                message="The request origin could not be verified.",
+                return_path=f"/cases/{case_id}/setup/initial-assessments",
+                status=403,
+            )
+        form = await request.form(max_fields=5, max_files=0, max_part_size=4_096)
+        if not registry.verify_csrf(session, str(form.get("csrf_token", ""))):
+            return error(
+                request,
+                session,
+                title="Request rejected",
+                message="The form token was missing or invalid.",
+                return_path=f"/cases/{case_id}/setup/initial-assessments",
+                status=403,
+            )
+        payload = {
+            name: str(form.get(name, "")).strip()
+            for name in (
+                "authority_source",
+                "authority_provenance",
+                "authority_scope",
+                "authority_requirement",
+            )
+        }
+        if any(not value or len(value) > 1_200 for value in payload.values()):
+            return error(
+                request,
+                session,
+                title="Assignment authority is incomplete",
+                message="Provide the source, reference, scope, and requirement.",
+                return_path=f"/cases/{case_id}/setup/initial-assessments",
+                status=400,
+            )
+        assert session.authentication is not None
+        try:
+            context = gateway.slice_h_initial_assessment_setup_context(
+                session.authentication, RecordId.parse(case_id)
+            )
+        except (AccessDenied, ValueError):
+            return initial_assessment_setup(request, case_id)
+        payload.update(
+            {
+                "case_id": case_id,
+                "effective_at": now().astimezone(UTC).isoformat(),
+            }
+        )
+        intent = registry.create_intent(
+            identifier,
+            action="case.initial-assessment.setup",
+            payload=payload,
+            expected_version_ids=tuple(str(value) for value in context.source_version_ids),
+        )
+        return RedirectResponse(
+            f"/cases/{case_id}/setup/initial-assessments/confirm/{intent.intent_id}",
+            status_code=303,
+        )
+
+    @app.get("/cases/{case_id}/setup/initial-assessments/confirm/{intent_id}")
+    def confirm_initial_assessment_setup(
+        request: Request, case_id: str, intent_id: str
+    ) -> Response:
+        state = current(request)
+        if isinstance(state, Response):
+            return state
+        identifier, session = state
+        intent = registry.intent_for_actions(
+            identifier, intent_id, actions=frozenset({"case.initial-assessment.setup"})
+        )
+        if intent is None or intent.payload.get("case_id") != case_id:
+            return error(
+                request,
+                session,
+                title="Setup review expired",
+                message="Return to the Case and reconstruct the current prerequisite.",
+                return_path=f"/cases/{case_id}",
+                status=409,
+            )
+        return render(
+            request,
+            "slice_h_initial_setup_confirm.html",
+            {
+                "view": None,
+                "intent": intent,
+                "csrf_token": session.csrf_secret,
+                "commit_path": (f"/cases/{case_id}/setup/initial-assessments/commit/{intent_id}"),
+                "return_path": f"/cases/{case_id}",
+                "authenticated": True,
+            },
+            200,
+        )
+
+    @app.post("/cases/{case_id}/setup/initial-assessments/commit/{intent_id}")
+    async def commit_initial_assessment_setup(
+        request: Request, case_id: str, intent_id: str
+    ) -> Response:
+        state = current(request)
+        if isinstance(state, Response):
+            return state
+        identifier, session = state
+        if not same_origin(request):
+            return error(
+                request,
+                session,
+                title="Request rejected",
+                message="The request origin could not be verified.",
+                return_path=f"/cases/{case_id}",
+                status=403,
+            )
+        form = await request.form(max_fields=1, max_files=0, max_part_size=1_024)
+        if not registry.verify_csrf(session, str(form.get("csrf_token", ""))):
+            return error(
+                request,
+                session,
+                title="Request rejected",
+                message="The form token was missing or invalid.",
+                return_path=f"/cases/{case_id}",
+                status=403,
+            )
+        intent = registry.intent_for_actions(
+            identifier, intent_id, actions=frozenset({"case.initial-assessment.setup"})
+        )
+        if intent is None or intent.payload.get("case_id") != case_id:
+            return confirm_initial_assessment_setup(request, case_id, intent_id)
+        if intent.outcome_path:
+            return RedirectResponse(intent.outcome_path, status_code=303)
+        assert session.authentication is not None
+        try:
+            gateway.slice_h_commit_initial_assessment_setup(
+                session.authentication,
+                case_id=RecordId.parse(case_id),
+                expected_source_version_ids=tuple(
+                    RecordVersionId.parse(value) for value in intent.expected_version_ids
+                ),
+                authority_source=intent.payload["authority_source"],
+                authority_provenance=intent.payload["authority_provenance"],
+                authority_scope=intent.payload["authority_scope"],
+                authority_requirement=intent.payload["authority_requirement"],
+                effective_at=_timestamp(intent.payload["effective_at"]),
+                idempotency_key=intent.idempotency_key,
+            )
+        except (AccessDenied, KeyError, RuntimeError, ValueError) as exc:
+            return error(
+                request,
+                session,
+                title="Assessment responsibility setup could not be recorded",
+                message=str(exc),
+                return_path=f"/cases/{case_id}",
+                status=409,
+            )
+        outcome_path = f"/cases/{case_id}"
+        registry.record_intent_outcome(identifier, intent_id, outcome_path=outcome_path)
+        return RedirectResponse(outcome_path, status_code=303)
+
     def action_context(
         request: Request, case_id: str, responsibility_version_id: str
     ) -> tuple[str, BrowserSession, SliceHActionContext, str] | Response:

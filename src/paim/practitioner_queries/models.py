@@ -26,6 +26,7 @@ class AttentionItem:
     responsibility_version_id: RecordVersionId | None
     work_version_id: RecordVersionId | None
     source_manifest: SourceManifest
+    action_path: str | None = None
 
 
 @dataclass(frozen=True, slots=True)

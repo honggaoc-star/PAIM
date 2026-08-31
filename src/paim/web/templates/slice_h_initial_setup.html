@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Set up assessment responsibility — PAIM{% endblock %}
+{% block content %}
+<nav aria-label="Breadcrumb"><a href="/cases/{{ view.case_id }}">{{ view.title }}</a> / <span>Assessment responsibility</span></nav>
+<section class="narrow" aria-labelledby="setup-heading">
+  <h1 id="setup-heading">Set up responsibility for Value and Risk assessments</h1>
+  <p>Before assessment work begins, record the exact organizational source that permits these assignments. PAIM will keep Value and Risk as separate responsibilities.</p>
+  <form action="/cases/{{ view.case_id }}/setup/initial-assessments/review" method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <label>Authority source<input name="authority_source" required></label>
+    <label>Source reference<input name="authority_provenance" required></label>
+    <label>Scope of this assignment authority<textarea name="authority_scope" required></textarea></label>
+    <label>Requirement or rule that permits these assignments<textarea name="authority_requirement" required></textarea></label>
+    <div class="known-context"><strong>Who will carry the work?</strong><span>The initiating practitioner will be assigned separate Value and Risk assessment responsibilities for this exact Case. PAIM rechecks the current Case context before recording.</span></div>
+    <button type="submit">Review responsibility setup</button>
+  </form>
+  <p class="field-help">Software access, responsibility, and substantive authority remain separate. This step does not complete an assessment or make a Decision.</p>
+</section>
+{% endblock %}
