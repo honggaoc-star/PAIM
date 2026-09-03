@@ -739,8 +739,11 @@ class OperationalApplication:
                     context.responsibility_version_id,
                     context.assignment_version_id,
                     context.current_assessment_version_id,
-                    payload["rationale"],
-                    lines("limitations"),
+                    (
+                        "Practitioner completed the five substantive assessment "
+                        "questions for separate review."
+                    ),
+                    (),
                     effective_at,
                     now,
                 )

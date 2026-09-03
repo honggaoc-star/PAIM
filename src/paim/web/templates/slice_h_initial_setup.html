@@ -7,10 +7,10 @@
   <p>Before assessment work begins, record the exact organizational source that permits these assignments. PAIM will keep Value and Risk as separate responsibilities.</p>
   <form action="/cases/{{ view.case_id }}/setup/initial-assessments/review" method="post">
     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-    <label>Authority source<input name="authority_source" required></label>
-    <label>Source reference<input name="authority_provenance" required></label>
-    <label>Scope of this assignment authority<textarea name="authority_scope" required></textarea></label>
-    <label>Requirement or rule that permits these assignments<textarea name="authority_requirement" required></textarea></label>
+    <label>Authority source<input name="authority_source" required></label><p class="field-help">The organizational source that permits responsibility assignments. Illustrative example: an approved AI governance charter.</p>
+    <label>Source reference<input name="authority_provenance" required></label><p class="field-help">Where the source can be identified or checked. Illustrative example: charter section 4.2 or a policy record reference.</p>
+    <label>Scope of this assignment authority<textarea name="authority_scope" required></textarea></label><p class="field-help">The people, work, and Case context covered by the source. Illustrative example: this exact Case and its initial independent assessments. Describe only the authority that actually exists.</p>
+    <label>Requirement or rule that permits these assignments<textarea name="authority_requirement" required></textarea></label><p class="field-help">The specific rule that allows the named responsibilities to be assigned. Illustrative example: the named governance role may assign the initial Value and Risk assessments. Do not enter a software permission or invent authority.</p>
     <div class="known-context"><strong>Who will carry the work?</strong><span>The initiating practitioner will be assigned separate Value and Risk assessment responsibilities for this exact Case. PAIM rechecks the current Case context before recording.</span></div>
     <button type="submit">Review responsibility setup</button>
   </form>

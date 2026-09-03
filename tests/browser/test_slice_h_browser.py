@@ -5,6 +5,8 @@ from datetime import timedelta
 import pytest
 from playwright.sync_api import Browser
 
+from paim.assessment_review import AssessmentLane
+from paim.integrity import RecordVersionId
 from paim.operational import AccessEffect, Permission, PrincipalStatus, ScopeType
 from tests.browser.test_m1a_browser import live_server
 from tests.integration.test_gate8_slice_b_case_continuity import RECORDED
@@ -214,10 +216,10 @@ def test_case_start_reveals_other_provider_description_only_for_other(
 
 
 @pytest.mark.browser
-def test_slice_h_value_action_is_practitioner_specific_in_a_real_browser(
+def test_slice_h_value_and_risk_actions_capture_five_judgments_in_a_real_browser(
     web_fixture: WebFixture, browser: Browser
 ) -> None:
-    """A real browser presents and confirms the revised Value judgment."""
+    """A no-JavaScript browser records independent five-question lane judgments."""
 
     fixture = slice_c_fixture(web_fixture.operational.domain_store, "slice-h-browser-value")
     work = _establish_value_work(web_fixture, fixture, "slice-h-browser-value-work")
@@ -244,6 +246,13 @@ def test_slice_h_value_action_is_practitioner_specific_in_a_real_browser(
         ScopeType.CASE,
         case_id,
     )
+    grant(
+        web_fixture,
+        Permission.COMMAND,
+        "assessment.finish.risk",
+        ScopeType.CASE,
+        case_id,
+    )
     _grant_all_case_sources(web_fixture, case_id, configuration_id)
 
     with live_server(web_fixture) as origin:
@@ -257,26 +266,29 @@ def test_slice_h_value_action_is_practitioner_specific_in_a_real_browser(
         page.get_by_role("link", name="Continue to this action").click()
 
         assert page.get_by_role("heading", name="Finish the Value assessment").is_visible()
-        assert page.get_by_label("What improvement or benefit are we expecting?").is_visible()
+        assert page.get_by_label("What value are we expecting from this AI use?").is_visible()
         assert page.get_by_label("What could go wrong or require attention?").count() == 0
-        page.get_by_label("What improvement or benefit are we expecting?").fill(
-            "Faster review preparation for accountable lending staff."
+        page.get_by_label("What value are we expecting from this AI use?").fill(
+            "Reduce accountable review preparation time by about 20%."
+        )
+        page.get_by_label("How is the AI use expected to contribute to that value?").fill(
+            "It may organize the exact visible information for accountable staff."
+        )
+        page.get_by_label("What constraints or limitations could affect the expected value?").fill(
+            "Benefit depends on source quality and does not include lending judgment."
         )
         page.get_by_label(
-            "How is this AI use expected to contribute, and where might it not?"
-        ).fill("It may organize evidence; it does not make the lending decision.")
-        page.get_by_label("What information supports or limits that expectation?").fill(
-            "The exact visible Harborlight information basis."
+            "What uncertainty about the AI use and its expected value should the "
+            "decision maker be aware of?"
+        ).fill("The time benefit may vary with application complexity.")
+        page.get_by_label(
+            "If the AI use is adopted, should its value be reassessed? If so, when or how often?"
+        ).fill("Reassess quarterly after adoption using observed preparation time.")
+        assert (
+            page.get_by_label("Why is this Value assessment ready for independent review?").count()
+            == 0
         )
-        page.get_by_label("What important uncertainty should the decision maker understand?").fill(
-            "Benefit may vary with case complexity."
-        )
-        page.get_by_label("What does this imply for the management decision?").fill(
-            "Consider the bounded benefit alongside the separate Risk assessment."
-        )
-        page.get_by_label("Why is this Value assessment ready for independent review?").fill(
-            "The expected benefit, limits, information, and uncertainty are explicit."
-        )
+        assert page.get_by_label("Other important limitations").count() == 0
         page.get_by_role("button", name="Review the Value assessment").click()
 
         assert page.get_by_role("heading", name="Record this Value assessment?").is_visible()
@@ -284,5 +296,86 @@ def test_slice_h_value_action_is_practitioner_specific_in_a_real_browser(
         assert page.get_by_text(
             "Risk, suitability, reliance, and the management decision are not changed."
         ).is_visible()
-        assert page.get_by_text("Faster review preparation").is_visible()
+        assert page.get_by_text("Reduce accountable review preparation time").is_visible()
+        assert page.get_by_text("Reassess quarterly after adoption").is_visible()
+        page.get_by_role("button", name="Record Value assessment").click()
+
+        risk_card = page.locator("article.attention-card").filter(
+            has_text="Finish the Risk assessment"
+        )
+        assert risk_card.is_visible(), page.locator("main").inner_text()
+        risk_card.get_by_role("link", name="Continue this work").click()
+        assert page.get_by_role("heading", name="Finish the Risk assessment").is_visible()
+        page.get_by_label("What could go wrong or cause harm from this AI use?").fill(
+            "A misleading summary could distort an accountable review."
+        )
+        page.get_by_label(
+            "Under what conditions or circumstances could these risks occur or become significant?"
+        ).fill("Risk increases when source information is incomplete or contradictory.")
+        page.get_by_label(
+            "What safeguards or controls are expected to reduce or manage these risks?"
+        ).fill("Source citation and accountable human review are expected to detect errors.")
+        page.get_by_label(
+            "What important residual risk or uncertainty should the decision maker be aware of?"
+        ).fill("Reviewers may still over-trust a fluent but inaccurate summary.")
+        page.get_by_label(
+            "If the AI use is adopted, should its risks and safeguards be reassessed? "
+            "If so, when or how often?"
+        ).fill("Reassess monthly after adoption and after any material incident.")
+        assert (
+            page.get_by_label("Why is this Risk assessment ready for independent review?").count()
+            == 0
+        )
+        page.get_by_role("button", name="Review the Risk assessment").click()
+        assert page.get_by_role("heading", name="Record this Risk assessment?").is_visible()
+        assert page.get_by_text(
+            "Value, suitability, reliance, and the management decision are not changed."
+        ).is_visible()
+        assert page.get_by_text("misleading summary could distort").is_visible()
+        page.get_by_role("button", name="Record Risk assessment").click()
+
+        assert page.url == f"{origin}/cases/{case_id}"
         context.close()
+
+    with web_fixture.operational.domain_store.read_transaction() as tx:
+        rows = tx.projection_rows("assessment_candidate_versions", case_id=str(case_id))
+        assert {str(row["lane"]) for row in rows} == {"VALUE", "RISK"}
+        sources = {
+            str(row["lane"]): tx.get_version(RecordVersionId.parse(str(row["version_id"])))
+            for row in rows
+        }
+        assert tx.count_rows("prospective_integration_versions") == 0
+        assert tx.count_rows("prospective_decision_versions") == 0
+        assert tx.count_rows("planned_review_point_versions") == 0
+        assert tx.count_rows("review_episode_versions") == 0
+
+    value = sources[AssessmentLane.VALUE.value]
+    risk = sources[AssessmentLane.RISK.value]
+    assert value is not None and risk is not None
+    assert value.record_id != risk.record_id
+    assert value.content["finding"] == "Reduce accountable review preparation time by about 20%."
+    assert value.content["boundary"] == (
+        "It may organize the exact visible information for accountable staff."
+    )
+    assert value.content["provenance"] == (
+        "Benefit depends on source quality and does not include lending judgment."
+    )
+    assert value.content["uncertainty"] == (
+        "The time benefit may vary with application complexity."
+    )
+    assert value.content["implication"] == (
+        "Reassess quarterly after adoption using observed preparation time."
+    )
+    assert risk.content["finding"] == ("A misleading summary could distort an accountable review.")
+    assert risk.content["boundary"] == (
+        "Risk increases when source information is incomplete or contradictory."
+    )
+    assert risk.content["provenance"] == (
+        "Source citation and accountable human review are expected to detect errors."
+    )
+    assert risk.content["uncertainty"] == (
+        "Reviewers may still over-trust a fluent but inaccurate summary."
+    )
+    assert risk.content["implication"] == (
+        "Reassess monthly after adoption and after any material incident."
+    )

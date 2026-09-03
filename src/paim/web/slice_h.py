@@ -138,89 +138,85 @@ def _action_fields(
         return (
             {
                 "name": "finding",
-                "label": "What improvement or benefit are we expecting?",
-                "type": "textarea",
-                "help": "Describe the practical result that matters to this management decision.",
-            },
-            {
-                "name": "boundary",
-                "label": "How is this AI use expected to contribute, and where might it not?",
+                "label": "What value are we expecting from this AI use?",
                 "type": "textarea",
                 "help": (
-                    "State the substantive limits of the expectation; PAIM already carries "
-                    "the Case and setup."
+                    "Describe the expected value in practical terms and, where meaningful, "
+                    "quantify it—for example process, cost, growth, quality, capacity, or time."
                 ),
             },
             {
-                "name": "provenance",
-                "label": "What information supports or limits that expectation?",
+                "name": "boundary",
+                "label": "How is the AI use expected to contribute to that value?",
                 "type": "textarea",
+                "help": "Include information supporting the expected contribution.",
+            },
+            {
+                "name": "provenance",
+                "label": "What constraints or limitations could affect the expected value?",
+                "type": "textarea",
+                "help": "Include relevant known information supporting those limits.",
             },
             {
                 "name": "uncertainty",
-                "label": "What important uncertainty should the decision maker understand?",
+                "label": (
+                    "What uncertainty about the AI use and its expected value should the "
+                    "decision maker be aware of?"
+                ),
                 "type": "textarea",
             },
             {
                 "name": "implication",
-                "label": "What does this imply for the management decision?",
+                "label": (
+                    "If the AI use is adopted, should its value be reassessed? "
+                    "If so, when or how often?"
+                ),
                 "type": "textarea",
-            },
-            {
-                "name": "rationale",
-                "label": "Why is this Value assessment ready for independent review?",
-                "type": "textarea",
-            },
-            {
-                "name": "limitations",
-                "label": "Other important limitations (one per line)",
-                "type": "textarea",
-                "required": False,
             },
         )
     if action == "assessment.finish.risk":
         return (
             {
                 "name": "finding",
-                "label": "What could go wrong or require attention?",
+                "label": "What could go wrong or cause harm from this AI use?",
                 "type": "textarea",
-                "help": "Describe the concern without turning it into a score or ranking.",
+                "help": "Describe material risks or concerns without forcing a score or ranking.",
             },
             {
                 "name": "boundary",
-                "label": "Under what conditions or circumstances does it matter?",
-                "type": "textarea",
-                "help": (
-                    "State the substantive conditions; PAIM already carries the Case and setup."
+                "label": (
+                    "Under what conditions or circumstances could these risks occur or "
+                    "become significant?"
                 ),
-            },
-            {
-                "name": "rationale",
-                "label": "What safeguards or controls reduce or manage the concern?",
                 "type": "textarea",
+                "help": "Include supporting information where available.",
             },
             {
                 "name": "provenance",
-                "label": "What information supports or limits this assessment?",
+                "label": (
+                    "What safeguards or controls are expected to reduce or manage these risks?"
+                ),
                 "type": "textarea",
+                "help": (
+                    "Include supporting information about their expected effectiveness "
+                    "where available."
+                ),
             },
             {
                 "name": "uncertainty",
                 "label": (
-                    "What uncertainty or residual concern should the decision maker understand?"
+                    "What important residual risk or uncertainty should the decision maker "
+                    "be aware of?"
                 ),
                 "type": "textarea",
             },
             {
                 "name": "implication",
-                "label": "What does this imply for the management decision?",
+                "label": (
+                    "If the AI use is adopted, should its risks and safeguards be reassessed? "
+                    "If so, when or how often?"
+                ),
                 "type": "textarea",
-            },
-            {
-                "name": "limitations",
-                "label": "Other important limitations (one per line)",
-                "type": "textarea",
-                "required": False,
             },
         )
     if action.startswith("assessment.adequacy"):
@@ -486,14 +482,18 @@ def _action_presentation(action: str) -> SliceHActionPresentation:
 def _action_confirmation(action: str, payload: dict[str, str]) -> SliceHConfirmation:
     labels: dict[str, dict[str, str]] = {
         "assessment.finish.value": {
-            "finding": "Expected improvement or benefit",
-            "implication": "Implication for the decision",
-            "uncertainty": "Important uncertainty",
+            "finding": "Expected value",
+            "boundary": "AI contribution and supporting information",
+            "provenance": "Constraints, limitations, and supporting information",
+            "uncertainty": "Value uncertainty",
+            "implication": "Value reassessment after adoption",
         },
         "assessment.finish.risk": {
-            "finding": "Concern requiring attention",
-            "implication": "Implication for the decision",
-            "uncertainty": "Residual uncertainty",
+            "finding": "Material risks or harms",
+            "boundary": "Conditions and supporting information",
+            "provenance": "Safeguards, controls, and supporting information",
+            "uncertainty": "Residual risk or uncertainty",
+            "implication": "Risk and safeguard reassessment after adoption",
         },
         "assessment.adequacy.value": {"outcome": "Suitability", "rationale": "Why"},
         "assessment.adequacy.risk": {"outcome": "Suitability", "rationale": "Why"},
@@ -527,14 +527,14 @@ def _action_confirmation(action: str, payload: dict[str, str]) -> SliceHConfirma
     copy = {
         "assessment.finish.value": (
             "Record this Value assessment?",
-            "Check the expected benefit and the implication for the decision.",
+            "Check the five Value judgments and their supporting information.",
             "The Value assessment becomes ready for a separate suitability review.",
             "Risk, suitability, reliance, and the management decision are not changed.",
             "Record Value assessment",
         ),
         "assessment.finish.risk": (
             "Record this Risk assessment?",
-            "Check the concern and the implication for the decision.",
+            "Check the five Risk judgments and their supporting information.",
             "The Risk assessment becomes ready for a separate suitability review.",
             "Value, suitability, reliance, and the management decision are not changed.",
             "Record Risk assessment",
