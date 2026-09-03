@@ -1062,6 +1062,14 @@ def test_new_case_exposes_explicit_assessment_responsibility_setup(
     assert "Software access, responsibility, and substantive authority remain separate" in (
         setup.text
     )
+    for guidance in (
+        "Illustrative example: an approved AI governance charter.",
+        "Illustrative example: charter section 4.2 or a policy record reference.",
+        "Illustrative example: this exact Case and its initial independent assessments.",
+        "Illustrative example: the named governance role may assign",
+        "Do not enter a software permission or invent authority",
+    ):
+        assert guidance in setup.text
     incomplete_setup = web_fixture.client.post(
         f"{setup_path}/review",
         data={
@@ -1107,6 +1115,12 @@ def test_new_case_exposes_explicit_assessment_responsibility_setup(
     assert "Finish the Risk assessment" in actionable_case.text
     assert "Value assessment — assigned to you" in actionable_case.text
     assert "Risk assessment — assigned to you" in actionable_case.text
+    assert "This assessment is assigned to you and has not yet been completed." in (
+        actionable_case.text
+    )
+    assert "The governed act cannot proceed until accountability is exact." not in (
+        actionable_case.text
+    )
     for action in ("assessment.finish.value", "assessment.finish.risk"):
         assert web_fixture.operational.operational_store.permission_allowed(
             "principal:web-practitioner",

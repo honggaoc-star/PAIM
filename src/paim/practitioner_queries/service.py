@@ -708,7 +708,14 @@ class PractitionerQueryService:
                     lane_question[1]
                     if lane_question
                     else f"Who will carry {obligation} for this exact Case context?",
-                    "The governed act cannot proceed until accountability is exact.",
+                    (
+                        "This assessment is assigned to you and has not yet been completed."
+                        if lane_question and state == "ONE"
+                        else (
+                            "A responsible person must be clearly assigned before this "
+                            "work can continue."
+                        )
+                    ),
                     responsibility_id,
                     None,
                     SourceManifest((responsibility_id,), effective_at, known_at),
